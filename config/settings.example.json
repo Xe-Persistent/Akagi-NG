@@ -1,0 +1,9 @@
+{
+  "majsoul_url": "https://game.maj-soul.com/1/",
+  "model": "mortal",
+  "ot_server": {
+    "server": "http://127.0.0.1:5000",
+    "online": false,
+    "api_key": "your_api_key"
+  }
+}

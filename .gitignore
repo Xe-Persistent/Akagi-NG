@@ -1,0 +1,17 @@
+.DS_Store
+Thumbs.db
+
+.idea/
+.venv/
+build/
+config/
+dist/
+lib/*
+logs/
+models/*
+node_modules/
+playwright_data/
+
+__pycache__/
+*.py[cod]
+*$py.class

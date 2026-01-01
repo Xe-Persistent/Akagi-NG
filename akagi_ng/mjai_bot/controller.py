@@ -1,10 +1,13 @@
-import importlib
 import json
-import os
+from typing import Protocol
 
 from settings.settings import settings
-from .base.bot import Bot
 from .logger import logger
+
+
+class Bot(Protocol):
+    def react(self, events: str) -> str:
+        ...
 
 
 class Controller(object):
@@ -19,31 +22,12 @@ class Controller(object):
         self.starting_game: bool = False
 
     def list_available_bots(self) -> list[type[Bot]]:
-        bots = []
-        bots_names = []
-        # Get the current package folder
-        current_dir = os.path.dirname(__file__)
-        for item in os.listdir(current_dir):
-            if item.startswith("__"):
-                continue
-            if item == "base":
-                continue
-            dir_path = os.path.join(current_dir, item)
-            # Check if folder and has a bot.py file
-            if os.path.isdir(dir_path) and os.path.exists(os.path.join(dir_path, "bot.py")):
-                try:
-                    # Import the bot module using a relative import
-                    module = importlib.import_module(f".{item}.bot", package=__package__)
-                    if hasattr(module, "Bot"):
-                        bot_class = getattr(module, "Bot")
-                        bots.append(bot_class)
-                        bots_names.append(item)
-                except Exception as e:
-                    # Logging error or handling exception
-                    logger.error(f"Error importing bot from {item}: {e}")
-        self.available_bots = bots
-        self.available_bots_names = bots_names
-        return bots
+        from mjai_bot.mortal.bot import Bot as MortalBot
+        from mjai_bot.mortal3p.bot import Bot as Mortal3pBot
+
+        self.available_bots = [MortalBot, Mortal3pBot]
+        self.available_bots_names = ["mortal", "mortal3p"]
+        return self.available_bots
 
     def react(self, events: list[dict]) -> dict:
         if not self.bot:

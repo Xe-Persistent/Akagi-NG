@@ -1,5 +1,6 @@
 import json
 
+from mjai_bot.mortal_common import model as common_model
 from . import model
 from .logger import logger
 
@@ -8,9 +9,7 @@ class Bot:
     def __init__(self):
         self.player_id: int = None
         self.model = None
-        # ========== Online Server =========== #
-        model.online_settings_init()
-        # ==================================== #
+
 
     def react(self, events: str) -> str:
         """
@@ -89,11 +88,11 @@ class Bot:
 
         if return_action is None:
             # ========== Online Server =========== #
-            if model.ot_settings['online']:
+            if common_model.is_online:
                 raw_data = {
                     "type": "none",
                     "meta": {
-                        "online": model.is_online
+                        "online": common_model.is_online
                     }
                 }
                 return_action = json.dumps(raw_data, separators=(",", ":"))
@@ -103,14 +102,14 @@ class Bot:
             return return_action
         else:
             # ========== Online Server =========== #
-            if model.ot_settings['online']:
+            if common_model.is_online:
                 if "meta" in return_action:
                     raw_data = json.loads(return_action)
-                    raw_data["meta"]["online"] = model.is_online
+                    raw_data["meta"]["online"] = common_model.is_online
                     return_action = json.dumps(raw_data, separators=(",", ":"))
                 else:
                     raw_data = json.loads(return_action)
-                    raw_data["meta"] = {"online": model.is_online}
+                    raw_data["meta"] = {"online": common_model.is_online}
                     return_action = json.dumps(raw_data, separators=(",", ":"))
             # ==================================== #
             # raw_data = json.loads(return_action)

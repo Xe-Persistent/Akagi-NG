@@ -427,7 +427,7 @@ class MajsoulBridge(BridgeBase):
                                 'consumed': consumed
                             }
                         )
-
+            # nukidora
             if liqi_message['data']['name'] == 'ActionBaBei':
                 actor = liqi_message['data']['data']['seat']
                 ret.append(

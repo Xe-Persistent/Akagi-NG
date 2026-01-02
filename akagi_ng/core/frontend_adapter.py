@@ -5,14 +5,14 @@ from typing import Any
 from core.libriichi_helper import meta_to_recommend
 
 
-def _get_fuuro_details(action: str, bot: Any) -> dict[str, Any] | None:
+def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
     """
     辅助函数：根据动作类型，获取副露所需的详细信息 (tile 和 consumed)。
     使用 mjai.Bot 原生方法 (find_chi_candidates, find_pon_candidates) 替代手写逻辑。
+    返回列表，因为某些动作（如暗杠）可能有多个候选项。
     """
+    results = []
     last_kawa = getattr(bot, "last_kawa_tile", None)
-    if not last_kawa:
-        return None
 
     # Helper to parse tile number
     def get_tile_num(t):
@@ -21,6 +21,8 @@ def _get_fuuro_details(action: str, bot: Any) -> dict[str, Any] | None:
     try:
         # 1. 处理吃 (Chi)
         if action in ("chi_low", "chi_mid", "chi_high"):
+            if not last_kawa:
+                return []
             candidates = bot.find_chi_candidates()
             target_num = get_tile_num(last_kawa)
 
@@ -31,74 +33,70 @@ def _get_fuuro_details(action: str, bot: Any) -> dict[str, Any] | None:
 
                 c1, c2 = get_tile_num(consumed[0]), get_tile_num(consumed[1])
                 # Determine type based on numerical relationship
-                # Low: consumed > target (e.g. target 3, consume 4,5)
-                # High: consumed < target (e.g. target 3, consume 1,2)
-                # Mid: target in between (e.g. target 3, consume 2,4)
-
                 is_low = c1 > target_num and c2 > target_num
                 is_high = c1 < target_num and c2 < target_num
                 is_mid = not is_low and not is_high
 
                 if action == "chi_low" and is_low:
-                    return {"tile": last_kawa, "consumed": consumed}
-                if action == "chi_high" and is_high:
-                    return {"tile": last_kawa, "consumed": consumed}
-                if action == "chi_mid" and is_mid:
-                    return {"tile": last_kawa, "consumed": consumed}
+                    results.append({"tile": last_kawa, "consumed": consumed})
+                elif action == "chi_high" and is_high:
+                    results.append({"tile": last_kawa, "consumed": consumed})
+                elif action == "chi_mid" and is_mid:
+                    results.append({"tile": last_kawa, "consumed": consumed})
 
         # 2. 处理碰 (Pon)
         elif action == "pon":
+            if not last_kawa:
+                return []
             candidates = bot.find_pon_candidates()
+            # Usually only one Pon is possible (or semantically same), but if multiple (e.g. Red 5),
+            # we currently just take the first one or we could add all.
+            # Ideally we pick the best one or show all. Let's show the first one for now to keep it simple unless requested.
             if candidates:
-                # Default to the first candidate. 
-                # Ideally could let user select if multiple ways to Pon exist (e.g. with Red 5), 
-                # but for recommendation display, showing valid one is sufficient.
-                return {
+                results.append({
                     "tile": last_kawa,
                     "consumed": candidates[0].get("consumed", [])
-                }
+                })
 
         # 3. 处理杠 (Kan_Select)
         elif action == "kan_select":
             # Priority 1: Daiminkan (Open Kan)
-            # Typically happens on opponent's discard (last_kawa).
-            candidates = bot.find_daiminkan_candidates()
-            if candidates:
-                return {
-                    "tile": last_kawa,
-                    "consumed": candidates[0].get("consumed", [])
-                }
+            # Typically happens on opponent's discard.
+            daiminkan_candidates = bot.find_daiminkan_candidates()
+            if daiminkan_candidates and last_kawa:
+                # If Daiminkan is possible, it takes precedence (cannot Ankan/Kakan on opponent discard)
+                for cand in daiminkan_candidates:
+                    results.append({
+                        "tile": last_kawa,
+                        "consumed": cand.get("consumed", [])
+                    })
+                return results
 
-            # Priority 2: Ankan (Closed Kan)
-            # Happens on self turn. Consumed = 4 tiles from hand.
-            candidates = bot.find_ankan_candidates()
-            if candidates:
-                # Ankan doesn't have a "target" tile from discard, but we need to show what is being Kan'ed.
-                # Usually we return one of the consumed tiles as 'tile' for display purposes, 
-                # or rely on consumed list. 
-                # For consistency with frontend (shows consumed), we return the consumed list.
-                consumed = candidates[0].get("consumed", [])
-                return {
+            # Priority 2: Ankan (Closed Kan) & Kakan (Added Kan)
+            # Both can happen on self turn.
+            ankan_candidates = bot.find_ankan_candidates()
+            for cand in ankan_candidates:
+                consumed = cand.get("consumed", [])
+                results.append({
                     "tile": consumed[0] if consumed else "?",
                     "consumed": consumed
-                }
+                })
 
-            # Priority 3: Kakan (Added Kan / Shouminkan)
-            # Happens on self turn, adds to existing Pon.
-            candidates = bot.find_kakan_candidates()
-            if candidates:
-                consumed = candidates[0].get("consumed", [])
-                return {
+            kakan_candidates = bot.find_kakan_candidates()
+            for cand in kakan_candidates:
+                consumed = cand.get("consumed", [])
+                results.append({
                     "tile": consumed[0] if consumed else "?",
                     "consumed": consumed
-                }
+                })
 
     except AttributeError:
         pass
     except Exception as e:
+        # In production we might want to log this
         pass
 
-    return None
+    return results
 
 
 def _process_standard_recommendations(meta: dict[str, Any], bot: Any) -> list[dict[str, Any]]:
@@ -109,25 +107,34 @@ def _process_standard_recommendations(meta: dict[str, Any], bot: Any) -> list[di
 
     top3_recommendations = meta_to_recommend(meta, bot.is_3p)[:3]
     for action, confidence in top3_recommendations:
-        item: dict[str, Any] = {
+        base_item: dict[str, Any] = {
             "action": action,
             "confidence": float(confidence),
         }
-        # Get fuuro details
-        fuuro_details = _get_fuuro_details(action, bot)
-        if fuuro_details:
-            item.update(fuuro_details)
 
-        # Hora -> Tsumo special handling
-        if action == 'hora' and getattr(bot, 'can_tsumo_agari', False):
-            item['action'] = 'tsumo'
-            tsumo_tile = getattr(bot, 'last_self_tsumo', None)
-            if tsumo_tile:
-                item['tile'] = tsumo_tile
-            elif hasattr(bot, 'tehai') and bot.tehai:
-                item['tile'] = bot.tehai[-1]
+        # Get fuuro details (list)
+        fuuro_details_list = _get_fuuro_details(action, bot)
 
-        recommendations.append(item)
+        if fuuro_details_list:
+            # If we have specific details (e.g. multiple Kans), expand them
+            for detail in fuuro_details_list:
+                new_item = base_item.copy()
+                new_item.update(detail)
+                recommendations.append(new_item)
+        else:
+            # No fuuro details (e.g. simple discard, or no candidates found for action)
+            # Just add the base item
+
+            # Hora -> Tsumo special handling
+            if action == 'hora' and getattr(bot, 'can_tsumo_agari', False):
+                base_item['action'] = 'tsumo'
+                tsumo_tile = getattr(bot, 'last_self_tsumo', None)
+                if tsumo_tile:
+                    base_item['tile'] = tsumo_tile
+                elif hasattr(bot, 'tehai') and bot.tehai:
+                    base_item['tile'] = bot.tehai[-1]
+
+            recommendations.append(base_item)
 
     return recommendations
 

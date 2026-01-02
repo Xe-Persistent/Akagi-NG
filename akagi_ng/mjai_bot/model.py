@@ -10,11 +10,11 @@ import torch
 from torch import nn, Tensor
 from torch.distributions import Normal, Categorical
 
+from mjai_bot.logger import logger
 from settings.settings import settings
 
 # ========== Online Server =========== #
 OT_REQUEST_TIMEOUT = 2
-is_online = False
 
 
 # ==================================== #
@@ -286,9 +286,11 @@ class MortalEngine:
         self.top_p = top_p
         self.is_3p = is_3p
 
+        self.last_inference_result = None
+        self.is_online = False
+
     def react_batch(self, obs, masks, invisible_obs):
         # ========== Online Server =========== #
-        global is_online
 
         # Access global settings
         ot_server_config = settings.ot
@@ -317,12 +319,18 @@ class MortalEngine:
                     timeout=OT_REQUEST_TIMEOUT
                 )
                 assert r.status_code == 200
-                is_online = True
+                self.is_online = True
                 r_json = r.json()
+                self.last_inference_result = {
+                    "actions": r_json['actions'],
+                    "q_out": r_json['q_out'],
+                    "masks": r_json['masks'],
+                    "is_greedy": r_json['is_greedy']
+                }
                 return r_json['actions'], r_json['q_out'], r_json['masks'], r_json['is_greedy']
             except Exception as e:
-                # logger.error(f"Online inference failed: {e}")
-                is_online = False
+                logger.error(f"Online inference failed: {e}")
+                self.is_online = False
                 pass
         # ==================================== #
         try:
@@ -364,7 +372,19 @@ class MortalEngine:
             is_greedy = torch.ones(batch_size, dtype=torch.bool, device=self.device)
             actions = q_out.argmax(-1)
 
-        return actions.tolist(), q_out.tolist(), masks.tolist(), is_greedy.tolist()
+        result_actions = actions.tolist()
+        result_q_out = q_out.tolist()
+        result_masks = masks.tolist()
+        result_is_greedy = is_greedy.tolist()
+
+        self.last_inference_result = {
+            "actions": result_actions,
+            "q_out": result_q_out,
+            "masks": result_masks,
+            "is_greedy": result_is_greedy
+        }
+
+        return result_actions, result_q_out, result_masks, result_is_greedy
 
 
 def sample_top_p(logits, p):

@@ -13,7 +13,7 @@ interface StreamRenderComponentProps {
 }
 
 const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => {
-    if (!data) {
+    if (!data || data.recommendations.length === 0) {
         return (
             <div
                 id="render-source"
@@ -28,7 +28,7 @@ const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => 
         );
     }
 
-    const {recommendations, last_kawa_tile} = data;
+    const {recommendations, is_riichi_declaration} = data;
 
     return (
         <div
@@ -39,7 +39,11 @@ const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => 
             style={{width: 1280, height: 720}}>
             <div className="w-full flex flex-col gap-4">
                 {recommendations.slice(0, 3).map((rec, index) => (
-                    <StreamRecommendation key={index + rec.action} {...rec} last_kawa_tile={last_kawa_tile}/>
+                    <StreamRecommendation
+                        key={index + rec.action}
+                        {...rec}
+                        is_riichi_declaration={is_riichi_declaration}
+                    />
                 ))}
             </div>
         </div>

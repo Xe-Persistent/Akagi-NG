@@ -18,8 +18,7 @@ class Controller(object):
         self.list_available_bots()
         self.bot: Bot = self.available_bots[0]() if self.available_bots else None
         self.choose_bot_name(settings.model)
-        self.temp_mjai_msg: list[dict] = []
-        self.starting_game: bool = False
+        self.pending_start_game_event: dict | None = None
 
     def list_available_bots(self) -> list[type[Bot]]:
         from mjai_bot.mortal.bot import Bot as MortalBot
@@ -29,38 +28,39 @@ class Controller(object):
         self.available_bots_names = ["mortal", "mortal3p"]
         return self.available_bots
 
-    def react(self, events: list[dict]) -> dict:
+    def react(self, event: dict) -> dict:
         if not self.bot:
             logger.error("No bot available")
             return {"type": "none"}
-        for event in events:
-            if event["type"] == "start_game":
-                self.starting_game = True
-                self.temp_mjai_msg = []
-                self.temp_mjai_msg.append(event)
-                continue
-            if event["type"] == "start_kyoku" and self.starting_game:
-                self.starting_game = False
-                if (
-                        event["scores"][0] == 35000 and
-                        event["scores"][1] == 35000 and
-                        event["scores"][2] == 35000 and
-                        event["scores"][3] == 0
-                ):
-                    if not self.choose_bot_name("mortal3p"):
-                        logger.error("Failed to switch to mortal3p bot")
-                else:
-                    if not self.choose_bot_name("mortal"):
-                        logger.error("Failed to switch to mortal bot")
-                continue
-            if self.starting_game:
-                logger.error("Event after start_game is not start_kyoku!")
-                logger.error(f"Event: {event}")
-                continue
-        if self.starting_game:
+
+        if event["type"] == "start_game":
+            self.pending_start_game_event = event
             return {"type": "none"}
-        events = self.temp_mjai_msg + events
-        self.temp_mjai_msg = []
+
+        if event["type"] == "start_kyoku" and self.pending_start_game_event:
+            if (
+                    event["scores"][0] == 35000 and
+                    event["scores"][1] == 35000 and
+                    event["scores"][2] == 35000 and
+                    event["scores"][3] == 0
+            ):
+                if not self.choose_bot_name("mortal3p"):
+                    logger.error("Failed to switch to mortal3p bot")
+            else:
+                if not self.choose_bot_name("mortal"):
+                    logger.error("Failed to switch to mortal bot")
+            # Fallthrough to process start_kyoku
+
+        if self.pending_start_game_event and event["type"] != "start_kyoku":
+            logger.error("Event after start_game is not start_kyoku!")
+            logger.error(f"Event: {event}")
+            return {"type": "none"}
+
+        events = [event]
+        if self.pending_start_game_event:
+            events.insert(0, self.pending_start_game_event)
+            self.pending_start_game_event = None
+
         ans = self.bot.react(json.dumps(events, separators=(",", ":")))
         return json.loads(ans)
 

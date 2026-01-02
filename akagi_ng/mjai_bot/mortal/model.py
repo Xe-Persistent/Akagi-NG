@@ -5,15 +5,11 @@ from core.lib_loader import libriichi
 consts = libriichi.consts
 
 from core.context import get_models_dir, ensure_dir
-from mjai_bot.mortal_common.model import Brain, DQN, MortalEngine
-
-# Re-export necessary classes
-__all__ = ['load_model']
-
 from mjai_bot.controller import Bot
+from mjai_bot.model import Brain, DQN, MortalEngine
 
 
-def load_model(seat: int) -> Bot:
+def load_model(seat: int) -> tuple[Bot, MortalEngine]:
     # check if GPU is available
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -21,7 +17,7 @@ def load_model(seat: int) -> Bot:
         device = torch.device('cpu')
 
     # Path to models file
-    control_state_file = ensure_dir(get_models_dir()) / "mortal.pth"
+    control_state_file = ensure_dir(get_models_dir()) / "mortal_4p.pth"
 
     if not control_state_file.exists():
         raise FileNotFoundError(f"Model file not found at {control_state_file}")
@@ -62,4 +58,4 @@ def load_model(seat: int) -> Bot:
     # The original code returned `libriichi.mjai.Bot(engine, seat)`
 
     bot = libriichi.mjai.Bot(engine, seat)
-    return bot
+    return bot, engine

@@ -7,5 +7,5 @@ export interface Recommendation {
 export interface FullRecommendationData {
     recommendations: Recommendation[];
     tehai: string[];
-    last_kawa_tile: string;
+    is_riichi_declaration?: boolean;
 }

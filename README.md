@@ -79,7 +79,7 @@ You are responsible for understanding the risks.
 - [ ] Refactor legacy mjai_bot code
 - [ ] Refine playwright integration
 - [ ] Compatible with online models
-- [ ] Feature: Show which tile to discard when riichi, e.g.`12233445566778m`
+- [x] Feature: Show which tile to discard when riichi, e.g.`12233445566778m`
 - [ ] Feature: Show which tile to kan in mixed kan scenarios, e.g.`(444m)456777m45p44z` or `444456777m45p44z`
 
 ---

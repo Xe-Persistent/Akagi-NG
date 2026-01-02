@@ -341,9 +341,16 @@ class MajsoulBridge(BridgeBase):
                         'type': 'reach_accepted',
                         'actor': actor
                     }
-            # Reach
+            # Riichi
             if liqi_message['data']['name'] == 'ActionReach':
-                # TODO
+                # bridge.py handles Server -> Client messages.
+                # When ActionReach (or ActionDiscardTile with isLiqi) is received, the Riichi action is already completed and confirmed.
+                # Our "Riichi Recommendation" feature is based on Q-Values (last_inference_result) exposed by the Bot
+                # during its current turn's thinking phase (after State update, before Action).
+                # Therefore, how Bridge parses the "Riichi Confirmation" message is irrelevant to the "what to discard for Riichi"
+                # feature which happens *before* the decision.
+                # The original logic (synthesizing reach event in ActionDiscardTile by checking isLiqi) is sufficient
+                # and robust for maintaining Bot state.
                 pass
             # ChiPonKan
             if liqi_message['data']['name'] == 'ActionChiPengGang':
@@ -437,39 +444,11 @@ class MajsoulBridge(BridgeBase):
                         'pai': 'N'
                     }
                 )
-
-            # hora
-            if liqi_message['data']['name'] == 'ActionHule':
-                # actor = liqi_message['data']['hules']['seat']
-                # if liqi_message['data']['hules']['zimo']:
-                #     target = actor
-                # else:
-                #     target = self.lastDiscard
-                # pai = MS_TILE_2_MJAI_TILE[liqi_message['data']['hules']['huTile']]
-                # ret.append(
-                #     {
-                #         'type': 'hora',
-                #         'actor': actor,
-                #         'pai': pai
-                #     }
-                # )
-                ret = [{
-                    'type': 'end_kyoku'
-                }]
-                return ret
-            # notile
-            if liqi_message['data']['name'] == 'ActionNoTile':
-                ret = [{
-                    'type': 'end_kyoku'
-                }]
-                return ret
-            # ryukyoku
-            if liqi_message['data']['name'] == 'ActionLiuJu':
-                # ret.append(
-                #     {
-                #         'type': 'ryukyoku'
-                #     }
-                # )
+            # End of Kyoku (Hora, NoTile, Ryukyoku)
+            if liqi_message['data']['name'] in ['ActionHule', 'ActionNoTile', 'ActionLiuJu']:
+                # Simplify logic: For AI purposes, we only need to know the round ended.
+                # Detailed result parsing (who won, points, etc.) is complex (multiplex/double ron) 
+                # and unnecessary because the next 'start_kyoku' will synchronize the full score state.
                 ret = [{
                     'type': 'end_kyoku'
                 }]

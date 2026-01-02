@@ -2,6 +2,23 @@ from typing import Any
 
 import numpy as np
 
+mask_unicode_4p = [
+    "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+    "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+    "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+    "E", "S", "W", "N", "P", "F", "C",
+    '5mr', '5pr', '5sr',
+    'reach', 'chi_low', 'chi_mid', 'chi_high', 'pon', 'kan_select', 'hora', 'ryukyoku', 'none'
+]
+
+mask_unicode_3p = [
+    "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+    "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+    "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+    "E", "S", "W", "N", "P", "F", "C",
+    '5mr', '5pr', '5sr',
+    'reach', 'pon', 'kan_select', 'nukidora', 'hora', 'ryukyoku', 'none'
+]
 
 def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
     # """
@@ -28,22 +45,6 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
 
     recommend = []
 
-    mask_unicode_4p = [
-        "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
-        "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
-        "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
-        "E", "S", "W", "N", "P", "F", "C",
-        '5mr', '5pr', '5sr',
-        'reach', 'chi_low', 'chi_mid', 'chi_high', 'pon', 'kan_select', 'hora', 'ryukyoku', 'none'
-    ]
-    mask_unicode_3p = [
-        "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
-        "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
-        "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
-        "E", "S", "W", "N", "P", "F", "C",
-        '5mr', '5pr', '5sr',
-        'reach', 'pon', 'kan_select', 'nukidora', 'hora', 'ryukyoku', 'none'
-    ]
     if is_3p:
         mask_unicode = mask_unicode_3p
     else:
@@ -95,12 +96,6 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
     mask = mask_bits_to_bool_list(mask_bits)
     scaled_q_values = scale_list(q_values)
     q_value_idx = 0
-
-    true_count = 0
-    for i in range(46):
-        if mask[i]:
-            true_count += 1
-
     for i in range(46):
         if mask[i]:
             recommend.append((mask_unicode[i], scaled_q_values[q_value_idx]))
@@ -110,36 +105,31 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
     return recommend
 
 
-def state_to_tehai(state) -> tuple[list[str], str]:
-    tehai34 = state.tehai  # with tsumohai, no aka marked
-    akas = state.akas_in_hand
-    tsumohai = state.last_self_tsumo()
-    return _state_to_tehai(tehai34, akas, tsumohai)
+def is_riichi_relevant(engine, player_id, event, is_3p=False):
+    """
+    Determines if the 'meta' field should be included in the response based on Riichi relevance.
+    Relevant if:
+    1. 'reach' is a legal action in the current state.
+    2. The current event is a 'reach' declaration by the bot itself.
+    """
+    if not (engine and engine.last_inference_result):
+        return False
 
+    mask_unicode_list = mask_unicode_3p if is_3p else mask_unicode_4p
 
-def _state_to_tehai(tile34: list[int], aka: list[bool], tsumohai: str | None) -> tuple[list[str], str]:
-    pai_str = [
-        "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
-        "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
-        "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
-        "E", "S", "W", "N", "P", "F", "C", "?"
-    ]
-    aka_str = [
-        "5mr", "5pr", "5sr"
-    ]
-    tile_list = []
-    for tile_id, tile_count in enumerate(tile34):
-        for _ in range(tile_count):
-            tile_list.append(pai_str[tile_id])
-    for idx, aka in enumerate(aka):
-        if aka:
-            tile_list[tile_list.index("5" + ["m", "p", "s"][idx])] = aka_str[idx]
-    if len(tile_list) % 3 == 2 and tsumohai is not None:
-        tile_list.remove(tsumohai)
-    else:
-        tsumohai = "?"
-    len_tile_list = len(tile_list)
-    if len_tile_list < 13:
-        tile_list += ["?"] * (13 - len_tile_list)
+    # Check 1: Is Riichi possible?
+    masks = engine.last_inference_result.get('masks')
+    if masks:
+        current_mask = masks[0]
+        try:
+            reach_index = mask_unicode_list.index('reach')
+            if len(current_mask) > reach_index and current_mask[reach_index]:
+                return True
+        except ValueError:
+            pass
 
-    return tile_list, tsumohai
+    # Check 2: Did we just declare Riichi?
+    if event and event.get("type") == "reach" and event.get("actor") == player_id:
+        return True
+
+    return False

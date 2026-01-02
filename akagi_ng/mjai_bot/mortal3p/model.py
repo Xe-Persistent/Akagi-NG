@@ -5,15 +5,11 @@ from core.lib_loader import libriichi3p
 consts = libriichi3p.consts
 
 from core.context import ensure_dir, get_models_dir
-from mjai_bot.mortal_common.model import Brain, DQN, MortalEngine
-
-# Re-export necessary classes
-__all__ = ['load_model']
-
 from mjai_bot.controller import Bot
+from mjai_bot.model import Brain, DQN, MortalEngine
 
 
-def load_model(seat: int) -> Bot:
+def load_model(seat: int) -> tuple[Bot, MortalEngine]:
     # check if GPU is available
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -58,4 +54,4 @@ def load_model(seat: int) -> Bot:
     )
 
     bot = libriichi3p.mjai.Bot(engine, seat)
-    return bot
+    return bot, engine

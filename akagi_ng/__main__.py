@@ -57,15 +57,16 @@ def main() -> int:
                 time.sleep(0.05)
                 continue
 
-            mjai_response = context.mjai_controller.react(mjai_msgs)
-            context.mjai_bot.react(input_list=mjai_msgs)
+            for msg in mjai_msgs:
+                mjai_response = context.mjai_controller.react(msg)
+                context.mjai_bot.react(msg)
 
-            payload = build_dataserver_payload(mjai_response, context.mjai_bot)
-            if payload:
-                ds.update_data({"data": payload})
+                payload = build_dataserver_payload(mjai_response, context.mjai_bot)
+                if payload:
+                    ds.update_data({"data": payload})
 
     except Exception as e:
-        logger.error(f"Backend loop crashed: {e}")
+        logger.exception(f"Backend loop crashed: {e}")
         return 1
     finally:
         logger.info("Stopping Akagi...")

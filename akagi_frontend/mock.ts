@@ -4,6 +4,9 @@ interface Recommendation {
     action: string;
     confidence: number;
     consumed?: string[];
+    sim_candidates?: { tile: string; confidence: number }[];
+    tile?: string;
+    is_riichi_declaration?: boolean;
 }
 
 interface RecommendationData {
@@ -11,15 +14,15 @@ interface RecommendationData {
     data: {
         recommendations: Recommendation[];
         tehai: string[];
-        last_kawa_tile: string;
+        is_riichi_declaration?: boolean;
     };
 }
 
-// This server is now only for mocking data for local frontend development.
-console.log("Starting server in MOCK mode (SSE).");
+// Visual Verification Mock Server for Riichi Discard
+console.log("Starting server in MOCK mode (SSE) for Riichi Visual Test.");
 
-const STREAM_INTERVAL_MS = 20000;
-const KEEPALIVE_INTERVAL_MS = 10000;
+const STREAM_INTERVAL_MS = 5000;
+const KEEPALIVE_INTERVAL_MS = 3000;
 
 const corsHeaders: Record<string, string> = {
     "Access-Control-Allow-Origin": "*",
@@ -27,11 +30,13 @@ const corsHeaders: Record<string, string> = {
     "Access-Control-Allow-Headers": "Content-Type",
 };
 
-const port = 8766;
-const hostname = "0.0.0.0";
+const port = 8765;
+const hostname = "127.0.0.1";
 
 const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
 
     if (req.method === "OPTIONS") {
         res.writeHead(204, corsHeaders);
@@ -39,7 +44,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    if (req.method === "GET" && url.pathname === "/") {
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/sse")) {
         console.log("SSE client connected");
 
         res.writeHead(200, {
@@ -49,18 +54,22 @@ const server = http.createServer((req, res) => {
             Connection: "keep-alive",
         });
 
+        const sendData = () => {
+            const mockData = generateMockData();
+            console.log("Generated and sending new mock data");
+            res.write(`data: ${JSON.stringify(mockData)}\n\n`);
+        }
+
         // initial comment + first payload
         res.write(": connected\n\n");
-        res.write(`data: ${JSON.stringify(generateMockData())}\n\n`);
+        sendData();
 
         const keepAliveInterval = setInterval(() => {
             res.write(": keep-alive\n\n");
         }, KEEPALIVE_INTERVAL_MS);
 
         const dataInterval = setInterval(() => {
-            const mockData = generateMockData();
-            console.log("Generated and sending new mock data");
-            res.write(`data: ${JSON.stringify(mockData)}\n\n`);
+            sendData();
         }, STREAM_INTERVAL_MS);
 
         const cleanup = () => {
@@ -84,113 +93,39 @@ server.listen(port, hostname, () => {
     console.log(`Mock server listening on http://${hostname}:${port}`);
 });
 
-// ... existing code ...
-
 function generateMockData(): RecommendationData {
-    const tiles = [
-        "1m", "2m", "3m", "4m", "5m", "5mr", "6m", "7m", "8m", "9m",
-        "1p", "2p", "3p", "4p", "5p", "5pr", "6p", "7p", "8p", "9p",
-        "1s", "2s", "3s", "4s", "5s", "5sr", "6s", "7s", "8s", "9s",
-        "E", "S", "W", "N", "P", "F", "C"
+    // User requested hand: 12233445566778m
+    // This is a Ryanpeikou / Chiitoitsu Tenpai shape.
+    const tehai = [
+        "1m", "2m", "2m", "3m", "3m", "4m", "4m",
+        "5m", "5m", "6m", "6m", "7m", "7m", "8m"
     ];
-    const nonRedDoraTiles = tiles.filter((t) => !t.endsWith("r"));
-    const getRandomTile = (exclude: string[] = [], source: string[] = tiles) => {
-        let tile;
-        do {
-            tile = source[Math.floor(Math.random() * source.length)];
-        } while (exclude.includes(tile));
-        return tile;
-    };
 
-    // Generate a mock hand
-    const tehai = Array.from({length: 13}, () => getRandomTile());
-
-    // Generate recommendations
-    const recommendations: Recommendation[] = [];
-    const numRecommendations = Math.floor(Math.random() * 2) + 3; // 3 to 4 recommendations
-
-    const actionTypes = ["dahai", "chi_low", "chi_mid", "chi_high", "pon", "kan_select", "reach", "none"];
-
-    // Ensure at least one chi or pon for testing
-    let last_kawa_tile = getRandomTile();
-
-    for (let i = 0; i < numRecommendations; i++) {
-        let actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
-
-        // Ensure the first recommendation is something interesting for testing
-        if (i === 0) {
-            const testActions = ["chi_low", "pon", "kan_select"];
-            actionType = testActions[Math.floor(Math.random() * testActions.length)];
+    // Recommendations
+    // Hand is Tenpai. Discarding 1m or 8m leads to Ryanpeikou wait.
+    // Let's recommend Reach with 8m discard.
+    const recommendations: Recommendation[] = [
+        {
+            action: "reach",
+            confidence: 0.92,
+            is_riichi_declaration: true,
+            sim_candidates: [
+                {tile: "8m", confidence: 0.95},
+                {tile: "1m", confidence: 0.05}
+            ]
+        },
+        {
+            action: "8m", // Dama (Silence)
+            confidence: 0.05,
         }
-
-        const rec: Recommendation = {
-            action: "",
-            confidence: Math.random(),
-        };
-
-        switch (actionType) {
-            case "dahai": {
-                rec.action = tehai[Math.floor(Math.random() * tehai.length)];
-                break;
-            }
-            case "chi_low":
-            case "chi_mid":
-            case "chi_high": {
-                rec.action = actionType;
-                const suits = ["m", "p", "s"];
-                const suit = suits[Math.floor(Math.random() * suits.length)];
-                const startNum = Math.floor(Math.random() * 7) + 1; // 1 to 7
-
-                const t1 = `${startNum}${suit}`;
-                const t2 = `${startNum + 1}${suit}`;
-                const t3 = `${startNum + 2}${suit}`;
-
-                if (actionType === "chi_low") {
-                    last_kawa_tile = t3;
-                    rec.consumed = [t1, t2];
-                } else if (actionType === "chi_mid") {
-                    last_kawa_tile = t2;
-                    rec.consumed = [t1, t3];
-                } else {
-                    last_kawa_tile = t1;
-                    rec.consumed = [t2, t3];
-                }
-                break;
-            }
-            case "pon": {
-                rec.action = "pon";
-                const ponTile = getRandomTile([], nonRedDoraTiles);
-                last_kawa_tile = ponTile;
-                rec.consumed = [ponTile, ponTile];
-                break;
-            }
-            case "kan_select": {
-                rec.action = "kan_select";
-                const kanTile = getRandomTile([], nonRedDoraTiles);
-                rec.consumed = [kanTile, kanTile, kanTile];
-                break;
-            }
-            case "reach": {
-                rec.action = "reach";
-                break;
-            }
-            case "none": {
-                rec.action = "none";
-                break;
-            }
-            default: {
-                rec.action = getRandomTile();
-            }
-        }
-        recommendations.push(rec);
-    }
+    ];
 
     return {
         type: "recommandations",
         data: {
-            recommendations: recommendations.sort((a, b) => b.confidence - a.confidence),
+            recommendations: recommendations,
             tehai: tehai,
-            last_kawa_tile: last_kawa_tile,
+            is_riichi_declaration: false, // Not yet declared, recommending it
         },
     };
 }

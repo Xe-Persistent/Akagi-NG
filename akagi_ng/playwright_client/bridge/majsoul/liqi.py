@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import struct
+import time
 from enum import Enum
 
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -41,6 +42,7 @@ class LiqiProto:
     def __init__(self):
         self.msg_id = 1
         self.tot = 0
+        self.last_heartbeat_time = 0.0
         self.res_type = dict()
         self.jsonProto = json.load(
             open(os.path.join(os.path.dirname(__file__), 'liqi_proto/liqi.json'), 'r'))
@@ -83,6 +85,8 @@ class LiqiProto:
                     assert (msg_id not in self.res_type)
                     method_name = msg_block[0]['data'].decode()
                     _, lq, service, rpc = method_name.split('.')
+                    if service == 'Route' and rpc == 'heartbeat':
+                        self.last_heartbeat_time = time.time()
                     proto_domain = self.jsonProto['nested'][lq]['nested'][service]['methods'][rpc]
                     try:
                         liqi_pb2_req = getattr(pb, proto_domain['requestType'])

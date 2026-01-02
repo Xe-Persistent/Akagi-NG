@@ -165,9 +165,9 @@ class MajsoulBridge(BridgeBase):
             None | list[dict]: MJAI command.
         """
         liqi_message = self.liqi_proto.parse(content)
-        logger.debug(f"{liqi_message}")
+        logger.trace(f"{liqi_message}")
         ret = self.parse_liqi(liqi_message)
-        logger.debug(f"-> {ret}")
+        logger.trace(f"-> {ret}")
         return ret
 
     def parse_liqi(self, liqi_message: dict) -> None | list[dict]:

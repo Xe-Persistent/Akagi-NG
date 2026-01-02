@@ -21267,6 +21267,18 @@
               "id": 1
             }
           }
+        },
+        "Route": {
+          "methods": {
+            "heartbeat": {
+              "requestType": "ReqCommon",
+              "responseType": "ResCommon"
+            },
+            "requestConnection": {
+              "requestType": "ReqCommon",
+              "responseType": "ResCommon"
+            }
+          }
         }
       }
     }

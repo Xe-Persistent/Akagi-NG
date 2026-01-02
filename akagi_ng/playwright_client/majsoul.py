@@ -59,7 +59,7 @@ class PlaywrightController:
         """
         global mjai_messages, majsoul_bridges
         direction = "<- Sent" if from_client else "-> Received"
-        logger.debug(f"[WebSocket] {direction}: {payload}")
+        logger.trace(f"[WebSocket] {direction}: {payload}")
 
         bridge = majsoul_bridges.get(ws)
         if not bridge:

@@ -11,7 +11,7 @@ from torch import nn, Tensor
 from torch.distributions import Categorical
 
 from mjai_bot.logger import logger
-from settings.settings import settings
+from settings import local_settings
 
 # ========== Online Server =========== #
 OT_REQUEST_TIMEOUT = 2
@@ -254,7 +254,7 @@ class MortalEngine:
         # ========== Online Server =========== #
 
         # Access global settings
-        ot_server_config = settings.ot
+        ot_server_config = local_settings.model_config.ot
 
         if ot_server_config.online:
             try:

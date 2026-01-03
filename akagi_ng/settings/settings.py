@@ -19,29 +19,72 @@ SCHEMA_PATH: Path = get_assets_dir() / "settings.schema.json"
 
 @dataclass
 class OTConfig:
-    server: str
     online: bool
-    api_key: str
+    server: str = ""
+    api_key: str = ""
+
+
+@dataclass
+class BrowserConfig:
+    headless: bool
+    channel: str
+    window_size: str  # e.g. "1920,1080" or empty
+
+
+@dataclass
+class ServerConfig:
+    host: str
+    port: int
+
+
+@dataclass
+class ModelConfig:
+    device: str
+    enable_amp: bool
+    rule_based_agari_guard: bool
+    ot: OTConfig
 
 
 @dataclass
 class Settings:
+    log_level: str
     majsoul_url: str
     model: str
-    ot: OTConfig
+    browser: BrowserConfig
+    server: ServerConfig
+    model_config: ModelConfig
 
-    def update(self, settings: dict) -> None:
+    def update(self, data: dict) -> None:
         """
         Update settings from a dictionary
 
         Args:
-            settings (dict): Dictionary with settings to update
+            data (dict): Dictionary with settings to update
         """
-        self.majsoul_url = settings["majsoul_url"]
-        self.model = settings["model"]
-        self.ot.server = settings["ot_server"]["server"]
-        self.ot.online = settings["ot_server"]["online"]
-        self.ot.api_key = settings["ot_server"]["api_key"]
+        self.log_level = data.get("log_level", "INFO")
+        self.majsoul_url = data["majsoul_url"]
+        self.model = data["model"]
+
+        self.browser.headless = data["browser"]["headless"]
+        self.browser.channel = data["browser"]["channel"]
+        self.browser.window_size = data["browser"].get("window_size", "")
+
+        self.server.host = data["server"]["host"]
+        self.server.port = data["server"]["port"]
+
+        self.model_config.device = data["model_config"]["device"]
+        self.model_config.enable_amp = data["model_config"]["enable_amp"]
+        self.model_config.rule_based_agari_guard = data["model_config"]["rule_based_agari_guard"]
+
+        ot_data = data["model_config"]["ot"]
+        self.model_config.ot.online = ot_data["online"]
+        if ot_data["online"]:
+            self.model_config.ot.server = ot_data["server"]
+            self.model_config.ot.api_key = ot_data["api_key"]
+        else:
+            # Maybe clear them or keep them? Keeping them is fine, or set to empty if missing.
+            self.model_config.ot.server = ot_data.get("server", "")
+            self.model_config.ot.api_key = ot_data.get("api_key", "")
 
     def save(self) -> None:
         """
@@ -52,10 +95,24 @@ class Settings:
                 {
                     "majsoul_url": self.majsoul_url,
                     "model": self.model,
-                    "ot_server": {
-                        "server": self.ot.server,
-                        "online": self.ot.online,
-                        "api_key": self.ot.api_key,
+                    "browser": {
+                        "headless": self.browser.headless,
+                        "channel": self.browser.channel,
+                        "window_size": self.browser.window_size
+                    },
+                    "server": {
+                        "host": self.server.host,
+                        "port": self.server.port
+                    },
+                    "model_config": {
+                        "device": self.model_config.device,
+                        "enable_amp": self.model_config.enable_amp,
+                        "rule_based_agari_guard": self.model_config.rule_based_agari_guard,
+                        "ot": {
+                            "online": self.model_config.ot.online,
+                            "server": self.model_config.ot.server,
+                            "api_key": self.model_config.ot.api_key,
+                        }
                     },
                 },
                 f,
@@ -67,12 +124,27 @@ class Settings:
 
 def _default_settings_dict() -> dict:
     return {
+        "log_level": "INFO",
         "majsoul_url": "https://game.maj-soul.com/1/",
         "model": "mortal",
-        "ot_server": {
-            "server": "http://127.0.0.1:5000",
-            "online": False,
-            "api_key": "<YOUR_API_KEY>",
+        "browser": {
+            "headless": False,
+            "channel": "chrome",
+            "window_size": ""
+        },
+        "server": {
+            "host": "0.0.0.0",
+            "port": 8765
+        },
+        "model_config": {
+            "device": "auto",
+            "enable_amp": False,
+            "rule_based_agari_guard": True,
+            "ot": {
+                "online": False,
+                "server": "http://127.0.0.1:5000",
+                "api_key": "<YOUR_API_KEY>"
+            }
         },
     }
 
@@ -135,20 +207,48 @@ def load_settings() -> Settings:
         with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
             loaded_settings = json.load(f)
 
-    jsonschema.validate(loaded_settings, schema)
+    try:
+        jsonschema.validate(loaded_settings, schema)
+    except ValidationError as e:
+        logger.error(f"settings.json validation failed: {e.message}")
+        bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")
+        logger.warning(f"Backup settings.json to {bak_path}")
+        os.replace(SETTINGS_JSON_PATH, bak_path)
+
+        logger.warning("Creating new settings.json with default values")
+        with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(_default_settings_dict(), f, indent=4, ensure_ascii=False)
+
+        with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
+            loaded_settings = json.load(f)
 
     return Settings(
+        log_level=loaded_settings.get("log_level", "INFO"),
         majsoul_url=loaded_settings["majsoul_url"],
         model=loaded_settings["model"],
-        ot=OTConfig(
-            server=loaded_settings["ot_server"]["server"],
-            online=loaded_settings["ot_server"]["online"],
-            api_key=loaded_settings["ot_server"]["api_key"],
+        browser=BrowserConfig(
+            headless=loaded_settings["browser"]["headless"],
+            channel=loaded_settings["browser"]["channel"],
+            window_size=loaded_settings["browser"].get("window_size", "")
+        ),
+        server=ServerConfig(
+            host=loaded_settings["server"]["host"],
+            port=loaded_settings["server"]["port"]
+        ),
+        model_config=ModelConfig(
+            device=loaded_settings["model_config"]["device"],
+            enable_amp=loaded_settings["model_config"]["enable_amp"],
+            rule_based_agari_guard=loaded_settings["model_config"]["rule_based_agari_guard"],
+            ot=OTConfig(
+                online=loaded_settings["model_config"]["ot"]["online"],
+                server=loaded_settings["model_config"]["ot"].get("server", ""),
+                api_key=loaded_settings["model_config"]["ot"].get("api_key", "")
+            )
         ),
     )
 
 
-def get_settings() -> dict:
+def get_settings_dict() -> dict:
     """
     Read settings.json from project_root/config/settings.json
     """
@@ -156,24 +256,24 @@ def get_settings() -> dict:
         return json.load(f)
 
 
-def save_settings(settings: dict) -> None:
+def save_settings(data: dict) -> None:
     """
     Save settings.json to project_root/config/settings.json
     """
     with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(settings, f, indent=4, ensure_ascii=False)
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def verify_settings(settings: dict) -> bool:
+def verify_settings(data: dict) -> bool:
     """
     Verify a settings payload against schema (schema is loaded from SCHEMA_PATH)
     """
     try:
-        jsonschema.validate(settings, get_schema())
+        jsonschema.validate(data, get_schema())
         return True
     except ValidationError as e:
         logger.error(f"Settings validation error: {e.message}")
         return False
 
 
-settings: Settings = load_settings()
+local_settings: Settings = load_settings()

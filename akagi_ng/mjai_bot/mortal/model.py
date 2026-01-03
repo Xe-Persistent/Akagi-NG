@@ -7,13 +7,23 @@ consts = libriichi.consts
 from core.context import get_models_dir
 from mjai_bot.controller import Bot
 from mjai_bot.model import Brain, DQN, MortalEngine
+from settings import local_settings
 
 
 def load_model(seat: int) -> tuple[Bot, MortalEngine]:
     # check if GPU is available
-    if torch.cuda.is_available():
+    # check if GPU is available
+    if local_settings.model_config.device == "cuda" and torch.cuda.is_available():
         device = torch.device('cuda')
+    elif local_settings.model_config.device == "cpu":
+        device = torch.device('cpu')
+    elif local_settings.model_config.device == "auto":
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
     else:
+        # Fallback
         device = torch.device('cpu')
 
     # Path to models file
@@ -46,9 +56,9 @@ def load_model(seat: int) -> tuple[Bot, MortalEngine]:
         is_oracle=False,
         version=state['config']['control']['version'],
         device=device,
-        enable_amp=False,
+        enable_amp=local_settings.model_config.enable_amp,
         enable_quick_eval=False,
-        enable_rule_based_agari_guard=True,
+        enable_rule_based_agari_guard=local_settings.model_config.rule_based_agari_guard,
         name='mortal',
         is_3p=False
     )

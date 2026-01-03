@@ -1,7 +1,7 @@
 import queue
 import threading
 
-from settings.settings import settings
+from settings import local_settings
 from .logger import logger
 from .majsoul import PlaywrightController, mjai_messages
 
@@ -11,7 +11,7 @@ class Client(object):
         self.messages: queue.Queue[dict] = None
         self.running = False
         self._thread: threading.Thread = None
-        self.controller: PlaywrightController = PlaywrightController(settings.majsoul_url, frontend_url)
+        self.controller: PlaywrightController = PlaywrightController(local_settings.majsoul_url, frontend_url)
 
     def start(self):
         if self.running:

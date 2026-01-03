@@ -1,7 +1,26 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "required": [
+    "majsoul_url",
+    "model",
+    "browser",
+    "server",
+    "model_config"
+  ],
   "properties": {
+    "log_level": {
+      "type": "string",
+      "enum": [
+        "DEBUG",
+        "INFO",
+        "WARNING",
+        "ERROR",
+        "CRITICAL"
+      ],
+      "default": "INFO",
+      "description": "Logging level."
+    },
     "majsoul_url": {
       "type": "string",
       "description": "The URL for the Majsoul game.",
@@ -11,36 +30,124 @@
       "type": "string",
       "description": "The model to use for analyzing the game."
     },
-    "ot_server": {
+    "browser": {
       "type": "object",
+      "description": "Browser configuration.",
       "properties": {
-        "server": {
-          "type": "string",
-          "description": "The server URL for the online service.",
-          "format": "uri"
-        },
-        "online": {
+        "headless": {
           "type": "boolean",
-          "description": "Whether to use the online service."
+          "default": false,
+          "description": "Run browser in headless mode."
         },
-        "api_key": {
+        "channel": {
           "type": "string",
-          "description": "The API key for the online service."
+          "default": "chrome",
+          "description": "Browser channel to use (e.g., 'chrome', 'msedge')."
+        },
+        "window_size": {
+          "type": "string",
+          "default": "",
+          "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
         }
       },
       "required": [
-        "server",
-        "online",
-        "api_key"
+        "headless",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "server": {
+      "type": "object",
+      "description": "Data server configuration.",
+      "properties": {
+        "host": {
+          "type": "string",
+          "default": "0.0.0.0",
+          "description": "Server listening host."
+        },
+        "port": {
+          "type": "integer",
+          "default": 8765,
+          "description": "Server listening port."
+        }
+      },
+      "required": [
+        "host",
+        "port"
+      ],
+      "additionalProperties": false
+    },
+    "model_config": {
+      "type": "object",
+      "description": "AI model configuration.",
+      "properties": {
+        "device": {
+          "type": "string",
+          "enum": [
+            "cpu",
+            "cuda",
+            "auto"
+          ],
+          "default": "auto",
+          "description": "Computing device selection."
+        },
+        "enable_amp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic mixed precision for inference."
+        },
+        "rule_based_agari_guard": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable rule-based check to prevent missing wins."
+        },
+        "ot": {
+          "description": "Online learning/teacher configuration.",
+          "type": "object",
+          "properties": {
+            "online": {
+              "type": "boolean",
+              "description": "Whether to use the online service.",
+              "default": false
+            },
+            "server": {
+              "type": "string",
+              "description": "The server URL for the online service.",
+              "format": "uri"
+            },
+            "api_key": {
+              "type": "string",
+              "description": "The API key for the online service."
+            }
+          },
+          "required": [
+            "online"
+          ],
+          "if": {
+            "properties": {
+              "online": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "server",
+              "api_key"
+            ]
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "device",
+        "enable_amp",
+        "rule_based_agari_guard",
+        "ot"
       ],
       "additionalProperties": false
     }
   },
-  "required": [
-    "majsoul_url",
-    "model",
-    "ot_server"
-  ],
   "description": "Settings for the application.",
   "additionalProperties": false
 }

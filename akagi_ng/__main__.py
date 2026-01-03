@@ -9,7 +9,7 @@ from dataserver.dataserver import DataServer
 from mjai_bot.bot import AkagiBot
 from mjai_bot.controller import Controller
 from playwright_client.client import Client
-from settings.settings import settings as loaded_settings
+from settings import local_settings as loaded_settings
 
 logger = logger.bind(module="akagi")
 

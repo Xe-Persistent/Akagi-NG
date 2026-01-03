@@ -5,7 +5,7 @@ from threading import Thread
 from aiohttp import web
 
 from core.context import get_frontend_dir
-from settings import get_settings, verify_settings, save_settings
+from settings import get_settings_dict, verify_settings, save_settings, local_settings
 from .logger import logger
 
 
@@ -27,10 +27,10 @@ async def _send_payload(client_id: str, response: web.StreamResponse, payload: b
 
 
 class DataServer(Thread):
-    def __init__(self, external_port=8765):
+    def __init__(self, external_port=None):
         super().__init__()
         self.daemon = True
-        self.external_port = external_port
+        self.external_port = external_port if external_port else local_settings.server.port
         self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "request": Request}}
         self.latest_data = None
         self.loop = None
@@ -151,10 +151,10 @@ class DataServer(Thread):
             self.runner = web.AppRunner(app)
             self.loop.run_until_complete(self.runner.setup())
 
-            site = web.TCPSite(self.runner, "127.0.0.1", self.external_port)
+            site = web.TCPSite(self.runner, local_settings.server.host, self.external_port)
             self.loop.run_until_complete(site.start())
 
-            logger.info(f"DataServer listening on 127.0.0.1:{self.external_port}")
+            logger.info(f"DataServer listening on {local_settings.server.host}:{self.external_port}")
             self.running = True
             self.keep_alive_task = self.loop.create_task(self.keep_alive())
             self.loop.run_forever()
@@ -176,7 +176,7 @@ class DataServer(Thread):
         )
 
     async def get_settings_handler(self, _request: web.Request) -> web.Response:
-        data = get_settings()
+        data = get_settings_dict()
         return web.json_response(
             {"ok": True, "data": data},
             headers={"Access-Control-Allow-Origin": "*"},

@@ -1,7 +1,7 @@
 import json
 from typing import Protocol
 
-from settings.settings import settings
+from settings import local_settings
 from .logger import logger
 
 
@@ -17,7 +17,7 @@ class Controller(object):
         self.bot: Bot | None = None
         self.list_available_bots()
         self.bot: Bot = self.available_bots[0]() if self.available_bots else None
-        self.choose_bot_name(settings.model)
+        self.choose_bot_name(local_settings.model)
         self.pending_start_game_event: dict | None = None
 
     def list_available_bots(self) -> list[type[Bot]]:

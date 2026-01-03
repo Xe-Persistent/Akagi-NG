@@ -6,6 +6,7 @@ from playwright.sync_api import sync_playwright, Page, WebSocket
 
 from akagi_ng.bridge import MajsoulBridge
 from core.context import ensure_dir, get_playwright_data_dir
+from settings import local_settings
 from .logger import logger
 
 # Because in Majsouls, every flow's message has an id, we need to use one bridge for each flow
@@ -138,14 +139,23 @@ class PlaywrightController:
 
         try:
             with sync_playwright() as p:
+                # Prepare launch arguments
+                launch_args = []
+                if local_settings.browser.window_size:
+                    # User specified window size
+                    launch_args.append(f"--window-size={local_settings.browser.window_size}")
+                else:
+                    # Default maximized
+                    launch_args.append("--start-maximized")
+
                 user_data_dir = ensure_dir(get_playwright_data_dir())
                 context = p.chromium.launch_persistent_context(
                     user_data_dir=user_data_dir,
-                    headless=False,
-                    channel="chrome",
+                    headless=local_settings.browser.headless,
+                    channel=local_settings.browser.channel,
                     no_viewport=True,
                     ignore_default_args=["--enable-automation"],
-                    args=["--start-maximized"],
+                    args=launch_args,
                 )
 
                 # 监听 context 中新建的页面（例如通过前端点击打开的新标签页），并自动绑定 WebSocket 监听器

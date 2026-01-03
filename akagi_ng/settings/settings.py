@@ -7,16 +7,14 @@ from pathlib import Path
 import jsonschema
 from jsonschema.exceptions import ValidationError
 
-from core.context import ensure_dir, get_settings_dir
+from core.context import ensure_dir, get_settings_dir, get_assets_dir
 from .logger import logger
 
-# Runtime-writable config directory (project_root/config)
 CONFIG_DIR: Path = ensure_dir(get_settings_dir())
 SETTINGS_JSON_PATH: Path = CONFIG_DIR / "settings.json"
 SETTINGS_EXAMPLE_PATH: Path = CONFIG_DIR / "settings.example.json"
 
-# Schema stays with the code (akagi_ng/settings/settings.schema.json)
-SCHEMA_PATH: Path = Path(__file__).resolve().parent / "settings.schema.json"
+SCHEMA_PATH: Path = get_assets_dir() / "settings.schema.json"
 
 
 @dataclass
@@ -98,7 +96,7 @@ def load_settings() -> Settings:
     akagi_ng/settings/settings.schema.json
 
     Runtime behavior:
-    - Only checks that schema file exists (SCHEMA_PATH).
+    - Only checks if schema file exists (SCHEMA_PATH).
     - Reads settings.json from CONFIG_DIR.
     - If settings.json is corrupted, backs it up and recreates a default one under CONFIG_DIR.
 

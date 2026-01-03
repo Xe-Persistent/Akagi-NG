@@ -1,7 +1,7 @@
 from functools import cmp_to_key
 
 from .bridge_base import BridgeBase
-from .liqi import LiqiProto, MsgType
+from .liqi import LiqiProto, MsgType, parse_sync_game
 from .logger import logger
 
 MS_TILE_2_MJAI_TILE = {
@@ -187,7 +187,7 @@ class MajsoulBridge(BridgeBase):
         if ((liqi_message['method'] == '.lq.FastTest.syncGame' or liqi_message['method'] == '.lq.FastTest.enterGame')
                 and liqi_message['type'] == MsgType.Res):
             self.syncing = True
-            sync_game_msgs = LiqiProto().parse_sync_game(liqi_message)
+            sync_game_msgs = parse_sync_game(liqi_message)
             parsed_list = []
             for msg in sync_game_msgs:
                 parsed = self.parse_liqi(msg)

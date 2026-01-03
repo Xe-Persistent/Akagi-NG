@@ -8,7 +8,7 @@ import numpy as np
 import requests
 import torch
 from torch import nn, Tensor
-from torch.distributions import Normal, Categorical
+from torch.distributions import Categorical
 
 from mjai_bot.logger import logger
 from settings.settings import settings
@@ -135,17 +135,6 @@ class Brain(nn.Module):
         pre_actv = True
 
         match version:
-            case 1:
-                actv_builder = partial(nn.ReLU, inplace=True)
-                pre_actv = False
-                self.latent_net = nn.Sequential(
-                    nn.Linear(1024, 512),
-                    nn.ReLU(inplace=True),
-                )
-                self.mu_head = nn.Linear(512, 512)
-                self.logsig_head = nn.Linear(512, 512)
-            case 2:
-                pass
             case 3 | 4:
                 norm_builder = partial(nn.BatchNorm1d, conv_channels, momentum=0.01, eps=1e-3)
             case _:
@@ -161,9 +150,6 @@ class Brain(nn.Module):
         )
         self.actv = actv_builder()
 
-        # always use EMA or CMA when True
-        self._freeze_bn = False
-
     def forward(self, obs: Tensor, invisible_obs: Optional[Tensor] = None) -> Union[Tuple[Tensor, Tensor], Tensor]:
         if self.is_oracle:
             assert invisible_obs is not None
@@ -171,34 +157,10 @@ class Brain(nn.Module):
         phi = self.encoder(obs)
 
         match self.version:
-            case 1:
-                latent_out = self.latent_net(phi)
-                mu = self.mu_head(latent_out)
-                logsig = self.logsig_head(latent_out)
-                return mu, logsig
-            case 2 | 3 | 4:
+            case 3 | 4:
                 return self.actv(phi)
             case _:
                 raise ValueError(f'Unexpected version {self.version}')
-
-    def train(self, mode=True):
-        super().train(mode)
-        if self._freeze_bn:
-            for mod in self.modules():
-                if isinstance(mod, nn.BatchNorm1d):
-                    mod.eval()
-                    # I don't think this benefits
-                    # module.requires_grad_(False)
-        return self
-
-    def reset_running_stats(self):
-        for mod in self.modules():
-            if isinstance(mod, nn.BatchNorm1d):
-                mod.reset_running_stats()
-
-    def freeze_bn(self, value: bool):
-        self._freeze_bn = value
-        return self.train(self.training)
 
 
 class AuxNet(nn.Module):
@@ -217,11 +179,8 @@ class DQN(nn.Module):
         self.version = version
         self.action_space = action_space
         match version:
-            case 1:
-                self.v_head = nn.Linear(512, 1)
-                self.a_head = nn.Linear(512, action_space)
-            case 2 | 3:
-                hidden_size = 512 if version == 2 else 256
+            case 3:
+                hidden_size = 256
                 self.v_head = nn.Sequential(
                     nn.Linear(1024, hidden_size),
                     nn.Mish(inplace=True),
@@ -235,6 +194,8 @@ class DQN(nn.Module):
             case 4:
                 self.net = nn.Linear(1024, 1 + action_space)
                 nn.init.constant_(self.net.bias, 0)
+            case _:
+                raise ValueError(f"Unexpected version {self.version}")
 
     def forward(self, phi, mask):
         if self.version == 4:
@@ -351,14 +312,7 @@ class MortalEngine:
         batch_size = obs.shape[0]
 
         match self.version:
-            case 1:
-                mu, logsig = self.brain(obs, invisible_obs)
-                if self.stochastic_latent:
-                    latent = Normal(mu, logsig.exp() + 1e-6).sample()
-                else:
-                    latent = mu
-                q_out = self.dqn(latent, masks)
-            case 2 | 3 | 4:
+            case 3 | 4:
                 phi = self.brain(obs)
                 q_out = self.dqn(phi, masks)
 

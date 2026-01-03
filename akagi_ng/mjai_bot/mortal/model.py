@@ -17,7 +17,7 @@ def load_model(seat: int) -> tuple[Bot, MortalEngine]:
         device = torch.device('cpu')
 
     # Path to models file
-    control_state_file = ensure_dir(get_models_dir()) / "mortal_4p.pth"
+    control_state_file = get_models_dir() / "mortal.pth"
 
     if not control_state_file.exists():
         raise FileNotFoundError(f"Model file not found at {control_state_file}")

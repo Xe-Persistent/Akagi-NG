@@ -1,14 +1,14 @@
 import base64
 import json
-import os
 import struct
 import time
 from enum import Enum
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 
-from .liqi_proto import liqi_pb2 as pb
-from ..logger import logger
+from core.context import get_assets_dir
+from . import liqi_pb2 as pb
+from .logger import logger
 
 
 class MsgType(Enum):
@@ -44,8 +44,7 @@ class LiqiProto:
         self.tot = 0
         self.last_heartbeat_time = 0.0
         self.res_type = dict()
-        self.jsonProto = json.load(
-            open(os.path.join(os.path.dirname(__file__), 'liqi_proto/liqi.json'), 'r'))
+        self.jsonProto = json.load(open(get_assets_dir() / 'liqi.json', 'r', encoding='utf-8'))
 
     def init(self):
         self.msg_id = 1

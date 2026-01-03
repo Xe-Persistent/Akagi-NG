@@ -1,8 +1,8 @@
 from functools import cmp_to_key
 
+from .bridge_base import BridgeBase
 from .liqi import LiqiProto, MsgType
-from ..bridge_base import BridgeBase
-from ..logger import logger
+from .logger import logger
 
 MS_TILE_2_MJAI_TILE = {
     '0m': '5mr',

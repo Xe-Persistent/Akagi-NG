@@ -4,8 +4,8 @@ import traceback
 
 from playwright.sync_api import sync_playwright, Page, WebSocket
 
+from akagi_ng.bridge import MajsoulBridge
 from core.context import ensure_dir, get_playwright_data_dir
-from .bridge import MajsoulBridge
 from .logger import logger
 
 # Because in Majsouls, every flow's message has an id, we need to use one bridge for each flow

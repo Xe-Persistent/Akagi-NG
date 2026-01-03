@@ -127,12 +127,6 @@ class Bot:
                         import traceback
                         logger.error(traceback.format_exc())
 
-                    except Exception as lookahead_err:
-                        logger.error(f"Riichi Lookahead failed: {lookahead_err}")
-
-                if e.get("type") == "reach" and e.get("actor") == self.player_id:
-                    meta["is_riichi_declaration"] = True
-
             if meta:
                 raw_data["meta"] = meta
 

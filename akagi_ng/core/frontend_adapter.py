@@ -44,6 +44,10 @@ def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
                 elif action == "chi_mid" and is_mid:
                     results.append({"tile": last_kawa, "consumed": consumed})
 
+            # Fallback if no specific candidates found but we have last_kawa
+            if not results and last_kawa:
+                results.append({"tile": last_kawa, "consumed": []})
+
         # 2. 处理碰 (Pon)
         elif action == "pon":
             if not last_kawa:
@@ -57,6 +61,10 @@ def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
                     "tile": last_kawa,
                     "consumed": candidates[0].get("consumed", [])
                 })
+            else:
+                # Fallback: Model wants to Pon but rule engine says no suitable hand tiles?
+                # Show the tile anyway so UI doesn't look broken.
+                results.append({"tile": last_kawa, "consumed": []})
 
         # 3. 处理杠 (Kan_Select)
         elif action == "kan_select":
@@ -71,6 +79,12 @@ def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
                         "consumed": cand.get("consumed", [])
                     })
                 return results
+            elif last_kawa:
+                # Check if this is a Daiminkan situation (not self turn)
+                # Ideally we should check turn but we can just append a fallback for Daiminkan if we have last_kawa
+                # However, Kan Select is tricky because it could be Ankan/Kakan.
+                # If we have last_kawa, it's likely Daiminkan opportunity.
+                pass
 
             # Priority 2: Ankan (Closed Kan) & Kakan (Added Kan)
             # Both can happen on self turn.
@@ -191,10 +205,8 @@ def build_dataserver_payload(mjai_response: dict[str, Any], bot: Any) -> dict[st
     _attach_riichi_lookahead(recommendations, meta, bot)
 
     tehai = list(getattr(bot, "tehai_mjai", []) or [])
-    is_riichi_declaration = meta.get("is_riichi_declaration", False)
 
     return {
         "recommendations": recommendations,
-        "tehai": tehai,
-        "is_riichi_declaration": is_riichi_declaration
+        "tehai": tehai
     }

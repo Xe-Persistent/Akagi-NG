@@ -136,9 +136,6 @@ class Bot:
                         import traceback
                         logger.error(traceback.format_exc())
 
-                if e.get("type") == "reach" and e.get("actor") == self.player_id:
-                    meta["is_riichi_declaration"] = True
-
             if meta:
                 raw_data["meta"] = meta
 

@@ -5,7 +5,7 @@ from threading import Thread
 from aiohttp import web
 
 from core.context import get_frontend_dir
-from settings import get_settings_dict, verify_settings, save_settings, local_settings
+from settings import get_settings_dict, verify_settings, local_settings, get_default_settings_dict
 from .logger import logger
 
 
@@ -111,6 +111,7 @@ class DataServer(Thread):
             app.router.add_route("OPTIONS", "/api/settings", self._cors_preflight)
             app.router.add_get("/api/settings", self.get_settings_handler)
             app.router.add_post("/api/settings", self.save_settings_handler)
+            app.router.add_post("/api/settings/reset", self.reset_settings_handler)
 
             # --- Static frontend ---
             if self.frontend_dist_dir.exists():
@@ -207,10 +208,22 @@ class DataServer(Thread):
                 headers={"Access-Control-Allow-Origin": "*"},
             )
 
-        save_settings(payload)
+        local_settings.update(payload)
+        local_settings.save()
         return web.json_response(
             {"ok": True, "restartRequired": True},
             headers={"Access-Control-Allow-Origin": "*"},
+        )
+
+    async def reset_settings_handler(self, _request: web.Request) -> web.Response:
+        default_settings = get_default_settings_dict()
+        local_settings.update(default_settings)
+        local_settings.save()
+
+        return web.json_response(
+            {"ok": True, "data": default_settings, "restartRequired": True},
+            headers={"Access-Control-Allow-Origin": "*"},
+            dumps=lambda obj: json.dumps(obj, ensure_ascii=False),
         )
 
     def stop(self):

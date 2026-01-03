@@ -12,11 +12,11 @@
     "log_level": {
       "type": "string",
       "enum": [
+        "TRACE",
         "DEBUG",
         "INFO",
         "WARNING",
-        "ERROR",
-        "CRITICAL"
+        "ERROR"
       ],
       "default": "INFO",
       "description": "Logging level."

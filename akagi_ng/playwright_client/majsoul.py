@@ -141,12 +141,11 @@ class PlaywrightController:
             with sync_playwright() as p:
                 # Prepare launch arguments
                 launch_args = []
-                if local_settings.browser.window_size:
-                    # User specified window size
-                    launch_args.append(f"--window-size={local_settings.browser.window_size}")
-                else:
-                    # Default maximized
+                window_size = local_settings.browser.window_size
+                if window_size == "maximized":
                     launch_args.append("--start-maximized")
+                elif window_size:
+                    launch_args.append(f"--window-size={window_size}")
 
                 user_data_dir = ensure_dir(get_playwright_data_dir())
                 context = p.chromium.launch_persistent_context(

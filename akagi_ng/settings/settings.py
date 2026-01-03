@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from pathlib import Path
 
 import jsonschema
@@ -61,68 +61,47 @@ class Settings:
         Args:
             data (dict): Dictionary with settings to update
         """
-        self.log_level = data.get("log_level", "INFO")
-        self.majsoul_url = data["majsoul_url"]
-        self.model = data["model"]
-
-        self.browser.headless = data["browser"]["headless"]
-        self.browser.channel = data["browser"]["channel"]
-        self.browser.window_size = data["browser"].get("window_size", "")
-
-        self.server.host = data["server"]["host"]
-        self.server.port = data["server"]["port"]
-
-        self.model_config.device = data["model_config"]["device"]
-        self.model_config.enable_amp = data["model_config"]["enable_amp"]
-        self.model_config.rule_based_agari_guard = data["model_config"]["rule_based_agari_guard"]
-
-        ot_data = data["model_config"]["ot"]
-        self.model_config.ot.online = ot_data["online"]
-        if ot_data["online"]:
-            self.model_config.ot.server = ot_data["server"]
-            self.model_config.ot.api_key = ot_data["api_key"]
-        else:
-            # Maybe clear them or keep them? Keeping them is fine, or set to empty if missing.
-            self.model_config.ot.server = ot_data.get("server", "")
-            self.model_config.ot.api_key = ot_data.get("api_key", "")
+        _update_settings(self, data)
 
     def save(self) -> None:
         """
         Save the settings to the settings.json file (project_root/config/settings.json)
         """
-        with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "majsoul_url": self.majsoul_url,
-                    "model": self.model,
-                    "browser": {
-                        "headless": self.browser.headless,
-                        "channel": self.browser.channel,
-                        "window_size": self.browser.window_size
-                    },
-                    "server": {
-                        "host": self.server.host,
-                        "port": self.server.port
-                    },
-                    "model_config": {
-                        "device": self.model_config.device,
-                        "enable_amp": self.model_config.enable_amp,
-                        "rule_based_agari_guard": self.model_config.rule_based_agari_guard,
-                        "ot": {
-                            "online": self.model_config.ot.online,
-                            "server": self.model_config.ot.server,
-                            "api_key": self.model_config.ot.api_key,
-                        }
-                    },
-                },
-                f,
-                indent=4,
-                ensure_ascii=False,
-            )
+        _save_settings(asdict(self))
         logger.info(f"Saved settings to {SETTINGS_JSON_PATH}")
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "Settings":
+        """
+        Create a Settings object from a dictionary
+        """
+        return cls(
+            log_level=data.get("log_level", "INFO"),
+            majsoul_url=data["majsoul_url"],
+            model=data["model"],
+            browser=BrowserConfig(
+                headless=data["browser"]["headless"],
+                channel=data["browser"]["channel"],
+                window_size=data["browser"].get("window_size", "")
+            ),
+            server=ServerConfig(
+                host=data["server"]["host"],
+                port=data["server"]["port"]
+            ),
+            model_config=ModelConfig(
+                device=data["model_config"]["device"],
+                enable_amp=data["model_config"]["enable_amp"],
+                rule_based_agari_guard=data["model_config"]["rule_based_agari_guard"],
+                ot=OTConfig(
+                    online=data["model_config"]["ot"]["online"],
+                    server=data["model_config"]["ot"].get("server", ""),
+                    api_key=data["model_config"]["ot"].get("api_key", "")
+                )
+            ),
+        )
 
-def _default_settings_dict() -> dict:
+
+def get_default_settings_dict() -> dict:
     return {
         "log_level": "INFO",
         "majsoul_url": "https://game.maj-soul.com/1/",
@@ -149,20 +128,27 @@ def _default_settings_dict() -> dict:
     }
 
 
-def get_schema() -> dict:
+def get_settings_dict() -> dict:
     """
-    Get the schema for settings.json (from akagi_ng/settings/settings.schema.json)
-
-    Returns:
-        dict: Schema for settings.json
+    Read settings.json from project_root/config/settings.json
     """
-    if not SCHEMA_PATH.exists():
-        raise FileNotFoundError(f"settings.schema.json not found at {SCHEMA_PATH}")
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+    with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_settings() -> Settings:
+def verify_settings(data: dict) -> bool:
+    """
+    Verify a settings payload against schema (schema is loaded from SCHEMA_PATH)
+    """
+    try:
+        jsonschema.validate(data, _get_schema())
+        return True
+    except ValidationError as e:
+        logger.error(f"Settings validation error: {e.message}")
+        return False
+
+
+def _load_settings() -> Settings:
     """
     Load settings from project_root/config/settings.json and validate them against
     akagi_ng/settings/settings.schema.json
@@ -177,7 +163,7 @@ def load_settings() -> Settings:
         jsonschema.exceptions.ValidationError: settings.json does not match schema
     """
     # Only validate schema file existence (and load it)
-    schema = get_schema()
+    schema = _get_schema()
 
     if not SETTINGS_JSON_PATH.exists():
         if SETTINGS_EXAMPLE_PATH.exists():
@@ -189,74 +175,68 @@ def load_settings() -> Settings:
                 f"Creating a default {SETTINGS_JSON_PATH}."
             )
             with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-                json.dump(_default_settings_dict(), f, indent=4, ensure_ascii=False)
+                json.dump(get_default_settings_dict(), f, indent=4, ensure_ascii=False)
 
     try:
         with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
             loaded_settings = json.load(f)
-    except json.JSONDecodeError as e:
-        logger.error(f"settings.json corrupted: {e}")
-        bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")
-        logger.warning(f"Backup settings.json to {bak_path}")
-        os.replace(SETTINGS_JSON_PATH, bak_path)
-
-        logger.warning("Creating new settings.json with default values")
-        with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(_default_settings_dict(), f, indent=4, ensure_ascii=False)
-
-        with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
-            loaded_settings = json.load(f)
-
-    try:
         jsonschema.validate(loaded_settings, schema)
+    except json.JSONDecodeError as e:
+        loaded_settings = _backup_and_reset_settings(f"settings.json corrupted: {e}")
     except ValidationError as e:
-        logger.error(f"settings.json validation failed: {e.message}")
-        bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")
-        logger.warning(f"Backup settings.json to {bak_path}")
-        os.replace(SETTINGS_JSON_PATH, bak_path)
+        loaded_settings = _backup_and_reset_settings(f"settings.json validation failed: {e.message}")
 
-        logger.warning("Creating new settings.json with default values")
-        with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(_default_settings_dict(), f, indent=4, ensure_ascii=False)
-
-        with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
-            loaded_settings = json.load(f)
-
-    return Settings(
-        log_level=loaded_settings.get("log_level", "INFO"),
-        majsoul_url=loaded_settings["majsoul_url"],
-        model=loaded_settings["model"],
-        browser=BrowserConfig(
-            headless=loaded_settings["browser"]["headless"],
-            channel=loaded_settings["browser"]["channel"],
-            window_size=loaded_settings["browser"].get("window_size", "")
-        ),
-        server=ServerConfig(
-            host=loaded_settings["server"]["host"],
-            port=loaded_settings["server"]["port"]
-        ),
-        model_config=ModelConfig(
-            device=loaded_settings["model_config"]["device"],
-            enable_amp=loaded_settings["model_config"]["enable_amp"],
-            rule_based_agari_guard=loaded_settings["model_config"]["rule_based_agari_guard"],
-            ot=OTConfig(
-                online=loaded_settings["model_config"]["ot"]["online"],
-                server=loaded_settings["model_config"]["ot"].get("server", ""),
-                api_key=loaded_settings["model_config"]["ot"].get("api_key", "")
-            )
-        ),
-    )
+    return Settings.from_dict(loaded_settings)
 
 
-def get_settings_dict() -> dict:
+def _get_schema() -> dict:
     """
-    Read settings.json from project_root/config/settings.json
+    Get the schema for settings.json (from akagi_ng/settings/settings.schema.json)
+
+    Returns:
+        dict: Schema for settings.json
     """
-    with open(SETTINGS_JSON_PATH, "r", encoding="utf-8") as f:
+    if not SCHEMA_PATH.exists():
+        raise FileNotFoundError(f"settings.schema.json not found at {SCHEMA_PATH}")
+    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_settings(data: dict) -> None:
+def _update_settings(settings: Settings, data: dict) -> None:
+    """
+    Update settings object from a dictionary
+
+    Args:
+        settings (Settings): Settings object to update
+        data (dict): Dictionary with settings to update
+    """
+    settings.log_level = data.get("log_level", "INFO")
+    settings.majsoul_url = data["majsoul_url"]
+    settings.model = data["model"]
+
+    settings.browser.headless = data["browser"]["headless"]
+    settings.browser.channel = data["browser"]["channel"]
+    settings.browser.window_size = data["browser"].get("window_size", "")
+
+    settings.server.host = data["server"]["host"]
+    settings.server.port = data["server"]["port"]
+
+    settings.model_config.device = data["model_config"]["device"]
+    settings.model_config.enable_amp = data["model_config"]["enable_amp"]
+    settings.model_config.rule_based_agari_guard = data["model_config"]["rule_based_agari_guard"]
+
+    ot_data = data["model_config"]["ot"]
+    settings.model_config.ot.online = ot_data["online"]
+    if ot_data["online"]:
+        settings.model_config.ot.server = ot_data["server"]
+        settings.model_config.ot.api_key = ot_data["api_key"]
+    else:
+        # Maybe clear them or keep them? Keeping them is fine, or set to empty if missing.
+        settings.model_config.ot.server = ot_data.get("server", "")
+        settings.model_config.ot.api_key = ot_data.get("api_key", "")
+
+
+def _save_settings(data: dict) -> None:
     """
     Save settings.json to project_root/config/settings.json
     """
@@ -264,16 +244,29 @@ def save_settings(data: dict) -> None:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def verify_settings(data: dict) -> bool:
+def _backup_and_reset_settings(reason: str) -> dict:
     """
-    Verify a settings payload against schema (schema is loaded from SCHEMA_PATH)
+    Backup the current settings file and recreate it with default values.
+
+    Args:
+        reason (str): The reason for resetting settings (e.g. corruption error message)
+
+    Returns:
+        dict: The new default settings dictionary
     """
-    try:
-        jsonschema.validate(data, get_schema())
-        return True
-    except ValidationError as e:
-        logger.error(f"Settings validation error: {e.message}")
-        return False
+    logger.error(reason)
+    bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")
+    logger.warning(f"Backup settings.json to {bak_path}")
+
+    if SETTINGS_JSON_PATH.exists():
+        os.replace(SETTINGS_JSON_PATH, bak_path)
+
+    logger.warning("Creating new settings.json with default values")
+    default_settings = get_default_settings_dict()
+    with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
+        json.dump(default_settings, f, indent=4, ensure_ascii=False)
+
+    return default_settings
 
 
-local_settings: Settings = load_settings()
+local_settings: Settings = _load_settings()

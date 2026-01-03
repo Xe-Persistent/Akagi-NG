@@ -28,7 +28,7 @@ const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => 
         );
     }
 
-    const {recommendations, is_riichi_declaration} = data;
+    const {recommendations} = data;
 
     return (
         <div
@@ -42,7 +42,6 @@ const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => 
                     <StreamRecommendation
                         key={index + rec.action}
                         {...rec}
-                        is_riichi_declaration={is_riichi_declaration}
                     />
                 ))}
             </div>

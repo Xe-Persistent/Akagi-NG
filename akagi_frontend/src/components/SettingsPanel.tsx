@@ -48,6 +48,8 @@ interface Settings {
     };
 }
 
+type SettingValue = string | number | boolean;
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({open, onClose, apiBase}) => {
     const [settings, setSettings] = useState<Settings | null>(null);
     const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
@@ -145,7 +147,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({open, onClose, apiBase}) =
     };
 
     // Helper to update nested state
-    const updateSetting = (path: (string | number)[], value: any) => {
+    const updateSetting = (path: (string | number)[], value: SettingValue) => {
         setSettings((prev) => {
             if (!prev) return null;
             // Deep clone previous state to avoid mutating shared references

@@ -4,7 +4,7 @@ from threading import Thread
 
 from aiohttp import web
 
-from core.context import ensure_dir, get_frontend_dir
+from core.context import get_frontend_dir
 from settings import get_settings, verify_settings, save_settings
 from .logger import logger
 
@@ -37,7 +37,7 @@ class DataServer(Thread):
         self.runner = None
         self.running = False
         self.keep_alive_task = None
-        self.frontend_dist_dir = ensure_dir(get_frontend_dir()) / "dist"
+        self.frontend_dist_dir = get_frontend_dir() / "dist"
 
     async def _remove_client(self, client_id: str, expected_response=None):
         client_data = self.clients.get(client_id)

@@ -1,9 +1,9 @@
 import sys
 
-from core.context import get_lib_dir, ensure_dir
+from core.context import get_lib_dir
 
 # Add lib dir to sys.path to allow importing binaries
-lib_dir = ensure_dir(get_lib_dir())
+lib_dir = get_lib_dir()
 if str(lib_dir) not in sys.path:
     # Prepend to sys.path to ensure we load from here over other locations
     sys.path.insert(0, str(lib_dir))

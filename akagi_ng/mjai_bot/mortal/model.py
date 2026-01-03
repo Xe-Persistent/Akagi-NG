@@ -4,7 +4,7 @@ from core.lib_loader import libriichi
 
 consts = libriichi.consts
 
-from core.context import get_models_dir, ensure_dir
+from core.context import get_models_dir
 from mjai_bot.controller import Bot
 from mjai_bot.model import Brain, DQN, MortalEngine
 

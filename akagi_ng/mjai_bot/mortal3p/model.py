@@ -4,7 +4,7 @@ from core.lib_loader import libriichi3p
 
 consts = libriichi3p.consts
 
-from core.context import ensure_dir, get_models_dir
+from core.context import get_models_dir
 from mjai_bot.controller import Bot
 from mjai_bot.model import Brain, DQN, MortalEngine
 
@@ -17,7 +17,7 @@ def load_model(seat: int) -> tuple[Bot, MortalEngine]:
         device = torch.device('cpu')
 
     # Path to models file
-    control_state_file = ensure_dir(get_models_dir()) / "mortal3p.pth"
+    control_state_file = get_models_dir() / "mortal3p.pth"
 
     if not control_state_file.exists():
         raise FileNotFoundError(f"Model file not found at {control_state_file}")

@@ -63,6 +63,10 @@ def get_frontend_dir() -> Path:
     return get_project_root() / "akagi_frontend"
 
 
+def get_assets_dir() -> Path:
+    return get_project_root() / "assets"
+
+
 def ensure_dir(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path

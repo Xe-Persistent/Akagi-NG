@@ -1,6 +1,5 @@
 import signal
 import sys
-import time
 
 from core import context
 from core.frontend_adapter import build_dataserver_payload
@@ -13,78 +12,101 @@ from settings import local_settings as loaded_settings
 
 logger = logger.bind(module="akagi")
 
+import threading
+
 
 def main() -> int:
-    logger.info("Starting Akagi...")
+    app = AkagiApp()
+    app.start()
+    return app.run()
 
-    context.ensure_runtime_dirs()
 
-    context.settings = loaded_settings
+class AkagiApp:
+    def __init__(self):
+        logger.info("Starting Akagi...")
+        context.ensure_runtime_dirs()
+        context.settings = loaded_settings
 
-    # Re-configure logger with settings
-    from core.logging import configure_logging
-    configure_logging(context.settings.log_level)
+        # Re-configure logger with settings
+        from core.logging import configure_logging
+        configure_logging(context.settings.log_level)
 
-    # Start SSE DataServer for the standalone frontend
-    ds = DataServer(external_port=8765)
-    ds.start()
-    frontend_url = "http://127.0.0.1:8765/"
-    logger.info(f"DataServer started at {frontend_url}")
+        self._stop_event = threading.Event()
 
-    context.playwright_client = Client(frontend_url=frontend_url)
-    context.mjai_bot = AkagiBot()
-    context.mjai_controller = Controller()
-    context.playwright_client.start()
+        # Start SSE DataServer for the standalone frontend
+        port = context.settings.server.port
+        host = context.settings.server.host
+        self.ds = DataServer(external_port=port)
 
-    stop_flag = {"stop": False}
+        # 0.0.0.0 is not a valid target address for browser navigation, map to localhost
+        target_host = "127.0.0.1" if host == "0.0.0.0" else host
+        self.frontend_url = f"http://{target_host}:{port}/"
 
-    def _stop(*_args):
-        stop_flag["stop"] = True
+        context.playwright_client = Client(frontend_url=self.frontend_url)
+        context.mjai_bot = AkagiBot()
+        context.mjai_controller = Controller()
 
-    signal.signal(signal.SIGINT, _stop)
-    try:
-        signal.signal(signal.SIGTERM, _stop)
-    except Exception:
-        pass
+    def start(self):
+        self.ds.start()
+        logger.info(f"DataServer started at {self.frontend_url}")
 
-    logger.info("Akagi backend loop started.")
+        context.playwright_client.start()
+        self.setup_signals()
+        logger.info("Akagi backend loop started.")
 
-    try:
-        while not stop_flag["stop"]:
-            # Check if the browser controller has stopped (e.g. frontend page closed)
-            if not context.playwright_client.controller.running:
-                logger.info("Playwright controller stopped. Exiting.")
-                break
+    def setup_signals(self):
+        def _stop(*_args):
+            self.stop()
 
-            mjai_msgs = context.playwright_client.dump_messages()
-            if not mjai_msgs:
-                time.sleep(0.05)
-                continue
+        signal.signal(signal.SIGINT, _stop)
+        try:
+            signal.signal(signal.SIGTERM, _stop)
+        except Exception as e:
+            logger.debug(f"Failed to setup SIGTERM handler: {e}")
 
-            for msg in mjai_msgs:
-                mjai_response = context.mjai_controller.react(msg)
-                context.mjai_bot.react(msg)
+    def stop(self):
+        self._stop_event.set()
 
-                payload = build_dataserver_payload(mjai_response, context.mjai_bot)
-                if payload:
-                    ds.update_data({"data": payload})
+    def run(self) -> int:
+        try:
+            while not self._stop_event.is_set():
+                # Check if the browser controller has stopped (e.g. frontend page closed)
+                if not context.playwright_client.controller.running:
+                    logger.info("Playwright controller stopped. Exiting.")
+                    break
 
-    except Exception as e:
-        logger.exception(f"Backend loop crashed: {e}")
-        return 1
-    finally:
+                mjai_msgs = context.playwright_client.dump_messages()
+                if not mjai_msgs:
+                    self._stop_event.wait(0.05)
+                    continue
+
+                for msg in mjai_msgs:
+                    mjai_response = context.mjai_controller.react(msg)
+                    context.mjai_bot.react(msg)
+
+                    payload = build_dataserver_payload(mjai_response, context.mjai_bot)
+                    if payload:
+                        self.ds.update_data({"data": payload})
+
+        except Exception as e:
+            logger.exception(f"Backend loop crashed: {e}")
+            return 1
+        finally:
+            self.cleanup()
+
+        return 0
+
+    def cleanup(self):
         logger.info("Stopping Akagi...")
         try:
             context.playwright_client.stop()
         except Exception:
             pass
         try:
-            ds.stop()
+            self.ds.stop()
         except Exception:
             pass
-
-    logger.info("Akagi stopped.")
-    return 0
+        logger.info("Akagi stopped.")
 
 
 if __name__ == "__main__":

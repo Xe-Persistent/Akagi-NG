@@ -21,6 +21,10 @@ def main() -> int:
 
     context.settings = loaded_settings
 
+    # Re-configure logger with settings
+    from core.logging import configure_logging
+    configure_logging(context.settings.log_level)
+
     # Start SSE DataServer for the standalone frontend
     ds = DataServer(external_port=8765)
     ds.start()

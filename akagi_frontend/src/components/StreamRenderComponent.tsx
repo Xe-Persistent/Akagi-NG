@@ -1,18 +1,14 @@
-import React from 'react';
+import type {FC} from 'react';
 import StreamRecommendation from './StreamRecommendation.tsx';
-import {FullRecommendationData} from './types.ts';
-import {type ClassValue, clsx} from 'clsx';
-import {twMerge} from 'tailwind-merge';
+import type {FullRecommendationData} from './types.ts';
+import {cn} from '@/lib/utils';
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
 
 interface StreamRenderComponentProps {
     data: FullRecommendationData | null;
 }
 
-const StreamRenderComponent: React.FC<StreamRenderComponentProps> = ({data}) => {
+const StreamRenderComponent: FC<StreamRenderComponentProps> = ({data}) => {
     if (!data || data.recommendations.length === 0) {
         return (
             <div

@@ -1,5 +1,6 @@
 import {Button} from './button';
 import {Modal, ModalDescription, ModalFooter, ModalHeader, ModalTitle} from './modal';
+import type {FC} from "react";
 
 interface ConfirmationDialogProps {
     open: boolean;
@@ -12,16 +13,16 @@ interface ConfirmationDialogProps {
     variant?: 'default' | 'destructive';
 }
 
-export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
-                                                                          open,
-                                                                          onOpenChange,
-                                                                          title,
-                                                                          description,
-                                                                          onConfirm,
-                                                                          confirmText = 'Confirm',
-                                                                          cancelText = 'Cancel',
-                                                                          variant = 'default',
-                                                                      }) => {
+export const ConfirmationDialog: FC<ConfirmationDialogProps> = ({
+                                                                    open,
+                                                                    onOpenChange,
+                                                                    title,
+                                                                    description,
+                                                                    onConfirm,
+                                                                    confirmText = 'Confirm',
+                                                                    cancelText = 'Cancel',
+                                                                    variant = 'default',
+                                                                }) => {
     return (
         <Modal open={open} onOpenChange={onOpenChange} className="max-w-md">
             <ModalHeader>

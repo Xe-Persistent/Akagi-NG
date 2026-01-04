@@ -1,6 +1,5 @@
-import React from 'react';
-import {type ClassValue, clsx} from 'clsx';
-import {twMerge} from 'tailwind-merge';
+import type {FC} from 'react';
+import {cn} from '@/lib/utils';
 
 import {MahjongTile} from '@/components/mahjong/mahjong-tile';
 import {ConfidenceRing} from '@/components/mahjong/confidence-ring';
@@ -39,19 +38,16 @@ const ACTION_CONFIG: Record<string, ActionConfigItem> = {
 
 const SHOW_CONSUMED_ACTIONS = new Set(['chi_low', 'chi_mid', 'chi_high', 'pon', 'kan_select']);
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
 
 // --- Main Component ---
 
-const Recommendation: React.FC<RecommendationProps> = ({
-                                                           action,
-                                                           confidence,
-                                                           consumed,
-                                                           sim_candidates,
-                                                           tile,
-                                                       }) => {
+const Recommendation: FC<RecommendationProps> = ({
+                                                     action,
+                                                     confidence,
+                                                     consumed,
+                                                     sim_candidates,
+                                                     tile,
+                                                 }) => {
     const config = ACTION_CONFIG[action];
     const hasSimCandidates = sim_candidates && sim_candidates.length > 0;
 
@@ -82,24 +78,23 @@ const Recommendation: React.FC<RecommendationProps> = ({
             {/* 1. Background Glow Effect */}
             <div
                 className={cn(
-                    "absolute -inset-0.5 rounded-3xl blur opacity-30 dark:opacity-40 transition duration-500 group-hover:opacity-60 bg-gradient-to-r",
+                    "background-glow",
                     effectiveConfig.gradient
                 )}
             />
 
             {/* 2. Main Container (Glassmorphism) */}
-            <div
-                className="relative flex items-center justify-between p-4 pr-10 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl rounded-3xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl overflow-hidden h-[180px]">
+            <div className="glass-card">
 
                 {/* Decoration: Left Strip */}
                 <div
-                    className={cn("absolute left-0 top-0 bottom-0 w-2", `bg-gradient-to-b ${effectiveConfig.gradient}`)}/>
+                    className={cn("absolute left-0 top-0 bottom-0 w-2", `bg-linear-to-b ${effectiveConfig.gradient}`)}/>
 
                 {/* Left: Action Label */}
                 <div className="flex flex-col items-center justify-center w-40 h-full mr-6 z-10">
                     <h2
                         className={cn(
-                            "text-6xl font-black tracking-widest bg-clip-text text-transparent bg-gradient-to-br filter drop-shadow-sm",
+                            "action-text-gradient",
                             effectiveConfig.gradient
                         )}
                         style={{textShadow: '0 2px 10px rgba(0,0,0,0.1)'}}
@@ -109,11 +104,11 @@ const Recommendation: React.FC<RecommendationProps> = ({
                 </div>
 
                 {/* Separator */}
-                <div className="w-[1px] h-24 bg-zinc-200 dark:bg-zinc-700 mr-10"/>
+                <div className="w-px h-24 bg-zinc-200 dark:bg-zinc-700 mr-10"/>
 
                 {/* Center: Tile Display Area */}
                 <div
-                    className="flex-grow flex items-center justify-start gap-8 overflow-x-auto overflow-y-hidden h-full px-2">
+                    className="grow flex items-center justify-start gap-8 overflow-x-auto overflow-y-hidden h-full px-2">
 
                     {/* Case A: Riichi Declaration Candidates */}
                     {hasSimCandidates ? (
@@ -139,26 +134,14 @@ const Recommendation: React.FC<RecommendationProps> = ({
                         </div>
                     ) : (
                         <>
-                            {/* Case B: Tsumo (Show Tile Only) */}
-                            {action === 'tsumo' && mainTile && (
+                            {/* Case B: Single Tile Display (Tsumo / Discard) */}
+                            {mainTile && (
                                 <div className="flex items-center gap-5">
                                     <MahjongTile tile={mainTile} className="scale-110"/>
                                 </div>
                             )}
 
-                            {/* Case C: Normal Discard (Show Tile + Text) */}
-                            {action !== 'tsumo' && mainTile && (
-                                <div className="flex items-center gap-5">
-                                    <MahjongTile tile={mainTile} className="scale-110"/>
-                                    <div className="flex flex-col justify-center">
-                                        <span
-                                            className="text-2xl font-bold text-zinc-600 dark:text-zinc-300">切出</span>
-                                        <span className="text-base text-zinc-400">Discard</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Case D: Called Combinations */}
+                            {/* Case C: Called Combinations (Chi, Pon, Kan) */}
                             {shouldShowConsumed && consumed && (
                                 <ConsumedDisplay
                                     action={action}

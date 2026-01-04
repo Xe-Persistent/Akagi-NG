@@ -1,17 +1,88 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+
+    --color-chart-1: hsl(var(--chart-1));
+    --color-chart-2: hsl(var(--chart-2));
+    --color-chart-3: hsl(var(--chart-3));
+    --color-chart-4: hsl(var(--chart-4));
+    --color-chart-5: hsl(var(--chart-5));
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer components {
+
+    /* Mahjong Tile */
+    .mahjong-tile-container {
+        @apply relative flex flex-col items-center justify-start w-20 h-28 transition-transform duration-200;
+    }
+
+    .mahjong-tile-face {
+        @apply relative w-full h-full z-10 rounded-lg overflow-hidden bg-white shadow-sm border border-zinc-200 dark:border-zinc-700;
+    }
+
+    .mahjong-tile-3d {
+        @apply absolute -bottom-1 w-full h-full bg-zinc-300 dark:bg-zinc-500 rounded-lg z-0 translate-y-1 border border-zinc-400 dark:border-zinc-600;
+    }
+
+    .mahjong-tile-back {
+        @apply w-full h-full bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900 border border-white/20 dark:border-white/10 shadow-inner;
+    }
+
+    /* Components: StreamRecommendation */
+    .glass-card {
+        @apply relative flex items-center justify-between p-4 pr-10 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl rounded-3xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl overflow-hidden h-45;
+    }
+
+    .background-glow {
+        @apply absolute -inset-0.5 rounded-3xl blur opacity-30 dark:opacity-40 transition duration-500 group-hover:opacity-60 bg-linear-to-r;
+    }
+
+    .action-text-gradient {
+        @apply text-6xl font-black tracking-widest bg-clip-text text-transparent bg-linear-to-br filter drop-shadow-sm;
+    }
+}
 
 .rotated-tile {
     transform: rotate(90deg);
-    width: 80px; /* height of a normal tile */
-    height: 56px; /* width of a normal tile */
+    width: 80px;
+    /* height of a normal tile */
+    height: 56px;
+    /* width of a normal tile */
     position: absolute;
     top: 50%;
     left: 50%;
     transform-origin: center;
-    margin-top: -28px; /* -height/2 */
-    margin-left: -40px; /* -width/2 */
+    margin-top: -28px;
+    /* -height/2 */
+    margin-left: -40px;
+    /* -width/2 */
 }
 
 
@@ -37,6 +108,12 @@
         --input: 240 5.9% 90%;
         --ring: 240 10% 3.9%;
         --radius: 0.5rem;
+
+        --chart-1: 12 76% 61%;
+        --chart-2: 173 58% 39%;
+        --chart-3: 197 37% 24%;
+        --chart-4: 43 74% 66%;
+        --chart-5: 27 87% 67%;
     }
 
     .dark {
@@ -59,6 +136,12 @@
         --border: 240 3.7% 15.9%;
         --input: 240 3.7% 15.9%;
         --ring: 240 4.9% 83.9%;
+
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
     }
 }
 

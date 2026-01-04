@@ -1,5 +1,7 @@
-import React, {useMemo} from 'react';
+import type {FC} from 'react';
+import {useMemo} from 'react';
 import {MahjongTile} from './mahjong-tile';
+import {sortTiles} from '@/lib/mahjong';
 
 interface ConsumedDisplayProps {
     action: string;
@@ -7,7 +9,7 @@ interface ConsumedDisplayProps {
     tile?: string;
 }
 
-export const ConsumedDisplay: React.FC<ConsumedDisplayProps> = ({action, consumed, tile}) => {
+export const ConsumedDisplay: FC<ConsumedDisplayProps> = ({action, consumed, tile}) => {
     const isNaki = action.startsWith('chi') || action === 'pon' || action === 'kan_select';
 
     // Ankan detection: kan_select with 4 consumed tiles
@@ -18,12 +20,7 @@ export const ConsumedDisplay: React.FC<ConsumedDisplayProps> = ({action, consume
         if (!consumed || consumed.length === 0) return [];
         if (!isNaki) return consumed;
 
-        const getTileValue = (t: string) => {
-            // Very simple heuristic for sorting, relies on tile naming convention (e.g. 1m, 2p)
-            const val = parseInt(t[0]);
-            return isNaN(val) ? 99 : val;
-        };
-        return [...consumed].sort((a, b) => getTileValue(a) - getTileValue(b));
+        return sortTiles(consumed);
     }, [consumed, isNaki]);
 
     if (!isNaki) {

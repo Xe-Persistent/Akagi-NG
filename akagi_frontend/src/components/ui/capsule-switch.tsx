@@ -1,11 +1,11 @@
-import * as React from "react"
 import {cn} from "@/lib/utils"
+import type {ReactNode} from "react";
 
 interface CapsuleSwitchProps {
     checked: boolean
     onCheckedChange: (checked: boolean) => void
-    labelOn?: React.ReactNode
-    labelOff?: React.ReactNode
+    labelOn?: ReactNode
+    labelOff?: ReactNode
     className?: string
     disabled?: boolean
 }
@@ -39,7 +39,7 @@ export function CapsuleSwitch({
                 disabled={disabled}
                 onClick={() => onCheckedChange(false)}
                 className={cn(
-                    "relative z-10 flex min-w-[3rem] flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
+                    "relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
                     !checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
             >
@@ -52,7 +52,7 @@ export function CapsuleSwitch({
                 disabled={disabled}
                 onClick={() => onCheckedChange(true)}
                 className={cn(
-                    "relative z-10 flex min-w-[3rem] flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
+                    "relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
                     checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
             >

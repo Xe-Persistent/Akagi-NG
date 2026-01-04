@@ -117,6 +117,10 @@ function generateMockData(): RecommendationData {
         {
             action: "8m", // Dama (Silence)
             confidence: 0.05,
+        },
+        {
+            action: "1m", // Dama (Silence)
+            confidence: 0.03,
         }
     ];
 

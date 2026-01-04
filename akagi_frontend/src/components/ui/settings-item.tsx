@@ -1,10 +1,10 @@
-import * as React from "react"
+import {type HTMLAttributes, type ReactNode} from "react"
 import {cn} from "@/lib/utils"
 
-interface SettingsItemProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SettingsItemProps extends HTMLAttributes<HTMLDivElement> {
     label: string
-    description?: React.ReactNode
-    children?: React.ReactNode
+    description?: ReactNode
+    children?: ReactNode
     layout?: "row" | "col"
 }
 
@@ -36,7 +36,7 @@ export function SettingsItem({
                     </p>
                 )}
             </div>
-            <div className={cn(layout === "row" ? "flex-shrink-0" : "w-full")}>
+            <div className={cn(layout === "row" ? "shrink-0" : "w-full")}>
                 {children}
             </div>
         </div>

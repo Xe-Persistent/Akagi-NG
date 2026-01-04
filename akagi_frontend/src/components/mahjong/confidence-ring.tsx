@@ -1,4 +1,4 @@
-import React from 'react';
+import type {FC} from 'react';
 
 interface ConfidenceRingProps {
     percentage: number;
@@ -8,13 +8,13 @@ interface ConfidenceRingProps {
     fontSize?: string;
 }
 
-export const ConfidenceRing: React.FC<ConfidenceRingProps> = ({
-                                                                  percentage,
-                                                                  color,
-                                                                  size = 112,
-                                                                  stroke = 8,
-                                                                  fontSize = "text-5xl"
-                                                              }) => {
+export const ConfidenceRing: FC<ConfidenceRingProps> = ({
+                                                            percentage,
+                                                            color,
+                                                            size = 112,
+                                                            stroke = 8,
+                                                            fontSize = "text-5xl"
+                                                        }) => {
     const radius = (size - stroke) / 2;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - (percentage * circumference);

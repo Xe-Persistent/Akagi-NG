@@ -1,4 +1,5 @@
-import React, {useEffect} from 'react';
+import type {FC, ReactNode} from 'react';
+import {useEffect} from 'react';
 import {cn} from '@/lib/utils';
 import {X} from 'lucide-react';
 import {Button} from './button';
@@ -6,11 +7,11 @@ import {Button} from './button';
 interface ModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({open, children, className}) => {
+export const Modal: FC<ModalProps> = ({open, children, className}) => {
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (open) {
@@ -42,55 +43,55 @@ export const Modal: React.FC<ModalProps> = ({open, children, className}) => {
 };
 
 interface ModalHeaderProps {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const ModalHeader: React.FC<ModalHeaderProps> = ({children, className}) => (
+export const ModalHeader: FC<ModalHeaderProps> = ({children, className}) => (
     <div className={cn("p-6 border-b border-border flex flex-col space-y-1.5", className)}>
         {children}
     </div>
 );
 
 interface ModalTitleProps {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const ModalTitle: React.FC<ModalTitleProps> = ({children, className}) => (
+export const ModalTitle: FC<ModalTitleProps> = ({children, className}) => (
     <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>
         {children}
     </h3>
 );
 
 interface ModalDescriptionProps {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const ModalDescription: React.FC<ModalDescriptionProps> = ({children, className}) => (
+export const ModalDescription: FC<ModalDescriptionProps> = ({children, className}) => (
     <p className={cn("text-sm text-muted-foreground", className)}>
         {children}
     </p>
 );
 
 interface ModalContentProps {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const ModalContent: React.FC<ModalContentProps> = ({children, className}) => (
+export const ModalContent: FC<ModalContentProps> = ({children, className}) => (
     <div className={cn("p-6 flex-1 overflow-y-auto", className)}>
         {children}
     </div>
 );
 
 interface ModalFooterProps {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
 }
 
-export const ModalFooter: React.FC<ModalFooterProps> = ({children, className}) => (
+export const ModalFooter: FC<ModalFooterProps> = ({children, className}) => (
     <div className={cn("p-6 border-t border-border flex items-center justify-end gap-2", className)}>
         {children}
     </div>
@@ -101,7 +102,7 @@ interface ModalCloseProps {
     className?: string;
 }
 
-export const ModalClose: React.FC<ModalCloseProps> = ({onClick, className}) => (
+export const ModalClose: FC<ModalCloseProps> = ({onClick, className}) => (
     <Button
         variant="ghost"
         size="icon"

@@ -62,6 +62,7 @@ class Controller(object):
             self.pending_start_game_event = None
 
         ans = self.bot.react(json.dumps(events, separators=(",", ":")))
+        logger.trace(f"<- {ans}")
         return json.loads(ans)
 
     def choose_bot_index(self, bot_index: int) -> bool:

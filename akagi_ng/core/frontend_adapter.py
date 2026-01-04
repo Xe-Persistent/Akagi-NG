@@ -196,7 +196,9 @@ def build_dataserver_payload(mjai_response: dict[str, Any], bot: Any) -> dict[st
     if bot is None:
         return None
 
-    meta = mjai_response.get("meta") or {}
+    meta = mjai_response.get("meta")
+    if not meta:
+        return None
 
     # 1. Generate Standard Recommendations
     recommendations = _process_standard_recommendations(meta, bot)

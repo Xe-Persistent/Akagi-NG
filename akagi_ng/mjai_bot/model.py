@@ -1,23 +1,29 @@
 import gzip
 import json
-import traceback
 from functools import partial
-from typing import *
 
 import numpy as np
 import requests
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.distributions import Categorical
 
-from mjai_bot.logger import logger
-from settings import local_settings
+from akagi_ng.mjai_bot.logger import logger
+from akagi_ng.settings import local_settings
 
-# ========== Online Server =========== #
 OT_REQUEST_TIMEOUT = 2
 
 
-# ==================================== #
+def get_inference_device() -> torch.device:
+    cfg_device = local_settings.model_config.device
+    if cfg_device == "cuda" and torch.cuda.is_available():
+        return torch.device("cuda")
+    elif cfg_device == "cpu":
+        return torch.device("cpu")
+    elif cfg_device == "auto":
+        return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    return torch.device("cpu")
+
 
 class ChannelAttention(nn.Module):
     def __init__(self, channels, ratio=16, actv_builder=nn.ReLU, bias=True):
@@ -96,12 +102,14 @@ class ResNet(nn.Module):
 
         blocks = []
         for _ in range(num_blocks):
-            blocks.append(ResBlock(
-                conv_channels,
-                norm_builder=norm_builder,
-                actv_builder=actv_builder,
-                pre_actv=pre_actv,
-            ))
+            blocks.append(
+                ResBlock(
+                    conv_channels,
+                    norm_builder=norm_builder,
+                    actv_builder=actv_builder,
+                    pre_actv=pre_actv,
+                )
+            )
 
         layers = [nn.Conv1d(in_channels, conv_channels, kernel_size=3, padding=1, bias=False)]
         if pre_actv:
@@ -138,7 +146,7 @@ class Brain(nn.Module):
             case 3 | 4:
                 norm_builder = partial(nn.BatchNorm1d, conv_channels, momentum=0.01, eps=1e-3)
             case _:
-                raise ValueError(f'Unexpected version {self.version}')
+                raise ValueError(f"Unexpected version {self.version}")
 
         self.encoder = ResNet(
             in_channels=in_channels,
@@ -150,7 +158,7 @@ class Brain(nn.Module):
         )
         self.actv = actv_builder()
 
-    def forward(self, obs: Tensor, invisible_obs: Optional[Tensor] = None) -> Union[Tuple[Tensor, Tensor], Tensor]:
+    def forward(self, obs: Tensor, invisible_obs: Tensor | None = None) -> tuple[Tensor, Tensor] | Tensor:
         if self.is_oracle:
             assert invisible_obs is not None
             obs = torch.cat((obs, invisible_obs), dim=1)
@@ -160,7 +168,7 @@ class Brain(nn.Module):
             case 3 | 4:
                 return self.actv(phi)
             case _:
-                raise ValueError(f'Unexpected version {self.version}')
+                raise ValueError(f"Unexpected version {self.version}")
 
 
 class AuxNet(nn.Module):
@@ -203,7 +211,7 @@ class DQN(nn.Module):
         else:
             v = self.v_head(phi)
             a = self.a_head(phi)
-        a_sum = a.masked_fill(~mask, 0.).sum(-1, keepdim=True)
+        a_sum = a.masked_fill(~mask, 0.0).sum(-1, keepdim=True)
         mask_sum = mask.sum(-1, keepdim=True)
         a_mean = a_sum / mask_sum
         q = (v + a - a_mean).masked_fill(~mask, -torch.inf)
@@ -219,17 +227,14 @@ class MortalEngine:
             version,
             device=None,
             stochastic_latent=False,
-            enable_amp=False,
-            enable_quick_eval=True,
-            enable_rule_based_agari_guard=False,
-            name='NoName',
+            name="NoName",
             boltzmann_epsilon=0,
             boltzmann_temp=1,
             top_p=1,
-            is_3p=False
+            is_3p=False,
     ):
-        self.engine_type = 'mortal'
-        self.device = device or torch.device('cpu')
+        self.engine_type = "mortal"
+        self.device = device or get_inference_device()
         assert isinstance(self.device, torch.device)
         self.brain = brain.to(self.device).eval()
         self.dqn = dqn.to(self.device).eval()
@@ -237,9 +242,6 @@ class MortalEngine:
         self.version = version
         self.stochastic_latent = stochastic_latent
 
-        self.enable_amp = enable_amp
-        self.enable_quick_eval = enable_quick_eval
-        self.enable_rule_based_agari_guard = enable_rule_based_agari_guard
         self.name = name
 
         self.boltzmann_epsilon = boltzmann_epsilon
@@ -250,9 +252,19 @@ class MortalEngine:
         self.last_inference_result = None
         self.is_online = False
 
-    def react_batch(self, obs, masks, invisible_obs):
-        # ========== Online Server =========== #
+    @property
+    def enable_amp(self) -> bool:
+        return local_settings.model_config.enable_amp
 
+    @property
+    def enable_rule_based_agari_guard(self) -> bool:
+        return local_settings.model_config.rule_based_agari_guard
+
+    @property
+    def enable_quick_eval(self) -> bool:
+        return local_settings.model_config.enable_quick_eval
+
+    def react_batch(self, obs, masks, invisible_obs):
         # Access global settings
         ot_server_config = local_settings.model_config.ot
 
@@ -261,39 +273,38 @@ class MortalEngine:
                 list_obs = [o.tolist() for o in obs]
                 list_masks = [m.tolist() for m in masks]
                 post_data = {
-                    'obs': list_obs,
-                    'masks': list_masks,
+                    "obs": list_obs,
+                    "masks": list_masks,
                 }
-                data = json.dumps(post_data, separators=(',', ':'))
-                compressed_data = gzip.compress(data.encode('utf-8'))
+                data = json.dumps(post_data, separators=(",", ":"))
+                compressed_data = gzip.compress(data.encode("utf-8"))
                 headers = {
-                    'Authorization': ot_server_config.api_key,
-                    'Content-Encoding': 'gzip',
+                    "Authorization": ot_server_config.api_key,
+                    "Content-Encoding": "gzip",
                 }
 
-                endpoint = '/react_batch_3p' if self.is_3p else '/react_batch'
+                endpoint = "/react_batch_3p" if self.is_3p else "/react_batch"
 
                 r = requests.post(
-                    f'{ot_server_config.server}{endpoint}',
+                    f"{ot_server_config.server}{endpoint}",
                     headers=headers,
                     data=compressed_data,
-                    timeout=OT_REQUEST_TIMEOUT
+                    timeout=OT_REQUEST_TIMEOUT,
                 )
                 assert r.status_code == 200
                 self.is_online = True
                 r_json = r.json()
                 self.last_inference_result = {
-                    "actions": r_json['actions'],
-                    "q_out": r_json['q_out'],
-                    "masks": r_json['masks'],
-                    "is_greedy": r_json['is_greedy']
+                    "actions": r_json["actions"],
+                    "q_out": r_json["q_out"],
+                    "masks": r_json["masks"],
+                    "is_greedy": r_json["is_greedy"],
                 }
-                return r_json['actions'], r_json['q_out'], r_json['masks'], r_json['is_greedy']
+                return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]
             except Exception as e:
                 logger.error(f"Online inference failed: {e}")
                 self.is_online = False
                 pass
-        # ==================================== #
         try:
             with (
                 torch.autocast(self.device.type, enabled=self.enable_amp),
@@ -301,7 +312,7 @@ class MortalEngine:
             ):
                 return self._react_batch(obs, masks, invisible_obs)
         except Exception as ex:
-            raise Exception(f'{ex}\n{traceback.format_exc()}')
+            raise RuntimeError(f"Error during inference: {ex}") from ex
 
     def _react_batch(self, obs, masks, invisible_obs):
         obs = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
@@ -317,8 +328,9 @@ class MortalEngine:
                 q_out = self.dqn(phi, masks)
 
         if self.boltzmann_epsilon > 0:
-            is_greedy = torch.full((batch_size,), 1 - self.boltzmann_epsilon, device=self.device).bernoulli().to(
-                torch.bool)
+            is_greedy = (
+                torch.full((batch_size,), 1 - self.boltzmann_epsilon, device=self.device).bernoulli().to(torch.bool)
+            )
             logits = (q_out / self.boltzmann_temp).masked_fill(~masks, -torch.inf)
             sampled = sample_top_p(logits, self.top_p)
             actions = torch.where(is_greedy, q_out.argmax(-1), sampled)
@@ -335,7 +347,7 @@ class MortalEngine:
             "actions": result_actions,
             "q_out": result_q_out,
             "masks": result_masks,
-            "is_greedy": result_is_greedy
+            "is_greedy": result_is_greedy,
         }
 
         return result_actions, result_q_out, result_masks, result_is_greedy
@@ -350,6 +362,6 @@ def sample_top_p(logits, p):
     probs_sort, probs_idx = probs.sort(-1, descending=True)
     probs_sum = probs_sort.cumsum(-1)
     mask = probs_sum - probs_sort > p
-    probs_sort[mask] = 0.
+    probs_sort[mask] = 0.0
     sampled = probs_idx.gather(-1, probs_sort.multinomial(1)).squeeze(-1)
     return sampled

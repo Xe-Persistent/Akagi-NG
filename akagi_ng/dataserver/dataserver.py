@@ -4,19 +4,19 @@ from threading import Thread
 
 from aiohttp import web
 
-from core.context import get_frontend_dir
-from settings import get_settings_dict, verify_settings, local_settings, get_default_settings_dict
-from .logger import logger
+from akagi_ng.core.context import get_frontend_dir
+from akagi_ng.core.logging import configure_logging
+from akagi_ng.dataserver.logger import logger
+from akagi_ng.settings import get_default_settings_dict, get_settings_dict, local_settings, verify_settings
 
 
 def _format_sse_message(data: dict) -> bytes:
-    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode()
 
 
 async def _send_payload(client_id: str, response: web.StreamResponse, payload: bytes) -> bool:
     try:
         await response.write(payload)
-        await response.drain()
         return True
     except ConnectionResetError:
         logger.warning(f"SSE connection reset for {client_id}")
@@ -37,15 +37,18 @@ class DataServer(Thread):
         self.runner = None
         self.running = False
         self.keep_alive_task = None
-        self.frontend_dist_dir = get_frontend_dir() / "dist"
+        self.frontend_dist_dir = get_frontend_dir()
 
     async def _remove_client(self, client_id: str, expected_response=None):
         client_data = self.clients.get(client_id)
         # If the stored response does not match the one we intend to close, skip removal to avoid
         # kicking out a fresh connection that reused the same client_id.
-        if expected_response is not None and client_data is not None:
-            if client_data.get("response") is not expected_response:
-                return
+        if (
+            expected_response is not None
+            and client_data is not None
+            and client_data.get("response") is not expected_response
+        ):
+            return
 
         client_data = self.clients.pop(client_id, None)
         if not client_data:
@@ -84,7 +87,6 @@ class DataServer(Thread):
 
                 try:
                     await response.write(keepalive_payload)
-                    await response.drain()
                 except ConnectionResetError:
                     logger.warning(f"Connection reset for {client_id}, marking as zombie.")
                     zombie_client_ids.append(client_id)
@@ -130,12 +132,12 @@ class DataServer(Thread):
                     if p.name == "index.html":
                         continue
 
-                    async def _serve_file(request: web.Request, _path=p) -> web.Response:
+                    async def _serve_file(request: web.Request, _path=p) -> web.StreamResponse:
                         return web.FileResponse(_path)
 
                     app.router.add_get(f"/{p.name}", _serve_file)
 
-                async def _serve_index(_request: web.Request) -> web.Response:
+                async def _serve_index(_request: web.Request) -> web.StreamResponse:
                     return web.FileResponse(self.frontend_dist_dir / "index.html")
 
                 # SPA entry + fallback
@@ -208,10 +210,41 @@ class DataServer(Thread):
                 headers={"Access-Control-Allow-Origin": "*"},
             )
 
+        old_settings = get_settings_dict()
         local_settings.update(payload)
         local_settings.save()
+
+        # Check if we necessitate a restart
+        # Restart required if:
+        # - Server host/port changed
+        # - Browser settings changed (headless, channel, window_size) - technically could be dynamic but complex
+        # - Model device changed (requires reload)
+        # - Model path changed (requires reload)
+        # Not required if:
+        # - log_level changed (we can set it dynamically)
+        # - locale changed (frontend only)
+        # - majsoul_url changed (frontend mainly, or next browser launch)
+        # - model_config.enable_amp / enable_quick_eval / rule_based_agari_guard (dynamic properties)
+        # - model_config.ot.* (dynamic usage)
+
+        restart_required = False
+
+        if payload.get("log_level") != old_settings.get("log_level"):
+            new_level = payload.get("log_level", "INFO")
+            logger.info(f"Log level changed to {new_level}, updating...")
+            configure_logging(new_level)
+
+        # Deep compare for restart-required fields
+        if (
+            payload.get("server") != old_settings.get("server")
+            or payload.get("browser") != old_settings.get("browser")
+            or payload.get("model") != old_settings.get("model")
+            or payload.get("model_config", {}).get("device") != old_settings.get("model_config", {}).get("device")
+        ):
+            restart_required = True
+
         return web.json_response(
-            {"ok": True, "restartRequired": True},
+            {"ok": True, "restartRequired": restart_required},
             headers={"Access-Control-Allow-Origin": "*"},
         )
 
@@ -259,7 +292,7 @@ class DataServer(Thread):
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for client_id, result in zip(client_order, results):
+            for client_id, result in zip(client_order, results, strict=True):
                 if result is False or isinstance(result, Exception):
                     zombie_client_ids.append(client_id)
                     zombie_responses[client_id] = self.clients.get(client_id, {}).get("response")
@@ -268,6 +301,18 @@ class DataServer(Thread):
             await self._remove_client(client_id, expected_response=zombie_responses.get(client_id))
 
     def update_data(self, data):
+        if self.loop and self.running:
+            asyncio.run_coroutine_threadsafe(self._update_data_async(data), self.loop)
+
+    def update_system_error(self, error_code: str, details: str = ""):
+        """
+        Broadcast a system-level error to the frontend.
+        """
+        data = {
+            "type": "system_error",
+            "error_code": error_code,
+            "details": details,
+        }
         if self.loop and self.running:
             asyncio.run_coroutine_threadsafe(self._update_data_async(data), self.loop)
 
@@ -296,7 +341,6 @@ class DataServer(Thread):
 
         try:
             await response.write(b": connected\n\n")
-            await response.drain()
         except Exception as exc:
             logger.warning(f"Failed to send initial SSE comment to {client_id}: {exc}")
 

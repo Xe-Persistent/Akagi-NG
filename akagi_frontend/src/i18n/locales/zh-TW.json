@@ -1,0 +1,99 @@
+{
+  "settings": {
+    "save": "儲存變更",
+    "discard": "放棄變更",
+    "restore": "恢復預設設定",
+    "restore_confirm_title": "恢復預設設定",
+    "restore_confirm_desc": "確定要將所有設定恢復為預設值嗎？此操作無法復原。",
+    "general": {
+      "title": "一般",
+      "locale": "顯示語言",
+      "log_level": "紀錄層級"
+    },
+    "browser": {
+      "title": "瀏覽器",
+      "headless": "無頭模式",
+      "headless_desc": "在背景執行瀏覽器，不顯示瀏覽器視窗",
+      "channel": "使用指定瀏覽器",
+      "channel_desc": "指定用於執行 Akagi-NG 的瀏覽器版本",
+      "size": "視窗尺寸",
+      "size_placeholder": "選擇視窗解析度",
+      "size_default": "預設",
+      "size_maximized": "最大化"
+    },
+    "server": {
+      "title": "服務設定",
+      "host": "主機",
+      "port": "連接埠"
+    },
+    "model": {
+      "title": "AI 模型",
+      "device": "裝置",
+      "device_auto": "自動",
+      "amp": "啟用 AMP（混合精度）",
+      "amp_desc": "啟用自動混合精度以提升效能",
+      "agari_guard": "規則驅動的和牌保護",
+      "agari_guard_desc": "防止因辨識錯誤而錯過和牌",
+      "enable_quick_eval": "快速評估",
+      "enable_quick_eval_desc": "跳過部分計算以提升回應速度",
+      "online": "線上模型",
+      "server_url": "伺服器位址",
+      "api_key": "API 金鑰"
+    },
+    "danger_zone": {
+      "title": "危險區域",
+      "desc": "修改以下設定可能會影響應用程式的效能或行為表現，請謹慎操作。"
+    },
+    "success_title": "成功",
+    "saved_success": "設定已更新，請在頁面中確認。",
+    "status_saved": "所有變更已儲存",
+    "status_saving": "正在儲存...",
+    "status_error": "儲存失敗",
+    "restart_required": "設定已變更，請重新啟動應用程式以套用變更。",
+    "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更。"
+  },
+  "common": {
+    "enabled": "已啟用",
+    "disabled": "已停用",
+    "auto": "自動",
+    "confirm": "確認",
+    "cancel": "取消"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_majsoul": "啟動雀魂",
+    "settings_title": "Akagi NG 設定",
+    "settings_desc": "應用配置面板",
+    "pip_start": "開啟畫中畫",
+    "pip_loading": "正在啟動畫中畫...",
+    "pip_exit": "退出畫中畫",
+    "pip_not_supported": "您的瀏覽器不支援畫中畫 API",
+    "pip_playing_in_pip": "正在畫中畫模式播放",
+    "pip_can_switch_tabs": "您可以切換到其他分頁繼續瀏覽",
+    "settings_load_error_title": "連線失敗",
+    "settings_load_error_desc": "無法載入設定，請確認應用程式已正確啟動。",
+    "settings_loading": "正在載入設定...",
+    "close": "關閉",
+    "save_failed": "儲存失敗",
+    "connect_failed": "連線失敗",
+    "launch_error_url": "無法取得雀魂 URL，請檢查設定。",
+    "config_error": "配置錯誤",
+    "connection_lost": "連線中斷",
+    "api_not_found": "無法建立連線，請檢查位址設定。",
+    "server_error": "服務發生異常",
+    "missing_resources": "缺少必要資源",
+    "missing_resources_desc": "檢測到以下目錄或檔案遺失，請手動補充："
+  },
+  "actions": {
+    "reach": "立直",
+    "chi": "吃",
+    "pon": "碰",
+    "kan_select": "槓",
+    "hora": "和",
+    "tsumo": "自摸",
+    "ryukyoku": "流局",
+    "nukidora": "拔北",
+    "none": "跳過",
+    "discard": "打"
+  }
+}

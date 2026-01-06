@@ -21,6 +21,17 @@
       "default": "INFO",
       "description": "Logging level."
     },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "zh-CN",
+        "zh-TW",
+        "en-US",
+        "ja-JP"
+      ],
+      "default": "en-US",
+      "description": "UI Language locale."
+    },
     "majsoul_url": {
       "type": "string",
       "description": "The URL for the Majsoul game.",
@@ -96,6 +107,11 @@
           "default": false,
           "description": "Enable automatic mixed precision for inference."
         },
+        "enable_quick_eval": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable quick evaluation for the model."
+        },
         "rule_based_agari_guard": {
           "type": "boolean",
           "default": true,
@@ -142,6 +158,7 @@
       "required": [
         "device",
         "enable_amp",
+        "enable_quick_eval",
         "rule_based_agari_guard",
         "ot"
       ],

@@ -1,8 +1,8 @@
 import json
 
-from core.libriichi_helper import is_riichi_relevant
-from . import model
-from .logger import logger
+from akagi_ng.mjai_bot.mortal3p import model
+from akagi_ng.mjai_bot.mortal3p.logger import logger
+from akagi_ng.mjai_bot.utils import is_riichi_relevant
 
 
 class Bot:
@@ -11,7 +11,6 @@ class Bot:
         self.model = None
         self.engine = None
         self.history = []
-
 
     def react(self, events: str) -> str:
         """
@@ -39,7 +38,7 @@ class Bot:
                 self.game_start_event = e
                 continue
             if self.model is None or self.player_id is None:
-                logger.error(f"Model is not loaded yet")
+                logger.error("Model is not loaded yet")
                 continue
 
             # Reset history on new round
@@ -60,12 +59,7 @@ class Bot:
         if return_action is None:
             # ========== Online Server =========== #
             if self.engine and self.engine.is_online:
-                raw_data = {
-                    "type": "none",
-                    "meta": {
-                        "online": self.engine.is_online
-                    }
-                }
+                raw_data = {"type": "none", "meta": {"online": self.engine.is_online}}
                 return_action = json.dumps(raw_data, separators=(",", ":"))
             else:
                 return_action = json.dumps({"type": "none"}, separators=(",", ":"))
@@ -83,7 +77,8 @@ class Bot:
 
                 # Check if we should recommend Riichi Discard (Lookahead)
                 # Use helper to get sorted recommendations safely
-                from core.libriichi_helper import meta_to_recommend
+                from akagi_ng.mjai_bot.utils import meta_to_recommend
+
                 recommendations = meta_to_recommend(meta, is_3p=True)
 
                 # Check if reach is recommended (in top 5 actions)
@@ -91,14 +86,15 @@ class Bot:
                 top_5_actions = [rec[0] for rec in recommendations[:5]]
                 logger.info(f"Riichi Lookahead (3p): Top 5 actions (helper): {top_5_actions}")
 
-                if 'reach' in top_5_actions:
+                if "reach" in top_5_actions:
                     is_reach_candidate = True
 
                 if is_reach_candidate:
                     logger.info("Riichi Lookahead (3p): Reach is in Top 5 recommendations. Starting simulation.")
                     # Perform Lookahead
                     try:
-                        from core.lib_loader import libriichi3p
+                        from akagi_ng.core.lib_loader import libriichi3p
+
                         # Create simulation bot
                         sim_bot = libriichi3p.mjai.Bot(self.engine, self.player_id)
 
@@ -134,10 +130,19 @@ class Bot:
                     except Exception as lookahead_err:
                         logger.error(f"Riichi Lookahead (3p) failed: {lookahead_err}")
                         import traceback
+
                         logger.error(traceback.format_exc())
 
             if meta:
-                raw_data["meta"] = meta
+                # If only one action is legal (e.g. forced "none" on opponent turn in 3p),
+                # we suppress the recommendation to avoid UI noise.
+                mask_bits = meta.get("mask_bits")
+                if mask_bits and mask_bits.bit_count() == 1:
+                    logger.debug("Bot (3p): Suppressing metadata because only 1 legal action exists (forced move).")
+                    if "meta" in raw_data:
+                        del raw_data["meta"]
+                else:
+                    raw_data["meta"] = meta
 
             return_action = json.dumps(raw_data, separators=(",", ":"))
             # ==================================== #

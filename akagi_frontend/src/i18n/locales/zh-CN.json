@@ -1,0 +1,99 @@
+{
+  "settings": {
+    "save": "保存更改",
+    "discard": "放弃更改",
+    "restore": "恢复默认设置",
+    "restore_confirm_title": "恢复默认设置",
+    "restore_confirm_desc": "确定要将所有设置恢复为默认值吗？此操作无法撤销。",
+    "general": {
+      "title": "常规",
+      "locale": "显示语言",
+      "log_level": "日志级别"
+    },
+    "browser": {
+      "title": "浏览器",
+      "headless": "无头模式",
+      "headless_desc": "在后台运行浏览器，不显示浏览器窗口",
+      "channel": "使用指定浏览器",
+      "channel_desc": "指定用于运行 Akagi-NG 的浏览器版本",
+      "size": "窗口尺寸",
+      "size_placeholder": "选择窗口分辨率",
+      "size_default": "默认",
+      "size_maximized": "最大化"
+    },
+    "server": {
+      "title": "服务设置",
+      "host": "主机",
+      "port": "端口"
+    },
+    "model": {
+      "title": "AI 模型",
+      "device": "设备",
+      "device_auto": "自动",
+      "amp": "启用 AMP (混合精度)",
+      "amp_desc": "启用自动混合精度以提升性能",
+      "agari_guard": "规则驱动的和牌保护",
+      "agari_guard_desc": "防止因识别错误而错过和牌",
+      "enable_quick_eval": "快速评估",
+      "enable_quick_eval_desc": "跳过部分计算以提升响应速度",
+      "online": "在线模型",
+      "server_url": "服务器地址",
+      "api_key": "API Key"
+    },
+    "danger_zone": {
+      "title": "危险区域",
+      "desc": "修改以下设置可能会影响应用的性能或行为表现，请谨慎操作。"
+    },
+    "success_title": "成功",
+    "saved_success": "设置已更新，请在页面中确认。",
+    "status_saved": "所有更改已保存",
+    "status_saving": "正在保存...",
+    "status_error": "保存失败",
+    "restart_required": "设置已更改，请重新启动应用以使更改生效。",
+    "restored_success": "设置已恢复为默认值，请重新启动应用以使更改生效。"
+  },
+  "common": {
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "auto": "自动",
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_majsoul": "启动雀魂",
+    "settings_title": "Akagi NG 设置",
+    "settings_desc": "应用配置面板",
+    "pip_start": "开启画中画",
+    "pip_loading": "正在启动画中画...",
+    "pip_exit": "退出画中画",
+    "pip_not_supported": "您的浏览器不支持画中画 API",
+    "pip_playing_in_pip": "正在画中画模式播放",
+    "pip_can_switch_tabs": "您可以切换到其他标签页继续浏览",
+    "settings_load_error_title": "连接失败",
+    "settings_load_error_desc": "无法加载设置，请确认应用已正确启动。",
+    "settings_loading": "正在加载设置...",
+    "close": "关闭",
+    "save_failed": "保存失败",
+    "connect_failed": "连接失败",
+    "launch_error_url": "无法获取雀魂 URL，请检查设置。",
+    "config_error": "配置错误",
+    "connection_lost": "连接断开",
+    "api_not_found": "无法建立连接，请检查地址配置。",
+    "server_error": "服务发生异常",
+    "missing_resources": "缺少必要资源",
+    "missing_resources_desc": "检测到以下目录或文件丢失，请手动补充："
+  },
+  "actions": {
+    "reach": "立直",
+    "chi": "吃",
+    "pon": "碰",
+    "kan_select": "杠",
+    "hora": "和",
+    "tsumo": "自摸",
+    "ryukyoku": "流局",
+    "nukidora": "拔北",
+    "none": "跳过",
+    "discard": "打"
+  }
+}

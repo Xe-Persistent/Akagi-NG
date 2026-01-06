@@ -1,4 +1,4 @@
-class BridgeBase(object):
+class BridgeBase:
     def __init__(self):
         pass
 

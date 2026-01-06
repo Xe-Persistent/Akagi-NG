@@ -1,6 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@plugin "tailwindcss-animate";
+@plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -34,38 +34,48 @@
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+
+    --color-action-reach: #f97316;
+    --color-action-chi: #34d399;
+    --color-action-pon: #60a5fa;
+    --color-action-kan: #c084fc;
+    --color-action-ron: #ef4444;
+    --color-action-tsumo: #dc2626;
+    --color-action-draw: #94a3b8;
+    --color-action-kita: #f472b6;
+    --color-action-skip: #a1a1aa;
+    --color-action-discard: #71717a;
 }
 
 @layer components {
-
     /* Mahjong Tile */
     .mahjong-tile-container {
-        @apply relative flex flex-col items-center justify-start w-20 h-28 transition-transform duration-200;
+        @apply relative flex h-28 w-20 flex-col items-center justify-start transition-transform duration-200;
     }
 
     .mahjong-tile-face {
-        @apply relative w-full h-full z-10 rounded-lg overflow-hidden bg-white shadow-sm border border-zinc-200 dark:border-zinc-700;
+        @apply relative z-10 h-full w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700;
     }
 
     .mahjong-tile-3d {
-        @apply absolute -bottom-1 w-full h-full bg-zinc-300 dark:bg-zinc-500 rounded-lg z-0 translate-y-1 border border-zinc-400 dark:border-zinc-600;
+        @apply absolute -bottom-1 z-0 h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
     }
 
     .mahjong-tile-back {
-        @apply w-full h-full bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900 border border-white/20 dark:border-white/10 shadow-inner;
+        @apply h-full w-full border border-white/20 bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 shadow-inner dark:border-white/10 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900;
     }
 
     /* Components: StreamRecommendation */
     .glass-card {
-        @apply relative flex items-center justify-between p-4 pr-10 bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-xl rounded-3xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl overflow-hidden h-45;
+        @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/95 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/95;
     }
 
     .background-glow {
-        @apply absolute -inset-0.5 rounded-3xl blur opacity-30 dark:opacity-40 transition duration-500 group-hover:opacity-60 bg-linear-to-r;
+        @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-40;
     }
 
     .action-text-gradient {
-        @apply text-6xl font-black tracking-widest bg-clip-text text-transparent bg-linear-to-br filter drop-shadow-sm;
+        @apply bg-linear-to-br bg-clip-text font-black text-transparent drop-shadow-sm filter;
     }
 }
 
@@ -84,7 +94,6 @@
     margin-left: -40px;
     /* -width/2 */
 }
-
 
 @layer base {
     :root {
@@ -145,13 +154,24 @@
     }
 }
 
-
 @layer base {
     * {
         @apply border-border;
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply text-foreground bg-zinc-100 dark:bg-zinc-950;
+        background-image: radial-gradient(at 0% 0%, rgb(236 72 153 / 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgb(139 92 246 / 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgb(59 130 246 / 0.1) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgb(16 185 129 / 0.1) 0px, transparent 50%);
+        background-attachment: fixed;
+    }
+
+    .dark body {
+        background-image: radial-gradient(at 0% 0%, rgb(236 72 153 / 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgb(139 92 246 / 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgb(59 130 246 / 0.15) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgb(16 185 129 / 0.15) 0px, transparent 50%);
     }
 }

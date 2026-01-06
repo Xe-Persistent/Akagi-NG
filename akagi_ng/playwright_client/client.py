@@ -1,16 +1,16 @@
 import queue
 import threading
 
-from settings import local_settings
-from .logger import logger
-from .majsoul import PlaywrightController, mjai_messages
+from akagi_ng.playwright_client.logger import logger
+from akagi_ng.playwright_client.majsoul import PlaywrightController, mjai_messages
+from akagi_ng.settings import local_settings
 
 
-class Client(object):
+class Client:
     def __init__(self, frontend_url: str):
-        self.messages: queue.Queue[dict] = None
+        self.messages: queue.Queue[dict] | None = None
         self.running = False
-        self._thread: threading.Thread = None
+        self._thread: threading.Thread | None = None
         self.controller: PlaywrightController = PlaywrightController(local_settings.majsoul_url, frontend_url)
 
     def start(self):

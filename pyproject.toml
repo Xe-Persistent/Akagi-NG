@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { file = "LICENSE.txt" }
+license = "AGPL-3.0-only"
 authors = [{ name = "Akagi-NG Contributors" }]
 dependencies = [
     # Basic
@@ -24,7 +24,9 @@ dependencies = [
     # Playwright
     "playwright==1.57.0",
     # DataServer
-    "aiohttp",
+    "aiohttp==3.13.3",
+    # Tools
+    "ruff==0.14.10",
 ]
 
 [project.urls]
@@ -32,6 +34,34 @@ Homepage = "https://github.com/Xe-Persistent/Akagi-NG"
 
 [project.scripts]
 akagi-ng = "akagi_ng.__main__:main"
+
+[tool.ruff]
+src = ["akagi_ng"]
+line-length = 120
+target-version = "py312"
+extend-exclude = [
+    "akagi_ng/bridge/liqi_pb2.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "TID", "C4"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["akagi_ng"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"akagi_ng/bridge/liqi_pb2.py" = ["ALL"]
 
 [tool.setuptools]
 include-package-data = true

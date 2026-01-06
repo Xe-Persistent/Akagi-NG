@@ -1,63 +1,63 @@
-import {cn} from "@/lib/utils"
-import type {ReactNode} from "react";
+import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 
 interface CapsuleSwitchProps {
-    checked: boolean
-    onCheckedChange: (checked: boolean) => void
-    labelOn?: ReactNode
-    labelOff?: ReactNode
-    className?: string
-    disabled?: boolean
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  labelOn?: ReactNode;
+  labelOff?: ReactNode;
+  className?: string;
+  disabled?: boolean;
 }
 
 export function CapsuleSwitch({
-                                  checked,
-                                  onCheckedChange,
-                                  labelOn = "On",
-                                  labelOff = "Off",
-                                  className,
-                                  disabled = false
-                              }: CapsuleSwitchProps) {
-    return (
-        <div
-            className={cn(
-                "group relative inline-flex h-9 items-center rounded-full bg-muted border border-input p-1 font-medium ring-offset-background transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-                disabled && "cursor-not-allowed opacity-50",
-                className
-            )}
-        >
-            <div
-                className={cn(
-                    "absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-background shadow-sm transition-all duration-300 ease-in-out",
-                    checked ? "translate-x-full" : "translate-x-0"
-                )}
-            />
-            <button
-                type="button"
-                role="switch"
-                aria-checked={!checked}
-                disabled={disabled}
-                onClick={() => onCheckedChange(false)}
-                className={cn(
-                    "relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
-                    !checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                {labelOff}
-            </button>
-            <button
-                type="button"
-                role="switch"
-                aria-checked={checked}
-                disabled={disabled}
-                onClick={() => onCheckedChange(true)}
-                className={cn(
-                    "relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none",
-                    checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-            >
-                {labelOn}
-            </button>
-        </div>
-    )
+  checked,
+  onCheckedChange,
+  labelOn = 'On',
+  labelOff = 'Off',
+  className,
+  disabled = false,
+}: CapsuleSwitchProps) {
+  return (
+    <div
+      className={cn(
+        'group bg-muted border-input ring-offset-background focus-within:ring-ring relative inline-flex h-9 items-center rounded-full border p-1 font-medium transition-colors focus-within:ring-2 focus-within:ring-offset-2',
+        disabled && 'cursor-not-allowed opacity-50',
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          'bg-background absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full shadow-sm transition-all duration-300 ease-in-out',
+          checked ? 'translate-x-full' : 'translate-x-0',
+        )}
+      />
+      <button
+        type='button'
+        role='switch'
+        aria-checked={!checked}
+        disabled={disabled}
+        onClick={() => onCheckedChange(false)}
+        className={cn(
+          'relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none',
+          !checked ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        {labelOff}
+      </button>
+      <button
+        type='button'
+        role='switch'
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onCheckedChange(true)}
+        className={cn(
+          'relative z-10 flex min-w-12 flex-1 items-center justify-center rounded-full px-3 py-1 text-sm transition-colors focus-visible:outline-none',
+          checked ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+        )}
+      >
+        {labelOn}
+      </button>
+    </div>
+  );
 }

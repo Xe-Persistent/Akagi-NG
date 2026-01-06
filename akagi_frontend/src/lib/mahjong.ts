@@ -5,9 +5,9 @@
  * @param tile The tile string (e.g., '1m', '2p', 'east')
  */
 export const getTileSortValue = (tile: string): number => {
-    // Very simple heuristic for sorting, relies on tile naming convention (e.g. 1m, 2p)
-    const val = parseInt(tile[0]);
-    return isNaN(val) ? 99 : val;
+  // Very simple heuristic for sorting, relies on tile naming convention (e.g. 1m, 2p)
+  const val = parseInt(tile[0]);
+  return isNaN(val) ? 99 : val;
 };
 
 /**
@@ -15,5 +15,5 @@ export const getTileSortValue = (tile: string): number => {
  * @param tiles Array of tile strings
  */
 export const sortTiles = (tiles: string[]): string[] => {
-    return [...tiles].sort((a, b) => getTileSortValue(a) - getTileSortValue(b));
+  return [...tiles].sort((a, b) => getTileSortValue(a) - getTileSortValue(b));
 };

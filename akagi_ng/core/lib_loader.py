@@ -1,6 +1,6 @@
 import sys
 
-from core.context import get_lib_dir
+from akagi_ng.core.context import get_lib_dir
 
 # Add lib dir to sys.path to allow importing binaries
 lib_dir = get_lib_dir()
@@ -14,7 +14,8 @@ try:
 except ImportError as e:
     # If the directory exists but import fails, it might be a missing file or compatible binary
     # We re-raise to fail early if these core dependencies are missing
-    raise ImportError(f"Failed to load libriichi/libriichi3p from {lib_dir}. "
-                      f"Ensure the .pyd/.so files are present.") from e
+    raise ImportError(
+        f"Failed to load libriichi/libriichi3p from {lib_dir}. Ensure the .pyd/.so files are present."
+    ) from e
 
 __all__ = ["libriichi", "libriichi3p"]

@@ -8,10 +8,13 @@
   </p>
 <p><i>「死ねば助かるのに……」— 赤木しげる</i></p>
 
-<p>
   <img src="https://img.shields.io/badge/python-3.12+-blue?logo=python">
   <img src="https://img.shields.io/badge/platform-Windows-lightgrey">
-  <img src="https://img.shields.io/badge/status-active%20development-orange">
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-green">
+</p>
+
+<p align="center">
+  <a href="./README_ZH.md">简体中文</a> | <b>English</b>
 </p>
 </div>
 
@@ -19,20 +22,17 @@
 
 ## What is Akagi-NG?
 
-**Akagi-NG** stands for **Next Generation**.It is a next-generation rewrite of the original **Akagi** project.
+**Akagi-NG** is a next-generation rewrite of the original **Akagi** project.
 
 It is an AI-powered assistant for Japanese Mahjong (Riichi Mahjong), designed to provide **real-time analysis and
 decision recommendations** while playing games such as **Mahjong Soul (雀魂)**.
 
 Akagi-NG focuses on:
 
-- A **modernized architecture**
+- A **modernized architecture** (Python 3.12 + React/Vite)
 - Cleaner separation between core logic, UI, configuration, and models
-- Easier extensibility for future UIs (H5 / overlay / background service)
+- High-performance Mortal implementation utilizing `libriichi` extensions
 - Long-term maintainability
-
-This project inherits ideas and legacy code from **Akagi** and **MajsoulHelper**, but it is not a drop-in replacement
-and should be treated as a new generation.
 
 ---
 
@@ -58,182 +58,131 @@ You are responsible for understanding the risks.
     - Three-player Mahjong
 
 - 🤖 **AI models**
-    - MJAI-compatible local models
-    - (Optional) online / external models
+    - Mortal (Mortal 4p / Mortal 3p)
 
 - 🧠 **Core features**
-    - Real-time hand analysis
-    - Shanten / efficiency-based recommendations
-    - Clear separation between engine and UI
+    - Real-time hand analysis with AI recommendations
+    - Riichi discard lookahead (simulate best discard when reaching)
+    - Consolidated Kan logic (Chi/Pon/Ankan/Kakan/Daiminkan)
+    - Modern web-based overlay UI
+    - Multi-language support (Simplified Chinese / Traditional Chinese / Japanese / English)
 
-> [!NOTE]
-> Akagi-NG is still under active development.  
-> Some features from the original Akagi project are intentionally not re-implemented yet.
+
+## Screenshots
+
+
+### Main Interface
+![Main UI](./docs/screen_shots/ui_en.png)
+
+### Standard Discard
+![Standard Discard](./docs/screen_shots/discard_en.png)
+
+### Riichi Lookahead
+![Riichi Lookahead](./docs/screen_shots/riichi_en.png)
+
+### Pon & Kan
+![Pon & Kan Options](./docs/screen_shots/pon&kan_en.png)
+
+### Kan Selection
+![Kan Selection](./docs/screen_shots/kan_select_en.png)
+
+### Chi
+![Chi (Eat) Recommendation](./docs/screen_shots/chi_en.png)
+
 
 ---
 
-### TODO List
 
-- [x] Rewrite Akagi core logic
-- [x] Add modern h5 UI support
-- [ ] Refactor legacy mjai_bot code
-- [ ] Refine playwright integration
-- [ ] Compatible with online models
-- [x] Feature: Show which tile to discard when riichi, e.g.`12233445566778m`
-- [ ] Feature: Show which tile to kan in mixed kan scenarios, e.g.`(444m)456777m45p44z` or `444456777m45p44z`
+## Installation & Usage
+
+### 1. Download Release
+
+Check the [Releases](../../releases) page for the latest version.
+
+### 2. Prepare Resources
+
+Akagi-NG requires external AI models and libraries to function.  
+You must place the following folders in the same directory as `akagi-ng.exe`:
+
+```
+akagi-ng/
+  ├── akagi-ng.exe
+  ├── config/          # Configuration files
+  ├── lib/             # libriichi binary extensions (.pyd)
+  │     ├── libriichi.pyd
+  │     └── libriichi3p.pyd
+  └── models/          # Mortal model weights (.pth)
+        ├── mortal.pth
+        └── mortal3p.pth
+```
+
+### 3. Run
+
+Execute `akagi-ng.exe`. The application will launch a dedicated browser instance for Mahjong Soul and open the overlay
+interface.
 
 ---
 
-## Setup
-
-Akagi-NG uses a modern Python packaging setup based on **pyproject.toml**.
-
-This project is currently intended for **developers and advanced users**.
-
----
+## Build from Source
 
 ### Requirements
 
 - Python **3.12 or newer**
+- Node.js & npm (for frontend)
 - Windows (primary development target)
-- A MJAI-compatible local or online model
 - Git
 
----
-
-### Clone the repository
+### 1. Clone & Setup
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
 cd Akagi-NG
-```
 
----
-
-### Create a virtual environment
-
-Using venv (recommended):
-
-```bash
+# Create virtual environment
 python -m venv .venv
 .venv\Scripts\activate
-```
 
----
-
-### Install backend dependencies
-
-Install Akagi-NG in editable (development) mode:
-
-```bash
+# Install dependencies
 pip install -e .
-```
-
-This will:
-
-* Install all runtime dependencies defined in pyproject.toml
-* Register the akagi-ng command
-* Allow local code changes without reinstallation
-
----
-
-### Install frontend dependencies
-
-Before running the application, install the frontend dependencies.
-
-The frontend is located in the `akagi_frontend/` directory and is managed independently from the Python backend.
-
-```bash
-cd frontend
-npm install
-```
-
-If you prefer another package manager (e.g., pnpm or yarn), use the corresponding install command.
-
----
-
-### Install Playwright browsers
-
-Akagi-NG relies on Playwright for interacting with Mahjong Soul.
-
-After installing dependencies, run:
-
-```bash
 python -m playwright install
 ```
 
----
+### 2. Build Frontend
 
-## Running Akagi-NG
+```bash
+cd akagi_frontend
+npm install
+npm run build
+```
 
-Akagi-NG can be started in two equivalent ways.
-
-### Option 1: Run as a module
+### 3. Run Development Version
 
 ```bash
 python -m akagi_ng
 ```
 
-### Option 2: Use the installed command
+### 4. Build Release Package
+
+To create a standalone ZIP package:
 
 ```bash
-akagi-ng
+python build_release.py
 ```
 
-Both methods invoke the same entry point:
-
-```
-akagi_ng.__main__:main
-```
-
----
-During startup, Akagi-NG initializes:
-
-* Project root detection
-* Runtime configuration loading and validation
-* Logging system
-* AI model discovery and loading
-
-Runtime logs are written to:
-
-```
-./logs/
-```
+This will generate a versioned ZIP file in the `dist/` directory.
 
 ---
 
 ## Configuration
 
-Runtime configuration is stored outside the Python package:
+Settings are stored in `config/settings.json`. You can modify this file to change:
 
-```
-config/settings.json
-```
-
-A schema file is included in the codebase to validate configuration structure.
-
-Example:
-
-```
-config/settings.example.json
-```
-
-Copy it to settings.json and modify as needed.
-
----
-
-## Legacy Code Notice
-
-Akagi-NG contains **isolated legacy** code originating from the original Akagi project.
-
-* It is intentionally kept untouched
-* New features must not depend directly on legacy internals
-* All access goes through explicit adapters
-
-This allows gradual migration without destabilizing the system.
+- Application settings
+- Model parameters
+- UI preferences
 
 ---
 
 ## License
 
-This software is licensed under the [GNU Affero General Public License version 3 (AGPLv3)](LICENSE)
+This software is licensed under the [GNU Affero General Public License version 3 (AGPLv3)](LICENSE).

@@ -1,0 +1,99 @@
+{
+  "settings": {
+    "save": "Save Changes",
+    "discard": "Discard Changes",
+    "restore": "Restore Defaults",
+    "restore_confirm_title": "Restore Default Settings",
+    "restore_confirm_desc": "Are you sure you want to restore all settings to their default values? This action cannot be undone.",
+    "general": {
+      "title": "General",
+      "locale": "Language",
+      "log_level": "Log Level"
+    },
+    "browser": {
+      "title": "Browser",
+      "headless": "Headless Mode",
+      "headless_desc": "Run the browser in the background without a visible window",
+      "channel": "Select Browser",
+      "channel_desc": "Specify the browser version to run Akagi-NG",
+      "size": "Window Size",
+      "size_placeholder": "Select Resolution",
+      "size_default": "Default",
+      "size_maximized": "Maximized"
+    },
+    "server": {
+      "title": "Service Settings",
+      "host": "Host",
+      "port": "Port"
+    },
+    "model": {
+      "title": "AI Model",
+      "device": "Device",
+      "device_auto": "Auto",
+      "amp": "Enable AMP",
+      "amp_desc": "Enable automatic mixed precision to improve performance",
+      "agari_guard": "Rule-driven Agari Guard",
+      "agari_guard_desc": "Prevent missing winning hands due to recognition errors",
+      "enable_quick_eval": "Quick Evaluation",
+      "enable_quick_eval_desc": "Skip some calculations to improve response speed",
+      "online": "Online Model",
+      "server_url": "Server URL",
+      "api_key": "API Key"
+    },
+    "danger_zone": {
+      "title": "Danger Zone",
+      "desc": "Modifying these settings may affect the application's performance or behavior. Use with caution."
+    },
+    "success_title": "Success",
+    "saved_success": "Settings updated.",
+    "status_saved": "All changes saved",
+    "status_saving": "Saving...",
+    "status_error": "Save failed",
+    "restart_required": "Settings changed, Please restart the application to apply the changes.",
+    "restored_success": "Settings restored to defaults. Please restart the application to apply the changes."
+  },
+  "common": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "auto": "Auto",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_majsoul": "Launch Majsoul",
+    "settings_title": "Akagi NG Settings",
+    "settings_desc": "Application Configuration Panel",
+    "pip_start": "Start PiP Mode",
+    "pip_loading": "Starting Picture-in-Picture...",
+    "pip_exit": "Exit PiP Mode",
+    "pip_not_supported": "Your browser does not support PiP API",
+    "pip_playing_in_pip": "Playing in PiP Mode",
+    "pip_can_switch_tabs": "You can switch tabs now",
+    "settings_load_error_title": "Connection Failed",
+    "settings_load_error_desc": "Could not load settings. Please make sure the application is running properly.",
+    "settings_loading": "Loading settings...",
+    "close": "Close",
+    "save_failed": "Save Failed",
+    "connect_failed": "Connection Failed",
+    "launch_error_url": "Cannot retrieve Majsoul URL",
+    "config_error": "Configuration Error",
+    "connection_lost": "Connection Lost",
+    "api_not_found": "Unable to establish a connection. Please check the address configuration.",
+    "server_error": "A service error occurred",
+    "missing_resources": "Missing Resources",
+    "missing_resources_desc": "The following required directories or files are missing:"
+  },
+  "actions": {
+    "reach": "Reach",
+    "chi": "Chi",
+    "pon": "Pon",
+    "kan_select": "Kan",
+    "hora": "Ron",
+    "tsumo": "Tsumo",
+    "ryukyoku": "Draw",
+    "nukidora": "Kita",
+    "none": "Skip",
+    "discard": "Discard"
+  }
+}

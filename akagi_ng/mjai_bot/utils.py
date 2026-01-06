@@ -2,23 +2,104 @@ from typing import Any
 
 import numpy as np
 
+from akagi_ng.mjai_bot.logger import logger
+
 mask_unicode_4p = [
-    "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
-    "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
-    "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
-    "E", "S", "W", "N", "P", "F", "C",
-    '5mr', '5pr', '5sr',
-    'reach', 'chi_low', 'chi_mid', 'chi_high', 'pon', 'kan_select', 'hora', 'ryukyoku', 'none'
+    "1m",
+    "2m",
+    "3m",
+    "4m",
+    "5m",
+    "6m",
+    "7m",
+    "8m",
+    "9m",
+    "1p",
+    "2p",
+    "3p",
+    "4p",
+    "5p",
+    "6p",
+    "7p",
+    "8p",
+    "9p",
+    "1s",
+    "2s",
+    "3s",
+    "4s",
+    "5s",
+    "6s",
+    "7s",
+    "8s",
+    "9s",
+    "E",
+    "S",
+    "W",
+    "N",
+    "P",
+    "F",
+    "C",
+    "5mr",
+    "5pr",
+    "5sr",
+    "reach",
+    "chi",
+    "chi",
+    "chi",
+    "pon",
+    "kan_select",
+    "hora",
+    "ryukyoku",
+    "none",
 ]
 
 mask_unicode_3p = [
-    "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
-    "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
-    "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
-    "E", "S", "W", "N", "P", "F", "C",
-    '5mr', '5pr', '5sr',
-    'reach', 'pon', 'kan_select', 'nukidora', 'hora', 'ryukyoku', 'none'
+    "1m",
+    "2m",
+    "3m",
+    "4m",
+    "5m",
+    "6m",
+    "7m",
+    "8m",
+    "9m",
+    "1p",
+    "2p",
+    "3p",
+    "4p",
+    "5p",
+    "6p",
+    "7p",
+    "8p",
+    "9p",
+    "1s",
+    "2s",
+    "3s",
+    "4s",
+    "5s",
+    "6s",
+    "7s",
+    "8s",
+    "9s",
+    "E",
+    "S",
+    "W",
+    "N",
+    "P",
+    "F",
+    "C",
+    "5mr",
+    "5pr",
+    "5sr",
+    "reach",
+    "pon",
+    "kan_select",
+    "nukidora",
+    "hora",
+    "ryukyoku",
+    "none",
 ]
+
 
 def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
     # """
@@ -45,26 +126,23 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
 
     recommend = []
 
-    if is_3p:
-        mask_unicode = mask_unicode_3p
-    else:
-        mask_unicode = mask_unicode_4p
+    mask_unicode = mask_unicode_3p if is_3p else mask_unicode_4p
 
     def mask_bits_to_binary_string(mask_bits):
         binary_string = bin(mask_bits)[2:]
-        binary_string = binary_string.zfill(46)
+        binary_string = binary_string.zfill(len(mask_unicode))
         return binary_string
 
     def mask_bits_to_bool_list(mask_bits):
         binary_string = mask_bits_to_binary_string(mask_bits)
         bool_list = []
         for bit in binary_string[::-1]:
-            bool_list.append(bit == '1')
+            bool_list.append(bit == "1")
         return bool_list
 
-    def eq(l, r):
+    def eq(left, right):
         # Check for approximate equality using numpy's floating-point epsilon
-        return np.abs(l - r) <= np.finfo(float).eps
+        return np.abs(left - right) <= np.finfo(float).eps
 
     def softmax(arr, temperature=1.0):
         arr = np.array(arr, dtype=float)  # Ensure the input is a numpy array of floats
@@ -87,16 +165,16 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
 
         return softmax_arr
 
-    def scale_list(list):
-        scaled_list = softmax(list)
+    def scale_list(input_list):
+        scaled_list = softmax(input_list)
         return scaled_list
 
-    q_values = meta['q_values']
-    mask_bits = meta['mask_bits']
+    q_values = meta["q_values"]
+    mask_bits = meta["mask_bits"]
     mask = mask_bits_to_bool_list(mask_bits)
     scaled_q_values = scale_list(q_values)
     q_value_idx = 0
-    for i in range(46):
+    for i in range(len(mask_unicode)):
         if mask[i]:
             recommend.append((mask_unicode[i], scaled_q_values[q_value_idx]))
             q_value_idx += 1
@@ -117,19 +195,15 @@ def is_riichi_relevant(engine, player_id, event, is_3p=False):
 
     mask_unicode_list = mask_unicode_3p if is_3p else mask_unicode_4p
 
-    # Check 1: Is Riichi possible?
-    masks = engine.last_inference_result.get('masks')
+    # Check if Riichi possible
+    masks = engine.last_inference_result.get("masks")
     if masks:
         current_mask = masks[0]
         try:
-            reach_index = mask_unicode_list.index('reach')
+            reach_index = mask_unicode_list.index("reach")
             if len(current_mask) > reach_index and current_mask[reach_index]:
                 return True
         except ValueError:
-            pass
-
-    # Check 2: Did we just declare Riichi?
-    if event and event.get("type") == "reach" and event.get("actor") == player_id:
-        return True
+            logger.warning("'reach' not found in mask_unicode_list")
 
     return False

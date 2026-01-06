@@ -2,9 +2,9 @@ import json
 
 from mjai import Bot
 from mjai.bot.tools import calc_shanten
-from mjai.mlibriichi.state import ActionCandidate, PlayerState  # type: ignore
+from mjai.mlibriichi.state import PlayerState
 
-from .logger import logger
+from akagi_ng.mjai_bot.logger import logger
 
 
 class AkagiBot(Bot):
@@ -39,14 +39,13 @@ class AkagiBot(Bot):
                 self.__discard_events = []
                 self.__call_events = []
                 self.__dora_indicators = []
-            if event["type"] == "start_kyoku":
-                if (
-                        event["scores"][0] == 35000 and
-                        event["scores"][1] == 35000 and
-                        event["scores"][2] == 35000 and
-                        event["scores"][3] == 0
-                ):
-                    self.is_3p = True
+            if event["type"] == "start_kyoku" and (
+                    event["scores"][0] == 35000
+                    and event["scores"][1] == 35000
+                    and event["scores"][2] == 35000
+                    and event["scores"][3] == 0
+            ):
+                self.is_3p = True
             if event["type"] == "start_kyoku" or event["type"] == "dora":
                 self.__dora_indicators.append(event["dora_marker"])
             if event["type"] == "dahai":
@@ -70,15 +69,11 @@ class AkagiBot(Bot):
                     "tsumogiri": self.last_self_tsumo == "N" and event["actor"] == self.player_id,
                 }
                 self.__discard_events.append(replace_event)
-                self.action_candidate = self.player_state.update(
-                    json.dumps(replace_event)
-                )
+                self.action_candidate = self.player_state.update(json.dumps(replace_event))
 
             else:
                 logger.debug(f"Event: {event}")
-                self.action_candidate = self.player_state.update(
-                    json.dumps(event)
-                )
+                self.action_candidate = self.player_state.update(json.dumps(event))
 
             # NOTE: Skip `think()` if the player's riichi is accepted and
             # no call actions are allowed.
@@ -129,7 +124,7 @@ class AkagiBot(Bot):
 
         if len(matching_tiles) >= 3:
             consumed = matching_tiles[:3]
-            candidates.append(self.__new_kan_candidate(consumed, "daiminkan"))
+            candidates.append(self.__new_kan_candidate(consumed, "daiminkan", current_shanten))
 
         return candidates
 
@@ -143,6 +138,7 @@ class AkagiBot(Bot):
 
         # Ankan requires 4 identical tiles in hand
         hand_tiles = self.tehai_mjai
+        current_shanten = calc_shanten(self.tehai)
         counts = {}
         for t in hand_tiles:
             base = t.replace("r", "")
@@ -150,10 +146,10 @@ class AkagiBot(Bot):
                 counts[base] = []
             counts[base].append(t)
 
-        for base, tiles in counts.items():
+        for tiles in counts.values():
             if len(tiles) == 4:
                 consumed = tiles
-                candidates.append(self.__new_kan_candidate(consumed, "ankan"))
+                candidates.append(self.__new_kan_candidate(consumed, "ankan", current_shanten))
 
         return candidates
 
@@ -169,12 +165,13 @@ class AkagiBot(Bot):
         # AND check against self.can_kakan (which usually implies we drew the tile)
         # We can also check existing melds
 
-        # Simpler approach: Iterate hand tiles and see if ActionCandidate allows it. 
-        # But ActionCandidate doesn't tell us WHICH tile. 
+        # Simpler approach: Iterate hand tiles and see if ActionCandidate allows it.
+        # But ActionCandidate doesn't tell us WHICH tile.
         # We need to check our hand against our open Pons.
 
         events = self.get_call_events(self.player_id)
         pons = [ev for ev in events if ev["type"] == "pon"]
+        current_shanten = calc_shanten(self.tehai)
 
         hand_tiles = self.tehai_mjai
         for pon in pons:
@@ -183,11 +180,11 @@ class AkagiBot(Bot):
             matches = [t for t in hand_tiles if t.replace("r", "") == consumed_base]
             if matches:
                 # Found a tile to upgrade Pon to Kan
-                candidates.append(self.__new_kan_candidate(matches[:1], "kakan"))
+                candidates.append(self.__new_kan_candidate(matches[:1], "kakan", current_shanten))
 
         return candidates
 
-    def __new_kan_candidate(self, consumed: list[str], kan_type: str) -> dict:
+    def __new_kan_candidate(self, consumed: list[str], kan_type: str, current_shanten: int = 0) -> dict:
         """
         Helper to create a candidate dict for Kan.
         Calculates resulting Shanten after Kan.
@@ -202,6 +199,7 @@ class AkagiBot(Bot):
                 new_tehai_mjai.remove(c)
 
         # Helper to format meld string for calc_shanten
+        event = {}
         if kan_type == "daiminkan":
             event = {
                 "type": "daiminkan",
@@ -229,24 +227,20 @@ class AkagiBot(Bot):
                 # Use fmt_call.
                 "actor": self.player_id,
             }
-            # For Kakan, we need to know the original Pon to construct properly?
-            # Or fmt_call handles it?
-            # fmt_call is for generic calls.
-            pass
 
         # For simplified shanten calc, we can just treat Kan as a meld.
         # Since I cannot easily fully implement Shanten calc here without deep dive into `mjai.bot.tools`,
         # I will return the essential 'consumed' list which is what the user cares about for UI.
 
-        # We will skip valid Shanten/Ukeire calc for now unless strictly needed. 
+        # We will skip valid Shanten/Ukeire calc for now unless strictly needed.
         # The user's issue is purely about UI display of consumed tiles.
 
         return {
             "consumed": consumed,
-            "current_shanten": 0,  # Placeholder
+            "event": event,
+            "current_shanten": current_shanten,
             "current_ukeire": 0,  # Placeholder
             "discard_candidates": [],
-            # Kan turn usually leads to rinshan tsumo, not immediate discard choices (except after ankan/kakan in some rules, but here we just wait)
             "next_shanten": 0,  # Placeholder
             "next_ukeire": 0,  # Placeholder
         }

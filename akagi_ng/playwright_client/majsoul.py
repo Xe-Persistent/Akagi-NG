@@ -2,16 +2,16 @@ import queue
 import threading
 import traceback
 
-from playwright.sync_api import sync_playwright, Page, WebSocket
+from playwright.sync_api import Page, WebSocket, sync_playwright
 
 from akagi_ng.bridge import MajsoulBridge
-from core.context import ensure_dir, get_playwright_data_dir
-from settings import local_settings
-from .logger import logger
+from akagi_ng.core.context import get_playwright_data_dir
+from akagi_ng.playwright_client.logger import logger
+from akagi_ng.settings import local_settings
 
 # Because in Majsouls, every flow's message has an id, we need to use one bridge for each flow
 activated_flows: list[str] = []  # store all flow.id ([-1] is the recently opened)
-majsoul_bridges: dict[str, MajsoulBridge] = {}  # store all flow.id -> MajsoulBridge
+majsoul_bridges: dict[WebSocket, MajsoulBridge] = {}  # store all flow.id -> MajsoulBridge
 mjai_messages: queue.Queue[dict] = queue.Queue()  # store all messages
 
 
@@ -43,16 +43,25 @@ class PlaywrightController:
         Callback for new WebSocket connections. Equivalent to `websocket_start`.
         """
         global majsoul_bridges
-        logger.info(f"[WebSocket] Connection opened")
+        logger.info("[WebSocket] Connection opened")
         logger.info(f"[WebSocket] Connection opened: {ws.url}")
 
         # Create and store a bridge for this new WebSocket flow
         majsoul_bridges[ws] = MajsoulBridge()
 
         # Set up listeners for messages and closure on this specific WebSocket instance
-        ws.on("framesent", lambda payload: self._on_frame(ws, payload, from_client=True))
-        ws.on("framereceived", lambda payload: self._on_frame(ws, payload, from_client=False))
-        ws.on("close", lambda: self._on_socket_close(ws))
+        def handle_sent(payload: str | bytes):
+            self._on_frame(ws, payload, from_client=True)
+
+        def handle_received(payload: str | bytes):
+            self._on_frame(ws, payload, from_client=False)
+
+        def handle_close(_: WebSocket):
+            self._on_socket_close(ws)
+
+        ws.on("framesent", handle_sent)
+        ws.on("framereceived", handle_received)
+        ws.on("close", handle_close)
 
     def _on_frame(self, ws: WebSocket, payload: str | bytes, from_client: bool):
         """
@@ -147,24 +156,26 @@ class PlaywrightController:
                 elif window_size:
                     launch_args.append(f"--window-size={window_size}")
 
-                user_data_dir = ensure_dir(get_playwright_data_dir())
+                user_data_dir = get_playwright_data_dir()
                 context = p.chromium.launch_persistent_context(
                     user_data_dir=user_data_dir,
                     headless=local_settings.browser.headless,
                     channel=local_settings.browser.channel,
+                    locale=local_settings.locale,
                     no_viewport=True,
                     ignore_default_args=["--enable-automation"],
                     args=launch_args,
                 )
 
-                # 监听 context 中新建的页面（例如通过前端点击打开的新标签页），并自动绑定 WebSocket 监听器
+                # Listen for new pages created in the context (e.g., new tabs)
+                # and automatically attach WebSocket listeners
                 context.on("page", lambda new_page: new_page.on("websocket", self._on_web_socket))
 
                 # List all pages in the browser context
                 page = context.pages[0]
                 self.majsoul_page = page
 
-                # 对当前已存在的页面绑定 WebSocket 监听器
+                # Attach WebSocket listeners to all existing pages
                 for existing_page in context.pages:
                     existing_page.on("websocket", self._on_web_socket)
 

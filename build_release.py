@@ -42,11 +42,11 @@ def main():
         print(f"❌ Target directory {target_dir} not found. Build might have failed.")
         sys.exit(1)
 
-    print(f"🗜️  Zipping to {zip_name} (using LZMA for max compression)...")
+    print(f"🗜️  Zipping to {zip_name} (using DEFLATED compression for compatibility)...")
 
-    # Create zip archive with LZMA compression
+    # Create zip archive with DEFLATED compression (Standard)
     try:
-        with zipfile.ZipFile(zip_name, "w", compression=zipfile.ZIP_LZMA) as zf:
+        with zipfile.ZipFile(zip_name, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for root, _dirs, files in os.walk(target_dir):
                 for file in files:
                     file_path = Path(root) / file

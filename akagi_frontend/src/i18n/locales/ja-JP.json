@@ -14,8 +14,6 @@
       "title": "ブラウザ",
       "headless": "ヘッドレスモード",
       "headless_desc": "ウィンドウを表示せずにブラウザを実行",
-      "channel": "ブラウザの指定",
-      "channel_desc": "Akagi-NGを実行するブラウザのバージョンを指定",
       "size": "ウィンドウサイズ",
       "size_placeholder": "解像度を選択",
       "size_default": "デフォルト",

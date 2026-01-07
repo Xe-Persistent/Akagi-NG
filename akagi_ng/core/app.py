@@ -7,7 +7,7 @@ from akagi_ng.core import context
 from akagi_ng.core.logging import configure_logging, logger
 from akagi_ng.dataserver.adapter import build_dataserver_payload
 from akagi_ng.dataserver.dataserver import DataServer
-from akagi_ng.playwright_client.client import Client
+from akagi_ng.playwright_client.client import PlaywrightClient
 from akagi_ng.settings import local_settings as loaded_settings
 
 logger = logger.bind(module="akagi")
@@ -40,6 +40,7 @@ class AkagiApp:
         logger.info(f"Starting Akagi-NG {AKAGI_VERSION}...")
         context.init_context()
         context.ensure_runtime_dirs()
+        context.configure_playwright_env()
         context.settings = loaded_settings
 
         # Re-configure logger with settings
@@ -56,7 +57,7 @@ class AkagiApp:
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        context.playwright_client = Client(frontend_url=self.frontend_url)
+        context.playwright_client = PlaywrightClient(frontend_url=self.frontend_url)
 
         # Verify resources before loading bot
         self.missing_resources = verify_resources()

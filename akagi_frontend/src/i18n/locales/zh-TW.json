@@ -14,8 +14,6 @@
       "title": "瀏覽器",
       "headless": "無頭模式",
       "headless_desc": "在背景執行瀏覽器，不顯示瀏覽器視窗",
-      "channel": "使用指定瀏覽器",
-      "channel_desc": "指定用於執行 Akagi-NG 的瀏覽器版本",
       "size": "視窗尺寸",
       "size_placeholder": "選擇視窗解析度",
       "size_default": "預設",

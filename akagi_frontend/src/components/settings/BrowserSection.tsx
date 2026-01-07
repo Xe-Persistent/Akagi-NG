@@ -28,25 +28,6 @@ export const BrowserSection: FC<BrowserSectionProps> = ({ settings, updateSettin
         {t('settings.browser.title')}
       </h3>
 
-      <SettingsItem
-        label={t('settings.browser.channel')}
-        description={t('settings.browser.channel_desc')}
-      >
-        <Select
-          value={settings.browser.channel}
-          onValueChange={(val) => updateSetting(['browser', 'channel'], val)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='chrome'>Chrome</SelectItem>
-            <SelectItem value='msedge'>Edge</SelectItem>
-            <SelectItem value='chromium'>Chromium</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingsItem>
-
       <SettingsItem label={t('settings.browser.size')}>
         <Select
           value={settings.browser.window_size || 'default'}

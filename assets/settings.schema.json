@@ -1,34 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": [
-    "majsoul_url",
-    "model",
-    "browser",
-    "server",
-    "model_config"
-  ],
+  "required": ["majsoul_url", "model", "browser", "server", "model_config"],
   "properties": {
     "log_level": {
       "type": "string",
-      "enum": [
-        "TRACE",
-        "DEBUG",
-        "INFO",
-        "WARNING",
-        "ERROR"
-      ],
+      "enum": ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"],
       "default": "INFO",
       "description": "Logging level."
     },
     "locale": {
       "type": "string",
-      "enum": [
-        "zh-CN",
-        "zh-TW",
-        "en-US",
-        "ja-JP"
-      ],
+      "enum": ["zh-CN", "zh-TW", "en-US", "ja-JP"],
       "default": "en-US",
       "description": "UI Language locale."
     },
@@ -50,21 +33,13 @@
           "default": false,
           "description": "Run browser in headless mode."
         },
-        "channel": {
-          "type": "string",
-          "default": "chrome",
-          "description": "Browser channel to use (e.g., 'chrome', 'msedge')."
-        },
         "window_size": {
           "type": "string",
           "default": "",
           "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
         }
       },
-      "required": [
-        "headless",
-        "channel"
-      ],
+      "required": ["headless"],
       "additionalProperties": false
     },
     "server": {
@@ -82,10 +57,7 @@
           "description": "Server listening port."
         }
       },
-      "required": [
-        "host",
-        "port"
-      ],
+      "required": ["host", "port"],
       "additionalProperties": false
     },
     "model_config": {
@@ -94,11 +66,7 @@
       "properties": {
         "device": {
           "type": "string",
-          "enum": [
-            "cpu",
-            "cuda",
-            "auto"
-          ],
+          "enum": ["cpu", "cuda", "auto"],
           "default": "auto",
           "description": "Computing device selection."
         },
@@ -136,9 +104,7 @@
               "description": "The API key for the online service."
             }
           },
-          "required": [
-            "online"
-          ],
+          "required": ["online"],
           "if": {
             "properties": {
               "online": {
@@ -147,10 +113,7 @@
             }
           },
           "then": {
-            "required": [
-              "server",
-              "api_key"
-            ]
+            "required": ["server", "api_key"]
           },
           "additionalProperties": false
         }

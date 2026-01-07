@@ -6,7 +6,7 @@ from akagi_ng.playwright_client.majsoul import PlaywrightController, mjai_messag
 from akagi_ng.settings import local_settings
 
 
-class Client:
+class PlaywrightClient:
     def __init__(self, frontend_url: str):
         self.messages: queue.Queue[dict] | None = None
         self.running = False

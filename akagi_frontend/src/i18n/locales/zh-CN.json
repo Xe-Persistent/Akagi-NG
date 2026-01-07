@@ -14,8 +14,6 @@
       "title": "浏览器",
       "headless": "无头模式",
       "headless_desc": "在后台运行浏览器，不显示浏览器窗口",
-      "channel": "使用指定浏览器",
-      "channel_desc": "指定用于运行 Akagi-NG 的浏览器版本",
       "size": "窗口尺寸",
       "size_placeholder": "选择窗口分辨率",
       "size_default": "默认",

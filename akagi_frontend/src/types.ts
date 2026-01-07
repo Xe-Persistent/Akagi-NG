@@ -23,7 +23,6 @@ export interface Settings {
   model: string;
   browser: {
     headless: boolean;
-    channel: string;
     window_size: string;
   };
   server: {

@@ -217,7 +217,7 @@ class DataServer(Thread):
         # Check if we necessitate a restart
         # Restart required if:
         # - Server host/port changed
-        # - Browser settings changed (headless, channel, window_size) - technically could be dynamic but complex
+        # - Browser settings changed (headless, window_size) - technically could be dynamic but complex
         # - Model device changed (requires reload)
         # - Model path changed (requires reload)
         # Not required if:

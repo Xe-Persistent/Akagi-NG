@@ -160,7 +160,6 @@ class PlaywrightController:
                 context = p.chromium.launch_persistent_context(
                     user_data_dir=user_data_dir,
                     headless=local_settings.browser.headless,
-                    channel=local_settings.browser.channel,
                     locale=local_settings.locale,
                     no_viewport=True,
                     ignore_default_args=["--enable-automation"],

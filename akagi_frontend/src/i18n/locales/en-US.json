@@ -14,8 +14,6 @@
       "title": "Browser",
       "headless": "Headless Mode",
       "headless_desc": "Run the browser in the background without a visible window",
-      "channel": "Select Browser",
-      "channel_desc": "Specify the browser version to run Akagi-NG",
       "size": "Window Size",
       "size_placeholder": "Select Resolution",
       "size_default": "Default",

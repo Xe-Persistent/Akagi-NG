@@ -27,7 +27,6 @@ class OTConfig:
 @dataclass
 class BrowserConfig:
     headless: bool
-    channel: str
     window_size: str  # e.g. "1920,1080" or empty
 
 
@@ -84,7 +83,6 @@ class Settings:
             model=data["model"],
             browser=BrowserConfig(
                 headless=data["browser"]["headless"],
-                channel=data["browser"]["channel"],
                 window_size=data["browser"].get("window_size", ""),
             ),
             server=ServerConfig(host=data["server"]["host"], port=data["server"]["port"]),
@@ -144,7 +142,7 @@ def get_default_settings_dict() -> dict:
         "locale": detect_system_locale(),
         "majsoul_url": "https://game.maj-soul.com/1/",
         "model": "mortal",
-        "browser": {"headless": False, "channel": "chrome", "window_size": ""},
+        "browser": {"headless": False, "window_size": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
@@ -237,7 +235,6 @@ def _update_settings(settings: Settings, data: dict) -> None:
     settings.model = data["model"]
 
     settings.browser.headless = data["browser"]["headless"]
-    settings.browser.channel = data["browser"]["channel"]
     settings.browser.window_size = data["browser"].get("window_size", "")
 
     settings.server.host = data["server"]["host"]

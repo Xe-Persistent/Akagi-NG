@@ -15,7 +15,7 @@ import {
 import type { Settings } from '@/types';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { GeneralSection } from './settings/GeneralSection';
-import { BrowserSection } from './settings/BrowserSection';
+import { ConnectionSection } from './settings/ConnectionSection';
 import { ServerSection } from './settings/ServerSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
 
@@ -58,10 +58,8 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
   const initialSettings = use(settingsPromise);
   const { t } = useTranslation();
 
-  const { settings, restartRequired, updateSetting, restoreDefaults } = useSettings(
-    apiBase,
-    initialSettings,
-  );
+  const { settings, restartRequired, updateSetting, updateSettingsBatch, restoreDefaults } =
+    useSettings(apiBase, initialSettings);
 
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
 
@@ -79,7 +77,11 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
 
         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
           <GeneralSection settings={settings} updateSetting={updateSetting} />
-          <BrowserSection settings={settings} updateSetting={updateSetting} />
+          <ConnectionSection
+            settings={settings}
+            updateSetting={updateSetting}
+            updateSettingsBatch={updateSettingsBatch}
+          />
         </div>
 
         <ServerSection settings={settings} updateSetting={updateSetting} />

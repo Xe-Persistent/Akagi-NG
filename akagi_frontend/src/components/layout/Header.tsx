@@ -1,5 +1,14 @@
 import type { FC } from 'react';
-import { ExternalLink, Globe, Laptop, Moon, RefreshCw, SettingsIcon, Sun } from 'lucide-react';
+import {
+  ExternalLink,
+  Globe,
+  Laptop,
+  Moon,
+  Power,
+  RefreshCw,
+  SettingsIcon,
+  Sun,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -14,6 +23,7 @@ interface HeaderProps {
   onOpenSettings: () => void;
   locale?: string;
   onLocaleChange?: (locale: string) => void;
+  onShutdown?: () => void;
 }
 
 export const Header: FC<HeaderProps> = ({
@@ -26,6 +36,7 @@ export const Header: FC<HeaderProps> = ({
   onOpenSettings,
   locale,
   onLocaleChange,
+  onShutdown,
 }) => {
   const { t } = useTranslation();
 
@@ -111,6 +122,18 @@ export const Header: FC<HeaderProps> = ({
           >
             <SettingsIcon className='h-5 w-5' />
           </Button>
+
+          {/* Shutdown Button */}
+          {onShutdown && (
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onShutdown}
+              className='ml-1 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/30'
+            >
+              <Power className='h-5 w-5' />
+            </Button>
+          )}
         </div>
       </div>
     </header>

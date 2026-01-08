@@ -106,7 +106,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
         setSaveStatus('saving'); // Optimistic saving state
         debounceTimer.current = setTimeout(() => {
           performSave(newSettings);
-        }, 500);
+        }, 1000);
       } else {
         performSave(newSettings);
       }
@@ -162,11 +162,28 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
     [triggerSave],
   );
 
+  const updateSettingsBatch = useCallback(
+    (updates: { path: readonly string[]; value: unknown }[], shouldDebounce = false) => {
+      setSettings((prev) => {
+        if (!prev) return null;
+
+        const next = structuredClone(prev) as unknown as Record<string, unknown>;
+        updates.forEach(({ path, value }) => setByPath(next, path, value));
+
+        const nextSettings = next as unknown as Settings;
+        triggerSave(nextSettings, shouldDebounce);
+        return nextSettings;
+      });
+    },
+    [triggerSave],
+  );
+
   return {
     settings,
     saveStatus,
     restartRequired,
     updateSetting,
+    updateSettingsBatch,
     restoreDefaults,
   };
 }

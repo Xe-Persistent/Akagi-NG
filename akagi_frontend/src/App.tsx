@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useSSEConnection } from '@/hooks/useSSEConnection';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { Settings } from '@/types';
 
 export default function App() {
@@ -73,6 +74,7 @@ export default function App() {
 
   // UI States
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
 
   // Handlers
@@ -91,6 +93,33 @@ export default function App() {
       notify.error(`${(e as Error).message}`);
     } finally {
       setIsLaunching(false);
+    }
+  };
+
+  const handleShutdownClick = () => {
+    setShowShutdownConfirm(true);
+  };
+
+  const performShutdown = async () => {
+    try {
+      await fetchJson(`${apiBase}/api/shutdown`, { method: 'POST' });
+
+      const title = t('app.stopped_title');
+      const desc = t('app.stopped_desc');
+
+      document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; background: #18181b; color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 24px;">
+            <path d="M12 2v10"></path>
+            <path d="M18.4 6.6a9 9 0 1 1-12.77 0"></path>
+          </svg>
+          <h1 style="font-size: 2rem; margin-bottom: 1rem; color: #f43f5e; font-weight: 700;">${title}</h1>
+          <p style="color: #a1a1aa; font-size: 1.1rem;">${desc}</p>
+        </div>
+      `;
+    } catch (e) {
+      console.error('Failed to shutdown:', e);
+      notify.error(`${t('app.server_error')}: ${(e as Error).message}`);
     }
   };
 
@@ -142,6 +171,7 @@ export default function App() {
         onOpenSettings={() => setSettingsOpen(true)}
         locale={locale} // Pass current locale
         onLocaleChange={handleLocaleChange} // Pass handler
+        onShutdown={handleShutdownClick}
       />
 
       <main className='mx-auto flex w-full max-w-350 grow flex-col items-center justify-start gap-8 px-4 py-8 sm:px-6'>
@@ -175,6 +205,17 @@ export default function App() {
           syncSettings(); // Refresh settings (language might have changed in panel)
         }}
         apiBase={apiBase}
+      />
+
+      <ConfirmationDialog
+        open={showShutdownConfirm}
+        onOpenChange={setShowShutdownConfirm}
+        title={t('app.shutdown_confirm_title')}
+        description={t('app.shutdown_confirm_desc')}
+        onConfirm={performShutdown}
+        variant='destructive'
+        confirmText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       />
       <ToastContainer
         autoClose={5000}

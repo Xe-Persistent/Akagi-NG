@@ -3,7 +3,11 @@ import torch
 from akagi_ng.core.context import get_models_dir
 from akagi_ng.core.lib_loader import libriichi
 from akagi_ng.mjai_bot.controller import Bot
-from akagi_ng.mjai_bot.model import DQN, Brain, MortalEngine, get_inference_device
+from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTEngine
+from akagi_ng.mjai_bot.engine.mortal import MortalEngine
+from akagi_ng.mjai_bot.mortal.logger import logger
+from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
+from akagi_ng.settings import local_settings
 
 consts = libriichi.consts
 
@@ -12,10 +16,19 @@ def load_model(seat: int) -> tuple[Bot, MortalEngine]:
     # Path to models file
     control_state_file = get_models_dir() / "mortal.pth"
 
+    # Check Online Mode first
+    if local_settings.model_config.ot.online:
+        logger.info("Online mode enabled. Initializing AkagiOTEngine (4P).")
+        api_config = local_settings.model_config.ot
+
+        engine = AkagiOTEngine(is_3p=False, url=api_config.server, api_key=api_config.api_key)
+        bot = libriichi.mjai.Bot(engine, seat)
+        return bot, engine
+
     if not control_state_file.exists():
         raise FileNotFoundError(f"Model file not found at {control_state_file}")
 
-    state = torch.load(control_state_file, map_location=get_inference_device())
+    state = torch.load(control_state_file, map_location=get_inference_device(), weights_only=False)
 
     mortal = Brain(
         obs_shape_func=consts.obs_shape,
@@ -38,10 +51,6 @@ def load_model(seat: int) -> tuple[Bot, MortalEngine]:
         name="mortal",
         is_3p=False,
     )
-
-    # Note: We need to wrap engine with libriichi.mjai.Bot logic
-    # But BaseBot expects something that has a react method.
-    # The original code returned `libriichi.mjai.Bot(engine, seat)`
 
     bot = libriichi.mjai.Bot(engine, seat)
     return bot, engine

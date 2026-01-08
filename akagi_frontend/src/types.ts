@@ -22,8 +22,15 @@ export interface Settings {
   majsoul_url: string;
   model: string;
   browser: {
+    enabled: boolean;
     headless: boolean;
     window_size: string;
+  };
+  mitm: {
+    enabled: boolean;
+    host: string;
+    port: number;
+    upstream: string;
   };
   server: {
     host: string;

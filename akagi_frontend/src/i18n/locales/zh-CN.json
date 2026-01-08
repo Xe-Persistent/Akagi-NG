@@ -10,19 +10,31 @@
       "locale": "显示语言",
       "log_level": "日志级别"
     },
-    "browser": {
-      "title": "浏览器",
-      "headless": "无头模式",
-      "headless_desc": "在后台运行浏览器，不显示浏览器窗口",
-      "size": "窗口尺寸",
-      "size_placeholder": "选择窗口分辨率",
-      "size_default": "默认",
-      "size_maximized": "最大化"
-    },
     "server": {
       "title": "服务设置",
-      "host": "主机",
+      "host": "服务地址",
       "port": "端口"
+    },
+    "connection": {
+      "title": "连接方式",
+      "mode": "连接模式",
+      "mode_browser": "浏览器",
+      "mode_mitm": "代理",
+      "browser": {
+        "title": "浏览器设置",
+        "headless": "无头模式",
+        "headless_desc": "在后台运行浏览器，不显示浏览器窗口",
+        "size": "窗口尺寸",
+        "size_placeholder": "选择窗口分辨率",
+        "size_default": "默认",
+        "size_maximized": "最大化"
+      },
+      "mitm": {
+        "title": "代理设置",
+        "host": "监听地址",
+        "port": "监听端口",
+        "upstream": "上游代理 (可选)"
+      }
     },
     "model": {
       "title": "AI 模型",
@@ -79,6 +91,10 @@
     "connection_lost": "连接断开",
     "api_not_found": "无法建立连接，请检查地址配置。",
     "server_error": "服务发生异常",
+    "shutdown_confirm_title": "确认退出",
+    "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
+    "stopped_title": "应用已停止",
+    "stopped_desc": "您可以安全地关闭此窗口",
     "missing_resources": "缺少必要资源",
     "missing_resources_desc": "检测到以下目录或文件丢失，请手动补充："
   },

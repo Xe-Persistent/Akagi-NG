@@ -1,7 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["majsoul_url", "model", "browser", "server", "model_config"],
+  "required": [
+    "majsoul_url",
+    "model",
+    "browser",
+    "mitm",
+    "server",
+    "model_config"
+  ],
   "properties": {
     "log_level": {
       "type": "string",
@@ -28,6 +35,11 @@
       "type": "object",
       "description": "Browser configuration.",
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable internal browser automation (Playwright)."
+        },
         "headless": {
           "type": "boolean",
           "default": false,
@@ -40,6 +52,34 @@
         }
       },
       "required": ["headless"],
+      "additionalProperties": false
+    },
+    "mitm": {
+      "type": "object",
+      "description": "MITM proxy configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable MITM proxy."
+        },
+        "host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "MITM proxy listening host."
+        },
+        "port": {
+          "type": "integer",
+          "default": 6789,
+          "description": "MITM proxy listening port."
+        },
+        "upstream": {
+          "type": "string",
+          "default": "",
+          "description": "Upstream proxy URL (e.g. http://127.0.0.1:7890)."
+        }
+      },
+      "required": ["enabled", "host", "port", "upstream"],
       "additionalProperties": false
     },
     "server": {

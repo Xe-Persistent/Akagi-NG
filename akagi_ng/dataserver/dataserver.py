@@ -1,6 +1,10 @@
 import asyncio
+import contextlib
 import json
-from threading import Thread
+import os
+import signal
+import threading
+import time
 
 from aiohttp import web
 
@@ -26,9 +30,10 @@ async def _send_payload(client_id: str, response: web.StreamResponse, payload: b
         return False
 
 
-class DataServer(Thread):
-    def __init__(self, external_port=None):
+class DataServer(threading.Thread):
+    def __init__(self, external_port=8765):
         super().__init__()
+        self.host = "0.0.0.0"
         self.daemon = True
         self.external_port = external_port if external_port else local_settings.server.port
         self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "request": Request}}
@@ -114,6 +119,7 @@ class DataServer(Thread):
             app.router.add_get("/api/settings", self.get_settings_handler)
             app.router.add_post("/api/settings", self.save_settings_handler)
             app.router.add_post("/api/settings/reset", self.reset_settings_handler)
+            app.router.add_post("/api/shutdown", self.handle_shutdown)
 
             # --- Static frontend ---
             if self.frontend_dist_dir.exists():
@@ -161,11 +167,29 @@ class DataServer(Thread):
             self.running = True
             self.keep_alive_task = self.loop.create_task(self.keep_alive())
             self.loop.run_forever()
+        except Exception as e:
+            logger.error(f"DataServer startup/runtime error: {e}")
+            self.running = False
         finally:
             if self.keep_alive_task:
                 self.keep_alive_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    self.loop.run_until_complete(self.keep_alive_task)
             if self.runner:
-                self.loop.run_until_complete(self.runner.cleanup())
+                with contextlib.suppress(Exception):
+                    self.loop.run_until_complete(self.runner.cleanup())
+
+            # Cancel all remaining tasks
+            with contextlib.suppress(Exception):
+                pending = asyncio.all_tasks(self.loop)
+                if pending:
+                    for task in pending:
+                        task.cancel()
+                    self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+
+            with contextlib.suppress(Exception):
+                self.loop.close()
+
             logger.info("DataServer event loop stopped.")
 
     async def _cors_preflight(self, _request: web.Request) -> web.Response:
@@ -214,19 +238,6 @@ class DataServer(Thread):
         local_settings.update(payload)
         local_settings.save()
 
-        # Check if we necessitate a restart
-        # Restart required if:
-        # - Server host/port changed
-        # - Browser settings changed (headless, window_size) - technically could be dynamic but complex
-        # - Model device changed (requires reload)
-        # - Model path changed (requires reload)
-        # Not required if:
-        # - log_level changed (we can set it dynamically)
-        # - locale changed (frontend only)
-        # - majsoul_url changed (frontend mainly, or next browser launch)
-        # - model_config.enable_amp / enable_quick_eval / rule_based_agari_guard (dynamic properties)
-        # - model_config.ot.* (dynamic usage)
-
         restart_required = False
 
         if payload.get("log_level") != old_settings.get("log_level"):
@@ -238,6 +249,7 @@ class DataServer(Thread):
         if (
             payload.get("server") != old_settings.get("server")
             or payload.get("browser") != old_settings.get("browser")
+            or payload.get("mitm") != old_settings.get("mitm")
             or payload.get("model") != old_settings.get("model")
             or payload.get("model_config", {}).get("device") != old_settings.get("model_config", {}).get("device")
         ):
@@ -265,6 +277,8 @@ class DataServer(Thread):
             self.loop.call_soon_threadsafe(self.loop.stop)
             logger.info("DataServer stop signal sent.")
         self.running = False
+        if self.is_alive():
+            self.join(timeout=5.0)
 
     async def _update_data_async(self, data):
         self.latest_data = data
@@ -299,6 +313,15 @@ class DataServer(Thread):
 
         for client_id in zombie_client_ids:
             await self._remove_client(client_id, expected_response=zombie_responses.get(client_id))
+
+    def handle_shutdown(self, request):
+        def _kill():
+            time.sleep(1)  # Give time to send response
+            logger.info("Shutdown requested via API. Sending SIGINT...")
+            os.kill(os.getpid(), signal.SIGINT)
+
+        threading.Thread(target=_kill).start()
+        return web.json_response({"ok": True, "message": "Shutting down..."})
 
     def update_data(self, data):
         if self.loop and self.running:

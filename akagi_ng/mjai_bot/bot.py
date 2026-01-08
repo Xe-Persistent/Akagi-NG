@@ -7,7 +7,7 @@ from mjai.mlibriichi.state import PlayerState
 from akagi_ng.mjai_bot.logger import logger
 
 
-class AkagiBot(Bot):
+class StateTrackerBot(Bot):
     """
     This bot is used for tracking the game states, overwriting some of the
     mjai.Bot methods to be compatible with the Akagi application.
@@ -40,10 +40,10 @@ class AkagiBot(Bot):
                 self.__call_events = []
                 self.__dora_indicators = []
             if event["type"] == "start_kyoku" and (
-                    event["scores"][0] == 35000
-                    and event["scores"][1] == 35000
-                    and event["scores"][2] == 35000
-                    and event["scores"][3] == 0
+                event["scores"][0] == 35000
+                and event["scores"][1] == 35000
+                and event["scores"][2] == 35000
+                and event["scores"][3] == 0
             ):
                 self.is_3p = True
             if event["type"] == "start_kyoku" or event["type"] == "dora":
@@ -78,9 +78,9 @@ class AkagiBot(Bot):
             # NOTE: Skip `think()` if the player's riichi is accepted and
             # no call actions are allowed.
             if (
-                    self.self_riichi_accepted
-                    and not (self.can_agari or self.can_kakan or self.can_ankan)
-                    and self.can_discard
+                self.self_riichi_accepted
+                and not (self.can_agari or self.can_kakan or self.can_ankan)
+                and self.can_discard
             ):
                 return self.action_discard(self.last_self_tsumo)
 

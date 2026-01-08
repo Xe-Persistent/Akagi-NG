@@ -5,11 +5,12 @@ from pathlib import Path
 
 
 def init_context() -> None:
-    global settings, mjai_controller, mjai_bot, playwright_client
+    global settings, mjai_controller, mjai_bot, playwright_client, mitm_client
     settings = None
     mjai_controller = None
     mjai_bot = None
     playwright_client = None
+    mitm_client = None
 
 
 @lru_cache(maxsize=1)

@@ -10,19 +10,31 @@
       "locale": "Language",
       "log_level": "Log Level"
     },
-    "browser": {
-      "title": "Browser",
-      "headless": "Headless Mode",
-      "headless_desc": "Run the browser in the background without a visible window",
-      "size": "Window Size",
-      "size_placeholder": "Select Resolution",
-      "size_default": "Default",
-      "size_maximized": "Maximized"
-    },
     "server": {
       "title": "Service Settings",
-      "host": "Host",
+      "host": "Service Address",
       "port": "Port"
+    },
+    "connection": {
+      "title": "Connection Method",
+      "mode": "Connection Mode",
+      "mode_browser": "Browser",
+      "mode_mitm": "Proxy",
+      "browser": {
+        "title": "Browser Settings",
+        "headless": "Headless Mode",
+        "headless_desc": "Run the browser in the background without a visible window",
+        "size": "Window Size",
+        "size_placeholder": "Select Resolution",
+        "size_default": "Default",
+        "size_maximized": "Maximized"
+      },
+      "mitm": {
+        "title": "Proxy Settings",
+        "host": "Listen Address",
+        "port": "Listen Port",
+        "upstream": "Upstream Proxy (Optional)"
+      }
     },
     "model": {
       "title": "AI Model",
@@ -79,6 +91,10 @@
     "connection_lost": "Connection Lost",
     "api_not_found": "Unable to establish a connection. Please check the address configuration.",
     "server_error": "A service error occurred",
+    "shutdown_confirm_title": "Confirm Shutdown",
+    "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
+    "stopped_title": "Application Stopped",
+    "stopped_desc": "You can now safely close this window",
     "missing_resources": "Missing Resources",
     "missing_resources_desc": "The following required directories or files are missing:"
   },

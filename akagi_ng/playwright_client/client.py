@@ -42,6 +42,8 @@ class PlaywrightClient:
 
     def dump_messages(self) -> list[dict]:
         ans: list[dict] = []
+        if self.messages is None:
+            return ans
         while not self.messages.empty():
             message = self.messages.get()
             logger.debug(f"Message: {message}")

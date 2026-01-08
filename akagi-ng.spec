@@ -82,10 +82,7 @@ with open(version_file, 'w', encoding='utf-8') as f:
 block_cipher = None
 
 hiddenimports = (
-    collect_submodules("uvicorn")
-    + collect_submodules("engineio")
-    + collect_submodules("socketio")
-    + collect_submodules("mjai")
+    collect_submodules("mjai")
     + collect_submodules("numpy")
 )
 
@@ -97,6 +94,7 @@ a = Analysis(
         ('assets', 'assets'),
         ('akagi_frontend/frontend', 'frontend'),
         (os.path.join(os.environ['LOCALAPPDATA'], 'ms-playwright'), 'ms-playwright'),
+        ('pyproject.toml', '.'),
     ],
     hiddenimports=hiddenimports,
     excludes=["pytest", "setuptools", "pip"],

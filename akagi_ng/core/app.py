@@ -2,11 +2,13 @@ import contextlib
 import signal
 import threading
 import time
+import webbrowser
 
 from akagi_ng.core import context
 from akagi_ng.core.logging import configure_logging, logger
 from akagi_ng.dataserver.adapter import build_dataserver_payload
 from akagi_ng.dataserver.dataserver import DataServer
+from akagi_ng.mitm_client.client import MitmClient
 from akagi_ng.playwright_client.client import PlaywrightClient
 from akagi_ng.settings import local_settings as loaded_settings
 
@@ -58,6 +60,7 @@ class AkagiApp:
         self.frontend_url = f"http://{target_host}:{port}/"
 
         context.playwright_client = PlaywrightClient(frontend_url=self.frontend_url)
+        context.mitm_client = MitmClient()
 
         # Verify resources before loading bot
         self.missing_resources = verify_resources()
@@ -68,11 +71,11 @@ class AkagiApp:
             context.mjai_controller = None
         else:
             try:
-                global AkagiBot, Controller
-                from akagi_ng.mjai_bot.bot import AkagiBot
+                global StateTrackerBot, Controller
+                from akagi_ng.mjai_bot.bot import StateTrackerBot
                 from akagi_ng.mjai_bot.controller import Controller
 
-                context.mjai_bot = AkagiBot()
+                context.mjai_bot = StateTrackerBot()
                 context.mjai_controller = Controller()
             except ImportError as e:
                 logger.error(f"Failed to import mjai_bot: {e}")
@@ -81,11 +84,18 @@ class AkagiApp:
                 elif "models" in str(e):
                     self.missing_resources.append("models")
 
+        # Cache the initial mode to determine exit condition correctly
+        self.is_browser_mode = context.settings.browser.enabled
+
     def start(self):
         self.ds.start()
         logger.info(f"DataServer started at {self.frontend_url}")
 
-        context.playwright_client.start()
+        if self.is_browser_mode:
+            context.playwright_client.start()
+        elif context.settings.mitm.enabled:
+            webbrowser.open(self.frontend_url)
+            context.mitm_client.start()
         self.setup_signals()
         logger.info("Akagi backend loop started.")
 
@@ -115,7 +125,8 @@ class AkagiApp:
         if self.missing_resources:
             try:
                 while not self._stop_event.is_set():
-                    if not context.playwright_client.controller.running:
+                    # If browser is enabled, exit when it closes
+                    if self.is_browser_mode and not context.playwright_client.controller.running:
                         break
                     self._stop_event.wait(1.0)
             finally:
@@ -126,11 +137,16 @@ class AkagiApp:
             while not self._stop_event.is_set():
                 try:
                     # Check if the browser controller has stopped (e.g. frontend page closed)
-                    if not context.playwright_client.controller.running:
+                    if self.is_browser_mode and not context.playwright_client.controller.running:
                         logger.info("Playwright controller stopped. Exiting.")
                         break
 
-                    mjai_msgs = context.playwright_client.dump_messages()
+                    mjai_msgs = []
+                    if context.playwright_client:
+                        mjai_msgs.extend(context.playwright_client.dump_messages())
+                    if context.mitm_client:
+                        mjai_msgs.extend(context.mitm_client.dump_messages())
+
                     if not mjai_msgs:
                         self._stop_event.wait(0.05)
                         continue
@@ -159,7 +175,11 @@ class AkagiApp:
     def cleanup(self):
         logger.info("Stopping Akagi-NG...")
         with contextlib.suppress(Exception):
-            context.playwright_client.stop()
+            if context.playwright_client:
+                context.playwright_client.stop()
+        with contextlib.suppress(Exception):
+            if context.mitm_client:
+                context.mitm_client.stop()
         with contextlib.suppress(Exception):
             self.ds.stop()
         logger.info("Akagi-NG stopped.")

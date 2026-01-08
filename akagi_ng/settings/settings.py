@@ -26,8 +26,17 @@ class OTConfig:
 
 @dataclass
 class BrowserConfig:
+    enabled: bool
     headless: bool
     window_size: str  # e.g. "1920,1080" or empty
+
+
+@dataclass
+class MITMConfig:
+    enabled: bool
+    host: str
+    port: int
+    upstream: str
 
 
 @dataclass
@@ -52,6 +61,7 @@ class Settings:
     majsoul_url: str
     model: str
     browser: BrowserConfig
+    mitm: MITMConfig
     server: ServerConfig
     model_config: ModelConfig
 
@@ -63,6 +73,19 @@ class Settings:
             data (dict): Dictionary with settings to update
         """
         _update_settings(self, data)
+        self.ensure_consistency()
+
+    def ensure_consistency(self) -> None:
+        """
+        Ensure settings consistency (e.g. mutual exclusivity)
+        """
+        # Mutual exclusivity: Only one mode enabled. Default to Browser if undefined or conflict.
+        if self.browser.enabled and self.mitm.enabled:
+            logger.warning("Both Browser and MITM modes enabled. Prioritizing Browser mode.")
+            self.mitm.enabled = False
+        elif not self.browser.enabled and not self.mitm.enabled:
+            logger.warning("Neither Browser nor MITM mode enabled. Defaulting to Browser mode.")
+            self.browser.enabled = True
 
     def save(self) -> None:
         """
@@ -76,28 +99,46 @@ class Settings:
         """
         Create a Settings object from a dictionary
         """
-        return cls(
+        browser_data = data.get("browser", {})
+        mitm_data = data.get("mitm", {})
+        server_data = data.get("server", {})
+        model_config_data = data.get("model_config", {})
+        ot_data = model_config_data.get("ot", {})
+
+        settings = cls(
             log_level=data.get("log_level", "INFO"),
             locale=data.get("locale", "zh-CN"),
-            majsoul_url=data["majsoul_url"],
-            model=data["model"],
+            majsoul_url=data.get("majsoul_url", "https://game.maj-soul.com/1/"),
+            model=data.get("model", "mortal"),
             browser=BrowserConfig(
-                headless=data["browser"]["headless"],
-                window_size=data["browser"].get("window_size", ""),
+                enabled=browser_data.get("enabled", True),
+                headless=browser_data.get("headless", False),
+                window_size=browser_data.get("window_size", ""),
             ),
-            server=ServerConfig(host=data["server"]["host"], port=data["server"]["port"]),
+            mitm=MITMConfig(
+                enabled=mitm_data.get("enabled", False),
+                host=mitm_data.get("host", "127.0.0.1"),
+                port=mitm_data.get("port", 6789),
+                upstream=mitm_data.get("upstream", ""),
+            ),
+            server=ServerConfig(
+                host=server_data.get("host", "0.0.0.0"),
+                port=server_data.get("port", 8765),
+            ),
             model_config=ModelConfig(
-                device=data["model_config"]["device"],
-                enable_amp=data["model_config"]["enable_amp"],
-                enable_quick_eval=data["model_config"].get("enable_quick_eval", False),
-                rule_based_agari_guard=data["model_config"]["rule_based_agari_guard"],
+                device=model_config_data.get("device", "auto"),
+                enable_amp=model_config_data.get("enable_amp", False),
+                enable_quick_eval=model_config_data.get("enable_quick_eval", False),
+                rule_based_agari_guard=model_config_data.get("rule_based_agari_guard", True),
                 ot=OTConfig(
-                    online=data["model_config"]["ot"]["online"],
-                    server=data["model_config"]["ot"].get("server", ""),
-                    api_key=data["model_config"]["ot"].get("api_key", ""),
+                    online=ot_data.get("online", False),
+                    server=ot_data.get("server", ""),
+                    api_key=ot_data.get("api_key", ""),
                 ),
             ),
         )
+        settings.ensure_consistency()
+        return settings
 
 
 def detect_system_locale() -> str:
@@ -142,7 +183,8 @@ def get_default_settings_dict() -> dict:
         "locale": detect_system_locale(),
         "majsoul_url": "https://game.maj-soul.com/1/",
         "model": "mortal",
-        "browser": {"headless": False, "window_size": ""},
+        "browser": {"enabled": True, "headless": False, "window_size": ""},
+        "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
@@ -234,24 +276,33 @@ def _update_settings(settings: Settings, data: dict) -> None:
     settings.majsoul_url = data["majsoul_url"]
     settings.model = data["model"]
 
-    settings.browser.headless = data["browser"]["headless"]
-    settings.browser.window_size = data["browser"].get("window_size", "")
+    browser_data = data.get("browser", {})
+    settings.browser.enabled = browser_data.get("enabled", True)
+    settings.browser.headless = browser_data.get("headless", False)
+    settings.browser.window_size = browser_data.get("window_size", "")
 
-    settings.server.host = data["server"]["host"]
-    settings.server.port = data["server"]["port"]
+    mitm_data = data.get("mitm", {})
+    settings.mitm.enabled = mitm_data.get("enabled", False)
+    settings.mitm.host = mitm_data.get("host", "127.0.0.1")
+    settings.mitm.port = mitm_data.get("port", 6789)
+    settings.mitm.upstream = mitm_data.get("upstream", "")
 
-    settings.model_config.device = data["model_config"]["device"]
-    settings.model_config.enable_amp = data["model_config"]["enable_amp"]
-    settings.model_config.enable_quick_eval = data["model_config"].get("enable_quick_eval", False)
-    settings.model_config.rule_based_agari_guard = data["model_config"]["rule_based_agari_guard"]
+    server_data = data.get("server", {})
+    settings.server.host = server_data.get("host", "0.0.0.0")
+    settings.server.port = server_data.get("port", 8765)
 
-    ot_data = data["model_config"]["ot"]
-    settings.model_config.ot.online = ot_data["online"]
-    if ot_data["online"]:
-        settings.model_config.ot.server = ot_data["server"]
-        settings.model_config.ot.api_key = ot_data["api_key"]
+    model_config_data = data.get("model_config", {})
+    settings.model_config.device = model_config_data.get("device", "auto")
+    settings.model_config.enable_amp = model_config_data.get("enable_amp", False)
+    settings.model_config.enable_quick_eval = model_config_data.get("enable_quick_eval", False)
+    settings.model_config.rule_based_agari_guard = model_config_data.get("rule_based_agari_guard", True)
+
+    ot_data = model_config_data.get("ot", {})
+    settings.model_config.ot.online = ot_data.get("online", False)
+    if settings.model_config.ot.online:
+        settings.model_config.ot.server = ot_data.get("server", "")
+        settings.model_config.ot.api_key = ot_data.get("api_key", "")
     else:
-        # Maybe clear them or keep them? Keeping them is fine, or set to empty if missing.
         settings.model_config.ot.server = ot_data.get("server", "")
         settings.model_config.ot.api_key = ot_data.get("api_key", "")
 

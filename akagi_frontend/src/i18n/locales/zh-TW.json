@@ -10,19 +10,31 @@
       "locale": "顯示語言",
       "log_level": "紀錄層級"
     },
-    "browser": {
-      "title": "瀏覽器",
-      "headless": "無頭模式",
-      "headless_desc": "在背景執行瀏覽器，不顯示瀏覽器視窗",
-      "size": "視窗尺寸",
-      "size_placeholder": "選擇視窗解析度",
-      "size_default": "預設",
-      "size_maximized": "最大化"
-    },
     "server": {
       "title": "服務設定",
-      "host": "主機",
+      "host": "服務位址",
       "port": "連接埠"
+    },
+    "connection": {
+      "title": "連線方式",
+      "mode": "連線模式",
+      "mode_browser": "瀏覽器",
+      "mode_mitm": "代理",
+      "browser": {
+        "title": "瀏覽器設定",
+        "headless": "無頭模式",
+        "headless_desc": "在背景執行瀏覽器，不顯示瀏覽器視窗",
+        "size": "視窗尺寸",
+        "size_placeholder": "選擇視窗解析度",
+        "size_default": "預設",
+        "size_maximized": "最大化"
+      },
+      "mitm": {
+        "title": "代理設定",
+        "host": "監聽位址",
+        "port": "監聽連接埠",
+        "upstream": "上游代理 (可選)"
+      }
     },
     "model": {
       "title": "AI 模型",
@@ -79,6 +91,10 @@
     "connection_lost": "連線中斷",
     "api_not_found": "無法建立連線，請檢查位址設定。",
     "server_error": "服務發生異常",
+    "shutdown_confirm_title": "確認退出",
+    "shutdown_confirm_desc": "確定要退出 Akagi NG 嗎？這將關閉後台服務，所有連線將中斷。",
+    "stopped_title": "應用程式已停止",
+    "stopped_desc": "您可以安全地關閉此視窗",
     "missing_resources": "缺少必要資源",
     "missing_resources_desc": "檢測到以下目錄或檔案遺失，請手動補充："
   },

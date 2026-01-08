@@ -10,19 +10,31 @@
       "locale": "表示言語",
       "log_level": "ログレベル"
     },
-    "browser": {
-      "title": "ブラウザ",
-      "headless": "ヘッドレスモード",
-      "headless_desc": "ウィンドウを表示せずにブラウザを実行",
-      "size": "ウィンドウサイズ",
-      "size_placeholder": "解像度を選択",
-      "size_default": "デフォルト",
-      "size_maximized": "最大化"
-    },
     "server": {
       "title": "サービス設定",
-      "host": "ホスト",
+      "host": "サービスアドレス",
       "port": "ポート"
+    },
+    "connection": {
+      "title": "接続方法",
+      "mode": "接続モード",
+      "mode_browser": "ブラウザ",
+      "mode_mitm": "プロキシ",
+      "browser": {
+        "title": "ブラウザ設定",
+        "headless": "ヘッドレスモード",
+        "headless_desc": "ウィンドウを表示せずにブラウザを実行",
+        "size": "ウィンドウサイズ",
+        "size_placeholder": "解像度を選択",
+        "size_default": "デフォルト",
+        "size_maximized": "最大化"
+      },
+      "mitm": {
+        "title": "プロキシ設定",
+        "host": "リッスンアドレス",
+        "port": "リッスンポート",
+        "upstream": "上流プロキシ (任意)"
+      }
     },
     "model": {
       "title": "AI モデル",
@@ -79,6 +91,10 @@
     "connection_lost": "接続が切断されました",
     "api_not_found": "接続できませんでした。アドレス設定を確認してください。",
     "server_error": "サービスでエラーが発生しました",
+    "shutdown_confirm_title": "終了確認",
+    "shutdown_confirm_desc": "本当にAkagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
+    "stopped_title": "アプリケーションは停止しました",
+    "stopped_desc": "このウィンドウを閉じることができます",
     "missing_resources": "リソース不足",
     "missing_resources_desc": "以下のディレクトリまたはファイルが見つかりません。手動で配置してください："
   },

@@ -1,20 +1,26 @@
+import contextlib
+import sys
 from importlib.metadata import version
+from pathlib import Path
 
-try:
-    AKAGI_VERSION = version("akagi_ng")
-except Exception:
-    # If package is not installed (e.g. dev mode without -e .), try reading pyproject.toml
-    # or default to dev
-    try:
-        import tomllib
-        from pathlib import Path
 
-        root = Path(__file__).resolve().parents[1]
-        with open(root / "pyproject.toml", "rb") as f:
-            data = tomllib.load(f)
-            AKAGI_VERSION = data["project"]["version"]
-    except Exception:
-        AKAGI_VERSION = "dev"
+def _get_version() -> str:
+    with contextlib.suppress(Exception):
+        return version("akagi_ng")
 
+    with contextlib.suppress(Exception):
+        root = Path(getattr(sys, "_MEIPASS", Path(__file__).parent.parent))
+        pp_path = root / "pyproject.toml"
+
+        if pp_path.exists():
+            with open(pp_path, encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("version ="):
+                        return line.split("=")[1].strip().strip("\"'")
+
+    return "dev"
+
+
+AKAGI_VERSION = _get_version()
 __version__ = AKAGI_VERSION
 __all__ = ["AKAGI_VERSION", "__version__"]

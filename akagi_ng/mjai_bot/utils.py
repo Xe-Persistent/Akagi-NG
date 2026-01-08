@@ -101,7 +101,7 @@ mask_unicode_3p = [
 ]
 
 
-def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
+def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
     # """
     # {
     #     "q_values":[
@@ -165,14 +165,14 @@ def meta_to_recommend(meta: dict, is_3p=False) -> list[Any]:
 
         return softmax_arr
 
-    def scale_list(input_list):
-        scaled_list = softmax(input_list)
+    def scale_list(input_list, temp):
+        scaled_list = softmax(input_list, temperature=temp)
         return scaled_list
 
     q_values = meta["q_values"]
     mask_bits = meta["mask_bits"]
     mask = mask_bits_to_bool_list(mask_bits)
-    scaled_q_values = scale_list(q_values)
+    scaled_q_values = scale_list(q_values, temperature)
     q_value_idx = 0
     for i in range(len(mask_unicode)):
         if mask[i]:

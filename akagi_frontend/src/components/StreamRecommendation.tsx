@@ -112,7 +112,7 @@ const Recommendation: FC<RecommendationProps> = ({
   // Exceptions: 'tsumo' and 'hora' (Ron) might need to show the winning tile.
   let mainTile: string | null = null;
   if (!hasSimCandidates) {
-    if (action === 'tsumo' && tile) {
+    if ((action === 'tsumo' || action === 'hora') && tile) {
       mainTile = tile;
     } else if (!config) {
       mainTile = action; // It's a discard action (action string is the tile code)

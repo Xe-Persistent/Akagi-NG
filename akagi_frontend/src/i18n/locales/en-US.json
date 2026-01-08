@@ -39,7 +39,9 @@
     "model": {
       "title": "AI Model",
       "device": "Device",
-      "device_auto": "Auto",
+      "device_desc": "Choose the device used by the model. Auto will automatically select a suitable available device",
+      "temperature": "Temperature",
+      "temperature_desc": "Controls the randomness of the model output. Higher values produce more random results",
       "amp": "Enable AMP",
       "amp_desc": "Enable automatic mixed precision to improve performance",
       "agari_guard": "Rule-driven Agari Guard",

@@ -4,6 +4,7 @@ from typing import Any
 
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.mjai_bot.utils import meta_to_recommend
+from akagi_ng.settings import local_settings
 
 
 def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
@@ -92,7 +93,7 @@ def _process_standard_recommendations(meta: dict[str, Any], bot: Any) -> list[di
     if "q_values" not in meta or "mask_bits" not in meta:
         return recommendations
 
-    top3_recommendations = meta_to_recommend(meta, bot.is_3p)[:3]
+    top3_recommendations = meta_to_recommend(meta, bot.is_3p, temperature=local_settings.model_config.temperature)[:3]
     for action, confidence in top3_recommendations:
         base_item: dict[str, Any] = {
             "action": action,
@@ -133,7 +134,11 @@ def _attach_riichi_lookahead(recommendations: list[dict[str, Any]], meta: dict[s
         return
 
     try:
-        lookahead_recs = meta_to_recommend(riichi_lookahead, bot.is_3p)
+        lookahead_recs = meta_to_recommend(
+            riichi_lookahead,
+            bot.is_3p,
+            temperature=local_settings.model_config.temperature,
+        )
         if not lookahead_recs:
             return
 

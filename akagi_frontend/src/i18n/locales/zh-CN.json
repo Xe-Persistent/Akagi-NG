@@ -39,7 +39,9 @@
     "model": {
       "title": "AI 模型",
       "device": "设备",
-      "device_auto": "自动",
+      "device_desc": "选择模型使用的设备，Auto会自动选择可用的合适设备",
+      "temperature": "温度参数",
+      "temperature_desc": "控制模型输出的随机性，数值越高，结果越随机",
       "amp": "启用 AMP (混合精度)",
       "amp_desc": "启用自动混合精度以提升性能",
       "agari_guard": "规则驱动的和牌保护",

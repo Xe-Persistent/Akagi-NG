@@ -38,6 +38,7 @@ export interface Settings {
   };
   model_config: {
     device: string;
+    temperature: number;
     enable_amp: boolean;
     enable_quick_eval: boolean;
     rule_based_agari_guard: boolean;

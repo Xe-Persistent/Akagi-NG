@@ -54,6 +54,7 @@ class ServerConfig:
 @dataclass
 class ModelConfig:
     device: str
+    temperature: float
     enable_amp: bool
     enable_quick_eval: bool
     rule_based_agari_guard: bool
@@ -134,6 +135,7 @@ class Settings:
             ),
             model_config=ModelConfig(
                 device=model_config_data.get("device", "auto"),
+                temperature=model_config_data.get("temperature", 0.3),
                 enable_amp=model_config_data.get("enable_amp", False),
                 enable_quick_eval=model_config_data.get("enable_quick_eval", False),
                 rule_based_agari_guard=model_config_data.get("rule_based_agari_guard", True),
@@ -239,6 +241,7 @@ def get_default_settings_dict() -> dict:
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
+            "temperature": 0.3,
             "enable_amp": False,
             "enable_quick_eval": False,
             "rule_based_agari_guard": True,
@@ -345,6 +348,7 @@ def _update_settings(settings: Settings, data: dict) -> None:
 
     model_config_data = data.get("model_config", {})
     settings.model_config.device = model_config_data.get("device", "auto")
+    settings.model_config.temperature = model_config_data.get("temperature", 0.3)
     settings.model_config.enable_amp = model_config_data.get("enable_amp", False)
     settings.model_config.enable_quick_eval = model_config_data.get("enable_quick_eval", False)
     settings.model_config.rule_based_agari_guard = model_config_data.get("rule_based_agari_guard", True)

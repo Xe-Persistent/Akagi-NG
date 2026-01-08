@@ -115,6 +115,11 @@
           "default": "auto",
           "description": "Computing device selection."
         },
+        "temperature": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Softmax temperature for model confidence normalization."
+        },
         "enable_amp": {
           "type": "boolean",
           "default": false,
@@ -165,6 +170,7 @@
       },
       "required": [
         "device",
+        "temperature",
         "enable_amp",
         "enable_quick_eval",
         "rule_based_agari_guard",

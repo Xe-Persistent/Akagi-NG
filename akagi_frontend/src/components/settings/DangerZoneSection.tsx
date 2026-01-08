@@ -45,7 +45,10 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
         <div className='space-y-6'>
-          <SettingsItem label={t('settings.model.device')}>
+          <SettingsItem
+            label={t('settings.model.device')}
+            description={t('settings.model.device_desc')}
+          >
             <Select
               value={settings.model_config.device}
               onValueChange={(val) => updateSetting(['model_config', 'device'], val)}
@@ -54,11 +57,30 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='auto'>{t('settings.model.device_auto')}</SelectItem>
+                <SelectItem value='auto'>Auto</SelectItem>
                 <SelectItem value='cpu'>CPU</SelectItem>
                 <SelectItem value='cuda'>CUDA</SelectItem>
               </SelectContent>
             </Select>
+          </SettingsItem>
+
+          <SettingsItem
+            label={t('settings.model.temperature')}
+            description={t('settings.model.temperature_desc')}
+          >
+            <Input
+              type='number'
+              step='0.1'
+              min='0'
+              value={settings.model_config.temperature}
+              onChange={(e) =>
+                updateSetting(
+                  ['model_config', 'temperature'],
+                  parseFloat(e.target.value) || 0,
+                  true,
+                )
+              }
+            />
           </SettingsItem>
 
           <div className='space-y-4 pt-2'>

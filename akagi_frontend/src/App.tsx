@@ -22,10 +22,22 @@ export default function App() {
   const { t, i18n } = useTranslation();
 
   // DataServer Configuration
-  const [protocol] = useState(() => localStorage.getItem('protocol') || 'http');
-  const [backendAddress] = useState(
-    () => localStorage.getItem('backendAddress') || '127.0.0.1:8765',
-  );
+  const [protocol] = useState(() => {
+    const saved = localStorage.getItem('protocol');
+    if (saved) return saved;
+    // In dev mode (port 5173), default to http. Otherwise use current protocol.
+    if (window.location.port === '5173') return 'http';
+    return window.location.protocol.replace(':', '');
+  });
+
+  const [backendAddress] = useState(() => {
+    const saved = localStorage.getItem('backendAddress');
+    if (saved) return saved;
+    // In dev mode, default to 127.0.0.1:8765
+    if (window.location.port === '5173') return '127.0.0.1:8765';
+    // Otherwise (production/served), use the host we are served from
+    return window.location.host;
+  });
   const [clientId] = useState(() => {
     let id = localStorage.getItem('clientId');
     if (!id) {

@@ -8,6 +8,11 @@ from pathlib import Path
 import jsonschema
 from jsonschema.exceptions import ValidationError
 
+if os.name == "nt":
+    import winreg
+else:
+    winreg = None
+
 from akagi_ng.core.context import ensure_dir, get_assets_dir, get_settings_dir
 from akagi_ng.settings.logger import logger
 
@@ -29,6 +34,7 @@ class BrowserConfig:
     enabled: bool
     headless: bool
     window_size: str  # e.g. "1920,1080" or empty
+    user_agent: str = ""
 
 
 @dataclass
@@ -114,6 +120,7 @@ class Settings:
                 enabled=browser_data.get("enabled", True),
                 headless=browser_data.get("headless", False),
                 window_size=browser_data.get("window_size", ""),
+                user_agent=browser_data.get("user_agent", ""),
             ),
             mitm=MITMConfig(
                 enabled=mitm_data.get("enabled", False),
@@ -177,13 +184,57 @@ def detect_system_locale() -> str:
     return detected_locale
 
 
+def detect_system_chrome_ua() -> str:
+    """
+    Attempt to detect the installed Chrome version on Windows and return a User-Agent string.
+    Returns an empty string if detection fails.
+    """
+    if os.name != "nt":
+        return ""
+
+    paths = [
+        r"Software\Google\Chrome\BLBeacon",
+        r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
+        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
+    ]
+
+    version = None
+    for path in paths:
+        for root in [winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE]:
+            try:
+                key = winreg.OpenKey(root, path)
+                try:
+                    version, _ = winreg.QueryValueEx(key, "version")
+                    if version:
+                        break
+                except FileNotFoundError:
+                    pass
+                try:
+                    version, _ = winreg.QueryValueEx(key, "DisplayVersion")
+                    if version:
+                        break
+                except FileNotFoundError:
+                    pass
+            except OSError:
+                continue
+        if version:
+            break
+
+    if version:
+        # Construct a standard Chrome UA string based on the detected version
+        # Assuming Windows 10/11 64-bit for simplicity
+        return f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
+
+    return ""
+
+
 def get_default_settings_dict() -> dict:
     return {
         "log_level": "INFO",
         "locale": detect_system_locale(),
         "majsoul_url": "https://game.maj-soul.com/1/",
         "model": "mortal",
-        "browser": {"enabled": True, "headless": False, "window_size": ""},
+        "browser": {"enabled": True, "headless": False, "window_size": "", "user_agent": detect_system_chrome_ua()},
         "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
@@ -280,6 +331,7 @@ def _update_settings(settings: Settings, data: dict) -> None:
     settings.browser.enabled = browser_data.get("enabled", True)
     settings.browser.headless = browser_data.get("headless", False)
     settings.browser.window_size = browser_data.get("window_size", "")
+    settings.browser.user_agent = browser_data.get("user_agent", "")
 
     mitm_data = data.get("mitm", {})
     settings.mitm.enabled = mitm_data.get("enabled", False)

@@ -7,7 +7,7 @@ from playwright.sync_api import Page, WebSocket, sync_playwright
 from akagi_ng.bridge import MajsoulBridge
 from akagi_ng.core.context import get_playwright_data_dir
 from akagi_ng.playwright_client.logger import logger
-from akagi_ng.settings import local_settings
+from akagi_ng.settings import detect_system_chrome_ua, local_settings
 
 # Because in Majsouls, every flow's message has an id, we need to use one bridge for each flow
 activated_flows: list[str] = []  # store all flow.id ([-1] is the recently opened)
@@ -164,6 +164,7 @@ class PlaywrightController:
                     no_viewport=True,
                     ignore_default_args=["--enable-automation"],
                     args=launch_args,
+                    user_agent=local_settings.browser.user_agent or detect_system_chrome_ua() or None,
                 )
 
                 # Listen for new pages created in the context (e.g., new tabs)

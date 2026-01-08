@@ -49,6 +49,11 @@
           "type": "string",
           "default": "",
           "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
+        },
+        "user_agent": {
+          "type": "string",
+          "default": "",
+          "description": "Custom User-Agent string. If empty, uses Playwright's default."
         }
       },
       "required": ["headless"],

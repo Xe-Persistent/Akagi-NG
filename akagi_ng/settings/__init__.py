@@ -2,6 +2,7 @@ from akagi_ng.settings.settings import (
     Settings,
     _get_schema,
     _load_settings,
+    detect_system_chrome_ua,
     get_default_settings_dict,
     get_settings_dict,
     local_settings,
@@ -16,4 +17,5 @@ __all__ = [
     "verify_settings",
     "local_settings",
     "get_default_settings_dict",
+    "detect_system_chrome_ua",
 ]

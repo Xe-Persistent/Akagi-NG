@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akagi-ng"
-version = "0.2.0"
+version = "0.2.1"
 description = "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,7 +15,7 @@ dependencies = [
     "mjai==0.2.1",
     "loguru==0.7.3",
     "requests==2.32.5",
-    "jsonschema==4.25.1",
+    "jsonschema==4.26.0",
     # Majsoul
     "protobuf==6.33.2",
     # PyTorch
@@ -28,7 +28,7 @@ dependencies = [
     # Tools
     "ruff==0.14.10",
     # MITM
-    "mitmproxy==12.1.2",
+    "mitmproxy==12.2.1",
 ]
 
 [project.urls]

@@ -22,132 +22,329 @@
 
 ## What is Akagi-NG?
 
-**Akagi-NG** is a next-generation rewrite of the original **Akagi** project.
+**Akagi-NG** is the next-generation refactored version of the original **Akagi** project.
 
-It is an AI-powered assistant for Japanese Mahjong (Riichi Mahjong), designed to provide **real-time analysis and
-decision recommendations** while playing games such as **Mahjong Soul (雀魂)**.
+It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), aimed at providing **real-time situation analysis and decision recommendations** for **Mahjong Soul (雀魂)** matches.
 
-Akagi-NG focuses on:
+Core Philosophy of Akagi-NG:
 
-- A **modernized architecture** (Python 3.12 + React/Vite)
-- Cleaner separation between core logic, UI, configuration, and models
-- High-performance Mortal implementation utilizing `libriichi` extensions
-- Long-term maintainability
+- **Modern Architecture**: Rebuilt based on Python 3.12 and React/Vite
+- **Decoupled Design**: Complete separation of core logic, user interface, configuration management, and AI models
+- **High-Performance Inference**: Integrated `libriichi` for blazing fast Mortal model inference capabilities
+- **Long-term Maintainability**: Optimized code structure for continuous iteration
 
 ---
 
 ## ⚠️ Disclaimer
 
-This project is provided **for educational and research purposes only**.
+This project is for **educational and research purposes only**.
 
-Using third-party tools with online games may violate the game’s Terms of Service.  
-The author of Akagi-NG is **not responsible for any consequences**, including but not limited to **account suspension or
-bans**.
+Using third-party auxiliary tools in online games may violate the game's Terms of Service.
+The authors and contributors of Akagi-NG **are not responsible for any consequences**, including but not limited to **account bans or suspensions**.
 
-You are responsible for understanding the risks.
+Please fully understand and assume the relevant risks before use.
 
 ---
 
-## Current Scope
+## Features
 
-- 🎮 **Supported game**
-    - Mahjong Soul (雀魂)
+- 🎮 **Supported Platforms**
+  - Mahjong Soul (雀魂麻将)
 
-- 🀄 **Game modes**
-    - Four-player Mahjong
-    - Three-player Mahjong
+- 🀄 **Supported Modes**
+  - Four-Player Mahjong (4p)
+    - Three-Player Mahjong (3p)
 
-- 🤖 **AI models**
-    - Mortal (Mortal 4p / Mortal 3p)
+- 🤖 **AI Models**
+  - Mortal (Mortal 4p / Mortal 3p)
 
-- 🧠 **Core features**
-    - Real-time hand analysis with AI recommendations
-    - Riichi discard lookahead (simulate best discard when reaching)
-    - Consolidated Kan logic (Chi/Pon/Ankan/Kakan/Daiminkan)
-    - Modern web-based overlay UI
-    - Multi-language support (Simplified Chinese / Traditional Chinese / Japanese / English)
+- 🧠 **Core Functions**
+  - Real-time hand analysis and AI discard recommendations
+  - Riichi Lookahead - Intelligent recommendation for the best discard after reaching
+  - Complete Fuuro support (Chi/Pon/Ankan/Kakan/Daiminkan)
+  - Modern Web Overlay UI
+  - Multi-language support (Simplified Chinese / Traditional Chinese / Japanese / English)
 
+> [!NOTE]
+> **Riichi Lookahead** is a core feature in Akagi-NG, designed to solve the question: "When AI suggests Riichi, which tile should I discard?"
+>
+> #### 1. Why do we need it?
+>
+> When the MJAI engine (such as Mortal) suggests a `reach` operation, the protocol only returns the action `{"type": "reach"}`. It does **not** directly tell us which tile to discard after declaring Riichi (e.g., `6m`).
+> However, for the user, after clicking the "Riichi" button, a tile must be discarded. Without Lookahead, the user can only guess or judge which tile to cut themselves, which may lead to deviations from the AI's intended strategy (e.g., discarding the wrong tile resulting in furiten or dealing into another player's hand).
+>
+> #### 2. How it works
+> The core idea of Lookahead is **"Simulating the Future"**. When the AI suggests Riichi, we create a temporary parallel universe, assume the player has declared Riichi, and then ask the AI what it would discard in that state.
+>
+> The process is divided into the following steps:
+> 1. **Trigger**: In the current situation, the AI engine infers that `Riichi` is one of the top 5 best actions.
+> 2. **Start Simulation**: Akagi-NG creates a new, temporary `Simulation Bot`.
+> 3. **History Replay**:
+>     - In order for the simulation bot to reach the current game state, we need to feed it all events that have occurred from the beginning of the game to the present (draws, discards, calls, etc.).
+>     - **Old Mechanism**: When replaying every move of "my own actions", the simulation bot would foolishly ask the AI engine: "What should I do now?". This meant that if a game was in the 15th turn, Lookahead would need to perform 15+ AI inferences. For Online mode, this meant 15 HTTP requests, instantly triggering a 429 ban.
+>     - **New Mechanism (ReplayEngine)**: We now use the `ReplayEngine` wrapper. During the replay phase, we explicitly know that this is just "retelling history", so when the simulation bot asks "What should I do now?", `ReplayEngine` directly returns a dummy action (such as `tsumogiri`), **completely skipping AI inference**. This makes the replay process almost instantaneous and with zero network cost.
+> 4. **Branching**:
+>     - When the state is fully restored to "now", we manually send a `Riichi` event to the simulation bot.
+>     - At this point, the internal state of the simulation bot becomes: "The player has just declared Riichi and is waiting to discard a tile".
+> 5. **Final Inference**:
+>     - In this new "post-Riichi" state, we initiate a **real** inquiry to the AI engine: "What is the best discard now?"
+>     - The engine analyzes the situation and returns a specific discard action (e.g., `discard 6m`).
+> 6. **Result Display**: The frontend UI receives this `6m` information. The interface will highlight Riichi and other discard recommendations (such as `dama`). It will also display the recommended discard tile `6m` in the Riichi recommendation sub-item. If there is more than one Riichi discard candidate, the sub-items will display each Riichi discard tile and its confidence respectively.
 
 ## Screenshots
 
-
 ### Main Interface
-![Main UI](./docs/screen_shots/ui_en.png)
 
-### Standard Discard
-![Standard Discard](./docs/screen_shots/discard_en.png)
+![Main Interface](./docs/screen_shots/ui_en.png)
 
-### Riichi Lookahead
-![Riichi Lookahead](./docs/screen_shots/riichi_en.png)
+### Settings Panel
 
-### Pon & Kan
-![Pon & Kan Options](./docs/screen_shots/pon&kan_en.png)
+![Settings Panel](./docs/screen_shots/settings_panel_en.png)
 
-### Kan Selection
-![Kan Selection](./docs/screen_shots/kan_select_en.png)
+### Standard Discard Recommendations
 
-### Chi
-![Chi (Eat) Recommendation](./docs/screen_shots/chi_en.png)
+![Standard Discard Recommendations](./docs/screen_shots/discard_en.png)
 
+### Riichi Lookahead Simulation
+
+![Riichi Lookahead Simulation](./docs/screen_shots/riichi_en.png)
+
+### Pon/Kan Options
+
+![Pon/Kan Options](./docs/screen_shots/pon&kan_en.png)
+
+### Kan Selection Interface
+
+![Kan Selection Interface](./docs/screen_shots/kan_select_en.png)
+
+### Chi Recommendations
+
+![Chi Recommendations](./docs/screen_shots/chi_en.png)
+
+### Tsumo / Ron
+
+![Tsumo](./docs/screen_shots/tsumo_en.png)
+![Ron](./docs/screen_shots/ron_en.png)
+
+### Nukidora (Kita)
+
+![Nukidora](./docs/screen_shots/nukidora_en.png)
+
+### Ryuukyoku (Exhaustive Draw)
+
+![Ryuukyoku](./docs/screen_shots/ryuukyoku_en.png)
 
 ---
 
-
 ## Installation & Usage
 
-### 1. Download Release
+### 1. Download Program
 
-Check the [Releases](../../releases) page for the latest version.
+Please go to the [Releases](../../releases) page to download the latest version compressed package.
 
-### 2. Prepare Resources
+### 2. Deploy Resources
 
-Akagi-NG requires external AI models and libraries to function.  
-You must place the following folders in the same directory as `akagi-ng.exe`:
+Akagi-NG requires external model files and dependency libraries to run.
+Please ensure that the directory structure where `akagi-ng.exe` is located is complete (must contain the following folders):
 
-```
+```plain
 akagi-ng/
   ├── akagi-ng.exe
-  ├── config/          # Configuration files
-  ├── lib/             # libriichi binary extensions (.pyd)
+  ├── config/          # Configuration directory
+  ├── lib/             # libriichi local extension libraries (.pyd)
   │     ├── libriichi.pyd
   │     └── libriichi3p.pyd
-  └── models/          # Mortal model weights (.pth)
+  └── models/          # Mortal model weight files (.pth)
         ├── mortal.pth
         └── mortal3p.pth
 ```
 
-### 3. Run
+### 3. Run & Exit
 
-Execute `akagi-ng.exe`. The application will launch a dedicated browser instance for Mahjong Soul and open the overlay
-interface.
+When running `akagi-ng.exe` for the first time, it starts in Browser (Playwright) mode by default, launching an dedicated browser window to enter Mahjong Soul and load the UI interface.
+
+When running Akagi-NG in Proxy mode, it will launch a system browser window to enter the UI interface, but will not automatically open the Mahjong Soul page.
+
+To exit the program, directly close the `akagi-ng.exe` web page, or click the red power icon in the top right of the page.
+> [!CAUTION]
+> When running Akagi-NG in proxy mode, closing the browser window **WILL NOT** automatically terminate the background program.
+
+### 4. Configuration
+
+All configurations for Akagi-NG are located in the `config/settings.json` file. You can click the gear icon in the top right of the page to enter the settings panel to modify them, or use a text editor to modify this file to adjust program behavior.
+
+### 5. Browser (Playwright) Mode
+
+This is the **default working mode** of Akagi-NG and also the most recommended mode.
+
+In this mode, Akagi-NG will launch an independent, clean Chromium browser window (based on Playwright technology).
+
+- **Advantages**:
+  - **No Configuration Required**: No need to install certificates, no need to set system proxies, works out of the box.
+  - **Environment Isolation**: Completely isolated from your daily used browser, no interference.
+  - **Safe and Stable**: Receives data directly from the game server, high stability.
+
+- **Usage**:
+    1. Ensure `browser.enabled` is `true` in `config/settings.json` (default is true).
+    2. Double-click to run `akagi-ng.exe`.
+    3. The program will automatically open a browser window. Please log in to your Mahjong Soul account in this window and start the game.
+
+### 6. MITM Mode
+
+Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. This allows you to play using any browser or on a mobile device (with proxy configured).
+
+1. **Enable Configuration**:
+    Add or modify the `mitm` field in `config/settings.json`:
+
+    ```json
+    "mitm": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 6789
+    }
+    ```
+
+2. **Set Proxy**:
+    Set your browser or system proxy to `127.0.0.1:6789`.
+
+3. **Install Certificate**:
+    > Note: If you use Scheme B (Clash splitting), you may not be able to open mitm.it. **Method 2** is recommended.
+
+    - **Method 1: Online Installation (Recommended for Scheme A Users)**
+        - Start Akagi-NG.
+        - Visit [http://mitm.it](http://mitm.it).
+        - Download the Windows certificate (p12 or cer).
+
+    - **Method 2: Local Installation (Recommended for Scheme B Users)**
+        - Find the `.mitmproxy` folder under the user directory (e.g., `C:\Users\<YourName>\.mitmproxy`).
+        - Double-click `mitmproxy-ca-cert.p12` to install.
+
+    - **Critical Step**:
+        - Double-click certificate -> Install Certificate -> Select Store Location "**Trusted Root Certification Authorities**".
+
+> [!WARNING]
+> Be sure to install the certificate into "**Trusted Root Certification Authorities**".
+
+### 7. FAQ
+
+**Q: I am using proxy software like Clash/v2rayN (TUN/System Proxy mode), how should I configure it?**
+
+#### Configuration Scheme A: Browser Web Version (SwitchyOmega Proxy)
+
+This scheme is suitable for **Web version** players, configuration is simplest and completely isolated.
+
+**Configuration Steps (Taking Clash Verge Tun mode as an example)**:
+
+1. **Prepare Environment**:
+    - Keep Clash Verge Tun mode **ON**.
+    - Ensure Akagi-NG is started and `mitm.enabled` is `true` (default port 6789).
+
+2. **Install SwitchyOmega**:
+    - Chrome/Edge users please search regarding "SwitchyOmega" in the store and install it.
+
+3. **Configure Profile**:
+    - Open SwitchyOmega settings interface.
+    - Click **"New Profile"** on the left -> Name it `Akagi-Mitm` -> Select type **"Proxy Profile"**.
+    - In `Akagi-Mitm` settings:
+        - Protocol: `HTTP`
+        - Server: `127.0.0.1`
+        - Port: `6789`
+    - Click **"Apply Changes"** on the left to save.
+
+4. **Configure Auto Switch (Critical)**:
+    - Click **"Auto Switch"** on the left.
+    - Delete all existing rules (if any).
+    - **Add Rules**:
+        - Rule condition: `*.maj-soul.com  ->  Akagi-Mitm`
+        - Rule condition: `*.majsoul.com  ->  Akagi-Mitm`
+        - Rule condition: `*.mahjongsoul.com  ->  Akagi-Mitm`
+    - **Default Rule**:
+        - Select **"Direct"**, then click **"Apply Changes"** to save.
+
+> [!TIP]
+> Because your system has Tun mode enabled, "Direct" traffic will be automatically taken over and proxied by the Tun network card, so you don't need to select "System Proxy" or "Clash" here.
+
+> [!IMPORTANT]
+> If you don't enable Tun mode and only enabled System Proxy, please select "System Proxy" here.
+
+5. **Start Game**:
+    - Click the SwitchyOmega icon in the upper right corner of the browser and select **"Auto Switch"**.
+    - Visit Mahjong Soul web version, Akagi-NG should be able to capture game events normally, while you can still access Google/YouTube (via Tun).
+
+#### Configuration Scheme B: Mahjong Soul Client (Clash Rule Splitting)
+
+This scheme is suitable for **PC/Steam Client** players. Since the client cannot use plugins for splitting like a browser, we need to directly modify the Clash configuration to forward game traffic to Akagi-NG.
+
+> [!IMPORTANT]
+> When playing with the PC/Steam client, please ensure Clash is in TUN mode, otherwise it will not be able to proxy client traffic.
+
+1. **Find Configuration Entry**:
+    - Find your configuration file in Clash Verge (or use "Merge" / "Script" function to inject, to avoid overwriting the original configuration).
+
+2. **Add Proxy Node (Proxies)**:
+    Define a node pointing to the Akagi-NG local proxy.
+
+    ```yaml
+    proxies:
+      - name: Akagi-Mitm
+        type: http
+        server: 127.0.0.1
+        port: 6789
+        tls: false
+    ```
+
+    You can also define a proxy group (Proxy-groups) containing the local proxy node and Direct, making it convenient to toggle whether to use the Akagi-NG local proxy.
+
+    ```yaml
+    proxy-groups:
+      - name: 🀄 Mahjong Soul
+        proxies:
+          - Akagi-Mitm
+          - DIRECT
+        type: select
+    ```
+
+3. **Add Splitting Rules (Rules)**:
+    Force Mahjong Soul related domains to point to the node defined above. Please note the rule order, it is recommended to place them near the top.
+
+    ```yaml
+    rules:
+      - PROCESS-NAME,雀魂麻將,🀄 Mahjong Soul
+      - PROCESS-NAME,jantama_mahjongsoul.exe,🀄 Mahjong Soul
+      - PROCESS-NAME,Jantama_MahjongSoul.exe,🀄 Mahjong Soul
+    ```
+
+4. **Apply Configuration**:
+    Save and refresh the Clash configuration. Now start the Mahjong Soul client, the traffic path is:
+    `Mahjong Soul Client -> Clash (TUN) -> Matches Rules -> Forward to Akagi-NG (6789) -> Your Network/Upstream Proxy`
 
 ---
 
-## Build from Source
+## Source Code Build Guide
 
-### Requirements
+### Environment Dependencies
 
-- Python **3.12 or newer**
-- Node.js & npm (for frontend)
-- Windows (primary development target)
+- Python **3.12+**
+- Node.js & npm (for compiling frontend)
+- Windows (Recommended development environment)
 - Git
 
-### 1. Clone & Setup
+### 1. Clone & Initialize
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
 cd Akagi-NG
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
 .venv\Scripts\activate
 
-# Install dependencies
+# Install development dependencies
 pip install -e .
 python -m playwright install
 ```
 
-### 2. Build Frontend
+### 2. Compile Frontend Resources
 
 ```bash
 cd akagi_frontend
@@ -155,34 +352,24 @@ npm install
 npm run build
 ```
 
-### 3. Run Development Version
+### 3. Debug Run
 
 ```bash
 python -m akagi_ng
 ```
 
-### 4. Build Release Package
+### 4. Package for Release
 
-To create a standalone ZIP package:
+Build standalone ZIP release package (containing executable):
 
 ```bash
 python build_release.py
 ```
 
-This will generate a versioned ZIP file in the `dist/` directory.
+Build artifacts will be generated in the `dist/` directory.
 
 ---
 
-## Configuration
+## Open Source License
 
-Settings are stored in `config/settings.json`. You can modify this file to change:
-
-- Application settings
-- Model parameters
-- UI preferences
-
----
-
-## License
-
-This software is licensed under the [GNU Affero General Public License version 3 (AGPLv3)](LICENSE).
+This software follows the [GNU Affero General Public License version 3 (AGPLv3)](LICENSE) open source protocol.

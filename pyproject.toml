@@ -28,7 +28,7 @@ dependencies = [
     # Tools
     "ruff==0.14.10",
     # MITM
-    "mitmproxy==11.0.0",
+    "mitmproxy==12.1.2",
 ]
 
 [project.urls]

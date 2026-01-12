@@ -46,6 +46,5 @@ class PlaywrightClient:
             return ans
         while not self.messages.empty():
             message = self.messages.get()
-            logger.debug(f"Message: {message}")
             ans.append(message)
         return ans

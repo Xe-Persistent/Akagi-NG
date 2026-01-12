@@ -1,11 +1,10 @@
 /**
- * Gets the numeric value of a Mahjong tile for sorting.
- * e.g., '1m' -> 1, '5p' -> 5.
- * Non-numeric tiles or failures return 99 to sort to the end.
- * @param tile The tile string (e.g., '1m', '2p', 'east')
+ * 获取麻将牌的排序权重
+ * 例如：'1m' -> 1, '5p' -> 5
+ * 非数字牌返回 99 排到末尾
  */
 export const getTileSortValue = (tile: string): number => {
-  // Very simple heuristic for sorting, relies on tile naming convention (e.g. 1m, 2p)
+  // 简单排序：依赖牌名格式（如 1m, 2p）
   const val = parseInt(tile[0]);
   return isNaN(val) ? 99 : val;
 };

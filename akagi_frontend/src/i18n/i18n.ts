@@ -13,10 +13,10 @@ i18n.use(initReactI18next).init({
     'zh-TW': { translation: zhTW },
     'ja-JP': { translation: jaJP },
   },
-  lng: 'zh-CN', // Default initial language, will be updated by settings
+  lng: 'zh-CN', // 默认初始语言，将由设置更新
   fallbackLng: 'zh-CN',
   interpolation: {
-    escapeValue: false, // React already safes from xss
+    escapeValue: false, // React 已经防止了 XSS
   },
 });
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { ExternalLink, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ToastContainer } from 'react-toastify';
@@ -11,21 +11,22 @@ import SettingsPanel from './components/SettingsPanel.tsx';
 import { fetchSettingsApi, saveSettingsApi } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { useSSEConnection } from '@/hooks/useSSEConnection';
+import { useStatusNotification } from '@/hooks/useStatusNotification';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { Settings } from '@/types';
 
 export default function App() {
-  // Hooks
+  // Hook
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
-  // DataServer Configuration
+  // DataServer 配置
   const [protocol] = useState(() => {
     const saved = localStorage.getItem('protocol');
     if (saved) return saved;
-    // In dev mode (port 5173), default to http. Otherwise use current protocol.
+    // 开发模式（端口 5173）默认使用 http，否则使用当前协议
     if (window.location.port === '5173') return 'http';
     return window.location.protocol.replace(':', '');
   });
@@ -33,9 +34,9 @@ export default function App() {
   const [backendAddress] = useState(() => {
     const saved = localStorage.getItem('backendAddress');
     if (saved) return saved;
-    // In dev mode, default to 127.0.0.1:8765
+    // 开发模式默认使用 127.0.0.1:8765
     if (window.location.port === '5173') return '127.0.0.1:8765';
-    // Otherwise (production/served), use the host we are served from
+    // 正式环境使用当前主机
     return window.location.host;
   });
   const [clientId] = useState(() => {
@@ -50,11 +51,12 @@ export default function App() {
   const apiBase = `${protocol}://${backendAddress}`;
   const backendUrl = `${protocol}://${backendAddress}/sse?clientId=${clientId}`;
 
-  const { data: fullRecData, isConnected, error, systemError } = useSSEConnection(backendUrl);
+  const { data: fullRecData, notifications, isConnected, error } = useSSEConnection(backendUrl);
+  const { statusMessage, statusType } = useStatusNotification(notifications, error);
   const [locale, setLocale] = useState<string>('zh-CN');
 
-  // Effect: Initial Settings Fetch & Sync Locale
-  const syncSettings = async () => {
+  // 初始设置获取和语言同步
+  const syncSettings = useCallback(async () => {
     try {
       const settings = await fetchSettingsApi(apiBase);
       if (settings.locale && settings.locale !== i18n.language) {
@@ -64,13 +66,13 @@ export default function App() {
     } catch (e) {
       console.error('Failed to sync settings:', e);
     }
-  };
+  }, [apiBase, i18n]);
 
   useEffect(() => {
     syncSettings();
-  }, [apiBase]);
+  }, [syncSettings]);
 
-  // Handler: Update Locale from Header (Direct Save)
+  // 处理语言切换（直接保存）
   const handleLocaleChange = async (newLocale: string) => {
     try {
       const currentSettings = await fetchSettingsApi(apiBase);
@@ -80,16 +82,16 @@ export default function App() {
       setLocale(newLocale);
     } catch (e) {
       console.error('Failed to save locale:', e);
-      notify.error(`${t('app.save_failed')}: ${(e as Error).message}`);
+      notify.error(`${t('common.error')}: ${(e as Error).message}`);
     }
   };
 
-  // UI States
+  // UI 状态
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
 
-  // Handlers
+  // 消息处理
   const handleOpenMajsoul = async () => {
     setIsLaunching(true);
     try {
@@ -98,7 +100,7 @@ export default function App() {
       if (data?.majsoul_url) {
         window.open(data.majsoul_url, '_blank');
       } else {
-        notify.error(`${t('app.config_error')}: ${t('app.launch_error_url')}`);
+        notify.error(`${t('status_messages.config_error')}: ${t('app.launch_error')}`);
       }
     } catch (e) {
       console.error('Failed to fetch settings:', e);
@@ -112,72 +114,34 @@ export default function App() {
     setShowShutdownConfirm(true);
   };
 
+  const [isShutdown, setIsShutdown] = useState(false);
+
   const performShutdown = async () => {
     try {
       await fetchJson(`${apiBase}/api/shutdown`, { method: 'POST' });
-
-      const title = t('app.stopped_title');
-      const desc = t('app.stopped_desc');
-
-      document.body.innerHTML = `
-        <div style="display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; background: #18181b; color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 24px;">
-            <path d="M12 2v10"></path>
-            <path d="M18.4 6.6a9 9 0 1 1-12.77 0"></path>
-          </svg>
-          <h1 style="font-size: 2rem; margin-bottom: 1rem; color: #f43f5e; font-weight: 700;">${title}</h1>
-          <p style="color: #a1a1aa; font-size: 1.1rem;">${desc}</p>
-        </div>
-      `;
+      setIsShutdown(true);
     } catch (e) {
       console.error('Failed to shutdown:', e);
-      notify.error(`${t('app.server_error')}: ${(e as Error).message}`);
+      notify.error(`${t('common.error')}: ${(e as Error).message}`);
     }
   };
 
+  if (isShutdown) {
+    return (
+      <div className='flex h-screen flex-col items-center justify-center bg-zinc-50 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50'>
+        <Power className='mb-6 h-16 w-16 text-rose-500' strokeWidth={2} />
+        <h1 className='mb-4 text-3xl font-bold text-rose-500'>{t('app.stopped_title')}</h1>
+        <p className='text-lg text-zinc-500 dark:text-zinc-400'>{t('app.stopped_desc')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className='relative flex min-h-screen flex-col text-zinc-900 dark:text-zinc-50'>
-      {/* System Error Modal */}
-      {systemError && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm'>
-          <div className='w-full max-w-md rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl dark:border-rose-900 dark:bg-zinc-900'>
-            <div className='mb-4 flex items-center justify-center text-rose-600 dark:text-rose-500'>
-              <svg
-                xmlns='http://www.w3.org/2000/svg'
-                width='48'
-                height='48'
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              >
-                <circle cx='12' cy='12' r='10' />
-                <path d='m15 9-6 6' />
-                <path d='m9 9 6 6' />
-              </svg>
-            </div>
-            <h2 className='mb-2 text-center text-xl font-bold text-rose-700 dark:text-rose-400'>
-              {t(`app.${systemError.code.toLowerCase()}`, { defaultValue: t('app.config_error') })}
-            </h2>
-            <p className='mb-2 text-center text-zinc-600 dark:text-zinc-300'>
-              {t(`app.${systemError.code.toLowerCase()}_desc`)}
-            </p>
-            {systemError.details && (
-              <div className='mb-6 rounded bg-zinc-100 p-2 text-center font-mono text-sm text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'>
-                {systemError.details}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <Header
         theme={theme}
         setTheme={setTheme}
         isConnected={isConnected}
-        error={error}
         isLaunching={isLaunching}
         onLaunch={handleOpenMajsoul}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -187,12 +151,8 @@ export default function App() {
       />
 
       <main className='mx-auto flex w-full max-w-350 grow flex-col items-center justify-start gap-8 px-4 py-8 sm:px-6'>
-        {/* Status Bar: Show error message on mobile */}
-        {error && (
-          <div className='w-full rounded-lg border border-rose-100 bg-rose-50 p-3 text-center text-sm text-rose-600 sm:hidden dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400'>
-            {error}
-          </div>
-        )}
+        {/* Status Bar: Show error message or notifications */}
+        {statusMessage && <div className={`status-bar status-${statusType}`}>{statusMessage}</div>}
 
         {/* Player Container */}
         <div className='w-full'>

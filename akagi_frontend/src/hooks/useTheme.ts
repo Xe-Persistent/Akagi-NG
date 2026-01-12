@@ -7,14 +7,14 @@ export function useTheme() {
     () => (localStorage.getItem('theme') as Theme) || 'system',
   );
 
-  const effectiveTheme = (() => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return theme;
-  })();
+  // 用于跟踪系统主题变化，触发重渲染
+  const [systemPrefersDark, setSystemPrefersDark] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
+  );
 
-  // Apply theme to document root
+  const effectiveTheme = theme === 'system' ? (systemPrefersDark ? 'dark' : 'light') : theme;
+
+  // 应用主题到 document root
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
@@ -22,19 +22,17 @@ export function useTheme() {
     localStorage.setItem('theme', theme);
   }, [theme, effectiveTheme]);
 
-  // Listen for system theme changes
+  // 监听系统主题变化
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      // Force re-render if system preference changes while in system mode
-      setTheme((prevTheme) => (prevTheme === 'system' ? 'system' : prevTheme));
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
     };
 
-    if (theme === 'system') {
-      mediaQuery.addEventListener('change', handleChange);
-    }
+    mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme]);
+  }, []);
 
   return { theme, setTheme };
 }

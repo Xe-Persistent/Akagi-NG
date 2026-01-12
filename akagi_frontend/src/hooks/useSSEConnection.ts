@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
-import type { FullRecommendationData } from '@/types';
-import { useTranslation } from 'react-i18next';
+import { SSE_INITIAL_BACKOFF_MS, SSE_MAX_BACKOFF_MS } from '@/config/constants';
+import type { FullRecommendationData, NotificationItem } from '@/types';
 
 interface UseSSEConnectionResult {
   data: FullRecommendationData | null;
+  notifications: NotificationItem[];
   isConnected: boolean;
   error: string | null;
-  systemError: { code: string; details: string } | null;
 }
 
 export function useSSEConnection(url: string | null): UseSSEConnectionResult {
   const [data, setData] = useState<FullRecommendationData | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [systemError, setSystemError] = useState<{ code: string; details: string } | null>(null);
-  const { t } = useTranslation();
 
   useEffect(() => {
     if (!url) return;
@@ -22,11 +21,13 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
     let currentSource: EventSource | null = null;
     let reconnectTimer: number | undefined;
     let stopped = false;
-    let backoff = 1000;
-    const maxBackoff = 30_000;
+    let backoff = SSE_INITIAL_BACKOFF_MS;
+    const maxBackoff = SSE_MAX_BACKOFF_MS;
 
     const scheduleReconnect = () => {
       if (stopped || reconnectTimer) return;
+      // 设置过渡状态，显示“重连中”而不是“已断开”
+      setError('reconnecting');
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = undefined;
         backoff = Math.min(backoff * 2, maxBackoff);
@@ -47,7 +48,7 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
         es = new EventSource(url);
       } catch (e) {
         console.error('Invalid SSE URL:', e);
-        setError(t('app.config_error'));
+        setError('config_error');
         setIsConnected(false);
         scheduleReconnect();
         return;
@@ -58,38 +59,47 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
       es.onopen = () => {
         setIsConnected(true);
         setError(null);
-        // Do not clear system error on reconnect, as it might persist on server
-        backoff = 1000;
+        // 重连时不清除系统错误，因为可能在服务端仍然存在
+        backoff = SSE_INITIAL_BACKOFF_MS;
         if (reconnectTimer) {
           clearTimeout(reconnectTimer);
           reconnectTimer = undefined;
         }
       };
 
-      es.onmessage = (event) => {
+      // 处理推荐数据事件
+      es.addEventListener('recommendations', (event) => {
         try {
-          const parsedData = JSON.parse(event.data);
-          if (parsedData) {
-            if (parsedData.type === 'system_error') {
-              setSystemError({
-                code: parsedData.error_code,
-                details: parsedData.details,
-              });
-            } else if (parsedData.data) {
-              setData(parsedData.data);
-              // Clear system error if we receive normal data?
-              // Maybe not, usually system error is fatal.
-            }
-          }
-        } catch (error) {
-          console.error('Failed to parse SSE message:', error);
+          const parsed = JSON.parse(event.data);
+          // 数据格式: { "recommendations": ..., "is_riichi": ... }
+          setData(parsed);
+        } catch (e) {
+          console.error('Failed to parse recommendations', e);
         }
+      });
+
+      // 处理通知事件
+      es.addEventListener('notification', (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          // 预期格式: { "list": [...] }
+          if (parsed.list) {
+            setNotifications(parsed.list);
+          }
+        } catch (e) {
+          console.error('Failed to parse notification', e);
+        }
+      });
+
+      // 保留 onmessage 处理未命名事件
+      es.onmessage = () => {
+        // 空操作
       };
 
       es.onerror = (event) => {
         console.error('SSE error:', event);
         setIsConnected(false);
-        setError(t('app.connection_lost'));
+        setError('service_disconnected');
         if (es.readyState === EventSource.CLOSED) {
           scheduleReconnect();
         }
@@ -109,5 +119,5 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
     };
   }, [url]);
 
-  return { data, isConnected, error, systemError };
+  return { data, notifications, isConnected, error };
 }

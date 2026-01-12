@@ -1,14 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": [
-    "majsoul_url",
-    "model",
-    "browser",
-    "mitm",
-    "server",
-    "model_config"
-  ],
+  "required": ["majsoul_url", "browser", "mitm", "server", "model_config"],
   "properties": {
     "log_level": {
       "type": "string",
@@ -26,10 +19,6 @@
       "type": "string",
       "description": "The URL for the Majsoul game.",
       "format": "uri"
-    },
-    "model": {
-      "type": "string",
-      "description": "The model to use for analyzing the game."
     },
     "browser": {
       "type": "object",
@@ -49,11 +38,6 @@
           "type": "string",
           "default": "",
           "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
-        },
-        "user_agent": {
-          "type": "string",
-          "default": "",
-          "description": "Custom User-Agent string. If empty, uses Playwright's default."
         }
       },
       "required": ["headless"],

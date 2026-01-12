@@ -4,24 +4,17 @@ interface Recommendation {
   action: string;
   confidence: number;
   consumed?: string[];
-  sim_candidates?: { tile: string; confidence: number }[];
   tile?: string;
-  is_riichi_declaration?: boolean;
 }
-
 interface RecommendationData {
-  type: string;
-  data: {
-    recommendations: Recommendation[];
-    tehai: string[];
-    is_riichi_declaration?: boolean;
-  };
+  recommendations: Recommendation[];
+  is_riichi?: boolean;
 }
 
 // Visual Verification Mock Server for Riichi Discard
 console.log('Starting server in MOCK mode (SSE) for Riichi Visual Test.');
 
-const STREAM_INTERVAL_MS = 5000;
+const STREAM_INTERVAL_MS = 3000;
 const KEEPALIVE_INTERVAL_MS = 3000;
 
 const corsHeaders: Record<string, string> = {
@@ -81,7 +74,7 @@ const server = http.createServer((req, res) => {
           console.log('Updated mock settings:', mockSettings);
           res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true, data: mockSettings }));
-        } catch (e) {
+        } catch {
           res.writeHead(400, corsHeaders);
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
@@ -103,6 +96,8 @@ const server = http.createServer((req, res) => {
     const sendData = () => {
       const mockData = generateMockData();
       console.log('Generated and sending new mock data');
+      // 匹配后端格式: event: recommendations
+      res.write(`event: recommendations\n`);
       res.write(`data: ${JSON.stringify(mockData)}\n\n`);
     };
 
@@ -199,6 +194,40 @@ function generateMockData(): RecommendationData {
         { action: 'none', confidence: 0.15 },
       ],
     },
+    // Scenario 6: Ron (Win by discard)
+    {
+      tehai: ['1m', '2m', '3m', '4m', '5m', '6m', '7p', '8p', '9p', '1s', '2s', '3s', '9m'],
+      recommendations: [
+        { action: 'ron', confidence: 0.99, tile: '9m' },
+        { action: 'none', confidence: 0.01 },
+      ],
+    },
+    // Scenario 7: Tsumo (Win by self-draw)
+    {
+      tehai: ['1m', '2m', '3m', '4m', '5m', '6m', '7p', '8p', '9p', '1s', '2s', '3s', '9m', '9m'],
+      recommendations: [
+        { action: 'tsumo', confidence: 0.99, tile: '9m' },
+        { action: 'none', confidence: 0.01 },
+      ],
+    },
+    // Scenario 8: Kita (North Pull)
+    {
+      tehai: ['1m', '2m', '3m', '5m', '6m', '7m', '1p', '2p', '3p', '9p', '9p', 'N', 'E'],
+      recommendations: [
+        { action: 'nukidora', confidence: 0.9, tile: 'N' },
+        { action: '9p', confidence: 0.05 },
+        { action: 'E', confidence: 0.05 },
+      ],
+    },
+    // Scenario 9: Ryuukyoku (Kyuushu Kyuuhai)
+    {
+      tehai: ['1m', '9m', '1p', '9p', '1s', '9s', 'E', 'S', 'W', 'N', 'P', 'F', 'C', '1m'],
+      recommendations: [
+        { action: 'ryukyoku', confidence: 0.8 },
+        { action: '9m', confidence: 0.15 },
+        { action: 'C', confidence: 0.05 },
+      ],
+    },
   ];
 
   // Cycle through scenarios
@@ -206,11 +235,7 @@ function generateMockData(): RecommendationData {
   stateCounter++;
 
   return {
-    type: 'recommandations',
-    data: {
-      recommendations: scenario.recommendations,
-      tehai: scenario.tehai,
-      is_riichi_declaration: false,
-    },
+    recommendations: scenario.recommendations,
+    is_riichi: false,
   };
 }

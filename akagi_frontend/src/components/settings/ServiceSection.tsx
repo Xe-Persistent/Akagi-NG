@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SettingsItem } from '@/components/ui/settings-item';
 import type { Paths, PathValue, Settings } from '@/types';
 
-interface ServerSectionProps {
+interface ServiceSectionProps {
   settings: Settings;
   updateSetting: <P extends Paths<Settings>>(
     path: readonly [...P],
@@ -13,7 +13,7 @@ interface ServerSectionProps {
   ) => void;
 }
 
-export const ServerSection: FC<ServerSectionProps> = ({ settings, updateSetting }) => {
+export const ServiceSection: FC<ServiceSectionProps> = ({ settings, updateSetting }) => {
   const { t } = useTranslation();
   return (
     <div className='space-y-4'>

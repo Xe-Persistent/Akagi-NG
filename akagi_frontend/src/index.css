@@ -5,173 +5,245 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-background: hsl(var(--background));
-    --color-foreground: hsl(var(--foreground));
-    --color-card: hsl(var(--card));
-    --color-card-foreground: hsl(var(--card-foreground));
-    --color-popover: hsl(var(--popover));
-    --color-popover-foreground: hsl(var(--popover-foreground));
-    --color-primary: hsl(var(--primary));
-    --color-primary-foreground: hsl(var(--primary-foreground));
-    --color-secondary: hsl(var(--secondary));
-    --color-secondary-foreground: hsl(var(--secondary-foreground));
-    --color-muted: hsl(var(--muted));
-    --color-muted-foreground: hsl(var(--muted-foreground));
-    --color-accent: hsl(var(--accent));
-    --color-accent-foreground: hsl(var(--accent-foreground));
-    --color-destructive: hsl(var(--destructive));
-    --color-destructive-foreground: hsl(var(--destructive-foreground));
-    --color-border: hsl(var(--border));
-    --color-input: hsl(var(--input));
-    --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
 
-    --color-chart-1: hsl(var(--chart-1));
-    --color-chart-2: hsl(var(--chart-2));
-    --color-chart-3: hsl(var(--chart-3));
-    --color-chart-4: hsl(var(--chart-4));
-    --color-chart-5: hsl(var(--chart-5));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
 
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 
-    --color-action-reach: #f97316;
-    --color-action-chi: #34d399;
-    --color-action-pon: #60a5fa;
-    --color-action-kan: #c084fc;
-    --color-action-ron: #ef4444;
-    --color-action-tsumo: #dc2626;
-    --color-action-draw: #94a3b8;
-    --color-action-kita: #f472b6;
-    --color-action-skip: #a1a1aa;
-    --color-action-discard: #71717a;
+  --color-action-reach: #f97316;
+  --color-action-chi: #34d399;
+  --color-action-pon: #60a5fa;
+  --color-action-kan: #c084fc;
+  --color-action-ron: #ef4444;
+  --color-action-tsumo: #dc2626;
+  --color-action-draw: #94a3b8;
+  --color-action-kita: #f472b6;
+  --color-action-skip: #a1a1aa;
+  --color-action-discard: #71717a;
 }
 
 @layer components {
-    /* Mahjong Tile */
-    .mahjong-tile-container {
-        @apply relative flex h-28 w-20 flex-col items-center justify-start transition-transform duration-200;
-    }
+  /* Mahjong Tile */
+  .mahjong-tile-container {
+    @apply relative flex h-28 w-20 flex-col items-center justify-start transition-transform duration-200;
+  }
 
-    .mahjong-tile-face {
-        @apply relative z-10 h-full w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700;
-    }
+  .mahjong-tile-face {
+    @apply relative z-10 h-full w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700;
+  }
 
-    .mahjong-tile-3d {
-        @apply absolute -bottom-1 z-0 h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
-    }
+  .mahjong-tile-3d {
+    @apply absolute -bottom-1 z-0 h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
+  }
 
-    .mahjong-tile-back {
-        @apply h-full w-full border border-white/20 bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 shadow-inner dark:border-white/10 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900;
-    }
+  .mahjong-tile-back {
+    @apply h-full w-full border border-white/20 bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 shadow-inner dark:border-white/10 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900;
+  }
 
-    /* Components: StreamRecommendation */
-    .glass-card {
-        @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/95 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/95;
-    }
+  /* Components: StreamRecommendation */
+  .glass-card {
+    @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/95 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/95;
+  }
 
-    .background-glow {
-        @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-40;
-    }
+  .background-glow {
+    @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-40;
+  }
 
-    .action-text-gradient {
-        @apply bg-linear-to-br bg-clip-text font-black text-transparent drop-shadow-sm filter;
-    }
-}
+  .action-text-gradient {
+    @apply bg-linear-to-br bg-clip-text font-black text-transparent drop-shadow-sm filter;
+  }
 
-.rotated-tile {
+  /* Components: StatusBar */
+  .status-bar {
+    @apply w-full rounded-lg border p-3 text-center text-sm;
+  }
+  .status-error {
+    @apply border-rose-100 bg-rose-50 text-rose-600 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400;
+  }
+  .status-warning {
+    @apply border-amber-100 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200;
+  }
+  .status-success {
+    @apply border-emerald-100 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-200;
+  }
+  .status-info {
+    @apply border-blue-100 bg-blue-50 text-blue-900 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200;
+  }
+
+  /* Components: StreamPlayer */
+  .stream-player-container {
+    @apply relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100/50 shadow-lg dark:border-zinc-800 dark:bg-zinc-900/50;
+  }
+  .pip-overlay {
+    @apply absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-900/60 text-white backdrop-blur-sm transition-all duration-300;
+  }
+  .pip-icon-wrapper {
+    @apply mb-4 rounded-full bg-white/10 p-4 ring-1 ring-white/20;
+  }
+
+  /* Components: Alerts (SettingsPanel) */
+  .alert-box {
+    @apply flex items-center gap-2 rounded border p-3 text-sm;
+  }
+  .alert-warning {
+    @apply border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500;
+  }
+
+  /* Components: MahjongTile - Rotated */
+  .rotated-tile {
     transform: rotate(90deg);
-    width: 80px;
-    /* height of a normal tile */
-    height: 56px;
-    /* width of a normal tile */
+    width: 80px; /* 正常牌的高度 */
+    height: 56px; /* 正常牌的宽度 */
     position: absolute;
     top: 50%;
     left: 50%;
     transform-origin: center;
-    margin-top: -28px;
-    /* -height/2 */
-    margin-left: -40px;
-    /* -width/2 */
+    margin-top: -28px; /* -height/2 */
+    margin-left: -40px; /* -width/2 */
+  }
 }
 
 @layer base {
-    :root {
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
-        --primary: 240 5.9% 10%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 240 4.8% 95.9%;
-        --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
-        --accent-foreground: 240 5.9% 10%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
-        --ring: 240 10% 3.9%;
-        --radius: 0.5rem;
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
 
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-    }
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
 
-    .dark {
-        --background: 240 10% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 240 10% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 240 5.9% 10%;
-        --secondary: 240 3.7% 15.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 240 3.7% 15.9%;
-        --muted-foreground: 240 5% 64.9%;
-        --accent: 240 3.7% 15.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
-        --ring: 240 4.9% 83.9%;
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
 
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-    }
-}
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 
-@layer base {
-    * {
-        @apply border-border;
-    }
+  * {
+    @apply border-border;
+  }
 
-    body {
-        @apply text-foreground bg-zinc-100 dark:bg-zinc-950;
-        background-image: radial-gradient(at 0% 0%, rgb(236 72 153 / 0.1) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgb(139 92 246 / 0.1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgb(59 130 246 / 0.1) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, rgb(16 185 129 / 0.1) 0px, transparent 50%);
-        background-attachment: fixed;
-    }
+  body {
+    @apply text-foreground bg-zinc-100 dark:bg-zinc-950;
+    background-image:
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
 
-    .dark body {
-        background-image: radial-gradient(at 0% 0%, rgb(236 72 153 / 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgb(139 92 246 / 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgb(59 130 246 / 0.15) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, rgb(16 185 129 / 0.15) 0px, transparent 50%);
-    }
+  .dark body {
+    background-image:
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.15) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.15) 0px, transparent 50%);
+  }
+
+  /* 滚动条样式 - 亮色主题 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* 滚动条样式 - 暗色主题 */
+  .dark * {
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+  }
 }

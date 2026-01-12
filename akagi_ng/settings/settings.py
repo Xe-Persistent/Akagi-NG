@@ -8,12 +8,7 @@ from pathlib import Path
 import jsonschema
 from jsonschema.exceptions import ValidationError
 
-if os.name == "nt":
-    import winreg
-else:
-    winreg = None
-
-from akagi_ng.core.context import ensure_dir, get_assets_dir, get_settings_dir
+from akagi_ng.core.paths import ensure_dir, get_assets_dir, get_settings_dir
 from akagi_ng.settings.logger import logger
 
 CONFIG_DIR: Path = ensure_dir(get_settings_dir())
@@ -33,8 +28,7 @@ class OTConfig:
 class BrowserConfig:
     enabled: bool
     headless: bool
-    window_size: str  # e.g. "1920,1080" or empty
-    user_agent: str = ""
+    window_size: str  # 例如 "1920,1080" 或留空
 
 
 @dataclass
@@ -66,27 +60,19 @@ class Settings:
     log_level: str
     locale: str
     majsoul_url: str
-    model: str
     browser: BrowserConfig
     mitm: MITMConfig
     server: ServerConfig
     model_config: ModelConfig
 
     def update(self, data: dict) -> None:
-        """
-        Update settings from a dictionary
-
-        Args:
-            data (dict): Dictionary with settings to update
-        """
+        """从字典更新设置"""
         _update_settings(self, data)
         self.ensure_consistency()
 
     def ensure_consistency(self) -> None:
-        """
-        Ensure settings consistency (e.g. mutual exclusivity)
-        """
-        # Mutual exclusivity: Only one mode enabled. Default to Browser if undefined or conflict.
+        """确保设置一致性（如互斥性）"""
+        # 互斥性：只能启用一种模式，默认使用浏览器模式
         if self.browser.enabled and self.mitm.enabled:
             logger.warning("Both Browser and MITM modes enabled. Prioritizing Browser mode.")
             self.mitm.enabled = False
@@ -95,17 +81,13 @@ class Settings:
             self.browser.enabled = True
 
     def save(self) -> None:
-        """
-        Save the settings to the settings.json file (project_root/config/settings.json)
-        """
+        """保存设置到 settings.json 文件"""
         _save_settings(asdict(self))
         logger.info(f"Saved settings to {SETTINGS_JSON_PATH}")
 
     @classmethod
     def from_dict(cls, data: dict) -> "Settings":
-        """
-        Create a Settings object from a dictionary
-        """
+        """从字典创建 Settings 对象"""
         browser_data = data.get("browser", {})
         mitm_data = data.get("mitm", {})
         server_data = data.get("server", {})
@@ -116,12 +98,10 @@ class Settings:
             log_level=data.get("log_level", "INFO"),
             locale=data.get("locale", "zh-CN"),
             majsoul_url=data.get("majsoul_url", "https://game.maj-soul.com/1/"),
-            model=data.get("model", "mortal"),
             browser=BrowserConfig(
                 enabled=browser_data.get("enabled", True),
                 headless=browser_data.get("headless", False),
                 window_size=browser_data.get("window_size", ""),
-                user_agent=browser_data.get("user_agent", ""),
             ),
             mitm=MITMConfig(
                 enabled=mitm_data.get("enabled", False),
@@ -152,9 +132,9 @@ class Settings:
 
 def detect_system_locale() -> str:
     """
-    Detect system locale and return one of the supported locales:
-    zh-CN, zh-TW, ja-JP, en-US.
-    Defaults to en-US if detection fails or locale is not supported.
+    检测系统语言环境，返回支持的语言之一：
+    zh-CN, zh-TW, ja-JP, en-US。
+    检测失败或不支持的语言默认返回 en-US。
     """
     detected_locale = "en-US"
 
@@ -174,7 +154,7 @@ def detect_system_locale() -> str:
     try:
         sys_locale = locale.getdefaultlocale()[0]
         if sys_locale:
-            if sys_locale.startswith("zh_CN"):  # Linux/Mac usually use underscore
+            if sys_locale.startswith("zh_CN"):  # Linux/Mac 通常使用下划线
                 return "zh-CN"
             elif sys_locale.startswith("zh_TW") or sys_locale.startswith("zh_HK"):
                 return "zh-TW"
@@ -186,57 +166,12 @@ def detect_system_locale() -> str:
     return detected_locale
 
 
-def detect_system_chrome_ua() -> str:
-    """
-    Attempt to detect the installed Chrome version on Windows and return a User-Agent string.
-    Returns an empty string if detection fails.
-    """
-    if os.name != "nt":
-        return ""
-
-    paths = [
-        r"Software\Google\Chrome\BLBeacon",
-        r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
-        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
-    ]
-
-    version = None
-    for path in paths:
-        for root in [winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE]:
-            try:
-                key = winreg.OpenKey(root, path)
-                try:
-                    version, _ = winreg.QueryValueEx(key, "version")
-                    if version:
-                        break
-                except FileNotFoundError:
-                    pass
-                try:
-                    version, _ = winreg.QueryValueEx(key, "DisplayVersion")
-                    if version:
-                        break
-                except FileNotFoundError:
-                    pass
-            except OSError:
-                continue
-        if version:
-            break
-
-    if version:
-        # Construct a standard Chrome UA string based on the detected version
-        # Assuming Windows 10/11 64-bit for simplicity
-        return f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version} Safari/537.36"
-
-    return ""
-
-
 def get_default_settings_dict() -> dict:
     return {
         "log_level": "INFO",
         "locale": detect_system_locale(),
         "majsoul_url": "https://game.maj-soul.com/1/",
-        "model": "mortal",
-        "browser": {"enabled": True, "headless": False, "window_size": "", "user_agent": detect_system_chrome_ua()},
+        "browser": {"enabled": True, "headless": False, "window_size": ""},
         "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
@@ -251,17 +186,13 @@ def get_default_settings_dict() -> dict:
 
 
 def get_settings_dict() -> dict:
-    """
-    Read settings.json from project_root/config/settings.json
-    """
+    """从 settings.json 读取设置"""
     with open(SETTINGS_JSON_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 
 def verify_settings(data: dict) -> bool:
-    """
-    Verify a settings payload against schema (schema is loaded from SCHEMA_PATH)
-    """
+    """根据 schema 验证设置"""
     try:
         jsonschema.validate(data, _get_schema())
         return True
@@ -272,19 +203,15 @@ def verify_settings(data: dict) -> bool:
 
 def _load_settings() -> Settings:
     """
-    Load settings from project_root/config/settings.json and validate them against
-    akagi_ng/settings/settings.schema.json
-
-    Runtime behavior:
-    - Only checks if schema file exists (SCHEMA_PATH).
-    - Reads settings.json from CONFIG_DIR.
-    - If settings.json is corrupted, backs it up and recreates a default one under CONFIG_DIR.
+    加载并验证设置。
+    - 检查 schema 文件是否存在
+    - 从 CONFIG_DIR 读取 settings.json
+    - 如果 settings.json 损坏，备份并重建默认设置
 
     Raises:
-        FileNotFoundError: schema not found
-        jsonschema.exceptions.ValidationError: settings.json does not match schema
+        FileNotFoundError: schema 不存在
     """
-    # Only validate schema file existence (and load it)
+    # 验证 schema 文件存在
     schema = _get_schema()
 
     if not SETTINGS_JSON_PATH.exists():
@@ -305,12 +232,7 @@ def _load_settings() -> Settings:
 
 
 def _get_schema() -> dict:
-    """
-    Get the schema for settings.json (from akagi_ng/settings/settings.schema.json)
-
-    Returns:
-        dict: Schema for settings.json
-    """
+    """获取 settings.json 的 schema"""
     if not SCHEMA_PATH.exists():
         raise FileNotFoundError(f"settings.schema.json not found at {SCHEMA_PATH}")
     with open(SCHEMA_PATH, encoding="utf-8") as f:
@@ -318,23 +240,15 @@ def _get_schema() -> dict:
 
 
 def _update_settings(settings: Settings, data: dict) -> None:
-    """
-    Update settings object from a dictionary
-
-    Args:
-        settings (Settings): Settings object to update
-        data (dict): Dictionary with settings to update
-    """
+    """从字典更新 Settings 对象"""
     settings.log_level = data.get("log_level", "INFO")
     settings.locale = data.get("locale", "zh-CN")
     settings.majsoul_url = data["majsoul_url"]
-    settings.model = data["model"]
 
     browser_data = data.get("browser", {})
     settings.browser.enabled = browser_data.get("enabled", True)
     settings.browser.headless = browser_data.get("headless", False)
     settings.browser.window_size = browser_data.get("window_size", "")
-    settings.browser.user_agent = browser_data.get("user_agent", "")
 
     mitm_data = data.get("mitm", {})
     settings.mitm.enabled = mitm_data.get("enabled", False)
@@ -364,22 +278,15 @@ def _update_settings(settings: Settings, data: dict) -> None:
 
 
 def _save_settings(data: dict) -> None:
-    """
-    Save settings.json to project_root/config/settings.json
-    """
+    """保存 settings.json"""
     with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
 def _backup_and_reset_settings(reason: str) -> dict:
     """
-    Backup the current settings file and recreate it with default values.
-
-    Args:
-        reason (str): The reason for resetting settings (e.g. corruption error message)
-
-    Returns:
-        dict: The new default settings dictionary
+    备份当前设置文件并重建默认值。
+    返回新的默认设置字典。
     """
     logger.error(reason)
     bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")

@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { notify } from '@/lib/notify';
 import { useTranslation } from 'react-i18next';
 import { fetchJson } from '@/lib/api-client';
+import { SETTINGS_DEBOUNCE_MS } from '@/config/constants';
 import type { ApiResponse, Paths, PathValue, Settings } from '@/types';
 
 type SaveSettingsResponse = ApiResponse & { restartRequired?: boolean };
@@ -103,10 +104,10 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
       }
 
       if (debounce) {
-        setSaveStatus('saving'); // Optimistic saving state
+        setSaveStatus('saving');
         debounceTimer.current = setTimeout(() => {
           performSave(newSettings);
-        }, 1000);
+        }, SETTINGS_DEBOUNCE_MS);
       } else {
         performSave(newSettings);
       }
@@ -162,6 +163,13 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
     [triggerSave],
   );
 
+  /**
+   * 批量更新多个设置项。
+   *
+   * 注意：此方法的类型签名使用 `readonly string[]` 和 `unknown`，
+   * 因为 TypeScript 的类型系统难以在数组中表达多个不同路径的严格类型约束。
+   * 单个设置更新请使用类型安全的 `updateSetting` 方法。
+   */
   const updateSettingsBatch = useCallback(
     (updates: { path: readonly string[]; value: unknown }[], shouldDebounce = false) => {
       setSettings((prev) => {

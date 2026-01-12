@@ -12,7 +12,7 @@ interface ModalProps {
 }
 
 export const Modal: FC<ModalProps> = ({ open, children, className }) => {
-  // Prevent body scroll when modal is open
+  // 模态框打开时禁止页面滚动
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';

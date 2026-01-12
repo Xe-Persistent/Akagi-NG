@@ -8,7 +8,7 @@ from google.protobuf.json_format import MessageToDict
 
 from akagi_ng.bridge import liqi_pb2 as pb
 from akagi_ng.bridge.logger import logger
-from akagi_ng.core.context import get_assets_dir
+from akagi_ng.core.paths import get_assets_dir
 
 
 class MsgType(Enum):
@@ -161,7 +161,7 @@ def from_protobuf(buf) -> list[dict]:
             # string
             block_type = "string"
             s_len, p = parse_varint(buf, p)
-            data = buf[p: p + s_len]
+            data = buf[p : p + s_len]
             p += s_len
         else:
             raise Exception("unknow type:", block_type, " at", p)

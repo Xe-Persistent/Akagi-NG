@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
-import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import type { Paths, PathValue, Settings } from '@/types';
 
 interface DangerZoneSectionProps {
@@ -44,10 +43,10 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
       <div className='border-border border-t pt-4'></div>
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-        <div className='space-y-6'>
+        <div className='space-y-4'>
           <SettingsItem
-            label={t('settings.model.device')}
-            description={t('settings.model.device_desc')}
+            label={t('settings.model_config.device')}
+            description={t('settings.model_config.device_desc')}
           >
             <Select
               value={settings.model_config.device}
@@ -65,8 +64,8 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
           </SettingsItem>
 
           <SettingsItem
-            label={t('settings.model.temperature')}
-            description={t('settings.model.temperature_desc')}
+            label={t('settings.model_config.temperature')}
+            description={t('settings.model_config.temperature_desc')}
           >
             <Input
               type='number'
@@ -82,99 +81,64 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
               }
             />
           </SettingsItem>
-
-          <div className='space-y-4 pt-2'>
-            <SettingsItem
-              label={t('settings.model.amp')}
-              description={t('settings.model.amp_desc')}
-              layout='row'
-            >
-              <Checkbox
-                id='enable_amp'
-                checked={settings.model_config.enable_amp}
-                onCheckedChange={(checked) =>
-                  updateSetting(['model_config', 'enable_amp'], checked === true)
-                }
-              />
-            </SettingsItem>
-
-            <SettingsItem
-              label={t('settings.model.enable_quick_eval')}
-              description={t('settings.model.enable_quick_eval_desc')}
-              layout='row'
-            >
-              <Checkbox
-                id='enable_quick_eval'
-                checked={settings.model_config.enable_quick_eval}
-                onCheckedChange={(val) =>
-                  updateSetting(['model_config', 'enable_quick_eval'], val === true)
-                }
-              />
-            </SettingsItem>
-
-            <SettingsItem
-              label={t('settings.model.agari_guard')}
-              description={t('settings.model.agari_guard_desc')}
-              layout='row'
-            >
-              <Checkbox
-                id='agari_guard'
-                checked={settings.model_config.rule_based_agari_guard}
-                onCheckedChange={(checked) =>
-                  updateSetting(['model_config', 'rule_based_agari_guard'], checked === true)
-                }
-              />
-            </SettingsItem>
-          </div>
         </div>
 
-        <div className='border-border space-y-4 border-l pl-6'>
-          <SettingsItem label={t('settings.model.online')}>
-            <CapsuleSwitch
-              checked={settings.model_config.ot.online}
-              onCheckedChange={(val) => updateSetting(['model_config', 'ot', 'online'], val)}
-              labelOn={t('common.enabled')}
-              labelOff={t('common.disabled')}
+        <div className='space-y-6'>
+          <SettingsItem
+            label={t('settings.model_config.amp')}
+            description={t('settings.model_config.amp_desc')}
+            layout='row'
+          >
+            <Checkbox
+              id='enable_amp'
+              checked={settings.model_config.enable_amp}
+              onCheckedChange={(checked) =>
+                updateSetting(['model_config', 'enable_amp'], checked === true)
+              }
             />
           </SettingsItem>
 
-          {settings.model_config.ot.online && (
-            <div className='animate-in fade-in slide-in-from-top-2 space-y-4 duration-300'>
-              <SettingsItem label={t('settings.model.server_url')}>
-                <Input
-                  value={settings.model_config.ot.server}
-                  onChange={(e) =>
-                    updateSetting(['model_config', 'ot', 'server'], e.target.value, true)
-                  }
-                  placeholder='http://...'
-                />
-              </SettingsItem>
-              <SettingsItem label={t('settings.model.api_key')}>
-                <Input
-                  type='password'
-                  value={settings.model_config.ot.api_key}
-                  onChange={(e) =>
-                    updateSetting(['model_config', 'ot', 'api_key'], e.target.value, true)
-                  }
-                  placeholder='API Key'
-                />
-              </SettingsItem>
-            </div>
-          )}
+          <SettingsItem
+            label={t('settings.model_config.enable_quick_eval')}
+            description={t('settings.model_config.enable_quick_eval_desc')}
+            layout='row'
+          >
+            <Checkbox
+              id='enable_quick_eval'
+              checked={settings.model_config.enable_quick_eval}
+              onCheckedChange={(val) =>
+                updateSetting(['model_config', 'enable_quick_eval'], val === true)
+              }
+            />
+          </SettingsItem>
 
-          <div className='flex justify-start pt-4'>
-            <Button
-              variant='destructive'
-              size='sm'
-              onClick={onRestoreDefaults}
-              disabled={busy}
-              className='w-full sm:w-auto'
-            >
-              <RotateCcw className='mr-2 h-4 w-4' />
-              {t('settings.restore')}
-            </Button>
-          </div>
+          <SettingsItem
+            label={t('settings.model_config.agari_guard')}
+            description={t('settings.model_config.agari_guard_desc')}
+            layout='row'
+          >
+            <Checkbox
+              id='agari_guard'
+              checked={settings.model_config.rule_based_agari_guard}
+              onCheckedChange={(checked) =>
+                updateSetting(['model_config', 'rule_based_agari_guard'], checked === true)
+              }
+            />
+          </SettingsItem>
         </div>
+      </div>
+
+      <div className='flex justify-end pt-4'>
+        <Button
+          variant='destructive'
+          size='sm'
+          onClick={onRestoreDefaults}
+          disabled={busy}
+          className='w-full sm:w-auto'
+        >
+          <RotateCcw className='mr-2 h-4 w-4' />
+          {t('settings.restore')}
+        </Button>
       </div>
     </div>
   );

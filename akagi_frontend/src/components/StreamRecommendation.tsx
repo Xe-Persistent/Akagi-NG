@@ -1,12 +1,13 @@
-import type { FC } from 'react';
+import { type FC, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 import { MahjongTile } from '@/components/mahjong/mahjong-tile';
 import { ConfidenceRing } from '@/components/mahjong/confidence-ring';
 import { ConsumedDisplay } from '@/components/mahjong/consumed-display';
+import { ACTION_CONFIG, SHOW_CONSUMED_ACTIONS } from '@/config/actionConfig';
 
-// --- Types & Constants ---
+// --- 类型定义 ---
 
 interface RecommendationProps {
   action: string;
@@ -16,68 +17,7 @@ interface RecommendationProps {
   tile?: string;
 }
 
-interface ActionConfigItem {
-  label: string;
-  color: string;
-  gradient: string; // Used for background glow and text gradient
-}
-
-const ACTION_CONFIG: Record<string, ActionConfigItem> = {
-  reach: {
-    label: 'actions.reach',
-    color: 'var(--color-action-reach)',
-    gradient: 'from-orange-500 to-red-500',
-  },
-  chi: {
-    label: 'actions.chi',
-    color: 'var(--color-action-chi)',
-    gradient: 'from-emerald-400 to-green-600',
-  },
-  pon: {
-    label: 'actions.pon',
-    color: 'var(--color-action-pon)',
-    gradient: 'from-blue-400 to-indigo-600',
-  },
-  kan_select: {
-    label: 'actions.kan_select',
-    color: 'var(--color-action-kan)',
-    gradient: 'from-purple-400 to-fuchsia-600',
-  },
-  hora: {
-    label: 'actions.hora',
-    color: 'var(--color-action-ron)',
-    gradient: 'from-red-500 to-rose-700',
-  },
-  tsumo: {
-    label: 'actions.tsumo',
-    color: 'var(--color-action-tsumo)',
-    gradient: 'from-red-600 to-rose-900',
-  },
-  ryukyoku: {
-    label: 'actions.ryukyoku',
-    color: 'var(--color-action-draw)',
-    gradient: 'from-slate-400 to-slate-600',
-  },
-  nukidora: {
-    label: 'actions.nukidora',
-    color: 'var(--color-action-kita)',
-    gradient: 'from-pink-400 to-rose-500',
-  },
-  none: {
-    label: 'actions.none',
-    color: 'var(--color-action-skip)',
-    gradient: 'from-gray-400 to-gray-600',
-  },
-  discard: {
-    label: 'actions.discard',
-    color: 'var(--color-action-discard)',
-    gradient: 'from-zinc-500 to-zinc-700',
-  },
-};
-
-const SHOW_CONSUMED_ACTIONS = new Set(['chi', 'pon', 'kan_select']);
-
-// --- Main Component ---
+// --- 主组件 ---
 
 const Recommendation: FC<RecommendationProps> = ({
   action,
@@ -90,32 +30,25 @@ const Recommendation: FC<RecommendationProps> = ({
   const config = ACTION_CONFIG[action];
   const hasSimCandidates = sim_candidates && sim_candidates.length > 0;
 
-  // Determine configuration:
-  // 1. If strict match (reach, pon etc), use it.
-  // 2. Default to discard style.
+  // 确定配置：优先精确匹配（reach、pon 等），否则默认切牌样式
   const effectiveConfig = config || ACTION_CONFIG['discard'];
 
   const displayLabel = t(effectiveConfig.label);
   const labelLength = displayLabel.length;
 
-  // Dynamic font size and tracking based on label length
-  // 1-2 chars (CN/JP): 6xl, widest
-  // 3-4 chars (Short EN/JP): 5xl, wider
-  // 5+ chars (Long EN): 4xl, tight
+  // 根据标签长度动态调整字体大小
   const fontSizeClass = labelLength <= 2 ? 'text-6xl' : labelLength <= 4 ? 'text-5xl' : 'text-4xl';
   const trackingClass =
     labelLength <= 2 ? 'tracking-widest' : labelLength <= 4 ? 'tracking-wider' : 'tracking-tight';
 
-  // Determine main tile to display
-  // If sim_candidates (Riichi Lookahead), main tile is not single.
-  // If config exists (pon/chi/hora), usually handled by ConsumedDisplay.
-  // Exceptions: 'tsumo' and 'hora' (Ron) might need to show the winning tile.
+  // 确定要显示的主要牌张
+  // 立直前瞻、吃碰杠等有特殊处理
   let mainTile: string | null = null;
   if (!hasSimCandidates) {
-    if ((action === 'tsumo' || action === 'hora') && tile) {
+    if ((action === 'tsumo' || action === 'ron' || action === 'nukidora') && tile) {
       mainTile = tile;
     } else if (!config) {
-      mainTile = action; // It's a discard action (action string is the tile code)
+      mainTile = action; // 这是一个弃牌动作（动作字符串即为牌代码）
     }
   }
 
@@ -204,4 +137,4 @@ const Recommendation: FC<RecommendationProps> = ({
   );
 };
 
-export default Recommendation;
+export default memo(Recommendation);

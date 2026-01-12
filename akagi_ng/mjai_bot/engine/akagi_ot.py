@@ -20,25 +20,27 @@ class AkagiOTClient:
             }
         )
 
-        # Optimization: Hard timeouts (connect, read)
+        # 硬超时（连接、读取）
+        # 最多等待 4 秒后触发异常并激活本地模型回退逻辑
         self.timeout = (2.0, 4.0)
 
-        # Circuit Breaker state
+        # 熔断器状态
         self._failures = 0
         self._circuit_open = False
         self._last_failure_time = 0
-        self._circuit_recovery_period = 30.0  # seconds
+        self._circuit_recovery_period = 30.0  # 秒
         self._failure_threshold = 3
+        self._just_restored = False
 
     def predict(self, is_3p: bool, obs: list, masks: list) -> dict:
-        # Circuit Breaker Check
+        # 熔断器检查
         if self._circuit_open:
             if time.time() - self._last_failure_time > self._circuit_recovery_period:
                 self._close_circuit()
             else:
                 raise RuntimeError("AkagiOT Circuit Breaker is OPEN. Skipping request.")
 
-        # Prepare payload
+        # 准备请求负载
         post_data = {"obs": obs, "masks": masks}
         data = json.dumps(post_data, separators=(",", ":"))
         compressed_data = gzip.compress(data.encode("utf-8"))
@@ -50,7 +52,7 @@ class AkagiOTClient:
             response = self.session.post(full_url, data=compressed_data, timeout=self.timeout)
             response.raise_for_status()
 
-            # Successful request resets the breaker
+            # 请求成功时重置熔断器
             if self._failures > 0:
                 self._reset_breaker()
 
@@ -73,27 +75,39 @@ class AkagiOTClient:
             self._circuit_open = True
 
     def _close_circuit(self):
-        logger.info("AkagiOT Circuit Breaker CLOSED (Recovery period passed).")
+        logger.info("AkagiOT Circuit Breaker HALF-OPEN. Probing connection...")
         self._circuit_open = False
-        self._failures = 0
-        self._last_failure_time = 0
 
     def _reset_breaker(self):
+        logger.info("AkagiOT Circuit Breaker CLOSED. Connection restored, service fully operational.")
         self._failures = 0
         self._circuit_open = False
+        self._just_restored = True
 
 
 class AkagiOTEngine(BaseEngine):
-    def __init__(self, is_3p: bool, url: str, api_key: str):
+    def __init__(self, is_3p: bool, url: str, api_key: str, fallback_engine: BaseEngine = None):
         super().__init__(is_3p=is_3p, version=4, name="AkagiOT", is_oracle=False)
         self.client = AkagiOTClient(url, api_key)
 
         self.is_online = True
         self.engine_type = "akagiot"
         self.last_inference_result = {}
+        self.fallback_engine = fallback_engine
 
-    def get_additional_meta(self) -> dict:
-        return {"online": True}
+        if self.fallback_engine:
+            logger.info(f"AkagiOT: Fallback engine configured: {self.fallback_engine.name}")
+
+    def get_notification_flags(self) -> dict:
+        """返回 AkagiOT 引擎的通知标志。"""
+        flags = {}
+        if self.client._circuit_open:
+            flags["circuit_open"] = True
+        if self.client._just_restored:
+            flags["circuit_restored"] = True
+            self.client._just_restored = False
+        # fallback_used 标志由 MortalBot 在检测到 fallback 时设置
+        return flags
 
     @property
     def enable_quick_eval(self) -> bool:
@@ -116,10 +130,28 @@ class AkagiOTEngine(BaseEngine):
                 "masks": r_json["masks"],
                 "is_greedy": r_json["is_greedy"],
             }
+
             return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]
 
         except Exception as e:
-            # Fallback strategy is handled by the upstream Bot class (catching exception -> tsumogiri/none)
-            # We just log and re-raise here to signal failure
-            logger.warning(f"AkagiOT inference failed, falling back to safe strategy: {e}")
-            raise RuntimeError(f"AkagiOT failed: {e}") from e
+            if self.fallback_engine:
+                logger.warning(f"AkagiOT inference failed: {e}. Switching to Fallback Engine.")
+                try:
+                    # 委托给回退引擎
+                    res = self.fallback_engine.react_batch(obs, masks, invisible_obs)
+
+                    # 用回退数据更新 last_inference_result
+                    self.last_inference_result = {
+                        "actions": res[0],
+                        "q_out": res[1],
+                        "masks": res[2],
+                        "is_greedy": res[3],
+                    }
+                    return res
+                except Exception as fallback_err:
+                    logger.error(f"Fallback engine also failed: {fallback_err}")
+                    raise RuntimeError(f"AkagiOT and Fallback both failed: {e}") from e
+            else:
+                # 回退策略由上游 Bot 类处理
+                logger.warning(f"AkagiOT inference failed, no fallback configured: {e}")
+                raise RuntimeError(f"AkagiOT failed: {e}") from e

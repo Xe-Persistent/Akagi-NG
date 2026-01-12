@@ -4,23 +4,25 @@ from mjai import Bot
 from mjai.bot.tools import calc_shanten
 from mjai.mlibriichi.state import PlayerState
 
+from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.mjai_bot.logger import logger
+from akagi_ng.mjai_bot.utils import make_error_response
 
 
 class StateTrackerBot(Bot):
     """
-    This bot is used for tracking the game states, overwriting some of the
-    mjai.Bot methods to be compatible with the Akagi application.
+    状态追踪 Bot，用于跟踪游戏状态。
+    重写部分 mjai.Bot 方法以兼容 Akagi 应用。
     """
 
     def __init__(self):
         super().__init__()
         self.is_3p = False
+        self.meta = {}
+        self.notification_flags = {}  # 系统状态通知标志
 
     def think(self) -> str:
-        """
-        tsumogiri
-        """
+        """默认行为：自摸切"""
         if self.can_discard:
             tile_str = self.last_self_tsumo
             return self.action_discard(tile_str)
@@ -39,13 +41,9 @@ class StateTrackerBot(Bot):
                 self.__discard_events = []
                 self.__call_events = []
                 self.__dora_indicators = []
-            if event["type"] == "start_kyoku" and (
-                event["scores"][0] == 35000
-                and event["scores"][1] == 35000
-                and event["scores"][2] == 35000
-                and event["scores"][3] == 0
-            ):
-                self.is_3p = True
+            # 使用 Bridge 传递的 is_3p 字段判断游戏是四麻还是三麻对局
+            if event["type"] == "start_kyoku":
+                self.is_3p = event.get("is_3p", event["scores"][3] == 0)
             if event["type"] == "start_kyoku" or event["type"] == "dora":
                 self.__dora_indicators.append(event["dora_marker"])
             if event["type"] == "dahai":
@@ -58,8 +56,7 @@ class StateTrackerBot(Bot):
                 "ankan",
             ]:
                 self.__call_events.append(event)
-            # This is a patch for Three-Player-Mahjong, since the
-            # smly/mjai library does not support 3P Mahjong.
+            # 三麻兼容：mjai.mlibriichi 状态追踪库不支持 nukidora，转换为 dahai 事件
             if event["type"] == "nukidora":
                 logger.debug(f"Event: {event}")
                 replace_event = {
@@ -75,13 +72,8 @@ class StateTrackerBot(Bot):
                 logger.debug(f"Event: {event}")
                 self.action_candidate = self.player_state.update(json.dumps(event))
 
-            # NOTE: Skip `think()` if the player's riichi is accepted and
-            # no call actions are allowed.
-            if (
-                self.self_riichi_accepted
-                and not (self.can_agari or self.can_kakan or self.can_ankan)
-                and self.can_discard
-            ):
+            # 立直后自动摸切（除非可以和牌/暗杠）
+            if self.self_riichi_accepted and not (self.can_agari or self.can_ankan) and self.can_discard:
                 return self.action_discard(self.last_self_tsumo)
 
             resp = self.think()
@@ -92,33 +84,23 @@ class StateTrackerBot(Bot):
             logger.error("Brief info:")
             logger.error(self.brief_info())
 
-        return json.dumps({"type": "none"}, separators=(",", ":"))
+        return json.dumps(make_error_response(NotificationCode.STATE_TRACKER_ERROR), separators=(",", ":"))
 
     # ==========================================================
-    # kan implementation (daiminkan, ankan, kakan)
+    # 杠操作相关实现（大明杠、暗杠、加杠）
 
     def find_daiminkan_candidates(self) -> list[dict]:
-        """
-        Find candidates for Daiminkan (Open Kan).
-        """
+        """寻找大明杠候选"""
         current_shanten = calc_shanten(self.tehai)
-        # Assuming finding Daiminkan improves hand similar to Pon, but with logic for 4 tiles.
-        # For simplicity, we reuse Pon candidate logic structure but for Kan.
-        # Daiminkan typically improves shanten same as Pon or better/worse depending on situation.
-        # Here we just implement the finding logic.
 
         candidates = []
         if not self.can_daiminkan:
             return candidates
 
-        # Check if we have 3 matching tiles for the last discarded tile
+        # 检查手牌中是否有 3 张与最后弃牌相同的牌
         target_tile = self.last_kawa_tile
-        # Handle Red 5
-        base_tile = target_tile.replace("r", "")
-        # Logic: count how many base_tile we have in hand.
-        # If we have 3, we can Kan. (Daiminkan needs 3 in hand + 1 discard)
+        base_tile = target_tile.replace("r", "")  # 处理赤五
 
-        # We need precise tiles in hand (including red 5) to form 'consumed'
         hand_tiles = self.tehai_mjai
         matching_tiles = [t for t in hand_tiles if t.replace("r", "") == base_tile]
 
@@ -129,14 +111,12 @@ class StateTrackerBot(Bot):
         return candidates
 
     def find_ankan_candidates(self) -> list[dict]:
-        """
-        Find candidates for Ankan (Closed Kan).
-        """
+        """寻找暗杠候选"""
         candidates = []
         if not self.can_ankan:
             return candidates
 
-        # Ankan requires 4 identical tiles in hand
+        # 暗杠需要手牌中有 4 张相同的牌
         hand_tiles = self.tehai_mjai
         current_shanten = calc_shanten(self.tehai)
         counts = {}
@@ -154,21 +134,12 @@ class StateTrackerBot(Bot):
         return candidates
 
     def find_kakan_candidates(self) -> list[dict]:
-        """
-        Find candidates for Kakan (Added Kan).
-        """
+        """寻找加杠候选"""
         candidates = []
         if not self.can_kakan:
             return candidates
 
-        # Kakan requires 1 tile in hand that matches an existing Pon
-        # AND check against self.can_kakan (which usually implies we drew the tile)
-        # We can also check existing melds
-
-        # Simpler approach: Iterate hand tiles and see if ActionCandidate allows it.
-        # But ActionCandidate doesn't tell us WHICH tile.
-        # We need to check our hand against our open Pons.
-
+        # 加杠需要手牌中有一张与已有碰副相同的牌
         events = self.get_call_events(self.player_id)
         pons = [ev for ev in events if ev["type"] == "pon"]
         current_shanten = calc_shanten(self.tehai)
@@ -176,29 +147,19 @@ class StateTrackerBot(Bot):
         hand_tiles = self.tehai_mjai
         for pon in pons:
             consumed_base = pon["consumed"][0].replace("r", "")
-            # Find matching tile in hand
             matches = [t for t in hand_tiles if t.replace("r", "") == consumed_base]
             if matches:
-                # Found a tile to upgrade Pon to Kan
                 candidates.append(self.__new_kan_candidate(matches[:1], "kakan", current_shanten))
 
         return candidates
 
     def __new_kan_candidate(self, consumed: list[str], kan_type: str, current_shanten: int = 0) -> dict:
-        """
-        Helper to create a candidate dict for Kan.
-        Calculates resulting Shanten after Kan.
-        """
-        # Construct new hand representation after Kan
-        # This is complex because we need to parse current hand, remove consumed, add Kan meld.
-        # Reusing mjai tools logic where possible.
-
+        """创建杠候选字典"""
         new_tehai_mjai = self.tehai_mjai.copy()
         for c in consumed:
             if c in new_tehai_mjai:
                 new_tehai_mjai.remove(c)
 
-        # Helper to format meld string for calc_shanten
         event = {}
         if kan_type == "daiminkan":
             event = {
@@ -215,32 +176,19 @@ class StateTrackerBot(Bot):
                 "actor": self.player_id,
             }
         elif kan_type == "kakan":
-            # Kakan needs original Pon + new tile
             event = {
                 "type": "kakan",
-                "pai": consumed[0],  # The tile added
+                "pai": consumed[0],
                 "consumed": consumed,
-                # In mjai, kakan consumed is usually just the added tile + existing pon tiles in logic?
-                # Wait, Bot.action_kakan says consumed is 3 tiles.
-                # Let's check spec.
-                # Actually for shanten calculation, we just need the formatted string.
-                # Use fmt_call.
                 "actor": self.player_id,
             }
-
-        # For simplified shanten calc, we can just treat Kan as a meld.
-        # Since I cannot easily fully implement Shanten calc here without deep dive into `mjai.bot.tools`,
-        # I will return the essential 'consumed' list which is what the user cares about for UI.
-
-        # We will skip valid Shanten/Ukeire calc for now unless strictly needed.
-        # The user's issue is purely about UI display of consumed tiles.
 
         return {
             "consumed": consumed,
             "event": event,
             "current_shanten": current_shanten,
-            "current_ukeire": 0,  # Placeholder
+            "current_ukeire": 0,  # 占位符
             "discard_candidates": [],
-            "next_shanten": 0,  # Placeholder
-            "next_ukeire": 0,  # Placeholder
+            "next_shanten": 0,  # 占位符
+            "next_ukeire": 0,  # 占位符
         }

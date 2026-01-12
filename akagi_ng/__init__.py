@@ -1,13 +1,9 @@
 import contextlib
 import sys
-from importlib.metadata import version
 from pathlib import Path
 
 
 def _get_version() -> str:
-    with contextlib.suppress(Exception):
-        return version("akagi_ng")
-
     with contextlib.suppress(Exception):
         root = Path(getattr(sys, "_MEIPASS", Path(__file__).parent.parent))
         pp_path = root / "pyproject.toml"

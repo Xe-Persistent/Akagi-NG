@@ -4,6 +4,20 @@ import numpy as np
 
 from akagi_ng.mjai_bot.logger import logger
 
+
+def make_error_response(error_code: str) -> dict:
+    """
+    构造统一格式的错误响应。
+
+    Args:
+        error_code: 错误代码,如 "json_decode_error", "no_bot_loaded" 等
+
+    Returns:
+        标准格式的错误响应字典: {"type": "none", "error": error_code}
+    """
+    return {"type": "none", "error": error_code}
+
+
 mask_unicode_4p = [
     "1m",
     "2m",
@@ -141,23 +155,23 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
         return bool_list
 
     def eq(left, right):
-        # Check for approximate equality using numpy's floating-point epsilon
+        # 检查近似相等
         return np.abs(left - right) <= np.finfo(float).eps
 
     def softmax(arr, temperature=1.0):
-        arr = np.array(arr, dtype=float)  # Ensure the input is a numpy array of floats
+        arr = np.array(arr, dtype=float)  # 确保输入是浮点数类型的 numpy 数组
 
         if arr.size == 0:
-            return arr  # Return the empty array if input is empty
+            return arr  # 如果输入为空，则返回空数组
 
         if not eq(temperature, 1.0):
-            arr /= temperature  # Scale by temperature if temperature is not approximately 1
+            arr /= temperature  # 如果温度不约为 1，则按温度缩放
 
-        # Shift values by max for numerical stability
+        # 平移值以确保数值稳定性
         max_val = np.max(arr)
         arr = arr - max_val
 
-        # Apply the softmax transformation
+        # 应用 softmax 变换
         exp_arr = np.exp(arr)
         sum_exp = np.sum(exp_arr)
 
@@ -185,17 +199,16 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
 
 def is_riichi_relevant(engine, player_id, event, is_3p=False):
     """
-    Determines if the 'meta' field should be included in the response based on Riichi relevance.
-    Relevant if:
-    1. 'reach' is a legal action in the current state.
-    2. The current event is a 'reach' declaration by the bot itself.
+    判断是否应在响应中包含 meta 字段。
+    以下情况返回 True：
+    1. 立直 (reach) 是当前状态的合法操作
     """
     if not (engine and engine.last_inference_result):
         return False
 
     mask_unicode_list = mask_unicode_3p if is_3p else mask_unicode_4p
 
-    # Check if Riichi possible
+    # 检查立直是否可能
     masks = engine.last_inference_result.get("masks")
     if masks:
         current_mask = masks[0]

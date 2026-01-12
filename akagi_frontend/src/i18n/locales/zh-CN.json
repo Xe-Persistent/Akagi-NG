@@ -6,9 +6,15 @@
     "restore_confirm_title": "恢复默认设置",
     "restore_confirm_desc": "确定要将所有设置恢复为默认值吗？此操作无法撤销。",
     "general": {
-      "title": "常规",
-      "locale": "显示语言",
+      "title": "常规设置",
+      "locale": "语言",
       "log_level": "日志级别"
+    },
+    "online_model": {
+      "title": "在线模型",
+      "online": "在线模型",
+      "server_url": "服务器地址",
+      "api_key": "API Key"
     },
     "server": {
       "title": "服务设置",
@@ -36,8 +42,7 @@
         "upstream": "上游代理 (可选)"
       }
     },
-    "model": {
-      "title": "AI 模型",
+    "model_config": {
       "device": "设备",
       "device_desc": "选择模型使用的设备，Auto会自动选择可用的合适设备",
       "temperature": "温度参数",
@@ -47,69 +52,77 @@
       "agari_guard": "规则驱动的和牌保护",
       "agari_guard_desc": "防止因识别错误而错过和牌",
       "enable_quick_eval": "快速评估",
-      "enable_quick_eval_desc": "跳过部分计算以提升响应速度",
-      "online": "在线模型",
-      "server_url": "服务器地址",
-      "api_key": "API Key"
+      "enable_quick_eval_desc": "跳过部分计算以提升响应速度"
     },
     "danger_zone": {
       "title": "危险区域",
       "desc": "修改以下设置可能会影响应用的性能或行为表现，请谨慎操作。"
     },
-    "success_title": "成功",
     "saved_success": "设置已更新，请在页面中确认。",
     "status_saved": "所有更改已保存",
-    "status_saving": "正在保存...",
+    "status_saving": "正在保存…",
     "status_error": "保存失败",
     "restart_required": "设置已更改，请重新启动应用以使更改生效。",
-    "restored_success": "设置已恢复为默认值，请重新启动应用以使更改生效。"
+    "restored_success": "设置已恢复为默认值，请重新启动应用以使更改生效。",
+    "loading": "正在加载设置…",
+    "load_error_desc": "无法加载设置，请确认应用已正确启动。"
   },
   "common": {
     "enabled": "已启用",
     "disabled": "已禁用",
-    "auto": "自动",
     "confirm": "确认",
-    "cancel": "取消"
+    "cancel": "取消",
+    "error": "发生错误",
+    "connection_failed": "连接失败",
+    "close": "关闭"
   },
   "app": {
     "title": "Akagi Next-Generation",
     "launch_majsoul": "启动雀魂",
+    "launch_error": "无法获取雀魂 URL，请检查设置。",
     "settings_title": "Akagi NG 设置",
     "settings_desc": "应用配置面板",
     "pip_start": "开启画中画",
-    "pip_loading": "正在启动画中画...",
+    "pip_loading": "正在启动画中画…",
     "pip_exit": "退出画中画",
     "pip_not_supported": "您的浏览器不支持画中画 API",
     "pip_playing_in_pip": "正在画中画模式播放",
     "pip_can_switch_tabs": "您可以切换到其他标签页继续浏览",
-    "settings_load_error_title": "连接失败",
-    "settings_load_error_desc": "无法加载设置，请确认应用已正确启动。",
-    "settings_loading": "正在加载设置...",
-    "close": "关闭",
-    "save_failed": "保存失败",
-    "connect_failed": "连接失败",
-    "launch_error_url": "无法获取雀魂 URL，请检查设置。",
-    "config_error": "配置错误",
-    "connection_lost": "连接断开",
-    "api_not_found": "无法建立连接，请检查地址配置。",
-    "server_error": "服务发生异常",
     "shutdown_confirm_title": "确认退出",
     "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
     "stopped_title": "应用已停止",
-    "stopped_desc": "您可以安全地关闭此窗口",
-    "missing_resources": "缺少必要资源",
-    "missing_resources_desc": "检测到以下目录或文件丢失，请手动补充："
+    "stopped_desc": "您可以安全地关闭此窗口"
   },
   "actions": {
     "reach": "立直",
     "chi": "吃",
     "pon": "碰",
     "kan_select": "杠",
-    "hora": "和",
+    "ron": "和",
     "tsumo": "自摸",
     "ryukyoku": "流局",
     "nukidora": "拔北",
     "none": "跳过",
     "discard": "打"
+  },
+  "status_messages": {
+    "missing_resources": "缺少必要的系统资源",
+    "json_decode_error": "JSON 数据解析失败",
+    "no_bot_loaded": "AI 模型未加载",
+    "bot_switch_failed": "AI 模型切换失败",
+    "bot_runtime_error": "AI 模型运行异常",
+    "state_tracker_error": "对局状态异常",
+    "fallback_used": "在线服务不可用，已切换至本地模型",
+    "config_error": "配置错误",
+    "reconnecting": "正在重连…",
+    "model_load_failed": "AI 模型加载失败",
+    "riichi_simulation_failed": "立直模拟推演失败",
+    "service_disconnected": "服务连接已中断",
+    "game_disconnected": "游戏连接中断，请检查网络或刷新页面",
+    "return_lobby": "已离开当前对局",
+    "game_syncing": "正在同步对局数据…",
+    "game_data_parse_failed": "游戏数据解析异常",
+    "game_connected": "对局已连接，AI 已就绪",
+    "online_service_restored": "在线服务连接已恢复"
   }
 }

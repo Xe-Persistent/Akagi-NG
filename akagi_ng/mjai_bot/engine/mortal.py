@@ -3,7 +3,7 @@ import torch
 from torch.distributions import Categorical
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
-from akagi_ng.mjai_bot.network import get_inference_device
+from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
 
 
 class MortalEngine(BaseEngine):
@@ -41,22 +41,21 @@ class MortalEngine(BaseEngine):
                 torch.autocast(self.device.type, enabled=self.enable_amp),
                 torch.inference_mode(),
             ):
-                return self._react_batch(obs, masks, invisible_obs)
+                return self._react_batch(obs, masks)
         except Exception as ex:
             raise RuntimeError(f"Error during inference: {ex}") from ex
 
-    def _react_batch(self, obs, masks, invisible_obs):
+    def _react_batch(self, obs, masks):
         obs = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
         masks = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
-        invisible_obs = None
-        if self.is_oracle:
-            invisible_obs = torch.as_tensor(np.stack(invisible_obs, axis=0), device=self.device)
         batch_size = obs.shape[0]
-
+        q_out = None
         match self.version:
             case 3 | 4:
                 phi = self.brain(obs)
                 q_out = self.dqn(phi, masks)
+            case _:
+                raise ValueError(f"Unsupported Mortal version: {self.version}")
 
         if self.boltzmann_epsilon > 0:
             is_greedy = (
@@ -96,3 +95,54 @@ def _sample_top_p(logits, p):
     probs_sort[mask] = 0.0
     sampled = probs_idx.gather(-1, probs_sort.multinomial(1)).squeeze(-1)
     return sampled
+
+
+def load_local_mortal_engine(
+    model_path,
+    consts,
+    is_3p=False,
+    logger=None,
+) -> MortalEngine | None:
+    """
+    加载本地 Mortal 模型并返回 MortalEngine。
+    如果文件未找到或加载失败则返回 None。
+    """
+
+    if not model_path.exists():
+        return None
+
+    try:
+        state = torch.load(model_path, map_location=get_inference_device(), weights_only=False)
+
+        # 提取配置版本
+        control_version = state["config"]["control"]["version"]
+
+        mortal = Brain(
+            obs_shape_func=consts.obs_shape,
+            oracle_obs_shape_func=consts.oracle_obs_shape,
+            version=control_version,
+            conv_channels=state["config"]["resnet"]["conv_channels"],
+            num_blocks=state["config"]["resnet"]["num_blocks"],
+        ).eval()
+
+        dqn = DQN(action_space=consts.ACTION_SPACE, version=control_version).eval()
+
+        mortal.load_state_dict(state["mortal"])
+        dqn.load_state_dict(state["current_dqn"])
+
+        engine = MortalEngine(
+            mortal,
+            dqn,
+            is_oracle=False,
+            version=control_version,
+            name="mortal",
+            is_3p=is_3p,
+        )
+        if logger:
+            logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded.")
+        return engine
+
+    except Exception as e:
+        if logger:
+            logger.warning(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
+        return None

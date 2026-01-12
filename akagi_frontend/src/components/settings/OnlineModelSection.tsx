@@ -1,0 +1,57 @@
+import type { FC } from 'react';
+import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
+import { SettingsItem } from '@/components/ui/settings-item';
+import { CapsuleSwitch } from '@/components/ui/capsule-switch';
+import type { Paths, PathValue, Settings } from '@/types';
+
+interface OnlineModelSectionProps {
+  settings: Settings;
+  updateSetting: <P extends Paths<Settings>>(
+    path: readonly [...P],
+    value: PathValue<Settings, P>,
+    shouldDebounce?: boolean,
+  ) => void;
+}
+
+export const OnlineModelSection: FC<OnlineModelSectionProps> = ({ settings, updateSetting }) => {
+  const { t } = useTranslation();
+  return (
+    <div className='space-y-4'>
+      <h3 className='border-border border-b pb-2 text-lg font-semibold'>
+        {t('settings.online_model.title')}
+      </h3>
+
+      <CapsuleSwitch
+        checked={settings.model_config.ot.online}
+        onCheckedChange={(val) => updateSetting(['model_config', 'ot', 'online'], val)}
+        labelOn={t('common.enabled')}
+        labelOff={t('common.disabled')}
+      />
+
+      {settings.model_config.ot.online && (
+        <div className='animate-in fade-in slide-in-from-top-2 grid grid-cols-2 gap-4 duration-300'>
+          <SettingsItem label={t('settings.online_model.server_url')}>
+            <Input
+              value={settings.model_config.ot.server}
+              onChange={(e) =>
+                updateSetting(['model_config', 'ot', 'server'], e.target.value, true)
+              }
+              placeholder='http://...'
+            />
+          </SettingsItem>
+          <SettingsItem label={t('settings.online_model.api_key')}>
+            <Input
+              type='password'
+              value={settings.model_config.ot.api_key}
+              onChange={(e) =>
+                updateSetting(['model_config', 'ot', 'api_key'], e.target.value, true)
+              }
+              placeholder='API Key'
+            />
+          </SettingsItem>
+        </div>
+      )}
+    </div>
+  );
+};

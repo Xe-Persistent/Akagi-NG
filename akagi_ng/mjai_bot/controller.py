@@ -1,12 +1,9 @@
 import json
-from typing import Protocol
 
+from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.mjai_bot.logger import logger
-from akagi_ng.settings import local_settings
-
-
-class Bot(Protocol):
-    def react(self, events: str) -> str: ...
+from akagi_ng.mjai_bot.protocols import Bot
+from akagi_ng.mjai_bot.utils import make_error_response
 
 
 class Controller:
@@ -15,13 +12,11 @@ class Controller:
         self.available_bots_names: list[str] = []
         self.bot: Bot | None = None
         self.list_available_bots()
-        self.bot: Bot = self.available_bots[0]() if self.available_bots else None
-        self.choose_bot_name(local_settings.model)
+        # Bot 将在收到第一个 start_kyoku 事件时延迟初始化
         self.pending_start_game_event: dict | None = None
 
     def list_available_bots(self) -> list[type[Bot]]:
-        from akagi_ng.mjai_bot.mortal.bot import Bot as MortalBot
-        from akagi_ng.mjai_bot.mortal3p.bot import Bot as Mortal3pBot
+        from akagi_ng.mjai_bot.mortal.bot import Mortal3pBot, MortalBot
 
         self.available_bots = [MortalBot, Mortal3pBot]
         self.available_bots_names = ["mortal", "mortal3p"]
@@ -29,27 +24,46 @@ class Controller:
 
     def react(self, event: dict) -> dict:
         try:
-            if not self.bot:
+            # 允许在 Bot 未初始化时处理 start_game 和 start_kyoku 事件
+            if not self.bot and event["type"] not in ("start_game", "start_kyoku"):
                 logger.error("No bot available")
-                return {"type": "none"}
+                return make_error_response(NotificationCode.NO_BOT_LOADED)
+
+            # 三麻特殊事件检测：nukidora 只存在于三麻中
+            # 如果收到 nukidora 但当前不是 mortal3p，说明是重启后直接继续的三麻对局
+            if event["type"] == "nukidora":
+                current_bot_name = self._get_current_bot_name()
+                if current_bot_name != "mortal3p":
+                    logger.warning(
+                        f"Received nukidora event but current bot is '{current_bot_name}'. "
+                        "Switching to mortal3p (mid-game recovery)."
+                    )
+                    if not self._choose_bot_name("mortal3p"):
+                        logger.error("Failed to switch to mortal3p bot")
+                        return make_error_response(NotificationCode.BOT_SWITCH_FAILED)
 
             if event["type"] == "start_game":
                 self.pending_start_game_event = event
                 return {"type": "none"}
 
-            if event["type"] == "start_kyoku" and self.pending_start_game_event:
-                if (
-                        event["scores"][0] == 35000
-                        and event["scores"][1] == 35000
-                        and event["scores"][2] == 35000
-                        and event["scores"][3] == 0
-                ):
-                    if not self.choose_bot_name("mortal3p"):
-                        logger.error("Failed to switch to mortal3p bot")
-                else:
-                    if not self.choose_bot_name("mortal"):
-                        logger.error("Failed to switch to mortal bot")
-                # Fallthrough to process start_kyoku
+            # 在 start_kyoku 时根据游戏模式加载或切换 Bot
+            # 即使没有 pending_start_game_event（如重连场景），也需要正确处理
+            # 优先使用 Bridge 传递的 is_3p 字段，如果不存在则回退到分数判断
+            if event["type"] == "start_kyoku":
+                is_3p = event.get("is_3p", event["scores"][3] == 0)
+                target_bot = "mortal3p" if is_3p else "mortal"
+                current_bot_name = self._get_current_bot_name()
+
+                # 如果 Bot 未初始化或类型不匹配,则加载/切换到正确的 Bot
+                if current_bot_name != target_bot:
+                    if not self.bot:
+                        logger.info(f"Loading '{target_bot}' bot")
+                    else:
+                        logger.info(f"Switching bot from '{current_bot_name}' to '{target_bot}'")
+                    if not self._choose_bot_name(target_bot):
+                        logger.error(f"Failed to load {target_bot} bot")
+                        return make_error_response(NotificationCode.BOT_SWITCH_FAILED)
+                # 继续处理 start_kyoku 事件
 
             if self.pending_start_game_event and event["type"] != "start_kyoku":
                 logger.error("Event after start_game is not start_kyoku!")
@@ -63,19 +77,31 @@ class Controller:
 
             ans = self.bot.react(json.dumps(events, separators=(",", ":")))
             logger.trace(f"<- {ans}")
-            return json.loads(ans)
+            try:
+                return json.loads(ans)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse bot response: {e}")
+                return make_error_response(NotificationCode.JSON_DECODE_ERROR)
 
         except Exception as e:
             logger.exception(f"Controller error: {e}")
-            return {"type": "none"}
+            return make_error_response(NotificationCode.BOT_RUNTIME_ERROR)
 
-    def choose_bot_index(self, bot_index: int) -> bool:
+    def _get_current_bot_name(self) -> str | None:
+        if not self.bot:
+            return None
+        try:
+            return self.available_bots_names[self.available_bots.index(type(self.bot))]
+        except ValueError:
+            return None
+
+    def _choose_bot_index(self, bot_index: int) -> bool:
         if 0 <= bot_index < len(self.available_bots):
             self.bot = self.available_bots[bot_index]()
             return True
         return False
 
-    def choose_bot_name(self, bot_name: str) -> bool:
+    def _choose_bot_name(self, bot_name: str) -> bool:
         if bot_name in self.available_bots_names:
             index = self.available_bots_names.index(bot_name)
             self.bot = self.available_bots[index]()

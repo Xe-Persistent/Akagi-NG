@@ -53,10 +53,11 @@ Please fully understand and assume the relevant risks before use.
 
 - 🀄 **Supported Modes**
   - Four-Player Mahjong (4p)
-    - Three-Player Mahjong (3p)
+  - Three-Player Mahjong (3p)
 
 - 🤖 **AI Models**
   - Mortal (Mortal 4p / Mortal 3p)
+  - AkagiOT (AkagiOT 4p / AkagiOT 3p)
 
 - 🧠 **Core Functions**
   - Real-time hand analysis and AI discard recommendations
@@ -68,12 +69,16 @@ Please fully understand and assume the relevant risks before use.
 > [!NOTE]
 > **Riichi Lookahead** is a core feature in Akagi-NG, designed to solve the question: "When AI suggests Riichi, which tile should I discard?"
 >
-> #### 1. Why do we need it?
+> <details>
+> <summary><b>Click to view detailed logic of Riichi Lookahead</b></summary>
+>
+> **1. Why do we need it?**
 >
 > When the MJAI engine (such as Mortal) suggests a `reach` operation, the protocol only returns the action `{"type": "reach"}`. It does **not** directly tell us which tile to discard after declaring Riichi (e.g., `6m`).
 > However, for the user, after clicking the "Riichi" button, a tile must be discarded. Without Lookahead, the user can only guess or judge which tile to cut themselves, which may lead to deviations from the AI's intended strategy (e.g., discarding the wrong tile resulting in furiten or dealing into another player's hand).
 >
-> #### 2. How it works
+> **2. How it works**
+> 
 > The core idea of Lookahead is **"Simulating the Future"**. When the AI suggests Riichi, we create a temporary parallel universe, assume the player has declared Riichi, and then ask the AI what it would discard in that state.
 >
 > The process is divided into the following steps:
@@ -87,9 +92,10 @@ Please fully understand and assume the relevant risks before use.
 >     - When the state is fully restored to "now", we manually send a `Riichi` event to the simulation bot.
 >     - At this point, the internal state of the simulation bot becomes: "The player has just declared Riichi and is waiting to discard a tile".
 > 5. **Final Inference**:
->     - In this new "post-Riichi" state, we initiate a **real** inquiry to the AI engine: "What is the best discard now?"
+>     - In this new "Declared Riichi" state, we initiate a **real** inquiry to the AI engine: "Which is the best discard now?"
 >     - The engine analyzes the situation and returns a specific discard action (e.g., `discard 6m`).
-> 6. **Result Display**: The frontend UI receives this `6m` information. The interface will highlight Riichi and other discard recommendations (such as `dama`). It will also display the recommended discard tile `6m` in the Riichi recommendation sub-item. If there is more than one Riichi discard candidate, the sub-items will display each Riichi discard tile and its confidence respectively.
+> 6. **Result Display**: The frontend UI receives this `6m` information. The interface will highlight Riichi and other discard recommendations (such as `damaten`). It will also display the recommended discard tile `6m` in the Riichi recommendation sub-item. If there is more than one Riichi discard candidate, the sub-items will display each Riichi discard tile and its confidence respectively.
+> </details>
 
 ## Screenshots
 
@@ -101,38 +107,12 @@ Please fully understand and assume the relevant risks before use.
 
 ![Settings Panel](./docs/screen_shots/settings_panel_en.png)
 
-### Standard Discard Recommendations
+## Demo
 
-![Standard Discard Recommendations](./docs/screen_shots/discard_en.png)
-
-### Riichi Lookahead Simulation
-
-![Riichi Lookahead Simulation](./docs/screen_shots/riichi_en.png)
-
-### Pon/Kan Options
-
-![Pon/Kan Options](./docs/screen_shots/pon&kan_en.png)
-
-### Kan Selection Interface
-
-![Kan Selection Interface](./docs/screen_shots/kan_select_en.png)
-
-### Chi Recommendations
-
-![Chi Recommendations](./docs/screen_shots/chi_en.png)
-
-### Tsumo / Ron
-
-![Tsumo](./docs/screen_shots/tsumo_en.png)
-![Ron](./docs/screen_shots/ron_en.png)
-
-### Nukidora (Kita)
-
-![Nukidora](./docs/screen_shots/nukidora_en.png)
-
-### Ryuukyoku (Exhaustive Draw)
-
-![Ryuukyoku](./docs/screen_shots/ryuukyoku_en.png)
+<div align="left">
+  <video src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.mp4" controls="controls" muted="muted" style="max-height:720px; min-height: 200px">
+  </video>
+</div>
 
 ---
 

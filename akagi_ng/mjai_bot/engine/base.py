@@ -8,7 +8,7 @@ class BaseEngine:
         self.name = name
         self.is_oracle = is_oracle
 
-        # Default attributes, should be set by subclasses or used as is
+        # 默认属性，应由子类设置
         self.engine_type = "base"
         self.is_online = False
         self.last_inference_result = None
@@ -28,9 +28,12 @@ class BaseEngine:
     def react_batch(self, obs, masks, invisible_obs):
         raise NotImplementedError
 
-    def get_additional_meta(self) -> dict:
+    def get_notification_flags(self) -> dict:
         """
-        Returns additional metadata to be included in the bot's response.
-        Subclasses can override this to provide engine-specific data (e.g. online status).
+        返回引擎的通知标志。
+        子类可重写以提供引擎特定的通知状态。
+
+        Returns:
+            通知标志字典
         """
         return {}

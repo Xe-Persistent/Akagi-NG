@@ -2,7 +2,7 @@ from datetime import datetime
 
 from loguru import logger
 
-from akagi_ng.core.context import ensure_dir, get_logs_dir
+from akagi_ng.core.paths import ensure_dir, get_logs_dir
 
 LOG_DIR = ensure_dir(get_logs_dir())
 
@@ -17,11 +17,10 @@ def configure_logging(level: str = "TRACE") -> None:
         log_file,
         level=level,
         format=LOG_FORMAT,
-        enqueue=True,  # Thread-safe, used by Playwright
+        enqueue=True,
     )
 
 
-# Default configuration
 configure_logging()
 
 __all__ = ["logger", "configure_logging"]

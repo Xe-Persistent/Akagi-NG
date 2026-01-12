@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC, useMemo } from 'react';
 import StreamRecommendation from './StreamRecommendation.tsx';
 import type { FullRecommendationData } from '@/types';
 import { cn } from '@/lib/utils';
@@ -20,18 +20,31 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
     );
   }
 
-  const { recommendations } = data;
+  const { recommendations, is_riichi } = data;
+
+  const filteredRecommendations = useMemo(() => {
+    return is_riichi
+      ? recommendations.filter(
+          (rec) =>
+            ['kan_select', 'tsumo', 'ron', 'ryukyoku', 'nukidora'].includes(rec.action) || false,
+        )
+      : recommendations;
+  }, [recommendations, is_riichi]);
+
+  if (is_riichi && filteredRecommendations.length === 0) {
+    return null;
+  }
 
   return (
     <div
       id='render-source'
       className={cn(
-        'flex flex-col items-center justify-center bg-transparent p-4 transition-all duration-300',
+        'relative flex flex-col items-center justify-center bg-transparent p-4 transition-all duration-300',
       )}
       style={{ width: 1280, height: 720 }}
     >
       <div className='flex w-full flex-col gap-4'>
-        {recommendations.slice(0, 3).map((rec, index) => (
+        {filteredRecommendations.slice(0, 3).map((rec, index) => (
           <StreamRecommendation key={index + rec.action} {...rec} />
         ))}
       </div>

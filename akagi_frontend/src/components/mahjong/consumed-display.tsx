@@ -12,10 +12,10 @@ interface ConsumedDisplayProps {
 export const ConsumedDisplay: FC<ConsumedDisplayProps> = ({ action, consumed, tile }) => {
   const isNaki = action === 'chi' || action === 'pon' || action === 'kan_select';
 
-  // Ankan detection: kan_select with 4 consumed tiles
+  // 暗杠检测：kan_select 且 4 张牌
   const isAnkan = action === 'kan_select' && consumed.length === 4;
 
-  // Sorting Logic
+  // 排序逻辑
   const handTiles = useMemo(() => {
     if (!consumed || consumed.length === 0) return [];
     if (!isNaki) return consumed;

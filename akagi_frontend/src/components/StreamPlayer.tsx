@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button.tsx';
 import { Loader2, PictureInPicture2 } from 'lucide-react';
 import StreamRenderComponent from './StreamRenderComponent.tsx';
+import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
 import type { FullRecommendationData } from '@/types';
 
-// Type augmentation
+// 类型声明
 declare global {
   interface Window {
     documentPictureInPicture?: {
@@ -23,7 +24,7 @@ interface StreamPlayerProps {
 }
 
 // ==========================================
-// Auto-scale logic within PiP window
+// PiP 窗口内自动缩放逻辑
 // ==========================================
 const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pipWin: Window }) => {
   const [pipScale, setPipScale] = useState(1);
@@ -32,21 +33,21 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
     const handleResize = () => {
       if (!pipWin) return;
 
-      // Get actual PiP window dimensions
+      // 获取 PiP 窗口实际尺寸
       const width = pipWin.innerWidth;
       const height = pipWin.innerHeight;
 
-      // Calculate scale to maintain 16:9 aspect ratio
-      const scaleX = width / 1280;
-      const scaleY = height / 720;
+      // 计算缩放比例以保持 16:9 宽高比
+      const scaleX = width / PIP_WINDOW_WIDTH;
+      const scaleY = height / PIP_WINDOW_HEIGHT;
 
-      // Use smaller value to ensure content is fully contained (contain mode)
+      // 使用较小值确保内容完全包含
       setPipScale(Math.min(scaleX, scaleY));
     };
 
-    // Listen for PiP window resize events
+    // 监听 PiP 窗口尺寸变化
     pipWin.addEventListener('resize', handleResize);
-    handleResize(); // Initialize
+    handleResize(); // 初始化
 
     return () => pipWin.removeEventListener('resize', handleResize);
   }, [pipWin]);
@@ -57,8 +58,8 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
         style={{
           transform: `scale(${pipScale})`,
           transformOrigin: 'center center',
-          width: 1280,
-          height: 720,
+          width: PIP_WINDOW_WIDTH,
+          height: PIP_WINDOW_HEIGHT,
           flexShrink: 0,
         }}
       >
@@ -70,27 +71,27 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
 
 const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
   const { t } = useTranslation();
-  // State management
+  // 状态管理
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auto-scale state
+  // 自动缩放状态
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ==========================================
-  // Auto-scale logic (Web page mode)
+  // 网页模式自动缩放逻辑
   // ==========================================
   useLayoutEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
         const { width } = containerRef.current.getBoundingClientRect();
-        const newScale = Math.min(width / 1280, 1);
+        const newScale = Math.min(width / PIP_WINDOW_WIDTH, 1);
         setScale(newScale);
       }
     };
 
-    // Initialize
+    // 初始化
     updateScale();
     const observer = new ResizeObserver(updateScale);
     if (containerRef.current) {
@@ -100,7 +101,7 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
   }, []);
 
   // ==========================================
-  // Document Picture-in-Picture
+  // 文档画中画
   // ==========================================
   const startDocumentPiP = async () => {
     if (!window.documentPictureInPicture) {
@@ -110,21 +111,21 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
 
     try {
       setIsLoading(true);
-      // Request 1280x720 window
+      // 请求 1280x720 窗口
       const pipWin = await window.documentPictureInPicture.requestWindow({
-        width: 1280,
-        height: 720,
+        width: PIP_WINDOW_WIDTH,
+        height: PIP_WINDOW_HEIGHT,
       });
 
-      // Copy styles
+      // 复制样式表
       const styles = document.querySelectorAll('link[rel="stylesheet"], style');
       styles.forEach((style) => {
         pipWin.document.head.appendChild(style.cloneNode(true));
       });
-      // Copy Root Class (Tailwind Dark Mode)
+      // 复制根元素 class（Tailwind 暗色模式）
       pipWin.document.documentElement.className = document.documentElement.className;
 
-      // Use Flex layout + 100% height to ensure content is correctly contained and centered
+      // 使用 Flex 布局确保内容居中
       pipWin.document.getElementsByTagName('html')[0].style.height = '100%';
 
       Object.assign(pipWin.document.body.style, {
@@ -163,16 +164,13 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
   return (
     <div className='flex w-full flex-col items-center gap-6'>
       {/* Main Display Area */}
-      <div
-        ref={containerRef}
-        className='group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100/50 shadow-lg dark:border-zinc-800 dark:bg-zinc-900/50'
-      >
+      <div ref={containerRef} className='stream-player-container group'>
         {/* Scaled Container */}
         <div
           style={{
             transform: `scale(${scale})`,
-            width: 1280,
-            height: 720,
+            width: PIP_WINDOW_WIDTH,
+            height: PIP_WINDOW_HEIGHT,
             transformOrigin: 'center center',
           }}
           className='shrink-0 transition-transform duration-100 ease-linear'
@@ -182,8 +180,8 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
 
         {/* Status Overlay */}
         {!!pipWindow && (
-          <div className='absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-900/60 text-white backdrop-blur-sm transition-all duration-300'>
-            <div className='mb-4 rounded-full bg-white/10 p-4 ring-1 ring-white/20'>
+          <div className='pip-overlay'>
+            <div className='pip-icon-wrapper'>
               <PictureInPicture2 className='h-8 w-8 opacity-90' />
             </div>
             <p className='text-lg font-medium tracking-wide'>{t('app.pip_playing_in_pip')}</p>

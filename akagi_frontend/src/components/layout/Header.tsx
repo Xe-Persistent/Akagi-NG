@@ -12,12 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SUPPORTED_LOCALES } from '@/config/locales';
 
 interface HeaderProps {
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   isConnected: boolean;
-  error: string | null;
   isLaunching: boolean;
   onLaunch: () => void;
   onOpenSettings: () => void;
@@ -30,7 +30,6 @@ export const Header: FC<HeaderProps> = ({
   theme,
   setTheme,
   isConnected,
-  error,
   isLaunching,
   onLaunch,
   onOpenSettings,
@@ -51,11 +50,6 @@ export const Header: FC<HeaderProps> = ({
           <h1 className='bg-linear-to-r from-pink-600 to-violet-600 bg-clip-text text-xl font-bold text-transparent dark:from-pink-400 dark:to-violet-400'>
             {t('app.title')}
           </h1>
-          {error && (
-            <span className='ml-2 hidden rounded bg-rose-50 px-2 py-0.5 text-xs text-rose-500 sm:inline-block dark:bg-rose-950/30'>
-              {error}
-            </span>
-          )}
         </div>
 
         {/* Actions */}
@@ -83,10 +77,11 @@ export const Header: FC<HeaderProps> = ({
                 <Globe className='h-4 w-4' />
               </SelectTrigger>
               <SelectContent align='end'>
-                <SelectItem value='zh-CN'>中文(简体)</SelectItem>
-                <SelectItem value='zh-TW'>中文(繁體)</SelectItem>
-                <SelectItem value='ja-JP'>日本語</SelectItem>
-                <SelectItem value='en-US'>English</SelectItem>
+                {SUPPORTED_LOCALES.map((loc) => (
+                  <SelectItem key={loc.value} value={loc.value}>
+                    {loc.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           )}

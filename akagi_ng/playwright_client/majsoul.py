@@ -5,31 +5,24 @@ import traceback
 from playwright.sync_api import Page, WebSocket, sync_playwright
 
 from akagi_ng.bridge import MajsoulBridge
-from akagi_ng.core.context import get_playwright_data_dir
+from akagi_ng.core.paths import get_playwright_data_dir
 from akagi_ng.playwright_client.logger import logger
-from akagi_ng.settings import detect_system_chrome_ua, local_settings
+from akagi_ng.settings import local_settings
 
-# Because in Majsouls, every flow's message has an id, we need to use one bridge for each flow
-activated_flows: list[str] = []  # store all flow.id ([-1] is the recently opened)
-majsoul_bridges: dict[WebSocket, MajsoulBridge] = {}  # store all flow.id -> MajsoulBridge
-mjai_messages: queue.Queue[dict] = queue.Queue()  # store all messages
+# 雀魂中每个流的消息都有 ID，每个流需要一个独立的 Bridge
+activated_flows: list[str] = []  # 存储所有 flow.id
+majsoul_bridges: dict[WebSocket, MajsoulBridge] = {}  # 存储 WebSocket -> MajsoulBridge 映射
+mjai_messages: queue.Queue[dict] = queue.Queue()  # 存储所有消息
 
 
 class PlaywrightController:
     """
-    A controller for a Playwright browser instance that runs in a separate thread.
-    It manages a single page, processes commands from a queue, monitors WebSockets,
-    and handles clicking based on a normalized 16x9 grid.
+    Playwright 浏览器实例控制器。
+    在独立线程中运行，管理页面、处理命令队列、监听 WebSocket。
     """
 
     def __init__(self, url: str, frontend_url: str):
-        """
-        Initializes the controller.
-
-        Args:
-            url (str): The fixed URL the browser page will navigate to.
-            mjai_queue (queue.Queue): The queue to put parsed MJAI messages into.
-        """
+        """初始化控制器"""
         self.url = url
         self.frontend_url = frontend_url
         self.command_queue: queue.Queue[dict] = queue.Queue()
@@ -39,17 +32,15 @@ class PlaywrightController:
         self.bridge_lock = threading.Lock()
 
     def _on_web_socket(self, ws: WebSocket):
-        """
-        Callback for new WebSocket connections. Equivalent to `websocket_start`.
-        """
+        """新 WebSocket 连接回调"""
         global majsoul_bridges
         logger.info("[WebSocket] Connection opened")
         logger.info(f"[WebSocket] Connection opened: {ws.url}")
 
-        # Create and store a bridge for this new WebSocket flow
+        # 为新 WebSocket 创建并存储 Bridge
         majsoul_bridges[ws] = MajsoulBridge()
 
-        # Set up listeners for messages and closure on this specific WebSocket instance
+        # 设置消息和关闭事件监听器
         def handle_sent(payload: str | bytes):
             self._on_frame(ws, payload, from_client=True)
 
@@ -64,9 +55,7 @@ class PlaywrightController:
         ws.on("close", handle_close)
 
     def _on_frame(self, ws: WebSocket, payload: str | bytes, from_client: bool):
-        """
-        Callback for WebSocket messages. Equivalent to `websocket_message`.
-        """
+        """WebSocket 消息回调"""
         global mjai_messages, majsoul_bridges
         direction = "<- Sent" if from_client else "-> Received"
         logger.trace(f"[WebSocket] {direction}: {payload}")
@@ -77,37 +66,39 @@ class PlaywrightController:
             return
 
         try:
-            # Acquire lock to ensure thread-safe parsing
+            # 获取锁以确保线程安全解析
             with self.bridge_lock:
                 msgs = bridge.parse(payload)
 
             if msgs is None:
                 return
 
-            # Add parsed messages to the shared queue
+            # 将解析后的消息添加到共享队列
             for m in msgs:
                 mjai_messages.put(m)
         except Exception:
-            # The 'with' statement handles lock release even on error
+            # with 语句会自动释放锁
             logger.error(f"[WebSocket] Error during message parsing: {traceback.format_exc()}")
 
     def _on_socket_close(self, ws: WebSocket):
-        """
-        Callback for WebSocket closures. Equivalent to `websocket_end`.
-        """
+        """WebSocket 关闭回调"""
         global majsoul_bridges
         if ws in majsoul_bridges:
             logger.info(f"[WebSocket] Connection closed: {ws.url}")
-            # Clean up the bridge for the closed WebSocket
+            # 清理对应的 Bridge
+            game_ended = getattr(majsoul_bridges[ws], "game_ended", False)
             del majsoul_bridges[ws]
+            # 通知主循环游戏连接已断开
+            code = "return_lobby" if game_ended else "game_disconnected"
+            mjai_messages.put({"type": "system_event", "code": code})
         else:
             logger.warning(f"[WebSocket] Untracked WebSocket connection closed: {ws.url}")
 
     def _process_commands(self):
-        """The main loop to process commands from the queue."""
+        """命令处理主循环"""
         while True:
             try:
-                # Wait for a command, with a timeout to allow checking the stop event
+                # 等待命令，带超时以便检查停止事件
                 command_data = self.command_queue.get_nowait()
                 command = command_data.get("command")
                 if command == "stop":
@@ -118,9 +109,9 @@ class PlaywrightController:
                     logger.warning(f"Unknown command received: {command}")
 
             except queue.Empty:
-                # Queue was empty, loop continues to check the stop event
+                # 队列为空，继续循环检查停止事件
 
-                # If frontend page exists, use it as the main lifecycle indicator
+                # 如果前端页面存在，用它作为主要生命周期指示器
                 if self.frontend_page:
                     if self.frontend_page.is_closed():
                         logger.info("Frontend page closed. Stopping...")
@@ -128,28 +119,27 @@ class PlaywrightController:
                     try:
                         self.frontend_page.wait_for_timeout(20)
                     except Exception:
-                        # If waiting fails, assume closed or error
+                        # 等待失败，假定已关闭或出错
                         break
-                # Fallback to old behavior if frontend page never opened
+                # 如果前端页面未打开，回退到旧逻辑
                 elif self.majsoul_page:
-                    self.majsoul_page.wait_for_timeout(20)  # Use a small timeout (in ms)
+                    self.majsoul_page.wait_for_timeout(20)  # 使用较短的超时时间（毫秒）
                 continue
             except Exception as e:
                 logger.error(f"An error occurred in the command processing loop: {e}")
 
     def start(self):
         """
-        Starts the Playwright instance, opens the browser, and begins
-        the command processing loop. This method should be the target
-        of a thread.
+        启动 Playwright 实例，打开浏览器，开始命令处理循环。
+        此方法应作为线程目标。
         """
         logger.info("Controller Starting...")
         self.running = True
 
         try:
             with sync_playwright() as p:
-                # Prepare launch arguments
-                launch_args = []
+                # 准备启动参数
+                launch_args = ["--disable-blink-features=AutomationControlled"]
                 window_size = local_settings.browser.window_size
                 if window_size == "maximized":
                     launch_args.append("--start-maximized")
@@ -164,18 +154,17 @@ class PlaywrightController:
                     no_viewport=True,
                     ignore_default_args=["--enable-automation"],
                     args=launch_args,
-                    user_agent=local_settings.browser.user_agent or detect_system_chrome_ua() or None,
                 )
 
                 # Listen for new pages created in the context (e.g., new tabs)
                 # and automatically attach WebSocket listeners
                 context.on("page", lambda new_page: new_page.on("websocket", self._on_web_socket))
 
-                # List all pages in the browser context
+                # 获取现有页面
                 page = context.pages[0]
                 self.majsoul_page = page
 
-                # Attach WebSocket listeners to all existing pages
+                # 为所有现有页面附加 WebSocket 监听器
                 for existing_page in context.pages:
                     existing_page.on("websocket", self._on_web_socket)
 
@@ -189,7 +178,7 @@ class PlaywrightController:
                     self.frontend_page = frontend_page
                 except Exception as e:
                     logger.error(f"Failed to open Akagi frontend page: {e}")
-                # Start processing commands
+                # 开始处理命令
                 self._process_commands()
 
         except Exception as e:
@@ -201,8 +190,7 @@ class PlaywrightController:
 
     def stop(self):
         """
-        Signals the controller to stop and cleans up resources.
-        This method is thread-safe.
+        发送停止信号并清理资源。
         """
         if self.running:
             logger.info("Sending stop signal...")

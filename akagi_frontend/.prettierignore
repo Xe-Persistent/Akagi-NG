@@ -1,9 +1,9 @@
-dist
-build
-frontend
-node_modules
-coverage
+dist/
+build/
+frontend/
+node_modules/
+coverage/
 .env
 .env.*
-public
+public/
 package-lock.json

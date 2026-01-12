@@ -15,8 +15,9 @@ import {
 import type { Settings } from '@/types';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { GeneralSection } from './settings/GeneralSection';
+import { ServiceSection } from './settings/ServiceSection';
+import { OnlineModelSection } from './settings/OnlineModelSection';
 import { ConnectionSection } from './settings/ConnectionSection';
-import { ServerSection } from './settings/ServerSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
 
 class SettingsErrorBoundary extends Component<
@@ -69,7 +70,7 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
     <>
       <div className='space-y-8'>
         {restartRequired && (
-          <div className='flex items-center gap-2 rounded border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-600 dark:text-yellow-500'>
+          <div className='alert-box alert-warning'>
             <AlertTriangle className='h-4 w-4' />
             {t('settings.restart_required')}
           </div>
@@ -84,7 +85,9 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
           />
         </div>
 
-        <ServerSection settings={settings} updateSetting={updateSetting} />
+        <ServiceSection settings={settings} updateSetting={updateSetting} />
+
+        <OnlineModelSection settings={settings} updateSetting={updateSetting} />
 
         <DangerZoneSection
           settings={settings}
@@ -132,13 +135,11 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
             <div className='flex flex-col items-center justify-center p-8 text-center'>
               <AlertTriangle className='text-destructive mb-4 h-10 w-10' />
               <h3 className='text-destructive mb-2 text-lg font-semibold'>
-                {t('app.settings_load_error_title')}
+                {t('common.connection_failed')}
               </h3>
-              <p className='text-muted-foreground mb-4 max-w-xs'>
-                {t('app.settings_load_error_desc')}
-              </p>
+              <p className='text-muted-foreground mb-4 max-w-xs'>{t('settings.load_error_desc')}</p>
 
-              <Button onClick={onClose}>{t('app.close')}</Button>
+              <Button onClick={onClose}>{t('common.close')}</Button>
             </div>
           )}
         >
@@ -146,7 +147,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
             fallback={
               <div className='text-muted-foreground flex flex-col items-center justify-center space-y-4 p-12'>
                 <Loader2 className='h-8 w-8 animate-spin' />
-                <p>{t('app.settings_loading')}</p>
+                <p>{t('settings.loading')}</p>
               </div>
             }
           >

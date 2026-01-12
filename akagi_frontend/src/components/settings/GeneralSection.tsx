@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
+import { SUPPORTED_LOCALES } from '@/config/locales';
 import type { Paths, PathValue, Settings } from '@/types';
 
 interface GeneralSectionProps {
@@ -37,10 +38,11 @@ export const GeneralSection: FC<GeneralSectionProps> = ({ settings, updateSettin
             <SelectValue placeholder='Select Language' />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value='zh-CN'>中文(简体)</SelectItem>
-            <SelectItem value='zh-TW'>中文(繁體)</SelectItem>
-            <SelectItem value='ja-JP'>日本語</SelectItem>
-            <SelectItem value='en-US'>English</SelectItem>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <SelectItem key={loc.value} value={loc.value}>
+                {loc.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </SettingsItem>
@@ -67,13 +69,6 @@ export const GeneralSection: FC<GeneralSectionProps> = ({ settings, updateSettin
         <Input
           value={settings.majsoul_url}
           onChange={(e) => updateSetting(['majsoul_url'], e.target.value, true)}
-        />
-      </SettingsItem>
-
-      <SettingsItem label={t('settings.model.title')}>
-        <Input
-          value={settings.model}
-          onChange={(e) => updateSetting(['model'], e.target.value, true)}
         />
       </SettingsItem>
     </div>

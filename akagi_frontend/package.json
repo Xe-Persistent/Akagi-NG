@@ -21,7 +21,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^25.7.3",
+    "i18next": "^25.7.4",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -33,11 +33,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/node": "^24.1.0",
-    "@types/react": "^19.2.7",
+    "@types/node": "^24.10.4",
+    "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
-    "@typescript-eslint/parser": "^8.50.1",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
     "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
@@ -48,7 +48,8 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.51.0",
-    "vite": "^7.3.0"
+    "typescript-eslint": "^8.52.0",
+    "vite": "^7.3.1",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

@@ -5,9 +5,15 @@ export interface Recommendation {
   tile?: string;
 }
 
+export interface NotificationItem {
+  level: string;
+  code: string;
+  msg?: string;
+}
+
 export interface FullRecommendationData {
   recommendations: Recommendation[];
-  tehai: string[];
+  is_riichi?: boolean;
 }
 
 export interface ApiResponse<T = void> {
@@ -20,7 +26,6 @@ export interface Settings {
   log_level: string;
   locale: string;
   majsoul_url: string;
-  model: string;
   browser: {
     enabled: boolean;
     headless: boolean;

@@ -152,7 +152,7 @@ def detect_system_locale() -> str:
             logger.debug(f"Failed to detect locale via Windows API: {e}")
 
     try:
-        sys_locale = locale.getdefaultlocale()[0]
+        sys_locale = locale.getlocale()[0]
         if sys_locale:
             if sys_locale.startswith("zh_CN"):  # Linux/Mac 通常使用下划线
                 return "zh-CN"

@@ -4,8 +4,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
+
+# 检查 libriichi 是否可用
+try:
+    from akagi_ng.core.lib_loader import libriichi
+
+    HAS_LIBRIICHI = True
+except ImportError:
+    HAS_LIBRIICHI = False
 
 from akagi_ng.mjai_bot.mortal.bot import Mortal3pBot, MortalBot
 
@@ -31,6 +41,7 @@ class TestBots(unittest.TestCase):
     def tearDown(self):
         self.loader_patcher.stop()
 
+    @pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available in CI environment")
     def test_mortal_bot_4p(self):
         print("\nTesting MortalBot (4P)...")
         bot = MortalBot()
@@ -61,6 +72,7 @@ class TestBots(unittest.TestCase):
         # 注：engine_meta 是否被合并到响应取决于具体实现
         # 核心功能是返回正确的动作类型
 
+    @pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available in CI environment")
     def test_mortal_bot_3p(self):
         print("\nTesting Mortal3pBot (3P)...")
         bot = Mortal3pBot()

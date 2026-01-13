@@ -1,0 +1,71 @@
+name: Test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run Ruff linting
+        run: |
+          ruff check akagi_ng/
+
+      - name: Run Ruff format check
+        run: |
+          ruff format --check akagi_ng/
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+        continue-on-error: false
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: akagi_frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: akagi_frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: akagi_frontend
+        run: npm run lint
+
+      - name: Run Prettier format check
+        working-directory: akagi_frontend
+        run: |
+          npx prettier --check .
+
+      - name: Run TypeScript check
+        working-directory: akagi_frontend
+        run: npx tsc --noEmit --pretty

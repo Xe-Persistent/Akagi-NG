@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          $version = "${{ github.ref_name }}"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: akagi_frontend/package-lock.json
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install --with-deps chromium
+
+      - name: Install frontend dependencies
+        working-directory: akagi_frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: akagi_frontend
+        run: npm run build
+
+      - name: Build release package
+        run: |
+          python build_release.py
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/akagi-ng-${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

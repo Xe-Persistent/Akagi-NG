@@ -6,8 +6,8 @@ from enum import Enum
 
 from google.protobuf.json_format import MessageToDict
 
-from akagi_ng.bridge import liqi_pb2 as pb
 from akagi_ng.bridge.logger import logger
+from akagi_ng.bridge.majsoul import liqi_pb2 as pb
 from akagi_ng.core.constants import LiqiProtocolConstants
 from akagi_ng.core.paths import get_assets_dir
 

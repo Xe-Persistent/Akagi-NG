@@ -3,6 +3,7 @@ from functools import cmp_to_key
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.logger import logger
+from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
 from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.core.notification_codes import NotificationCode

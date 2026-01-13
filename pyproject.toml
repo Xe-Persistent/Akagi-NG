@@ -64,7 +64,7 @@ extend-exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "TID", "C4", "RUF"]
-ignore = ["RUF002", "RUF003"]
+ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
@@ -95,3 +95,20 @@ exclude = ["frontend*", "logs*", "playwright_data*", ".venv*"]
 
 [tool.setuptools.package-data]
 "akagi_ng" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "performance: marks tests as performance tests",
+]

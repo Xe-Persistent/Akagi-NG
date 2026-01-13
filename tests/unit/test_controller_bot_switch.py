@@ -26,15 +26,10 @@ def test_bot_switch_scenarios():
             return json.dumps({"type": "none"})
 
     # Patch 在 Controller 导入前替换
-    with (
-        patch.dict(
-            "sys.modules",
-            {"akagi_ng.mjai_bot.mortal.bot": MagicMock(MortalBot=MockMortalBot, Mortal3pBot=MockMortal3pBot)},
-        ),
-        patch("akagi_ng.mjai_bot.controller.local_settings") as mock_settings,
+    with patch.dict(
+        "sys.modules",
+        {"akagi_ng.mjai_bot.mortal.bot": MagicMock(MortalBot=MockMortalBot, Mortal3pBot=MockMortal3pBot)},
     ):
-        mock_settings.model = "mortal"
-
         # 重新导入 Controller
         from importlib import reload
 

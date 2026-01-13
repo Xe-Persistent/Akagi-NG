@@ -1,26 +1,31 @@
 import json
-import os
-import sys
 
-# Add cwd to path to find lib
-sys.path.append(os.getcwd())
+import pytest
 
-try:
-    from lib import libriichi3p
-except ImportError as e:
-    print(f"Failed to import libriichi3p: {e}")
-    sys.exit(1)
+# Try to import libriichi3p, skip test if not available
+libriichi3p = pytest.importorskip("lib.libriichi3p", reason="libriichi3p not available")
 
 
 def test_nukidora():
     # Setup a minimal 3p game state
     events = [
         {"type": "start_game", "id": 0},
-        {"type": "start_kyoku", "bakaze": "E", "kyoku": 1, "honba": 0, "kyotaku": 0, "oya": 0, "dora_marker": "1p",
-         "tehais": [["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1p", "2p", "3p", "4p"],
-                    ["1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s"],
-                    ["2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s"], ["?"] * 13],
-         "scores": [35000, 35000, 35000, 0]},
+        {
+            "type": "start_kyoku",
+            "bakaze": "E",
+            "kyoku": 1,
+            "honba": 0,
+            "kyotaku": 0,
+            "oya": 0,
+            "dora_marker": "1p",
+            "tehais": [
+                ["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1p", "2p", "3p", "4p"],
+                ["1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s", "1s"],
+                ["2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s", "2s"],
+                ["?"] * 13,
+            ],
+            "scores": [35000, 35000, 35000, 0],
+        },
         # {"type": "tsumo", "actor": 0, "pai": "N"} # Removed to test parsing only
     ]
 

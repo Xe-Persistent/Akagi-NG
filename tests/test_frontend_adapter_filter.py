@@ -1,11 +1,12 @@
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock
 
-# Adjust path to import core modules
-sys.path.append('c:\\Users\\dongzhenxian\\Documents\\code\\Akagi-NG\\akagi_ng')
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
 
-from core.frontend_adapter import build_dataserver_payload
+from akagi_ng.dataserver.adapter import build_dataserver_payload
 
 
 class TestFrontendAdapter(unittest.TestCase):
@@ -31,8 +32,8 @@ class TestFrontendAdapter(unittest.TestCase):
             "type": "dahai",
             "meta": {
                 "q_values": [1.0, 2.0],
-                "mask_bits": 3  # binary 11 -> matches 2 q_values
-            }
+                "mask_bits": 3,  # binary 11 -> matches 2 q_values
+            },
         }
         bot = MagicMock()
         bot.is_3p = False
@@ -45,5 +46,5 @@ class TestFrontendAdapter(unittest.TestCase):
         self.assertIn("recommendations", result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "akagi_ng")))
 
-from akagi_ng.core.frontend_adapter import _get_fuuro_details
+from akagi_ng.dataserver.adapter import _get_fuuro_details
 
 
 class TestFrontendAdapterFallback(unittest.TestCase):
@@ -30,15 +30,11 @@ class TestFrontendAdapterFallback(unittest.TestCase):
         mock_bot.last_kawa_tile = "3m"
         mock_bot.find_chi_candidates.return_value = []
 
-        # Test chi_low
-        results = _get_fuuro_details("chi_low", mock_bot)
+        # Test chi action (the actual action name used in implementation)
+        results = _get_fuuro_details("chi", mock_bot)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["tile"], "3m")
-
-        # Test chi_mid
-        results = _get_fuuro_details("chi_mid", mock_bot)
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["tile"], "3m")
+        self.assertEqual(results[0]["consumed"], [])
 
 
 if __name__ == "__main__":

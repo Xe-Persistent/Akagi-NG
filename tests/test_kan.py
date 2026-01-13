@@ -3,10 +3,9 @@ import sys
 from unittest.mock import MagicMock
 
 # Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "akagi_ng")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.frontend_adapter import _get_fuuro_details
-
+from akagi_ng.dataserver.adapter import _get_fuuro_details
 
 
 def test_kan_priority():
@@ -63,7 +62,7 @@ def test_kan_priority():
     print("\n[Case 4] Multiple Ankan")
     bot.find_ankan_candidates.return_value = [
         {"consumed": ["4m", "4m", "4m", "4m"]},
-        {"consumed": ["5p", "5p", "5p", "5p"]}
+        {"consumed": ["5p", "5p", "5p", "5p"]},
     ]
     bot.find_kakan_candidates.return_value = []
 

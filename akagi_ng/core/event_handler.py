@@ -1,5 +1,7 @@
 """通知处理器 - 负责从各种来源构造通知对象。"""
 
+from typing import ClassVar
+
 from akagi_ng.core.notification_codes import NotificationCode
 
 
@@ -15,12 +17,12 @@ class NotificationHandler:
     # ============================================================
 
     # 1. 消息类型 → 通知
-    MESSAGE_NOTIFICATIONS = {
+    MESSAGE_NOTIFICATIONS: ClassVar[dict[str, tuple[str, str, str]]] = {
         "start_game": ("info", NotificationCode.GAME_CONNECTED, "AI Ready"),
     }
 
     # 2. 通知标志 → 通知
-    FLAG_NOTIFICATIONS = {
+    FLAG_NOTIFICATIONS: ClassVar[dict[str, tuple[str, str]]] = {
         "fallback_used": ("warning", NotificationCode.FALLBACK_USED),
         "circuit_open": ("warning", NotificationCode.RECONNECTING),
         "circuit_restored": ("info", NotificationCode.SERVICE_RESTORED),
@@ -28,7 +30,7 @@ class NotificationHandler:
     }
 
     # 3. 错误代码 → 通知代码的映射
-    ERROR_CODE_MAP = {
+    ERROR_CODE_MAP: ClassVar[dict[str, str]] = {
         "parse_error": NotificationCode.PARSE_ERROR,
     }
 

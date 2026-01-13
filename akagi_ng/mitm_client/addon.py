@@ -19,8 +19,6 @@ bridge_lock = threading.Lock()
 
 class MajsoulAddon:
     def websocket_start(self, flow: mitmproxy.http.HTTPFlow):
-        assert isinstance(flow.websocket, mitmproxy.websocket.WebSocketData)
-
         logger.info(f"[MITM] WebSocket connection opened: {flow.id} ({flow.request.url})")
 
         activated_flows.append(flow.id)
@@ -28,8 +26,6 @@ class MajsoulAddon:
             majsoul_bridges[flow.id] = MajsoulBridge()
 
     def websocket_message(self, flow: mitmproxy.http.HTTPFlow):
-        assert isinstance(flow.websocket, mitmproxy.websocket.WebSocketData)
-
         if flow.id not in activated_flows:
             return
 

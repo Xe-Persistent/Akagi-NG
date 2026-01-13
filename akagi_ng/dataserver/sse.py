@@ -6,7 +6,7 @@ from aiohttp import web
 from akagi_ng.dataserver.logger import logger
 
 
-def _format_sse_message(data: dict, event: str = None) -> bytes:
+def _format_sse_message(data: dict, event: str | None = None) -> bytes:
     msg = f"data: {json.dumps(data, ensure_ascii=False)}\n"
     if event:
         msg = f"event: {event}\n{msg}"

@@ -53,7 +53,7 @@ class LiqiProto:
         self.res_type.clear()
 
     def parse(self, flow_msg) -> dict:
-        buf = flow_msg if isinstance(flow_msg, bytes) else flow_msg.content
+        buf: bytes = flow_msg if isinstance(flow_msg, bytes) else flow_msg.content
         result = {}
         msg_id = -1
         try:
@@ -113,8 +113,7 @@ class LiqiProto:
             self.parsed_msg_count += 1
         except Exception as e:
             logger.warning(
-                f"{str(e)} unknow msg: {buf} at {e.__traceback__.tb_lineno}, "
-                f"msg_id: {msg_id}, res_type: {self.res_type}"
+                f"{e!s} unknow msg: {buf} at {e.__traceback__.tb_lineno}, msg_id: {msg_id}, res_type: {self.res_type}"
             )
             return result
         return result

@@ -8,8 +8,8 @@ from akagi_ng.settings.settings import (
 
 __all__ = [
     "Settings",
-    "get_settings_dict",
-    "verify_settings",
-    "local_settings",
     "get_default_settings_dict",
+    "get_settings_dict",
+    "local_settings",
+    "verify_settings",
 ]

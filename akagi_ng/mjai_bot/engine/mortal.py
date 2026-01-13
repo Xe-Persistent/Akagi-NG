@@ -25,7 +25,6 @@ class MortalEngine(BaseEngine):
 
         self.engine_type = "mortal"
         self.device = device or get_inference_device()
-        assert isinstance(self.device, torch.device)
         self.brain = brain.to(self.device).eval()
         self.dqn = dqn.to(self.device).eval()
 

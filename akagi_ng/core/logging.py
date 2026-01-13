@@ -23,4 +23,4 @@ def configure_logging(level: str = "TRACE") -> None:
 
 configure_logging()
 
-__all__ = ["logger", "configure_logging"]
+__all__ = ["configure_logging", "logger"]

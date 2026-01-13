@@ -185,7 +185,7 @@ class MajsoulBridge(BaseBridge):
                 kyotaku = liqi_message["data"]["data"]["liqibang"]
                 scores = liqi_message["data"]["data"]["scores"]
                 if self.is_3p:
-                    scores = scores + [0]
+                    scores = [*scores, 0]
                 tehais = [["?"] * 13] * 4
                 my_tehais = ["?"] * 13
                 for hai in range(13):
@@ -208,7 +208,7 @@ class MajsoulBridge(BaseBridge):
                     )
                 elif len(liqi_message["data"]["data"]["tiles"]) == 14:
                     self.my_tsumohai = MS_TILE_2_MJAI_TILE[liqi_message["data"]["data"]["tiles"][13]]
-                    all_tehais = my_tehais + [self.my_tsumohai]
+                    all_tehais = [*my_tehais, self.my_tsumohai]
                     all_tehais = sorted(all_tehais, key=cmp_to_key(compare_pai))
                     tehais[self.seat] = all_tehais[:13]
                     ret.append(

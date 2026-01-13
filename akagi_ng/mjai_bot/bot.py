@@ -80,7 +80,7 @@ class StateTrackerBot(Bot):
             return resp
 
         except Exception as e:
-            logger.error(f"Exception: {str(e)}")
+            logger.error(f"Exception: {e!s}")
             logger.error("Brief info:")
             logger.error(self.brief_info())
 

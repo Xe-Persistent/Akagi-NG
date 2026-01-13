@@ -4,10 +4,10 @@ from akagi_ng.core.logging import configure_logging, logger
 from akagi_ng.core.notification_codes import NotificationCode
 
 __all__ = [
-    "NotificationHandler",
     "NotificationCode",
+    "NotificationHandler",
     "configure_logging",
-    "logger",
     "context",
+    "logger",
     "paths",
 ]

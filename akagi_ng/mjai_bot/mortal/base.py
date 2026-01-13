@@ -104,14 +104,14 @@ class MortalBot:
                 recommendations = meta_to_recommend(meta, is_3p=self.is_3p)
 
                 is_reach_candidate = False
-                top_5_actions = [rec[0] for rec in recommendations[:5]]
-                self.logger.debug(f"Riichi Lookahead: Top 5 actions: {top_5_actions}")
+                top_3_actions = [rec[0] for rec in recommendations[:3]]
+                self.logger.debug(f"Riichi Lookahead: Top 3 actions: {top_3_actions}")
 
-                if "reach" in top_5_actions:
+                if "reach" in top_3_actions:
                     is_reach_candidate = True
 
                 if is_reach_candidate:
-                    self.logger.info("Riichi Lookahead: Reach is in Top 5 recommendations. Starting simulation.")
+                    self.logger.info("Riichi Lookahead: Reach is in Top 3 recommendations. Starting simulation.")
                     lookahead_meta = self._run_riichi_lookahead()
                     if lookahead_meta:
                         # 区分: 立直前瞻错误放到通知标志中,成功的元数据放到 meta 中

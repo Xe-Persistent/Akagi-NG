@@ -1,0 +1,35 @@
+# 强制所有文本文件使用 LF 行尾
+* text=auto eol=lf
+
+# Python 文件明确使用 LF
+*.py text eol=lf
+
+# 配置文件使用 LF
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Shell 脚本使用 LF
+*.sh text eol=lf
+
+# Windows 批处理文件例外，使用 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.whl binary
+*.so binary
+*.dll binary
+*.dylib binary

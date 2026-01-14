@@ -105,8 +105,7 @@ class PlaywrightController:
                     while not self.command_queue.empty():
                         self.command_queue.get_nowait()
                     break
-                else:
-                    logger.warning(f"Unknown command received: {command}")
+                logger.warning(f"Unknown command received: {command}")
 
             except queue.Empty:
                 # 队列为空，继续循环检查停止事件

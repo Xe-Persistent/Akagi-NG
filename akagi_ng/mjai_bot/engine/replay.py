@@ -63,7 +63,6 @@ class ReplayEngine(BaseEngine):
 
             return actions, q_out, clean_masks, is_greedy
 
-        else:
-            # 回放结束，委托给真实引擎
-            logger.debug("ReplayEngine: Delegating batch request to real engine.")
-            return self.delegate.react_batch(obs, masks, invisible_obs)
+        # 回放结束，委托给真实引擎
+        logger.debug("ReplayEngine: Delegating batch request to real engine.")
+        return self.delegate.react_batch(obs, masks, invisible_obs)

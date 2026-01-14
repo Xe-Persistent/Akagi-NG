@@ -3,6 +3,7 @@ from functools import partial
 import torch
 from torch import Tensor, nn
 
+from akagi_ng.core.constants import ModelConstants
 from akagi_ng.settings import local_settings
 
 
@@ -10,9 +11,9 @@ def get_inference_device() -> torch.device:
     cfg_device = local_settings.model_config.device
     if cfg_device == "cuda" and torch.cuda.is_available():
         return torch.device("cuda")
-    elif cfg_device == "cpu":
+    if cfg_device == "cpu":
         return torch.device("cpu")
-    elif cfg_device == "auto":
+    if cfg_device == "auto":
         return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     return torch.device("cpu")
 
@@ -34,8 +35,7 @@ class ChannelAttention(nn.Module):
         avg_out = self.shared_mlp(x.mean(-1))
         max_out = self.shared_mlp(x.amax(-1))
         weight = (avg_out + max_out).sigmoid()
-        x = weight.unsqueeze(-1) * x
-        return x
+        return weight.unsqueeze(-1) * x
 
 
 class ResBlock(nn.Module):
@@ -198,7 +198,7 @@ class DQN(nn.Module):
                 raise ValueError(f"Unexpected version {self.version}")
 
     def forward(self, phi, mask):
-        if self.version == 4:
+        if self.version == ModelConstants.MODEL_VERSION_4:
             v, a = self.net(phi).split((1, self.action_space), dim=-1)
         else:
             v = self.v_head(phi)
@@ -206,5 +206,4 @@ class DQN(nn.Module):
         a_sum = a.masked_fill(~mask, 0.0).sum(-1, keepdim=True)
         mask_sum = mask.sum(-1, keepdim=True)
         a_mean = a_sum / mask_sum
-        q = (v + a - a_mean).masked_fill(~mask, -torch.inf)
-        return q
+        return (v + a - a_mean).masked_fill(~mask, -torch.inf)

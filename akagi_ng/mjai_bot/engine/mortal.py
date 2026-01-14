@@ -92,8 +92,7 @@ def _sample_top_p(logits, p):
     probs_sum = probs_sort.cumsum(-1)
     mask = probs_sum - probs_sort > p
     probs_sort[mask] = 0.0
-    sampled = probs_idx.gather(-1, probs_sort.multinomial(1)).squeeze(-1)
-    return sampled
+    return probs_idx.gather(-1, probs_sort.multinomial(1)).squeeze(-1)
 
 
 def load_local_mortal_engine(

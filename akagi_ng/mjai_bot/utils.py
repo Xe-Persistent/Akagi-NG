@@ -115,6 +115,32 @@ mask_unicode_3p = [
 ]
 
 
+def _is_approximately_equal(left, right):
+    """检查两个浮点数是否近似相等"""
+    return np.abs(left - right) <= np.finfo(float).eps
+
+
+def _softmax(arr, temperature=1.0):
+    """应用 softmax 变换到数组"""
+    arr = np.array(arr, dtype=float)
+
+    if arr.size == 0:
+        return arr
+
+    if not _is_approximately_equal(temperature, 1.0):
+        arr /= temperature
+
+    # 平移值以确保数值稳定性
+    max_val = np.max(arr)
+    arr = arr - max_val
+
+    # 应用 softmax 变换
+    exp_arr = np.exp(arr)
+    sum_exp = np.sum(exp_arr)
+
+    return exp_arr / sum_exp
+
+
 def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
     # """
     # {
@@ -144,8 +170,7 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
 
     def mask_bits_to_binary_string(mask_bits):
         binary_string = bin(mask_bits)[2:]
-        binary_string = binary_string.zfill(len(mask_unicode))
-        return binary_string
+        return binary_string.zfill(len(mask_unicode))
 
     def mask_bits_to_bool_list(mask_bits):
         binary_string = mask_bits_to_binary_string(mask_bits)
@@ -154,47 +179,17 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
             bool_list.append(bit == "1")
         return bool_list
 
-    def eq(left, right):
-        # 检查近似相等
-        return np.abs(left - right) <= np.finfo(float).eps
-
-    def softmax(arr, temperature=1.0):
-        arr = np.array(arr, dtype=float)  # 确保输入是浮点数类型的 numpy 数组
-
-        if arr.size == 0:
-            return arr  # 如果输入为空，则返回空数组
-
-        if not eq(temperature, 1.0):
-            arr /= temperature  # 如果温度不约为 1，则按温度缩放
-
-        # 平移值以确保数值稳定性
-        max_val = np.max(arr)
-        arr = arr - max_val
-
-        # 应用 softmax 变换
-        exp_arr = np.exp(arr)
-        sum_exp = np.sum(exp_arr)
-
-        softmax_arr = exp_arr / sum_exp
-
-        return softmax_arr
-
-    def scale_list(input_list, temp):
-        scaled_list = softmax(input_list, temperature=temp)
-        return scaled_list
-
     q_values = meta["q_values"]
     mask_bits = meta["mask_bits"]
     mask = mask_bits_to_bool_list(mask_bits)
-    scaled_q_values = scale_list(q_values, temperature)
+    scaled_q_values = _softmax(q_values, temperature)
     q_value_idx = 0
     for i in range(len(mask_unicode)):
         if mask[i]:
             recommend.append((mask_unicode[i], scaled_q_values[q_value_idx]))
             q_value_idx += 1
 
-    recommend = sorted(recommend, key=lambda x: x[1], reverse=True)
-    return recommend
+    return sorted(recommend, key=lambda x: x[1], reverse=True)
 
 
 def is_riichi_relevant(engine, player_id, event, is_3p=False):
@@ -202,13 +197,16 @@ def is_riichi_relevant(engine, player_id, event, is_3p=False):
     判断是否应在响应中包含 meta 字段。
     以下情况返回 True：
     1. 立直 (reach) 是当前状态的合法操作
+
+    注意: 此函数使用 engine.last_inference_result (内部推理状态),
+    而不是 meta (外部接口数据)。
     """
     if not (engine and engine.last_inference_result):
         return False
 
     mask_unicode_list = mask_unicode_3p if is_3p else mask_unicode_4p
 
-    # 检查立直是否可能
+    # 检查立直是否可能 (使用 last_inference_result 中的 masks)
     masks = engine.last_inference_result.get("masks")
     if masks:
         current_mask = masks[0]

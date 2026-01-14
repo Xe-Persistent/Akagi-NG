@@ -4,6 +4,7 @@ from mjai import Bot
 from mjai.bot.tools import calc_shanten
 from mjai.mlibriichi.state import PlayerState
 
+from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.utils import make_error_response
@@ -26,8 +27,7 @@ class StateTrackerBot(Bot):
         if self.can_discard:
             tile_str = self.last_self_tsumo
             return self.action_discard(tile_str)
-        else:
-            return self.action_nothing()
+        return self.action_nothing()
 
     def react(self, event: dict) -> str:
         try:
@@ -76,8 +76,7 @@ class StateTrackerBot(Bot):
             if self.self_riichi_accepted and not (self.can_agari or self.can_ankan) and self.can_discard:
                 return self.action_discard(self.last_self_tsumo)
 
-            resp = self.think()
-            return resp
+            return self.think()
 
         except Exception as e:
             logger.error(f"Exception: {e!s}")
@@ -104,7 +103,7 @@ class StateTrackerBot(Bot):
         hand_tiles = self.tehai_mjai
         matching_tiles = [t for t in hand_tiles if t.replace("r", "") == base_tile]
 
-        if len(matching_tiles) >= 3:
+        if len(matching_tiles) >= MahjongConstants.DAIMINKAN_CONSUMED:  # 大明杠需要3张
             consumed = matching_tiles[:3]
             candidates.append(self.__new_kan_candidate(consumed, "daiminkan", current_shanten))
 
@@ -127,7 +126,7 @@ class StateTrackerBot(Bot):
             counts[base].append(t)
 
         for tiles in counts.values():
-            if len(tiles) == 4:
+            if len(tiles) == MahjongConstants.ANKAN_TILES:
                 consumed = tiles
                 candidates.append(self.__new_kan_candidate(consumed, "ankan", current_shanten))
 

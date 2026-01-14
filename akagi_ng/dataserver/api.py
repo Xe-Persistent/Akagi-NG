@@ -115,6 +115,61 @@ def _serve_with_gzip(file_path, accept_encoding: str) -> web.StreamResponse:
     return web.FileResponse(file_path)
 
 
+def _setup_assets_route(app: web.Application, assets_dir):
+    """设置 assets 静态资源路由"""
+    if not assets_dir.exists():
+        return
+
+    async def _serve_asset(request: web.Request) -> web.StreamResponse:
+        tail = request.match_info.get("tail", "")
+        if not tail:
+            return web.HTTPNotFound()
+
+        # Secure path handling to prevent traversal
+        try:
+            file_path = (assets_dir / tail).resolve()
+            if not str(file_path).startswith(str(assets_dir.resolve())):
+                return web.HTTPForbidden()
+        except Exception:
+            return web.HTTPNotFound()
+
+        if not file_path.exists() or not file_path.is_file():
+            return web.HTTPNotFound()
+
+        return _serve_with_gzip(file_path, request.headers.get("Accept-Encoding", ""))
+
+    app.router.add_get("/assets/{tail:.*}", _serve_asset)
+
+
+def _setup_resources_route(app: web.Application, resources_dir):
+    """设置 Resources 静态资源路由"""
+    if resources_dir.exists():
+        app.router.add_static("/Resources/", resources_dir, show_index=False)
+
+
+def _setup_root_files_routes(app: web.Application, frontend_dist_dir):
+    """设置根目录文件路由（除了 index.html）"""
+    for p in frontend_dist_dir.iterdir():
+        if not p.is_file() or p.name == "index.html":
+            continue
+
+        async def _serve_file(request: web.Request, _path=p) -> web.StreamResponse:
+            return _serve_with_gzip(_path, request.headers.get("Accept-Encoding", ""))
+
+        app.router.add_get(f"/{p.name}", _serve_file)
+
+
+def _setup_spa_routes(app: web.Application, frontend_dist_dir):
+    """设置 SPA 入口和回退路由"""
+
+    async def _serve_index(_request: web.Request) -> web.StreamResponse:
+        return web.FileResponse(frontend_dist_dir / "index.html")
+
+    # SPA entry + fallback
+    app.router.add_get("/", _serve_index)
+    app.router.add_get("/{tail:.*}", _serve_index)
+
+
 def setup_static_routes(app: web.Application, frontend_dist_dir):
     if not frontend_dist_dir.exists():
         logger.warning(
@@ -125,45 +180,9 @@ def setup_static_routes(app: web.Application, frontend_dist_dir):
     assets_dir = frontend_dist_dir / "assets"
     resources_dir = frontend_dist_dir / "Resources"
 
-    if assets_dir.exists():
-
-        async def _serve_asset(request: web.Request) -> web.StreamResponse:
-            tail = request.match_info.get("tail", "")
-            if not tail:
-                return web.HTTPNotFound()
-
-            # Secure path handling to prevent traversal
-            try:
-                file_path = (assets_dir / tail).resolve()
-                if not str(file_path).startswith(str(assets_dir.resolve())):
-                    return web.HTTPForbidden()
-            except Exception:
-                return web.HTTPNotFound()
-
-            if not file_path.exists() or not file_path.is_file():
-                return web.HTTPNotFound()
-
-            return _serve_with_gzip(file_path, request.headers.get("Accept-Encoding", ""))
-
-        app.router.add_get("/assets/{tail:.*}", _serve_asset)
-
-    if resources_dir.exists():
-        app.router.add_static("/Resources/", resources_dir, show_index=False)
-
-    for p in frontend_dist_dir.iterdir():
-        if not p.is_file() or p.name == "index.html":
-            continue
-
-        async def _serve_file(request: web.Request, _path=p) -> web.StreamResponse:
-            return _serve_with_gzip(_path, request.headers.get("Accept-Encoding", ""))
-
-        app.router.add_get(f"/{p.name}", _serve_file)
-
-    async def _serve_index(_request: web.Request) -> web.StreamResponse:
-        return web.FileResponse(frontend_dist_dir / "index.html")
-
-    # SPA entry + fallback
-    app.router.add_get("/", _serve_index)
-    app.router.add_get("/{tail:.*}", _serve_index)
+    _setup_assets_route(app, assets_dir)
+    _setup_resources_route(app, resources_dir)
+    _setup_root_files_routes(app, frontend_dist_dir)
+    _setup_spa_routes(app, frontend_dist_dir)
 
     logger.info(f"Serving frontend from: {frontend_dist_dir}")

@@ -8,6 +8,7 @@ from google.protobuf.json_format import MessageToDict
 
 from akagi_ng.bridge import liqi_pb2 as pb
 from akagi_ng.bridge.logger import logger
+from akagi_ng.core.constants import LiqiProtocolConstants
 from akagi_ng.core.paths import get_assets_dir
 
 
@@ -26,8 +27,7 @@ def parse_sync_game_actions(dict_obj):
         always_print_fields_with_no_presence=True,
     )
     msg_id = -1
-    result = {"id": msg_id, "type": MsgType.Notify, "method": ".lq.ActionPrototype", "data": dict_obj}
-    return result
+    return {"id": msg_id, "type": MsgType.Notify, "method": ".lq.ActionPrototype", "data": dict_obj}
 
 
 def parse_sync_game(sync_game):
@@ -52,6 +52,58 @@ class LiqiProto:
         self.msg_id = 1
         self.res_type.clear()
 
+    def _parse_notify(self, msg_block: list[dict]) -> tuple[str, dict]:
+        """解析 Notify 类型消息"""
+        method_name = msg_block[0]["data"].decode()
+        _, _lq, message_name = method_name.split(".")
+        try:
+            liqi_pb2_notify = getattr(pb, message_name)
+        except AttributeError:
+            logger.warning(f"Unknown Notify Message: {message_name}")
+            raise
+        proto_obj = liqi_pb2_notify.FromString(msg_block[1]["data"])
+        dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
+        if "data" in dict_obj:
+            decoded_binary_data = base64.b64decode(dict_obj["data"])
+            action_proto_obj = getattr(pb, dict_obj["name"]).FromString(decode(decoded_binary_data))
+            action_dict_obj = MessageToDict(action_proto_obj, always_print_fields_with_no_presence=True)
+            dict_obj["data"] = action_dict_obj
+        return method_name, dict_obj
+
+    def _parse_request(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:
+        """解析 Request 类型消息"""
+        assert msg_id < 1 << 16
+        assert len(msg_block) == LiqiProtocolConstants.MSG_BLOCK_SIZE
+        assert msg_id not in self.res_type
+        method_name = msg_block[0]["data"].decode()
+        _, lq, service, rpc = method_name.split(".")
+        if service == "Route" and rpc == "heartbeat":
+            self.last_heartbeat_time = time.time()
+        proto_domain = self.jsonProto["nested"][lq]["nested"][service]["methods"][rpc]
+        try:
+            liqi_pb2_req = getattr(pb, proto_domain["requestType"])
+        except AttributeError:
+            logger.warning(f"Unknown Request Message: {proto_domain['requestType']}")
+            self.res_type[msg_id] = (method_name, None)
+            raise
+        proto_obj = liqi_pb2_req.FromString(msg_block[1]["data"])
+        dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
+        self.res_type[msg_id] = (method_name, getattr(pb, proto_domain["responseType"]))
+        self.msg_id = msg_id
+        return method_name, dict_obj
+
+    def _parse_response(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:
+        """解析 Response 类型消息"""
+        assert len(msg_block[0]["data"]) == LiqiProtocolConstants.EMPTY_DATA_LEN
+        assert msg_id in self.res_type
+        method_name, liqi_pb2_res = self.res_type.pop(msg_id)
+        if liqi_pb2_res is None:
+            logger.warning(f"Unknown Response Message: {method_name}")
+            raise AttributeError(f"Unknown Response Message: {method_name}")
+        proto_obj = liqi_pb2_res.FromString(msg_block[1]["data"])
+        dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
+        return method_name, dict_obj
+
     def parse(self, flow_msg) -> dict:
         buf: bytes = flow_msg if isinstance(flow_msg, bytes) else flow_msg.content
         result = {}
@@ -60,52 +112,15 @@ class LiqiProto:
             msg_type = MsgType(buf[0])
             if msg_type == MsgType.Notify:
                 msg_block = from_protobuf(buf[1:])
-                method_name = msg_block[0]["data"].decode()
-                _, lq, message_name = method_name.split(".")
-                try:
-                    liqi_pb2_notify = getattr(pb, message_name)
-                except AttributeError:
-                    logger.warning(f"Unknown Notify Message: {message_name}")
-                    return result
-                proto_obj = liqi_pb2_notify.FromString(msg_block[1]["data"])
-                dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
-                if "data" in dict_obj:
-                    decoded_binary_data = base64.b64decode(dict_obj["data"])
-                    action_proto_obj = getattr(pb, dict_obj["name"]).FromString(decode(decoded_binary_data))
-                    action_dict_obj = MessageToDict(action_proto_obj, always_print_fields_with_no_presence=True)
-                    dict_obj["data"] = action_dict_obj
+                method_name, dict_obj = self._parse_notify(msg_block)
                 msg_id = -1
             else:
                 msg_id = struct.unpack("<H", buf[1:3])[0]
                 msg_block = from_protobuf(buf[3:])
                 if msg_type == MsgType.Req:
-                    assert msg_id < 1 << 16
-                    assert len(msg_block) == 2
-                    assert msg_id not in self.res_type
-                    method_name = msg_block[0]["data"].decode()
-                    _, lq, service, rpc = method_name.split(".")
-                    if service == "Route" and rpc == "heartbeat":
-                        self.last_heartbeat_time = time.time()
-                    proto_domain = self.jsonProto["nested"][lq]["nested"][service]["methods"][rpc]
-                    try:
-                        liqi_pb2_req = getattr(pb, proto_domain["requestType"])
-                    except AttributeError:
-                        logger.warning(f"Unknown Request Message: {proto_domain['requestType']}")
-                        self.res_type[msg_id] = (method_name, None)
-                        return result
-                    proto_obj = liqi_pb2_req.FromString(msg_block[1]["data"])
-                    dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
-                    self.res_type[msg_id] = (method_name, getattr(pb, proto_domain["responseType"]))
-                    self.msg_id = msg_id
+                    method_name, dict_obj = self._parse_request(msg_id, msg_block)
                 elif msg_type == MsgType.Res:
-                    assert len(msg_block[0]["data"]) == 0
-                    assert msg_id in self.res_type
-                    method_name, liqi_pb2_res = self.res_type.pop(msg_id)
-                    if liqi_pb2_res is None:
-                        logger.warning(f"Unknown Response Message: {method_name}")
-                        return result
-                    proto_obj = liqi_pb2_res.FromString(msg_block[1]["data"])
-                    dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
+                    method_name, dict_obj = self._parse_response(msg_id, msg_block)
                 else:
                     logger.warning(f"unknow msg: {buf}")
                     return result
@@ -152,11 +167,11 @@ def from_protobuf(buf) -> list[dict]:
         block_type = buf[p] & 7
         block_id = buf[p] >> 3
         p += 1
-        if block_type == 0:
+        if block_type == LiqiProtocolConstants.BLOCK_TYPE_VARINT:
             # varint
             block_type = "varint"
             data, p = parse_varint(buf, p)
-        elif block_type == 2:
+        elif block_type == LiqiProtocolConstants.BLOCK_TYPE_STRING:
             # string
             block_type = "string"
             s_len, p = parse_varint(buf, p)

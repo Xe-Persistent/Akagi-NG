@@ -42,7 +42,7 @@ def main():
         print(f"❌ Target directory {target_dir} not found. Build might have failed.")
         sys.exit(1)
 
-    print(f"🗜️  Zipping to {zip_name} (using DEFLATED compression for compatibility)...")
+    print(f"🗜️ Zipping to {zip_name} (using DEFLATED compression for compatibility)...")
 
     # Create zip archive with DEFLATED compression (Standard)
     try:

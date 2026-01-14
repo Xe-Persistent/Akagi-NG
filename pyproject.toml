@@ -63,7 +63,7 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM", "TID", "C4", "RUF"]
+select = ["E", "F", "I", "B", "UP", "SIM", "RET", "C90", "PLR", "TID", "C4", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.pyupgrade]
@@ -73,7 +73,7 @@ keep-runtime-typing = true
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-line-ending = "auto"
+line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = ["akagi_ng"]
@@ -84,6 +84,9 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 "akagi_ng/bridge/liqi_pb2.py" = ["ALL"]
+"akagi_ng/mjai_bot/network.py" = ["PLR0913"]
+"akagi_ng/mjai_bot/engine/mortal.py" = ["PLR0913"]
+
 
 [tool.setuptools]
 include-package-data = true

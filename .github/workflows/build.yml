@@ -8,6 +8,9 @@ on:
         required: false
         default: "dev"
 
+env:
+  PYTHONUTF8: 1
+
 jobs:
   build:
     runs-on: windows-latest

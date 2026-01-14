@@ -42,7 +42,6 @@ def test_event_handler_integration():
     notification = NotificationHandler.from_message(start_game_msg)
 
     assert notification is not None
-    assert notification["level"] == "info"
     assert "code" in notification
 
     # 测试从标志提取通知
@@ -50,11 +49,11 @@ def test_event_handler_integration():
     notifications = NotificationHandler.from_flags(flags)
 
     assert len(notifications) == 1
-    assert notifications[0]["level"] == "warning"
+    assert notifications[0]["code"] is not None
 
     # 测试从错误响应提取通知
     error_response = {"error": "parse_error"}
     notification = NotificationHandler.from_error_response(error_response)
 
     assert notification is not None
-    assert notification["level"] == "error"
+    assert notification["code"] is not None

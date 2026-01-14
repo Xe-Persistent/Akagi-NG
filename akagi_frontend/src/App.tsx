@@ -17,6 +17,8 @@ import { Footer } from '@/components/layout/Footer';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { Settings } from '@/types';
 
+import { TOAST_DURATION_DEFAULT } from './config/constants';
+
 export default function App() {
   // Hook
   const { theme, setTheme } = useTheme();
@@ -190,7 +192,7 @@ export default function App() {
         cancelText={t('common.cancel')}
       />
       <ToastContainer
-        autoClose={5000}
+        autoClose={TOAST_DURATION_DEFAULT}
         position='top-right'
         theme={
           theme === 'system'

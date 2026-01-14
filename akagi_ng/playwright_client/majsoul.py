@@ -40,6 +40,9 @@ class PlaywrightController:
         # 为新 WebSocket 创建并存储 Bridge
         majsoul_bridges[ws] = MajsoulBridge()
 
+        # 发送客户端连接成功通知
+        mjai_messages.put({"type": "system_event", "code": "client_connected"})
+
         # 设置消息和关闭事件监听器
         def handle_sent(payload: str | bytes):
             self._on_frame(ws, payload, from_client=True)

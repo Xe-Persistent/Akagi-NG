@@ -20,25 +20,10 @@ class TestMakeNotification(unittest.TestCase):
 
     def test_basic_notification(self):
         """测试基本通知结构"""
-        result = _make_notification("info", "test_code", "Test message")
-
-        self.assertEqual(result["level"], "info")
+        result = _make_notification("test_code")
         self.assertEqual(result["code"], "test_code")
-        self.assertEqual(result["msg"], "Test message")
-
-    def test_empty_message(self):
-        """测试空消息"""
-        result = _make_notification("error", "error_code")
-
-        self.assertEqual(result["level"], "error")
-        self.assertEqual(result["code"], "error_code")
-        self.assertEqual(result["msg"], "")
-
-    def test_all_levels(self):
-        """测试所有通知级别"""
-        for level in ["info", "warning", "error"]:
-            result = _make_notification(level, "test")
-            self.assertEqual(result["level"], level)
+        self.assertNotIn("msg", result)
+        self.assertNotIn("level", result)
 
 
 class TestNotificationHandlerFromMessage(unittest.TestCase):
@@ -50,9 +35,7 @@ class TestNotificationHandlerFromMessage(unittest.TestCase):
         result = NotificationHandler.from_message(msg)
 
         self.assertIsNotNone(result)
-        self.assertEqual(result["level"], "info")
         self.assertEqual(result["code"], NotificationCode.GAME_CONNECTED)
-        self.assertEqual(result["msg"], "AI Ready")
 
     def test_unknown_message_type(self):
         """测试未知消息类型返回 None"""
@@ -67,7 +50,6 @@ class TestNotificationHandlerFromMessage(unittest.TestCase):
         result = NotificationHandler.from_message(msg)
 
         self.assertIsNotNone(result)
-        self.assertEqual(result["level"], "warning")
         self.assertEqual(result["code"], "custom_code")
 
     def test_system_event_default_level(self):
@@ -76,7 +58,7 @@ class TestNotificationHandlerFromMessage(unittest.TestCase):
         result = NotificationHandler.from_message(msg)
 
         self.assertIsNotNone(result)
-        self.assertEqual(result["level"], "error")
+        self.assertEqual(result["code"], "some_error")
 
     def test_empty_message(self):
         """测试空消息"""
@@ -95,7 +77,6 @@ class TestNotificationHandlerFromFlags(unittest.TestCase):
         result = NotificationHandler.from_flags(flags)
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["level"], "warning")
         self.assertEqual(result[0]["code"], NotificationCode.FALLBACK_USED)
 
     def test_circuit_open_flag(self):
@@ -112,7 +93,6 @@ class TestNotificationHandlerFromFlags(unittest.TestCase):
         result = NotificationHandler.from_flags(flags)
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["level"], "info")
         self.assertEqual(result[0]["code"], NotificationCode.SERVICE_RESTORED)
 
     def test_multiple_flags(self):
@@ -159,7 +139,6 @@ class TestNotificationHandlerFromErrorResponse(unittest.TestCase):
         result = NotificationHandler.from_error_response(response)
 
         self.assertIsNotNone(result)
-        self.assertEqual(result["level"], "error")
         self.assertEqual(result["code"], NotificationCode.PARSE_ERROR)
 
     def test_unknown_error_code(self):

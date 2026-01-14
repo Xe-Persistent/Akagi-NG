@@ -1,23 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import type { StatusDomain, StatusLevel } from '../config/statusConfig';
 import { getStatusConfig } from '../config/statusConfig';
+import {
+  STATUS_DOMAIN,
+  STATUS_LEVEL,
+  STATUS_LIFECYCLE,
+  STATUS_PLACEMENT,
+  type StatusDomain,
+  type StatusLevel,
+} from '../config/statusConstants';
+import { TOAST_DURATION_DEFAULT } from '../config/constants';
 import type { NotificationItem } from '@/types';
 
 const DOMAIN_PRIORITY: Record<StatusDomain, number> = {
-  connection: 0,
-  service: 1,
-  model: 2,
-  runtime: 3,
-  game: 4,
+  [STATUS_DOMAIN.CONNECTION]: 0,
+  [STATUS_DOMAIN.SERVICE]: 1,
+  [STATUS_DOMAIN.MODEL]: 2,
+  [STATUS_DOMAIN.RUNTIME]: 3,
+  [STATUS_DOMAIN.GAME]: 4,
 };
 
 const LEVEL_PRIORITY: Record<StatusLevel, number> = {
-  error: 0,
-  warning: 1,
-  success: 2,
-  info: 3,
+  [STATUS_LEVEL.ERROR]: 0,
+  [STATUS_LEVEL.WARNING]: 1,
+  [STATUS_LEVEL.SUCCESS]: 2,
+  [STATUS_LEVEL.INFO]: 3,
 };
 
 export function useStatusNotification(
@@ -26,14 +34,14 @@ export function useStatusNotification(
 ) {
   const { t } = useTranslation();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [statusType, setStatusType] = useState<StatusLevel>('info');
+  const [statusType, setStatusType] = useState<StatusLevel>(STATUS_LEVEL.INFO);
 
   // 合并后端通知和连接错误
   const allNotifications = useMemo(() => {
     const list = [...notifications];
 
     if (connectionError) {
-      list.push({ code: connectionError, level: 'error' });
+      list.push({ code: connectionError, level: STATUS_LEVEL.ERROR });
     }
 
     return list;
@@ -58,8 +66,11 @@ export function useStatusNotification(
       });
 
       // 处理 Toast 通知
-      if (config.placement === 'toast') {
-        const autoClose = config.lifecycle === 'ephemeral' ? config.autoHide || 5000 : false;
+      if (config.placement === STATUS_PLACEMENT.TOAST) {
+        const autoClose =
+          config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL
+            ? config.autoHide || TOAST_DURATION_DEFAULT
+            : false;
 
         toast(message, {
           type: config.level,
@@ -69,11 +80,11 @@ export function useStatusNotification(
       }
 
       // 处理状态栏
-      if (config.placement === 'status') {
+      if (config.placement === STATUS_PLACEMENT.STATUS) {
         statusCandidates.push({
           message,
-          level: config.level || 'info',
-          domain: config.domain || 'runtime',
+          level: config.level || STATUS_LEVEL.INFO,
+          domain: config.domain || STATUS_DOMAIN.RUNTIME,
         });
       }
     });

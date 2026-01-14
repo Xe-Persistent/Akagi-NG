@@ -35,7 +35,7 @@ class DataServer(threading.Thread):
         self.broadcast_event("recommendations", recommendations_data)
 
     def update_system_error(self, error_code: str, details: str = ""):
-        self.send_notifications([{"level": "error", "code": error_code, "msg": details}])
+        self.send_notifications([{"code": error_code, "msg": details}])
 
     def send_notifications(self, notifications: list[dict]):
         """

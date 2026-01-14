@@ -46,6 +46,7 @@ class MortalBot:
         self.game_start_event = None
         self.meta = {}
         self.notification_flags = {}  # 系统状态通知标志
+        self._pending_notifications = {}  # 暂存的通知标志（如模型加载事件）
 
         from akagi_ng.mjai_bot.engine.loader import load_model
         from akagi_ng.mjai_bot.mortal.logger import logger
@@ -81,6 +82,14 @@ class MortalBot:
                 self.history = []
                 self.game_start_event = e
                 is_game_start_batch = True
+
+                # 检测加载的模型类型并设置通知
+                if hasattr(self.engine, "engine_type"):
+                    if self.engine.engine_type == "akagiot":
+                        self._pending_notifications["model_loaded_online"] = True
+                    elif self.engine.engine_type == "mortal":
+                        self._pending_notifications["model_loaded_local"] = True
+
                 continue
             if self.model is None or self.player_id is None:
                 self.logger.error("Model is not loaded yet")
@@ -186,7 +195,13 @@ class MortalBot:
             self.notification_flags.clear()
             if self.engine:
                 engine_flags = self.engine.get_notification_flags()
+                engine_flags = self.engine.get_notification_flags()
                 self.notification_flags.update(engine_flags)
+
+            # 合并暂存的通知
+            if self._pending_notifications:
+                self.notification_flags.update(self._pending_notifications)
+                self._pending_notifications.clear()
 
             # 4. 注入 game_start 标志到 meta
             if is_game_start_batch:

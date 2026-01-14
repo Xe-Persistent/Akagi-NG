@@ -106,20 +106,26 @@
     "discard": "打"
   },
   "status_messages": {
+    "client_connected": "ゲームに接続しました",
+    "game_connected": "対局に接続しました。AI準備完了",
+    "model_loaded_local": "ローカルモデルを読み込みました",
+    "model_loaded_online": "オンラインモデルを読み込みました",
+    "game_syncing": "対局データを同期中…",
+    "fallback_used": "オンラインサービスが利用できないため、ローカルモデルに切り替えました",
+    "online_service_restored": "オンラインサービスへの接続が復旧しました",
+    "reconnecting": "再接続中…",
+    "riichi_simulation_failed": "立直シミュレーションに失敗しました",
+    "game_data_parse_failed": "対局データの解析に失敗しました",
+    "game_disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください",
+    "service_disconnected": "サービスとの接続が切れました",
+    "return_lobby": "対局から退出しました",
     "missing_resources": "必要なシステムリソースが不足しています",
     "json_decode_error": "JSONデータの解析に失敗しました",
+    "config_error": "設定エラー",
     "no_bot_loaded": "AIモデルが読み込まれていません",
+    "model_load_failed": "AIモデルの読み込みに失敗しました",
     "bot_switch_failed": "AIモデルの切り替えに失敗しました",
     "bot_runtime_error": "AIモデルの実行異常",
-    "state_tracker_error": "対局状態に異常が発生しました",
-    "config_error": "設定エラー",
-    "fallback_used": "オンラインサービスが利用できないため、ローカルモデルに切り替えました",
-    "reconnecting": "再接続中…",
-    "model_load_failed": "AIモデルの読み込みに失敗しました",
-    "riichi_simulation_failed": "立直シミュレーションに失敗しました",
-    "service_disconnected": "サービスとの接続が切れました",
-    "game_data_parse_failed": "ゲームデータの解析に失敗しました",
-    "game_connected": "対局に接続しました。AI準備完了",
-    "online_service_restored": "オンラインサービスへの接続が復旧しました"
+    "state_tracker_error": "対局状態に異常が発生しました"
   }
 }

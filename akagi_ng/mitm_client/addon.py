@@ -25,6 +25,9 @@ class MajsoulAddon:
         with bridge_lock:
             majsoul_bridges[flow.id] = MajsoulBridge()
 
+        # 发送客户端连接成功通知
+        mjai_messages.put({"type": "system_event", "code": "client_connected"})
+
     def websocket_message(self, flow: mitmproxy.http.HTTPFlow):
         if flow.id not in activated_flows:
             return

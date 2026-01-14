@@ -17,16 +17,18 @@ class NotificationHandler:
     # ============================================================
 
     # 1. 消息类型 → 通知
-    MESSAGE_NOTIFICATIONS: ClassVar[dict[str, tuple[str, str, str]]] = {
-        "start_game": ("info", NotificationCode.GAME_CONNECTED, "AI Ready"),
+    MESSAGE_NOTIFICATIONS: ClassVar[dict[str, str]] = {
+        "start_game": NotificationCode.GAME_CONNECTED,
     }
 
     # 2. 通知标志 → 通知
-    FLAG_NOTIFICATIONS: ClassVar[dict[str, tuple[str, str]]] = {
-        "fallback_used": ("warning", NotificationCode.FALLBACK_USED),
-        "circuit_open": ("warning", NotificationCode.RECONNECTING),
-        "circuit_restored": ("info", NotificationCode.SERVICE_RESTORED),
-        "riichi_lookahead": ("warning", NotificationCode.RIICHI_SIM_FAILED),
+    FLAG_NOTIFICATIONS: ClassVar[dict[str, str]] = {
+        "fallback_used": NotificationCode.FALLBACK_USED,
+        "circuit_open": NotificationCode.RECONNECTING,
+        "circuit_restored": NotificationCode.SERVICE_RESTORED,
+        "riichi_lookahead": NotificationCode.RIICHI_SIM_FAILED,
+        "model_loaded_local": NotificationCode.MODEL_LOADED_LOCAL,
+        "model_loaded_online": NotificationCode.MODEL_LOADED_ONLINE,
     }
 
     # 3. 错误代码 → 通知代码的映射
@@ -54,13 +56,12 @@ class NotificationHandler:
         # 系统事件(携带动态 code)
         if msg_type == "system_event":
             code = msg.get("code")
-            level = msg.get("level", "error")
-            return _make_notification(level, code)
+            return _make_notification(code)
 
         # 已知消息类型
         if msg_type in NotificationHandler.MESSAGE_NOTIFICATIONS:
-            level, code, msg_text = NotificationHandler.MESSAGE_NOTIFICATIONS[msg_type]
-            return _make_notification(level, code, msg_text)
+            code = NotificationHandler.MESSAGE_NOTIFICATIONS[msg_type]
+            return _make_notification(code)
 
         return None
 
@@ -76,9 +77,9 @@ class NotificationHandler:
             通知对象列表
         """
         notifications = []
-        for flag_key, (level, code) in NotificationHandler.FLAG_NOTIFICATIONS.items():
+        for flag_key, code in NotificationHandler.FLAG_NOTIFICATIONS.items():
             if flags.get(flag_key):
-                notifications.append(_make_notification(level, code))
+                notifications.append(_make_notification(code))
         return notifications
 
     @staticmethod
@@ -98,7 +99,7 @@ class NotificationHandler:
 
         # 映射错误代码
         code = NotificationHandler.ERROR_CODE_MAP.get(error_code, error_code)
-        return _make_notification("error", code)
+        return _make_notification(code)
 
 
 # ============================================================
@@ -106,16 +107,14 @@ class NotificationHandler:
 # ============================================================
 
 
-def _make_notification(level: str, code: str, msg: str = "") -> dict:
+def _make_notification(code: str) -> dict:
     """
     构造通知对象(模块私有)。
 
     Args:
-        level: 通知级别 (info/warning/error)
         code: 通知代码
-        msg: 可选的消息文本
 
     Returns:
         通知对象
     """
-    return {"level": level, "code": code, "msg": msg}
+    return {"code": code}

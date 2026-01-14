@@ -106,20 +106,26 @@
     "discard": "打"
   },
   "status_messages": {
+    "client_connected": "遊戲已連線",
+    "game_connected": "對局已連線，AI 已就緒",
+    "model_loaded_local": "已載入本地模型",
+    "model_loaded_online": "已載入線上模型",
+    "game_syncing": "正在同步對局數據…",
+    "fallback_used": "線上服務不可用，已切換至本地模型",
+    "online_service_restored": "線上服務連線已恢復",
+    "reconnecting": "正在重新連線…",
+    "riichi_simulation_failed": "立直模擬推演失敗",
+    "game_data_parse_failed": "遊戲數據解析異常",
+    "game_disconnected": "遊戲連線中斷，請檢查網路或重新整理頁面",
+    "service_disconnected": "服務連線中斷",
+    "return_lobby": "已離開當前對局",
     "missing_resources": "缺少必要的系統資源",
     "json_decode_error": "JSON 數據解析失敗",
+    "config_error": "配置錯誤",
     "no_bot_loaded": "AI 模型未載入",
+    "model_load_failed": "AI 模型載入失敗",
     "bot_switch_failed": "AI 模型切換失敗",
     "bot_runtime_error": "AI 模型運行異常",
-    "state_tracker_error": "對局狀態異常",
-    "config_error": "配置錯誤",
-    "fallback_used": "線上服務不可用，已切換至本地模型",
-    "reconnecting": "正在重新連線…",
-    "model_load_failed": "AI 模型載入失敗",
-    "riichi_simulation_failed": "立直模擬推演失敗",
-    "service_disconnected": "服務連線中斷",
-    "game_data_parse_failed": "遊戲數據解析異常",
-    "game_connected": "對局已連線，AI 已就緒",
-    "online_service_restored": "線上服務連線已恢復"
+    "state_tracker_error": "對局狀態異常"
   }
 }

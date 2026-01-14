@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { notify } from '@/lib/notify';
 import { useTranslation } from 'react-i18next';
 import { fetchJson } from '@/lib/api-client';
-import { SETTINGS_DEBOUNCE_MS } from '@/config/constants';
+import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
 import type { ApiResponse, Paths, PathValue, Settings } from '@/types';
 
 type SaveSettingsResponse = ApiResponse & { restartRequired?: boolean };
@@ -87,7 +87,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
             render: t('settings.status_error'),
             type: 'error',
             isLoading: false,
-            autoClose: 5000,
+            autoClose: TOAST_DURATION_DEFAULT,
           });
           toastId.current = null;
         }

@@ -1,6 +1,15 @@
-export type StatusDomain = 'connection' | 'model' | 'service' | 'runtime' | 'game';
-export type StatusLevel = 'info' | 'success' | 'warning' | 'error';
-export type StatusPlacement = 'status' | 'toast';
+import { TOAST_DURATION_DEFAULT, TOAST_DURATION_SHORT } from './constants';
+import {
+  STATUS_DOMAIN,
+  STATUS_LEVEL,
+  STATUS_LIFECYCLE,
+  STATUS_PLACEMENT,
+  type StatusDomain,
+  type StatusLevel,
+  type StatusPlacement,
+} from './statusConstants';
+
+export type { StatusDomain, StatusLevel, StatusPlacement };
 
 type BaseStatusUIConfig = {
   level?: StatusLevel;
@@ -10,19 +19,19 @@ type BaseStatusUIConfig = {
 };
 
 type EphemeralConfig = BaseStatusUIConfig & {
-  lifecycle: 'ephemeral';
+  lifecycle: typeof STATUS_LIFECYCLE.EPHEMERAL;
   autoHide?: number; // 允许
   sticky?: false; // 默认false
 };
 
 type PersistentConfig = BaseStatusUIConfig & {
-  lifecycle: 'persistent';
+  lifecycle: typeof STATUS_LIFECYCLE.PERSISTENT;
   sticky?: never; // 禁止
   autoHide?: never; // 禁止
 };
 
 type ReplaceableConfig = BaseStatusUIConfig & {
-  lifecycle: 'replaceable';
+  lifecycle: typeof STATUS_LIFECYCLE.REPLACEABLE;
   sticky?: true; // 默认true
   autoHide?: never; // 禁止
 };
@@ -32,145 +41,166 @@ export type StatusUIConfig = EphemeralConfig | PersistentConfig | ReplaceableCon
 export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   // 系统缺失资源错误
   missing_resources: {
-    level: 'error',
-    placement: 'status',
-    domain: 'runtime',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
 
   // JSON数据解析错误
   json_decode_error: {
-    level: 'error',
-    placement: 'toast',
-    domain: 'runtime',
-    lifecycle: 'ephemeral',
-    autoHide: 5000,
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_DEFAULT,
   },
 
   // Bot 错误
   no_bot_loaded: {
-    level: 'error',
-    placement: 'status',
-    domain: 'model',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   bot_switch_failed: {
-    level: 'error',
-    placement: 'toast',
-    domain: 'model',
-    lifecycle: 'ephemeral',
-    autoHide: 5000,
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_DEFAULT,
   },
   bot_runtime_error: {
-    level: 'error',
-    placement: 'toast',
-    domain: 'runtime',
-    lifecycle: 'ephemeral',
-    autoHide: 5000,
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_DEFAULT,
   },
   state_tracker_error: {
-    level: 'error',
-    placement: 'toast',
-    domain: 'runtime',
-    lifecycle: 'ephemeral',
-    autoHide: 5000,
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_DEFAULT,
   },
 
   // 模型加载失败
   model_load_failed: {
-    level: 'error',
-    placement: 'toast',
-    domain: 'model',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   // 配置文件错误
   config_error: {
-    level: 'error',
-    placement: 'status',
-    domain: 'connection',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   // 服务断开连接
   service_disconnected: {
-    level: 'error',
-    placement: 'status',
-    domain: 'connection',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
 
   // 警告
   riichi_simulation_failed: {
-    level: 'warning',
-    placement: 'toast',
-    domain: 'model',
-    lifecycle: 'ephemeral',
-    autoHide: 3000,
+    level: STATUS_LEVEL.WARNING,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
   },
   game_data_parse_failed: {
-    level: 'warning',
-    placement: 'toast',
-    domain: 'runtime',
-    lifecycle: 'ephemeral',
-    autoHide: 5000,
+    level: STATUS_LEVEL.WARNING,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_DEFAULT,
   },
   fallback_used: {
-    level: 'warning',
-    placement: 'status',
-    domain: 'service',
-    lifecycle: 'persistent',
+    level: STATUS_LEVEL.WARNING,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.SERVICE,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
 
   // 信息/成功
-  game_connected: {
-    level: 'success',
-    placement: 'toast',
-    domain: 'connection',
-    lifecycle: 'replaceable',
+  client_connected: {
+    level: STATUS_LEVEL.SUCCESS,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
   },
-  reconnecting: {
-    level: 'info',
-    placement: 'status',
-    domain: 'service',
-    lifecycle: 'persistent',
+  game_connected: {
+    level: STATUS_LEVEL.SUCCESS,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
   },
   online_service_restored: {
-    level: 'success',
-    placement: 'toast',
-    domain: 'service',
-    lifecycle: 'ephemeral',
-    autoHide: 3000,
+    level: STATUS_LEVEL.SUCCESS,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.SERVICE,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
+  },
+  model_loaded_local: {
+    level: STATUS_LEVEL.SUCCESS,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
+  },
+  model_loaded_online: {
+    level: STATUS_LEVEL.SUCCESS,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.MODEL,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
+  },
+  reconnecting: {
+    level: STATUS_LEVEL.INFO,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.SERVICE,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   game_disconnected: {
-    level: 'info',
-    placement: 'toast',
-    domain: 'connection',
-    lifecycle: 'ephemeral',
-    autoHide: 2000,
+    level: STATUS_LEVEL.INFO,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.REPLACEABLE,
   },
   return_lobby: {
-    level: 'info',
-    placement: 'toast',
-    domain: 'runtime',
-    lifecycle: 'ephemeral',
-    autoHide: 3000,
+    level: STATUS_LEVEL.INFO,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.RUNTIME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
   },
   game_syncing: {
-    level: 'info',
-    placement: 'toast',
-    domain: 'game',
-    lifecycle: 'ephemeral',
-    autoHide: 3000,
+    level: STATUS_LEVEL.INFO,
+    placement: STATUS_PLACEMENT.TOAST,
+    domain: STATUS_DOMAIN.GAME,
+    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+    autoHide: TOAST_DURATION_SHORT,
   },
 };
 
 export function getStatusConfig(code: string): StatusUIConfig {
   return (
     STATUS_UI_MAP[code] || {
-      level: 'info',
-      placement: 'toast',
-      domain: 'runtime',
-      lifecycle: 'ephemeral',
-      autoHide: 4000,
+      level: STATUS_LEVEL.INFO,
+      placement: STATUS_PLACEMENT.TOAST,
+      domain: STATUS_DOMAIN.RUNTIME,
+      lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
+      autoHide: TOAST_DURATION_DEFAULT,
     }
   );
 }

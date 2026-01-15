@@ -96,7 +96,7 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   config_error: {
     level: STATUS_LEVEL.ERROR,
     placement: STATUS_PLACEMENT.STATUS,
-    domain: STATUS_DOMAIN.CONNECTION,
+    domain: STATUS_DOMAIN.RUNTIME,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   // 服务断开连接
@@ -111,7 +111,7 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   riichi_simulation_failed: {
     level: STATUS_LEVEL.WARNING,
     placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.MODEL,
+    domain: STATUS_DOMAIN.GAME,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
   },
@@ -153,14 +153,14 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   },
   model_loaded_local: {
     level: STATUS_LEVEL.SUCCESS,
-    placement: STATUS_PLACEMENT.TOAST,
+    placement: STATUS_PLACEMENT.STATUS,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
   },
   model_loaded_online: {
     level: STATUS_LEVEL.SUCCESS,
-    placement: STATUS_PLACEMENT.TOAST,
+    placement: STATUS_PLACEMENT.STATUS,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
@@ -180,7 +180,7 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   return_lobby: {
     level: STATUS_LEVEL.INFO,
     placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.RUNTIME,
+    domain: STATUS_DOMAIN.GAME,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
   },

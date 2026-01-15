@@ -35,6 +35,8 @@ export function useStatusNotification(
   const { t } = useTranslation();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<StatusLevel>(STATUS_LEVEL.INFO);
+  const [activeStatusCode, setActiveStatusCode] = useState<string | null>(null);
+  const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
 
   // 合并后端通知和连接错误
   const allNotifications = useMemo(() => {
@@ -54,9 +56,12 @@ export function useStatusNotification(
     }
 
     const statusCandidates: Array<{
+      code: string;
       message: string;
       level: StatusLevel;
       domain: StatusDomain;
+      lifecycle: string;
+      autoHide?: number;
     }> = [];
 
     allNotifications.forEach((note) => {
@@ -81,33 +86,83 @@ export function useStatusNotification(
 
       // 处理状态栏
       if (config.placement === STATUS_PLACEMENT.STATUS) {
-        statusCandidates.push({
-          message,
-          level: config.level || STATUS_LEVEL.INFO,
-          domain: config.domain || STATUS_DOMAIN.RUNTIME,
-        });
+        // 如果已经被手动隐藏（自动消失），则不再显示
+        if (!hiddenCodes.has(note.code)) {
+          statusCandidates.push({
+            code: note.code,
+            message,
+            level: config.level || STATUS_LEVEL.INFO,
+            domain: config.domain || STATUS_DOMAIN.RUNTIME,
+            lifecycle: config.lifecycle,
+            autoHide: config.autoHide,
+          });
+        }
       }
     });
 
     // 确定状态栏显示内容
     if (statusCandidates.length > 0) {
       statusCandidates.sort((a, b) => {
+        const lA = LEVEL_PRIORITY[a.level] ?? 99;
+        const lB = LEVEL_PRIORITY[b.level] ?? 99;
+        if (lA !== lB) return lA - lB;
+
         const dA = DOMAIN_PRIORITY[a.domain] ?? 99;
         const dB = DOMAIN_PRIORITY[b.domain] ?? 99;
         if (dA !== dB) return dA - dB;
 
-        const lA = LEVEL_PRIORITY[a.level] ?? 99;
-        const lB = LEVEL_PRIORITY[b.level] ?? 99;
-        return lA - lB;
+        return 0;
       });
 
       const winner = statusCandidates[0];
       setStatusMessage(winner.message);
       setStatusType(winner.level);
+      setActiveStatusCode(winner.code);
     } else {
       setStatusMessage(null);
+      setActiveStatusCode(null);
     }
-  }, [allNotifications, t]);
+  }, [allNotifications, t, hiddenCodes]);
+
+  // 处理临时状态的自动消失
+  useEffect(() => {
+    if (!activeStatusCode) return;
+
+    const config = getStatusConfig(activeStatusCode);
+    if (
+      config.placement === STATUS_PLACEMENT.STATUS &&
+      config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL
+    ) {
+      const duration = config.autoHide || TOAST_DURATION_DEFAULT;
+      const timer = setTimeout(() => {
+        setHiddenCodes((prev) => {
+          const next = new Set(prev);
+          next.add(activeStatusCode);
+          return next;
+        });
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeStatusCode]);
+
+  // 清理不再存在的 hiddenCodes
+  useEffect(() => {
+    setHiddenCodes((prev) => {
+      const currentCodes = new Set(allNotifications.map((n) => n.code));
+      let hasChanges = false;
+      const next = new Set(prev);
+
+      next.forEach((code) => {
+        if (!currentCodes.has(code)) {
+          next.delete(code);
+          hasChanges = true;
+        }
+      });
+
+      return hasChanges ? next : prev;
+    });
+  }, [allNotifications]);
 
   return { statusMessage, statusType };
 }

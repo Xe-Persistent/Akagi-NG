@@ -70,7 +70,7 @@ def islh(h: list[int]) -> bool:
         if i == head:
             if not iswh2(h[9 * i : 9 * i + 9]):
                 return False
-        elif not iswh0(h[9 * i: 9 * i + 9]):
+        elif not iswh0(h[9 * i : 9 * i + 9]):
             return False
 
     return True

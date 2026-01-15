@@ -487,8 +487,8 @@ class TenhouBridge(BaseBridge):
         for i in state.hand:
             for meld in state.melds:
                 if (
-                        meld.meld_type == Meld.PON
-                        and i // TenhouConstants.TILES_PER_TYPE == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE
+                    meld.meld_type == Meld.PON
+                    and i // TenhouConstants.TILES_PER_TYPE == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE
                 ):
                     ret.add(tuple(tenhou_to_mjai([i, *meld.tiles])))
 
@@ -499,9 +499,9 @@ class TenhouBridge(BaseBridge):
 
         for i, j in list(combinations(state.hand, 2)):
             if (
-                    i // TenhouConstants.TILES_PER_TYPE
-                    == j // TenhouConstants.TILES_PER_TYPE
-                    == index // TenhouConstants.TILES_PER_TYPE
+                i // TenhouConstants.TILES_PER_TYPE
+                == j // TenhouConstants.TILES_PER_TYPE
+                == index // TenhouConstants.TILES_PER_TYPE
             ):
                 ret.add(tuple(tenhou_to_mjai([i, j])))
 
@@ -518,7 +518,7 @@ class TenhouBridge(BaseBridge):
             )
 
             if i34 // 9 == j34 // 9 == index34 // 9 and (
-                    index34 == i34 - 1 == j34 - 2 or i34 + 1 == index34 == j34 - 1 or i34 + 2 == j34 + 1 == index34
+                index34 == i34 - 1 == j34 - 2 or i34 + 1 == index34 == j34 - 1 or i34 + 2 == j34 + 1 == index34
             ):
                 ret.add(tuple(tenhou_to_mjai([i, j])))
 
@@ -542,29 +542,29 @@ class TenhouBridge(BaseBridge):
             ]
 
             if (
-                    meld.r == 0
-                    and meld.tiles[0] // TenhouConstants.TILES_PER_TYPE // TenhouConstants.TILES_PER_SUIT
-                    < TenhouConstants.MAGIC_LIMIT_6
+                meld.r == 0
+                and meld.tiles[0] // TenhouConstants.TILES_PER_TYPE // TenhouConstants.TILES_PER_SUIT
+                < TenhouConstants.MAGIC_LIMIT_6
             ):
                 forbidden.extend(
                     [
                         i
                         for i in state.hand
                         if i // TenhouConstants.TILES_PER_TYPE
-                           == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE + TenhouConstants.CHI_OFFSET
+                        == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE + TenhouConstants.CHI_OFFSET
                     ]
                 )
             elif (
-                    meld.r == TenhouConstants.MAGIC_LIMIT_2
-                    and meld.tiles[0] // TenhouConstants.TILES_PER_TYPE // TenhouConstants.TILES_PER_SUIT
-                    > TenhouConstants.MAGIC_LIMIT_2
+                meld.r == TenhouConstants.MAGIC_LIMIT_2
+                and meld.tiles[0] // TenhouConstants.TILES_PER_TYPE // TenhouConstants.TILES_PER_SUIT
+                > TenhouConstants.MAGIC_LIMIT_2
             ):
                 forbidden.extend(
                     [
                         i
                         for i in state.hand
                         if i // TenhouConstants.TILES_PER_TYPE
-                           == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE - TenhouConstants.CHI_OFFSET
+                        == meld.tiles[0] // TenhouConstants.TILES_PER_TYPE - TenhouConstants.CHI_OFFSET
                     ]
                 )
 

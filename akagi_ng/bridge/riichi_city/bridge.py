@@ -86,7 +86,7 @@ class RiichiCityBridge(BaseBridge):
         # 从剩余消息中加载 JSON 数据
         # 如果没有数据，将为空
         msg_data = (
-            {} if len(content) == self.HEADER_LENGTH else json.loads(content[self.HEADER_LENGTH:].decode("utf-8"))
+            {} if len(content) == self.HEADER_LENGTH else json.loads(content[self.HEADER_LENGTH :].decode("utf-8"))
         )
         logger.debug({"msg_id": msg_id, "msg_type": msg_type, "msg_data": msg_data})
 
@@ -119,8 +119,8 @@ class RiichiCityBridge(BaseBridge):
 
     def _handle_enter_room(self, rc_msg: RCMessage) -> list[dict] | None:
         if (
-                self.game_status.classify_id is not None
-                and self.game_status.classify_id == rc_msg.msg_data["data"]["options"]["classify_id"]
+            self.game_status.classify_id is not None
+            and self.game_status.classify_id == rc_msg.msg_data["data"]["options"]["classify_id"]
         ):
             logger.warning(f"Already in room {self.game_status.classify_id}")
             return None
@@ -141,8 +141,8 @@ class RiichiCityBridge(BaseBridge):
         if self.game_status.game_start:
             # 根据 dealer_pos 旋转玩家列表
             self.game_status.player_list = (
-                    self.game_status.player_list[rc_msg.msg_data["data"]["dealer_pos"]:]
-                    + self.game_status.player_list[: rc_msg.msg_data["data"]["dealer_pos"]]
+                self.game_status.player_list[rc_msg.msg_data["data"]["dealer_pos"] :]
+                + self.game_status.player_list[: rc_msg.msg_data["data"]["dealer_pos"]]
             )
             position_at = self.game_status.player_list.index(self.uid)
             self.game_status.seat = position_at

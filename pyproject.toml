@@ -60,7 +60,7 @@ src = ["akagi_ng"]
 line-length = 120
 target-version = "py312"
 extend-exclude = [
-    "akagi_ng/bridge/liqi_pb2.py",
+    "akagi_ng/bridge/majsoul/liqi_pb2.py",
 ]
 
 [tool.ruff.lint]

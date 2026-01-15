@@ -169,16 +169,16 @@ class AmatsukiBridge(BaseBridge):
         if not self._validate_content(content_dict, stomp):
             return
         if any(
-                key not in content_dict
-                for key in [
-                    "status",
-                    "errorCode",
-                    "gameType",
-                    "gameMode",
-                    "roomType",
-                    "currentPlayerCount",
-                    "maxCount",
-                ]
+            key not in content_dict
+            for key in [
+                "status",
+                "errorCode",
+                "gameType",
+                "gameMode",
+                "roomType",
+                "currentPlayerCount",
+                "maxCount",
+            ]
         ):
             logger.error(f"Invalid content: {stomp.content}")
             return
@@ -229,8 +229,7 @@ class AmatsukiBridge(BaseBridge):
         if not self._validate_content(content_dict, stomp):
             return None
         if any(
-                key not in content_dict for key in
-                ["bakaze", "honba", "isAllLast", "oya", "playerPoints", "playerTiles"]
+            key not in content_dict for key in ["bakaze", "honba", "isAllLast", "oya", "playerPoints", "playerTiles"]
         ):
             logger.error(f"Invalid content: {stomp.content}")
             return None

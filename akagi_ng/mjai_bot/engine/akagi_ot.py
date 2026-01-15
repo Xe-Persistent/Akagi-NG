@@ -64,7 +64,8 @@ class AkagiOTClient:
             raise RuntimeError(f"AkagiOT request failed: {e}") from e
 
     def _record_failure(self):
-        self._failures += 1
+        if self._failures < self._failure_threshold:
+            self._failures += 1
         self._last_failure_time = time.time()
         if self._failures >= self._failure_threshold:
             self._open_circuit()
@@ -103,6 +104,7 @@ class AkagiOTEngine(BaseEngine):
         flags = {}
         if self.client._circuit_open:
             flags["circuit_open"] = True
+            flags["fallback_used"] = True
         if self.client._just_restored:
             flags["circuit_restored"] = True
             self.client._just_restored = False

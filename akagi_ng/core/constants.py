@@ -1,5 +1,15 @@
 """麻将游戏和协议相关的常量定义"""
 
+from enum import Enum
+
+
+class Platform(str, Enum):
+    AUTO = "auto"
+    MAJSOUL = "majsoul"
+    TENHOU = "tenhou"
+    RIICHI_CITY = "riichi_city"
+    AMATSUKI = "amatsuki"
+
 
 class MahjongConstants:
     """麻将游戏常量"""

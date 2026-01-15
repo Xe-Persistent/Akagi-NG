@@ -1,7 +1,6 @@
 from functools import cmp_to_key
 
 from akagi_ng.bridge.base import BaseBridge
-from akagi_ng.bridge.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
@@ -52,13 +51,13 @@ class MajsoulBridge(BaseBridge):
         self._init_state()
 
     def parse(self, content: bytes) -> None | list[dict]:
-        """Parses the content and returns MJAI command.
+        """解析内容并返回 MJAI 指令。
 
         Args:
-            content (bytes): Content to be parsed.
+            content (bytes): 待解析的内容。
 
         Returns:
-            None | list[dict]: MJAI command.
+            None | list[dict]: MJAI 指令。
         """
         liqi_message = self.liqi_proto.parse(content)
         logger.trace(f"{liqi_message}")

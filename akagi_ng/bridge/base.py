@@ -1,6 +1,5 @@
 class BaseBridge:
-    def __init__(self):
-        pass
+    def __init__(self) -> None: ...
 
     def parse(self, content: bytes) -> None | list[dict]:
         raise NotImplementedError

@@ -6,7 +6,7 @@ import threading
 from mitmproxy import options
 from mitmproxy.tools.dump import DumpMaster
 
-from akagi_ng.mitm_client.addon import MajsoulAddon, mjai_messages
+from akagi_ng.mitm_client.bridge_addon import BridgeAddon, mjai_messages
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
 
@@ -30,7 +30,7 @@ class MitmClient:
             with_termlog=False,
             with_dumper=False,
         )
-        self._master.addons.add(MajsoulAddon())
+        self._master.addons.add(BridgeAddon())
         logger.info(f"Starting MITM proxy server at {host}:{port}")
 
         try:

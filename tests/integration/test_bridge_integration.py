@@ -5,7 +5,7 @@
 
 import pytest
 
-from akagi_ng.bridge.liqi import MsgType
+from akagi_ng.bridge.majsoul.liqi import MsgType
 
 
 @pytest.mark.integration

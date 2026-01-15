@@ -52,6 +52,12 @@
           "default": false,
           "description": "Enable MITM proxy."
         },
+        "platform": {
+          "type": "string",
+          "enum": ["auto", "majsoul", "tenhou", "amatsuki", "riichi_city"],
+          "default": "auto",
+          "description": "The target mahjong platform."
+        },
         "host": {
           "type": "string",
           "default": "127.0.0.1",

@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-tiles_mjai: list[int] = [
+tiles_mjai: list[str] = [
     "1m",
     "2m",
     "3m",
@@ -85,8 +85,7 @@ def tenhou_to_mjai_one(index: int) -> str:
 def mjai_to_tenhou_one(state, label: str, tsumogiri: bool = False) -> int:
     if tsumogiri:
         return state.hand[-1]
-    else:
-        return mjai_to_tenhou(state, [label])[0]
+    return mjai_to_tenhou(state, [label])[0]
 
 
 def tenhou_to_mjai(indices: list[int]) -> list[str]:
@@ -109,7 +108,7 @@ def mjai_to_tenhou(state, labels: list[str]) -> list[int]:
         is_red = label[-1] == "r"
         index = tiles_tenhou[label]
         # 赤ドラが指定された場合インデックスの剰余は0
-        index = [i for i in hand if i // 4 == index and (not is_red or i % 4 == 0)][0]
+        index = next(i for i in hand if i // 4 == index and (not is_red or i % 4 == 0))
         ret.append(index)
         # hand.remove(index)
 

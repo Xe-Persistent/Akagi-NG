@@ -25,32 +25,29 @@ class Meld:
     def consumed(self) -> list[str]:
         if self.meld_type == self.ANKAN:
             return tenhou_to_mjai(self.tiles)
-        else:
-            return tenhou_to_mjai(self.tiles[1:])
+        return tenhou_to_mjai(self.tiles[1:])
 
     @property
     def exposed(self) -> list[int]:
         if self.meld_type == self.ANKAN:
             return self.tiles
-        elif self.meld_type == self.KAKAN:
+        if self.meld_type == self.KAKAN:
             return self.tiles[0:1]
-        else:
-            return self.tiles[1:]
+        return self.tiles[1:]
 
     @staticmethod
     def parse_meld(m: int) -> "Meld":
         if m & (1 << 2):
             # チー
             return Meld.parse_chi(m)
-        elif m & (1 << 3):
+        if m & (1 << 3):
             # ポン
             return Meld.parse_pon(m)
-        elif m & (1 << 4):
+        if m & (1 << 4):
             # 加槓
             return Meld.parse_kakan(m)
-        else:
-            # 大明槓, 暗槓
-            return Meld.parse_daiminkan_ankan(m)
+        # 大明槓, 暗槓
+        return Meld.parse_daiminkan_ankan(m)
 
     @staticmethod
     def parse_chi(m: int) -> "Meld":
@@ -101,19 +98,16 @@ class Meld:
 
         if target == 0:
             return Meld(target, Meld.ANKAN, h)
-        else:
-            return Meld(target, Meld.DAIMINKAN, h)
+        return Meld(target, Meld.DAIMINKAN, h)
 
 
 def parse_sc_tag(message: dict[str, str]) -> list[int]:
     sc = [int(s) for s in message["sc"].split(",")]
     before = sc[0::2]
     delta = sc[1::2]
-    after = [(x + y) * 100 for x, y in zip(before, delta)]
-    return after
+    return [(x + y) * 100 for x, y in zip(before, delta, strict=False)]
 
 
 def parse_owari_tag(message: dict[str, str]) -> list[int]:
     sc = [int(s) for s in message["owari"].split(",")[0::2]]
-    ret = [x * 100 for x in sc]
-    return ret
+    return [x * 100 for x in sc]

@@ -13,8 +13,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # 直接导入需要的模块，避免循环导入
-from akagi_ng.bridge.bridge import MS_TILE_2_MJAI_TILE, MajsoulBridge
-from akagi_ng.bridge.liqi import MsgType
+from akagi_ng.bridge.majsoul import MajsoulBridge
+from akagi_ng.bridge.majsoul.liqi import MsgType
+from akagi_ng.bridge.tile_mapping import MS_TILE_2_MJAI_TILE
 
 
 class TestMajsoulBridge(unittest.TestCase):

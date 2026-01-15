@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+REMAINDER_HEAD = 2
+REMAINDER_MODULO = 3
+
 
 def iswh0(h: list[int]) -> bool:
     a, b = h[0], h[1]
@@ -22,54 +25,59 @@ def iswh2(h: list[int]) -> bool:
         s += i * h[i]
 
     for p in range(s * 2 % 3, 9, 3):
-        if h[p] >= 2:
-            h[p] -= 2
+        if h[p] >= REMAINDER_HEAD:
+            h[p] -= REMAINDER_HEAD
 
             if iswh0(h):
-                h[p] += 2
+                h[p] += REMAINDER_HEAD
                 return True
-            else:
-                h[p] += 2
+            h[p] += REMAINDER_HEAD
 
     return False
 
 
-def islh(h: list[int]) -> bool:
+def _find_head(h: list[int]) -> int | None:
     head: int | None = None
 
     for i in range(3):
         s = sum(h[9 * i : 9 * i + 9])
-
-        if s % 3 == 1:
-            return False
-        elif s % 3 == 2:
-            if head is None:
-                head = i
-            else:
-                return False
+        remainder = s % REMAINDER_MODULO
+        if remainder == 1:
+            return -1
+        if remainder == REMAINDER_HEAD:
+            if head is not None:
+                return -1
+            head = i
 
     for i in range(27, 34):
-        if h[i] % 3 == 1:
-            return False
-        elif h[i] % 3 == 2:
-            if head is None:
-                head = i
-            else:
-                return False
+        remainder = h[i] % REMAINDER_MODULO
+        if remainder == 1:
+            return -1
+        if remainder == REMAINDER_HEAD:
+            if head is not None:
+                return -1
+            head = i
+
+    return head
+
+
+def islh(h: list[int]) -> bool:
+    head = _find_head(h)
+    if head == -1:
+        return False
 
     for i in range(3):
         if i == head:
             if not iswh2(h[9 * i : 9 * i + 9]):
                 return False
-        else:
-            if not iswh0(h[9 * i : 9 * i + 9]):
-                return False
+        elif not iswh0(h[9 * i: 9 * i + 9]):
+            return False
 
     return True
 
 
 def issp(h: list[int]) -> bool:
-    return all(not (h[i] != 0 and h[i] != 2) for i in range(34))
+    return all(not (h[i] != 0 and h[i] != REMAINDER_HEAD) for i in range(34))
 
 
 def isto(h: list[int]) -> bool:

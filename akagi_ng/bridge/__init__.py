@@ -5,9 +5,9 @@ from akagi_ng.bridge.riichi_city import RiichiCityBridge
 from akagi_ng.bridge.tenhou import TenhouBridge
 
 __all__ = [
+    "AmatsukiBridge",
     "BaseBridge",
     "MajsoulBridge",
-    "TenhouBridge",
     "RiichiCityBridge",
-    "AmatsukiBridge",
+    "TenhouBridge",
 ]

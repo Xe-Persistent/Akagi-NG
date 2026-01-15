@@ -8,6 +8,7 @@ from pathlib import Path
 import jsonschema
 from jsonschema.exceptions import ValidationError
 
+from akagi_ng.core.constants import Platform
 from akagi_ng.core.paths import ensure_dir, get_assets_dir, get_settings_dir
 from akagi_ng.settings.logger import logger
 
@@ -44,6 +45,7 @@ class MITMConfig:
     host: str
     port: int
     upstream: str
+    platform: Platform = Platform.MAJSOUL
 
 
 @dataclass
@@ -112,6 +114,7 @@ class Settings:
             ),
             mitm=MITMConfig(
                 enabled=mitm_data.get("enabled", False),
+                platform=Platform(mitm_data.get("platform", Platform.AUTO)),
                 host=mitm_data.get("host", "127.0.0.1"),
                 port=mitm_data.get("port", 6789),
                 upstream=mitm_data.get("upstream", ""),
@@ -196,7 +199,13 @@ def get_default_settings_dict() -> dict:
         "locale": detect_system_locale(),
         "majsoul_url": "https://game.maj-soul.com/1/",
         "browser": {"enabled": True, "headless": False, "window_size": ""},
-        "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
+        "mitm": {
+            "enabled": False,
+            "platform": Platform.MAJSOUL.value,
+            "host": "127.0.0.1",
+            "port": 6789,
+            "upstream": "",
+        },
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
@@ -276,6 +285,7 @@ def _update_settings(settings: Settings, data: dict) -> None:
 
     mitm_data = data.get("mitm", {})
     settings.mitm.enabled = mitm_data.get("enabled", False)
+    settings.mitm.platform = Platform(mitm_data.get("platform", Platform.MAJSOUL))
     settings.mitm.host = mitm_data.get("host", "127.0.0.1")
     settings.mitm.port = mitm_data.get("port", 6789)
     settings.mitm.upstream = mitm_data.get("upstream", "")

@@ -143,7 +143,7 @@ def decode(data: bytes):
 
 
 def parse_varint(buf, p):
-    # parse a varint from protobuf
+    # 从 protobuf 解析 varint
     data = 0
     base = 0
     while p < len(buf):
@@ -157,8 +157,8 @@ def parse_varint(buf, p):
 
 def from_protobuf(buf) -> list[dict]:
     """
-    dump the struct of protobuf
-    buf: protobuf bytes
+    转储 protobuf 结构
+    buf: protobuf 字节流
     """
     p = 0
     result = []
@@ -168,16 +168,16 @@ def from_protobuf(buf) -> list[dict]:
         block_id = buf[p] >> 3
         p += 1
         if block_type == LiqiProtocolConstants.BLOCK_TYPE_VARINT:
-            # varint
+            # 变长整数 (varint)
             block_type = "varint"
             data, p = parse_varint(buf, p)
         elif block_type == LiqiProtocolConstants.BLOCK_TYPE_STRING:
-            # string
+            # 字符串
             block_type = "string"
             s_len, p = parse_varint(buf, p)
             data = buf[p : p + s_len]
             p += s_len
         else:
-            raise Exception("unknow type:", block_type, " at", p)
+            raise Exception("未知类型:", block_type, " at", p)
         result.append({"id": block_id, "type": block_type, "data": data, "begin": block_begin})
     return result

@@ -93,8 +93,6 @@ class StateTrackerBot(Bot):
         current_shanten = calc_shanten(self.tehai)
 
         candidates = []
-        if not self.can_daiminkan:
-            return candidates
 
         # 检查手牌中是否有 3 张与最后弃牌相同的牌
         target_tile = self.last_kawa_tile
@@ -112,8 +110,6 @@ class StateTrackerBot(Bot):
     def find_ankan_candidates(self) -> list[dict]:
         """寻找暗杠候选"""
         candidates = []
-        if not self.can_ankan:
-            return candidates
 
         # 暗杠需要手牌中有 4 张相同的牌
         hand_tiles = self.tehai_mjai
@@ -135,8 +131,6 @@ class StateTrackerBot(Bot):
     def find_kakan_candidates(self) -> list[dict]:
         """寻找加杠候选"""
         candidates = []
-        if not self.can_kakan:
-            return candidates
 
         # 加杠需要手牌中有一张与已有碰副相同的牌
         events = self.get_call_events(self.player_id)

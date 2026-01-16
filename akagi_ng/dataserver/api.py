@@ -17,6 +17,11 @@ CORS_HEADERS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
+# Winodws 下部分系统 mimetype 默认为 text/plain，导致 module 脚本无法加载
+# 强制指定 js 文件的 mimetype
+mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("application/javascript", ".mjs")
+
 
 @web.middleware
 async def cors_middleware(request: web.Request, handler):

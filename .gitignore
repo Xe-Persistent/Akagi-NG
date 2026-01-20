@@ -17,3 +17,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
+
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+.hypothesis/
+.pytest_cache/
+.ruff_cache/

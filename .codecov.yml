@@ -1,0 +1,48 @@
+# Codecov 配置
+# 文档: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+  # 自动生成的 Protobuf 代码
+  - "akagi_ng/bridge/majsoul/liqi_pb2.py"
+
+  # 测试文件
+  - "tests/"
+  - "**/*_test.py"
+  - "**/test_*.py"
+
+  # 初始化文件(通常只有导入)
+  - "**/__init__.py"
+
+  # 构建和临时文件
+  - "build/"
+  - "dist/"
+  - ".venv/"
+  - "*.egg-info/"
+
+github_checks:
+  annotations: true

@@ -67,3 +67,8 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # 忽略某些依赖
+    ignore:
+      # @types/node 应该与 Node.js 运行时版本保持一致，手动更新
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]

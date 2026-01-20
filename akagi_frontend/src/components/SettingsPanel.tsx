@@ -1,9 +1,10 @@
-import type { FC, ReactNode } from 'react';
-import { Component, Suspense, use, useMemo, useState } from 'react';
+import type { FC } from 'react';
+import { Suspense, use, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import {
   Modal,
   ModalClose,
@@ -13,6 +14,7 @@ import {
   ModalTitle,
 } from '@/components/ui/modal';
 import type { Settings } from '@/types';
+import type { Theme } from '@/hooks/useTheme';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { GeneralSection } from './settings/GeneralSection';
 import { ServiceSection } from './settings/ServiceSection';
@@ -20,42 +22,22 @@ import { OnlineModelSection } from './settings/OnlineModelSection';
 import { ConnectionSection } from './settings/ConnectionSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
 
-class SettingsErrorBoundary extends Component<
-  { children: ReactNode; fallback: (error: Error) => ReactNode },
-  {
-    hasError: boolean;
-    error: Error | null;
-  }
-> {
-  constructor(props: { children: ReactNode; fallback: (error: Error) => ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  render() {
-    if (this.state.hasError && this.state.error) {
-      return this.props.fallback(this.state.error);
-    }
-    return this.props.children;
-  }
-}
-
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
   apiBase: string;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 interface SettingsFormProps {
   apiBase: string;
   settingsPromise: Promise<Settings>;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
-const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
+const SettingsForm = ({ apiBase, settingsPromise, theme, setTheme }: SettingsFormProps) => {
   const initialSettings = use(settingsPromise);
   const { t } = useTranslation();
 
@@ -77,7 +59,12 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
         )}
 
         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-          <GeneralSection settings={settings} updateSetting={updateSetting} />
+          <GeneralSection
+            settings={settings}
+            updateSetting={updateSetting}
+            theme={theme}
+            setTheme={setTheme}
+          />
           <ConnectionSection
             settings={settings}
             updateSetting={updateSetting}
@@ -110,7 +97,7 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
   );
 };
 
-const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
+const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase, theme, setTheme }) => {
   const { t } = useTranslation();
   const settingsPromise = useMemo(() => {
     if (open) {
@@ -130,7 +117,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
       </ModalHeader>
 
       <ModalContent>
-        <SettingsErrorBoundary
+        <ErrorBoundary
           fallback={() => (
             <div className='flex flex-col items-center justify-center p-8 text-center'>
               <AlertTriangle className='text-destructive mb-4 h-10 w-10' />
@@ -152,10 +139,15 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
             }
           >
             {settingsPromise && (
-              <SettingsForm apiBase={apiBase} settingsPromise={settingsPromise} />
+              <SettingsForm
+                apiBase={apiBase}
+                settingsPromise={settingsPromise}
+                theme={theme}
+                setTheme={setTheme}
+              />
             )}
           </Suspense>
-        </SettingsErrorBoundary>
+        </ErrorBoundary>
       </ModalContent>
     </Modal>
   );

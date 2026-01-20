@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from akagi_ng.core.notification_codes import NotificationCode
-from akagi_ng.mjai_bot.engine.mortal import MortalEngine
+from akagi_ng.mjai_bot.engine import MortalEngine
 from akagi_ng.mjai_bot.utils import is_riichi_relevant, make_error_response
 
 
@@ -48,7 +48,7 @@ class MortalBot:
         self.notification_flags = {}  # 系统状态通知标志
         self._pending_notifications = {}  # 暂存的通知标志（如模型加载事件）
 
-        from akagi_ng.mjai_bot.engine.loader import load_model
+        from akagi_ng.mjai_bot.engine import load_model
         from akagi_ng.mjai_bot.mortal.logger import logger
 
         # 根据游戏模式动态加载库
@@ -195,7 +195,6 @@ class MortalBot:
             self.notification_flags.clear()
             if self.engine:
                 engine_flags = self.engine.get_notification_flags()
-                engine_flags = self.engine.get_notification_flags()
                 self.notification_flags.update(engine_flags)
 
             # 合并暂存的通知
@@ -232,7 +231,7 @@ class MortalBot:
         返回模拟元数据，失败时返回 None。
         """
         try:
-            from akagi_ng.mjai_bot.engine.replay import ReplayEngine
+            from akagi_ng.mjai_bot.engine import ReplayEngine
 
             # 使用 ReplayEngine 进行模拟
             sim_engine = ReplayEngine(self.engine, [None] * len(self.history))

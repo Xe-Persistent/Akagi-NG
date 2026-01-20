@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { memo, type FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SettingsItem } from '@/components/ui/settings-item';
@@ -25,121 +25,120 @@ interface DangerZoneSectionProps {
   onRestoreDefaults: () => void;
 }
 
-export const DangerZoneSection: FC<DangerZoneSectionProps> = ({
-  settings,
-  updateSetting,
-  busy,
-  onRestoreDefaults,
-}) => {
-  const { t } = useTranslation();
-  return (
-    <div className='border-destructive/50 bg-destructive/5 dark:bg-destructive/10 rounded-lg border p-6'>
-      <h3 className='text-destructive mb-2 flex items-center gap-2 text-lg font-bold'>
-        <AlertTriangle className='h-5 w-5' />
-        {t('settings.danger_zone.title')}
-      </h3>
-      <p className='text-muted-foreground mb-6 text-sm'>{t('settings.danger_zone.desc')}</p>
+export const DangerZoneSection: FC<DangerZoneSectionProps> = memo(
+  ({ settings, updateSetting, busy, onRestoreDefaults }) => {
+    const { t } = useTranslation();
+    return (
+      <div className='border-destructive/50 bg-destructive/5 dark:bg-destructive/10 rounded-lg border p-6'>
+        <h3 className='text-destructive mb-2 flex items-center gap-2 text-lg font-bold'>
+          <AlertTriangle className='h-5 w-5' />
+          {t('settings.danger_zone.title')}
+        </h3>
+        <p className='text-muted-foreground mb-6 text-sm'>{t('settings.danger_zone.desc')}</p>
 
-      <div className='border-border border-t pt-4'></div>
+        <div className='border-border border-t pt-4'></div>
 
-      <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-        <div className='space-y-4'>
-          <SettingsItem
-            label={t('settings.model_config.device')}
-            description={t('settings.model_config.device_desc')}
-          >
-            <Select
-              value={settings.model_config.device}
-              onValueChange={(val) => updateSetting(['model_config', 'device'], val)}
+        <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+          <div className='space-y-4'>
+            <SettingsItem
+              label={t('settings.model_config.device')}
+              description={t('settings.model_config.device_desc')}
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='auto'>Auto</SelectItem>
-                <SelectItem value='cpu'>CPU</SelectItem>
-                <SelectItem value='cuda'>CUDA</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingsItem>
+              <Select
+                value={settings.model_config.device}
+                onValueChange={(val) => updateSetting(['model_config', 'device'], val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='auto'>Auto</SelectItem>
+                  <SelectItem value='cpu'>CPU</SelectItem>
+                  <SelectItem value='cuda'>CUDA</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingsItem>
 
-          <SettingsItem
-            label={t('settings.model_config.temperature')}
-            description={t('settings.model_config.temperature_desc')}
-          >
-            <Input
-              type='number'
-              step='0.1'
-              min='0'
-              value={settings.model_config.temperature}
-              onChange={(e) =>
-                updateSetting(
-                  ['model_config', 'temperature'],
-                  parseFloat(e.target.value) || 0,
-                  true,
-                )
-              }
-            />
-          </SettingsItem>
+            <SettingsItem
+              label={t('settings.model_config.temperature')}
+              description={t('settings.model_config.temperature_desc')}
+            >
+              <Input
+                type='number'
+                step='0.1'
+                min='0'
+                value={settings.model_config.temperature}
+                onChange={(e) =>
+                  updateSetting(
+                    ['model_config', 'temperature'],
+                    parseFloat(e.target.value) || 0,
+                    true,
+                  )
+                }
+              />
+            </SettingsItem>
+          </div>
+
+          <div className='space-y-6'>
+            <SettingsItem
+              label={t('settings.model_config.amp')}
+              description={t('settings.model_config.amp_desc')}
+              layout='row'
+            >
+              <Checkbox
+                id='enable_amp'
+                checked={settings.model_config.enable_amp}
+                onCheckedChange={(checked) =>
+                  updateSetting(['model_config', 'enable_amp'], checked === true)
+                }
+              />
+            </SettingsItem>
+
+            <SettingsItem
+              label={t('settings.model_config.enable_quick_eval')}
+              description={t('settings.model_config.enable_quick_eval_desc')}
+              layout='row'
+            >
+              <Checkbox
+                id='enable_quick_eval'
+                checked={settings.model_config.enable_quick_eval}
+                onCheckedChange={(val) =>
+                  updateSetting(['model_config', 'enable_quick_eval'], val === true)
+                }
+              />
+            </SettingsItem>
+
+            <SettingsItem
+              label={t('settings.model_config.agari_guard')}
+              description={t('settings.model_config.agari_guard_desc')}
+              layout='row'
+            >
+              <Checkbox
+                id='agari_guard'
+                checked={settings.model_config.rule_based_agari_guard}
+                onCheckedChange={(checked) =>
+                  updateSetting(['model_config', 'rule_based_agari_guard'], checked === true)
+                }
+              />
+            </SettingsItem>
+          </div>
         </div>
 
-        <div className='space-y-6'>
-          <SettingsItem
-            label={t('settings.model_config.amp')}
-            description={t('settings.model_config.amp_desc')}
-            layout='row'
+        <div className='flex justify-end pt-4'>
+          <Button
+            variant='destructive'
+            size='sm'
+            onClick={onRestoreDefaults}
+            disabled={busy}
+            className='w-full sm:w-auto'
           >
-            <Checkbox
-              id='enable_amp'
-              checked={settings.model_config.enable_amp}
-              onCheckedChange={(checked) =>
-                updateSetting(['model_config', 'enable_amp'], checked === true)
-              }
-            />
-          </SettingsItem>
-
-          <SettingsItem
-            label={t('settings.model_config.enable_quick_eval')}
-            description={t('settings.model_config.enable_quick_eval_desc')}
-            layout='row'
-          >
-            <Checkbox
-              id='enable_quick_eval'
-              checked={settings.model_config.enable_quick_eval}
-              onCheckedChange={(val) =>
-                updateSetting(['model_config', 'enable_quick_eval'], val === true)
-              }
-            />
-          </SettingsItem>
-
-          <SettingsItem
-            label={t('settings.model_config.agari_guard')}
-            description={t('settings.model_config.agari_guard_desc')}
-            layout='row'
-          >
-            <Checkbox
-              id='agari_guard'
-              checked={settings.model_config.rule_based_agari_guard}
-              onCheckedChange={(checked) =>
-                updateSetting(['model_config', 'rule_based_agari_guard'], checked === true)
-              }
-            />
-          </SettingsItem>
+            <RotateCcw className='mr-2 h-4 w-4' />
+            {t('settings.restore')}
+          </Button>
         </div>
       </div>
+    );
+  },
+);
 
-      <div className='flex justify-end pt-4'>
-        <Button
-          variant='destructive'
-          size='sm'
-          onClick={onRestoreDefaults}
-          disabled={busy}
-          className='w-full sm:w-auto'
-        >
-          <RotateCcw className='mr-2 h-4 w-4' />
-          {t('settings.restore')}
-        </Button>
-      </div>
-    </div>
-  );
-};
+DangerZoneSection.displayName = 'DangerZoneSection';

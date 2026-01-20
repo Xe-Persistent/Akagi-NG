@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akagi-ng"
-version = "0.3.1"
+version = "0.4.0"
 description = "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -85,8 +85,6 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 "akagi_ng/bridge/majsoul/liqi_pb2.py" = ["ALL"]
-"akagi_ng/mjai_bot/network.py" = ["PLR0913"]
-"akagi_ng/mjai_bot/engine/mortal.py" = ["PLR0913"]
 
 
 [tool.setuptools]

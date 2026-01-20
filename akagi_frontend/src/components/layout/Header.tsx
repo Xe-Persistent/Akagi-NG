@@ -1,17 +1,9 @@
 import type { FC } from 'react';
-import {
-  ExternalLink,
-  Globe,
-  Laptop,
-  Moon,
-  Power,
-  RefreshCw,
-  SettingsIcon,
-  Sun,
-} from 'lucide-react';
+import { ExternalLink, Globe, Power, RefreshCw, SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SUPPORTED_LOCALES } from '@/config/locales';
 
 interface HeaderProps {
@@ -67,7 +59,7 @@ export const Header: FC<HeaderProps> = ({
             ) : (
               <ExternalLink className='mr-2 h-4 w-4' />
             )}
-            {t('app.launch_majsoul')}
+            {t('app.launch_game')}
           </Button>
 
           {/* Language Switcher */}
@@ -86,27 +78,8 @@ export const Header: FC<HeaderProps> = ({
             </Select>
           )}
 
-          {/* Theme Toggle Group */}
-          <div className='flex items-center rounded-full border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800'>
-            <button
-              onClick={() => setTheme('light')}
-              className={`rounded-full p-1.5 transition-all ${theme === 'light' ? 'bg-white text-amber-500 shadow-sm dark:bg-zinc-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-            >
-              <Sun className='h-4 w-4' />
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              className={`rounded-full p-1.5 transition-all ${theme === 'dark' ? 'bg-white text-indigo-400 shadow-sm dark:bg-zinc-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-            >
-              <Moon className='h-4 w-4' />
-            </button>
-            <button
-              onClick={() => setTheme('system')}
-              className={`rounded-full p-1.5 transition-all ${theme === 'system' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-600 dark:text-zinc-100' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-            >
-              <Laptop className='h-4 w-4' />
-            </button>
-          </div>
+          {/* Theme Toggle */}
+          <ThemeToggle theme={theme} setTheme={setTheme} />
 
           {/* Settings Button */}
           <Button

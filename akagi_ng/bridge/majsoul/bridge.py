@@ -2,21 +2,11 @@ from functools import cmp_to_key
 
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
+from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
 from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.core.notification_codes import NotificationCode
-
-
-class OperationChiPengGang:
-    Chi = 0
-    Peng = 1
-    Gang = 2
-
-
-class OperationAnGangAddGang:
-    AnGang = 3
-    AddGang = 2
 
 
 class MajsoulBridge(BaseBridge):
@@ -32,7 +22,6 @@ class MajsoulBridge(BaseBridge):
         self.lastDiscard = None
         self.reach = False
         self.accept_reach = None
-        self.operation = {}
         self.AllReady = False
         self.temp = {}
         self.doras = []
@@ -94,7 +83,35 @@ class MajsoulBridge(BaseBridge):
 
         seat_list = liqi_message["data"]["seatList"]
         self.seat = seat_list.index(self.accountId)
-        return [{"type": "start_game", "id": self.seat}]
+        return [self.make_start_game()]
+
+    def _setup_new_round_tehais(self, tiles: list[str]) -> tuple[list[list[str]], list[str], str | None]:
+        """初始化新一局的手牌
+
+        Returns:
+            tuple: (tehais_display, my_tehais, my_tsumohai)
+        """
+        tehais = [["?"] * MahjongConstants.TEHAI_SIZE for _ in range(MahjongConstants.SEATS_4P)]
+        my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
+        my_tsumohai = None
+
+        for hai in range(MahjongConstants.TEHAI_SIZE):
+            my_tehais[hai] = MS_TILE_2_MJAI_TILE[tiles[hai]]
+
+        if len(tiles) == MahjongConstants.TEHAI_SIZE:
+            tehais[self.seat] = sorted(my_tehais, key=cmp_to_key(compare_pai))
+            my_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
+        elif len(tiles) == MahjongConstants.TSUMO_TEHAI_SIZE:
+            my_tsumohai = MS_TILE_2_MJAI_TILE[tiles[MahjongConstants.TEHAI_SIZE]]
+            all_tehais = [*my_tehais, my_tsumohai]
+            all_tehais = sorted(all_tehais, key=cmp_to_key(compare_pai))
+            tehais[self.seat] = all_tehais[: MahjongConstants.TEHAI_SIZE]
+            my_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
+        else:
+            logger.error(f"Unexpected tile count in ActionNewRound: {len(tiles)}")
+            return [], [], None
+
+        return tehais, my_tehais, my_tsumohai
 
     def _handle_action_new_round(self, action_data: dict) -> list[dict]:
         """处理ActionNewRound动作"""
@@ -113,43 +130,85 @@ class MajsoulBridge(BaseBridge):
         if self.is_3p:
             scores = [*scores, 0]
 
-        tehais = [["?"] * MahjongConstants.TEHAI_SIZE] * MahjongConstants.SEATS_4P
-        my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
-        for hai in range(MahjongConstants.TEHAI_SIZE):
-            my_tehais[hai] = MS_TILE_2_MJAI_TILE[data["tiles"][hai]]
-
-        if len(data["tiles"]) == MahjongConstants.TEHAI_SIZE:
-            tehais[self.seat] = sorted(my_tehais, key=cmp_to_key(compare_pai))
-        elif len(data["tiles"]) == MahjongConstants.TSUMO_TEHAI_SIZE:
-            self.my_tsumohai = MS_TILE_2_MJAI_TILE[data["tiles"][MahjongConstants.TEHAI_SIZE]]
-            all_tehais = [*my_tehais, self.my_tsumohai]
-            all_tehais = sorted(all_tehais, key=cmp_to_key(compare_pai))
-            tehais[self.seat] = all_tehais[: MahjongConstants.TEHAI_SIZE]
-        else:
-            logger.error(f"Unexpected tile count in ActionNewRound: {len(data['tiles'])}")
+        tehais, self.my_tehais, self.my_tsumohai = self._setup_new_round_tehais(data["tiles"])
+        if not tehais:
             return []
 
         # 构造 start_kyoku 事件（两种情况都需要）
         ret.append(
-            {
-                "type": "start_kyoku",
-                "bakaze": bakaze,
-                "dora_marker": dora_marker,
-                "honba": honba,
-                "kyoku": kyoku,
-                "kyotaku": kyotaku,
-                "oya": oya,
-                "scores": scores,
-                "tehais": tehais,
-                "is_3p": self.is_3p,
-            }
+            self.make_start_kyoku(
+                bakaze=bakaze,
+                kyoku=kyoku,
+                honba=honba,
+                kyotaku=kyotaku,
+                oya=oya,
+                dora_marker=dora_marker,
+                scores=scores,
+                tehais=tehais,
+                is_3p=self.is_3p,
+            )
         )
 
         # 如果是 14 张牌，额外添加 tsumo 事件
         if len(data["tiles"]) == MahjongConstants.TSUMO_TEHAI_SIZE:
-            ret.append({"type": "tsumo", "actor": self.seat, "pai": all_tehais[MahjongConstants.TEHAI_SIZE]})
+            ret.append(self.make_tsumo(self.seat, self.my_tsumohai))
 
         return ret
+
+    def _update_hand_discard(self, actor: int, pai: str, tsumogiri: bool):
+        """更新打牌后的手牌状态"""
+        if actor != self.seat:
+            return
+
+        if tsumogiri:
+            self.my_tsumohai = None
+        else:
+            if pai in self.my_tehais:
+                self.my_tehais.remove(pai)
+            elif self.my_tsumohai == pai:
+                self.my_tsumohai = None
+            else:
+                logger.warning(f"Discarded tile {pai} not found in hand {self.my_tehais}")
+
+            if self.my_tsumohai:
+                self.my_tehais.append(self.my_tsumohai)
+                self.my_tehais.sort(key=cmp_to_key(compare_pai))
+                self.my_tsumohai = None
+
+    def _update_hand_open_meld(self, actor: int, consumed: list[str]):
+        """更新吃碰明杠后的手牌状态"""
+        if actor != self.seat:
+            return
+
+        for t in consumed:
+            if t in self.my_tehais:
+                self.my_tehais.remove(t)
+
+    def _update_hand_kan(self, actor: int, consumed: list[str], is_kakan: bool, pai: str | None = None):
+        """更新暗杠/加杠后的手牌状态"""
+        if actor != self.seat:
+            return
+
+        if is_kakan:
+            # 加杠
+            if self.my_tsumohai == pai:
+                self.my_tsumohai = None
+            elif pai and pai in self.my_tehais:
+                self.my_tehais.remove(pai)
+        else:
+            # 暗杠
+            removal_candidates = list(consumed)
+            if self.my_tsumohai in removal_candidates:
+                removal_candidates.remove(self.my_tsumohai)
+                self.my_tsumohai = None
+
+            for t in removal_candidates:
+                if t in self.my_tehais:
+                    self.my_tehais.remove(t)
+                elif t.replace("r", "") in self.my_tehais:
+                    self.my_tehais.remove(t.replace("r", ""))
+                elif t + "r" in self.my_tehais:
+                    self.my_tehais.remove(t + "r")
 
     def _handle_action_chi_peng_gang(self, action_data: dict) -> list[dict]:
         """处理吃碰杠动作"""
@@ -170,16 +229,18 @@ class MajsoulBridge(BaseBridge):
         assert len(consumed) != 0
         assert pai != ""
 
+        self._update_hand_open_meld(actor, consumed)
+
         match data["type"]:
             case OperationChiPengGang.Chi:
                 assert len(consumed) == MahjongConstants.CHI_CONSUMED
-                return [{"type": "chi", "actor": actor, "target": target, "pai": pai, "consumed": consumed}]
+                return [self.make_chi(actor, target, pai, consumed)]
             case OperationChiPengGang.Peng:
                 assert len(consumed) == MahjongConstants.PON_CONSUMED
-                return [{"type": "pon", "actor": actor, "target": target, "pai": pai, "consumed": consumed}]
+                return [self.make_pon(actor, target, pai, consumed)]
             case OperationChiPengGang.Gang:
                 assert len(consumed) == MahjongConstants.DAIMINKAN_CONSUMED
-                return [{"type": "daiminkan", "actor": actor, "target": target, "pai": pai, "consumed": consumed}]
+                return [self.make_daiminkan(actor, target, pai, consumed)]
             case _:
                 logger.error(f"Unknown ActionChiPengGang type: {data['type']}")
                 return []
@@ -195,13 +256,17 @@ class MajsoulBridge(BaseBridge):
                 consumed = [pai.replace("r", "")] * MahjongConstants.ANKAN_TILES
                 if pai[0] == "5" and pai[1] != "z":
                     consumed[0] += "r"
-                return [{"type": "ankan", "actor": actor, "consumed": consumed}]
+
+                self._update_hand_kan(actor, consumed, is_kakan=False)
+                return [self.make_ankan(actor, consumed)]
             case OperationAnGangAddGang.AddGang:
                 pai = MS_TILE_2_MJAI_TILE[data["tiles"]]
                 consumed = [pai.replace("r", "")] * MahjongConstants.KAKAN_CONSUMED
                 if pai[0] == "5" and not pai.endswith("r"):
                     consumed[0] = consumed[0] + "r"
-                return [{"type": "kakan", "actor": actor, "pai": pai, "consumed": consumed}]
+
+                self._update_hand_kan(actor, consumed, is_kakan=True, pai=pai)
+                return [self.make_kakan(actor, pai, consumed)]
         return []
 
     def _handle_dora_update(self, action_data: dict) -> list[dict]:
@@ -212,7 +277,7 @@ class MajsoulBridge(BaseBridge):
             and len(action_data["data"]["doras"]) > len(self.doras)
         ):
             self.doras = action_data["data"]["doras"]
-            return [{"type": "dora", "dora_marker": MS_TILE_2_MJAI_TILE[action_data["data"]["doras"][-1]]}]
+            return [self.make_dora(MS_TILE_2_MJAI_TILE[action_data["data"]["doras"][-1]])]
         return []
 
     def _handle_action_deal_tile(self, action_data: dict) -> list[dict]:
@@ -222,8 +287,9 @@ class MajsoulBridge(BaseBridge):
             pai = "?"
         else:
             pai = MS_TILE_2_MJAI_TILE[action_data["data"]["tile"]]
-            self.my_tsumohai = pai
-        return [{"type": "tsumo", "actor": actor, "pai": pai}]
+            if actor == self.seat:
+                self.my_tsumohai = pai
+        return [self.make_tsumo(actor, pai)]
 
     def _handle_action_discard_tile(self, action_data: dict) -> list[dict]:
         """处理 ActionDiscardTile（打牌）动作"""
@@ -233,11 +299,27 @@ class MajsoulBridge(BaseBridge):
         pai = MS_TILE_2_MJAI_TILE[action_data["data"]["tile"]]
         tsumogiri = action_data["data"]["moqie"]
         if action_data["data"]["isLiqi"]:
-            ret.append({"type": "reach", "actor": actor})
-        ret.append({"type": "dahai", "actor": actor, "pai": pai, "tsumogiri": tsumogiri})
+            ret.append(self.make_reach(actor))
+        ret.append(self.make_dahai(actor, pai, tsumogiri))
+
+        self._update_hand_discard(actor, pai, tsumogiri)
+
         if action_data["data"]["isLiqi"]:
-            self.accept_reach = {"type": "reach_accepted", "actor": actor}
+            self.accept_reach = self.make_reach_accepted(actor)
         return ret
+
+    def _handle_action_ba_bei(self, action_data: dict) -> list[dict]:
+        """处理 ActionBaBei（拔北）动作"""
+        actor = action_data["data"]["seat"]
+
+        # 更新手牌：移除北风
+        if actor == self.seat:
+            if "N" in self.my_tehais:
+                self.my_tehais.remove("N")
+            else:
+                logger.warning(f"Nukidora 'N' not found in hand {self.my_tehais}")
+
+        return [self.make_nukidora(actor)]
 
     def _handle_action_prototype(self, liqi_message: dict) -> list[dict]:
         """处理ActionPrototype相关的所有动作"""
@@ -245,7 +327,7 @@ class MajsoulBridge(BaseBridge):
         action_data = liqi_message["data"]
         action_name = action_data["name"]
 
-        # start_kyoku
+        # 本局开始
         if action_name == "ActionNewRound":
             ret.extend(self._handle_action_new_round(action_data))
 
@@ -275,12 +357,11 @@ class MajsoulBridge(BaseBridge):
 
         # 拔北
         elif action_name == "ActionBaBei":
-            actor = action_data["data"]["seat"]
-            ret.append({"type": "nukidora", "actor": actor, "pai": "N"})
+            ret.extend(self._handle_action_ba_bei(action_data))
 
         # 本局结束
         elif action_name in ["ActionHule", "ActionNoTile", "ActionLiuJu"]:
-            return [{"type": "end_kyoku"}]
+            return [self.make_end_kyoku()]
 
         return ret
 
@@ -294,7 +375,7 @@ class MajsoulBridge(BaseBridge):
         except Exception:
             pass
         self.game_ended = True
-        return [{"type": "end_game"}]
+        return [self.make_end_game()]
 
     def _handle_auth_game(self, liqi_message: dict, msg_type: MsgType) -> list[dict]:
         """处理游戏认证消息"""
@@ -339,6 +420,3 @@ class MajsoulBridge(BaseBridge):
             result = self._handle_game_end(data)
 
         return result
-
-    def build(self, command: dict) -> None | bytes:
-        pass

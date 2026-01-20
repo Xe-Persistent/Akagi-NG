@@ -1,8 +1,10 @@
 import queue
 import threading
 
+from akagi_ng.core.constants import Platform
 from akagi_ng.playwright_client.logger import logger
-from akagi_ng.playwright_client.majsoul import PlaywrightController, mjai_messages
+from akagi_ng.playwright_client.majsoul import MajsoulController
+from akagi_ng.playwright_client.tenhou import TenhouController
 from akagi_ng.settings import local_settings
 
 
@@ -11,12 +13,17 @@ class PlaywrightClient:
         self.messages: queue.Queue[dict] | None = None
         self.running = False
         self._thread: threading.Thread | None = None
-        self.controller: PlaywrightController = PlaywrightController(local_settings.majsoul_url, frontend_url)
+
+        if local_settings.browser.platform == Platform.TENHOU:
+            self.controller = TenhouController(local_settings.browser.url, frontend_url)
+        else:
+            # Default to Majsoul
+            self.controller = MajsoulController(local_settings.browser.url, frontend_url)
 
     def start(self):
         if self.running:
             return
-        self.messages = mjai_messages
+        self.messages = self.controller.mjai_messages
         self._thread = threading.Thread(target=self.controller.start, daemon=True)
         self._thread.start()
         self.running = True

@@ -1,7 +1,6 @@
 import contextlib
 import signal
 import threading
-import time
 import webbrowser
 
 from akagi_ng.core import context, paths
@@ -19,7 +18,15 @@ logger = logger.bind(module="akagi")
 
 class AkagiApp:
     def __init__(self):
+        self._stop_event = threading.Event()
+        self.missing_resources: list[str] = []
+        self.ds: DataServer | None = None
+        self.frontend_url = ""
+        self.is_browser_mode = False
+
+    def initialize(self):
         from akagi_ng import AKAGI_VERSION
+        from akagi_ng.core.loader import ComponentLoader
 
         logger.info(f"Starting Akagi-NG {AKAGI_VERSION}...")
         paths.ensure_runtime_dirs()
@@ -27,9 +34,7 @@ class AkagiApp:
 
         settings = loaded_settings
         configure_logging(settings.log_level)
-
-        self._stop_event = threading.Event()
-        self.missing_resources: list[str] = []
+        self.is_browser_mode = settings.browser.enabled
 
         # DataServer
         host, port = settings.server.host, settings.server.port
@@ -38,8 +43,11 @@ class AkagiApp:
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        # 初始化组件和全局上下文
-        mjai_bot, mjai_controller = self._load_bot_components()
+        # Loader
+        loader = ComponentLoader()
+        mjai_bot, mjai_controller = loader.load_bot_components()
+        self.missing_resources = loader.missing_resources
+
         context.app = context.AppContext(
             settings=settings,
             controller=mjai_controller,
@@ -47,43 +55,6 @@ class AkagiApp:
             playwright_client=PlaywrightClient(frontend_url=self.frontend_url),
             mitm_client=MitmClient(),
         )
-
-        self.is_browser_mode = settings.browser.enabled
-
-    def _check_directory(self, path_getter, resource_name: str) -> bool:
-        """检查目录是否存在且非空"""
-        directory = path_getter()
-        if not directory.exists() or not any(directory.iterdir()):
-            self.missing_resources.append(resource_name)
-            return False
-        return True
-
-    def _load_bot_components(self):
-        """如果资源可用则加载 bot/controller"""
-        # 检查必需目录
-        if not self._check_directory(paths.get_lib_dir, "lib"):
-            return None, None
-
-        # 尝试加载原生库
-        try:
-            import akagi_ng.core.lib_loader  # noqa: F401
-        except ImportError:
-            self.missing_resources.append("lib")
-            return None, None
-
-        if not self._check_directory(paths.get_models_dir, "models"):
-            return None, None
-
-        # 加载 bot 模块
-        try:
-            from akagi_ng.mjai_bot.bot import StateTrackerBot
-            from akagi_ng.mjai_bot.controller import Controller
-
-            return StateTrackerBot(), Controller()
-        except ImportError as e:
-            logger.error(f"Failed to load bot modules: {e}")
-            self.missing_resources.append("bot")
-            return None, None
 
     def start(self):
         self.ds.start()
@@ -99,14 +70,6 @@ class AkagiApp:
         self._setup_signals()
         logger.info("Akagi backend loop started.")
 
-        if self.missing_resources:
-            logger.error(f"Missing resources: {self.missing_resources}")
-            threading.Thread(target=self._send_error_delayed, daemon=True).start()
-
-    def _send_error_delayed(self):
-        time.sleep(2.0)
-        self.ds.update_system_error(NotificationCode.MISSING_RESOURCES, ", ".join(self.missing_resources))
-
     def _setup_signals(self):
         signal.signal(signal.SIGINT, lambda *_: self.stop())
         with contextlib.suppress(Exception):
@@ -115,7 +78,7 @@ class AkagiApp:
     def stop(self):
         self._stop_event.set()
 
-    def _process_message_batch(self, mjai_msgs: list[dict]) -> tuple[list[dict], list[dict]]:
+    def _process_message_batch(self, mjai_msgs: list[dict], bot, controller) -> tuple[list[dict], list[dict]]:
         """
         Process a batch of MJAI messages.
 
@@ -138,10 +101,10 @@ class AkagiApp:
                         continue
 
                 # 2. Controller -> 3. Bot (order matters, see docstring)
-                if context.app.controller and (resp := context.app.controller.react(msg)):
+                if controller and (resp := controller.react(msg)):
                     mjai_responses.append(resp)
-                if context.app.bot:
-                    context.app.bot.react(msg)
+                if bot:
+                    bot.react(msg)
 
             except Exception:
                 logger.exception(f"Error processing mjai msg: {msg}")
@@ -160,7 +123,7 @@ class AkagiApp:
             mjai_msgs.extend(context.app.mitm_client.dump_messages())
         return mjai_msgs
 
-    def _process_events(self, mjai_msgs: list[dict]) -> dict:
+    def _process_events(self, mjai_msgs: list[dict], bot, controller) -> dict:
         """
         Process the batch of MJAI messages.
         This is the PROCESS phase of the Reactor pattern.
@@ -169,34 +132,34 @@ class AkagiApp:
             - mjai_responses: List of responses from controller
             - notifications: List of notifications to send
         """
-        mjai_responses, batch_notifications = self._process_message_batch(mjai_msgs)
+        mjai_responses, batch_notifications = self._process_message_batch(mjai_msgs, bot, controller)
+
         return {
             "mjai_responses": mjai_responses,
             "batch_notifications": batch_notifications,
         }
 
-    def _emit_outputs(self, result: dict) -> None:
+    def _emit_outputs(self, result: dict, bot) -> None:
         """
         Send processed results to the DataServer.
         This is the OUTPUT phase of the Reactor pattern.
         """
-        if not context.app.bot or self.missing_resources:
+        if not bot or self.missing_resources:
             return
 
         mjai_responses = result["mjai_responses"]
         batch_notifications = result["batch_notifications"]
 
-        # 1. Payload：目前使用最后一个有效响应
-        # TODO: 如果多响应变得常见，考虑合并策略
+        # 1. Payload：使用最后一个有效响应
         last_response = mjai_responses[-1] if mjai_responses else {}
-        payload = build_dataserver_payload(last_response, context.app.bot)
+        payload = build_dataserver_payload(last_response, bot)
 
         # 2. Notifications: 从各种来源收集通知
         all_notifications = batch_notifications.copy()
 
         # 2.1 从 bot.notification_flags 收集引擎和 bot 状态通知
-        if context.app.bot:
-            notification_flags = getattr(context.app.bot, "notification_flags", {})
+        if bot:
+            notification_flags = getattr(bot, "notification_flags", {})
             bot_notifications = NotificationHandler.from_flags(notification_flags)
             all_notifications.extend(bot_notifications)
 
@@ -230,6 +193,15 @@ class AkagiApp:
         2. _process_events() - 处理消息并生成响应
         3. _emit_outputs()   - 发送结果到 DataServer
         """
+        # 循环前检查：如果需要，发送错误通知
+        if self.missing_resources:
+            logger.error(f"Missing resources: {self.missing_resources}")
+            self.ds.update_system_error(NotificationCode.MISSING_RESOURCES, ", ".join(self.missing_resources))
+
+        # 捕获引用以减少全局上下文访问
+        bot = context.app.bot
+        controller = context.app.controller
+
         try:
             while not self._stop_event.is_set():
                 if self._should_exit():
@@ -243,10 +215,10 @@ class AkagiApp:
 
                 try:
                     # 阶段 2：PROCESS - 处理事件
-                    result = self._process_events(mjai_msgs)
+                    result = self._process_events(mjai_msgs, bot, controller)
 
                     # 阶段 3：OUTPUT - 分发结果
-                    self._emit_outputs(result)
+                    self._emit_outputs(result, bot)
 
                 except Exception as e:
                     logger.exception(f"Critical error in main loop dispatch: {e}")

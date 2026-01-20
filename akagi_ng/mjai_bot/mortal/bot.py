@@ -1,4 +1,4 @@
-from akagi_ng.mjai_bot.engine.mortal import MortalEngine
+from akagi_ng.mjai_bot.engine import MortalEngine
 from akagi_ng.mjai_bot.mortal.base import MortalBot as BaseMortalBot
 
 

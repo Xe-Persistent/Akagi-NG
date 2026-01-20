@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { getStatusConfig } from '../config/statusConfig';
@@ -37,6 +37,7 @@ export function useStatusNotification(
   const [statusType, setStatusType] = useState<StatusLevel>(STATUS_LEVEL.INFO);
   const [activeStatusCode, setActiveStatusCode] = useState<string | null>(null);
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
+  const activeToastIds = useRef<Set<string>>(new Set());
 
   // 合并后端通知和连接错误
   const allNotifications = useMemo(() => {
@@ -52,6 +53,11 @@ export function useStatusNotification(
   useEffect(() => {
     if (allNotifications.length === 0) {
       setStatusMessage(null);
+      // 清除所有活跃的 toast
+      activeToastIds.current.forEach((toastId) => {
+        toast.dismiss(toastId);
+      });
+      activeToastIds.current.clear();
       return;
     }
 
@@ -63,6 +69,8 @@ export function useStatusNotification(
       lifecycle: string;
       autoHide?: number;
     }> = [];
+
+    const currentToastIds = new Set<string>();
 
     allNotifications.forEach((note) => {
       const config = getStatusConfig(note.code);
@@ -82,6 +90,9 @@ export function useStatusNotification(
           autoClose,
           toastId: note.code,
         });
+
+        // 记录当前应该活跃的 toast
+        currentToastIds.add(note.code);
       }
 
       // 处理状态栏
@@ -99,6 +110,16 @@ export function useStatusNotification(
         }
       }
     });
+
+    // 清除不再需要的 toast
+    activeToastIds.current.forEach((toastId) => {
+      if (!currentToastIds.has(toastId)) {
+        toast.dismiss(toastId);
+      }
+    });
+
+    // 更新活跃的 toast 列表
+    activeToastIds.current = currentToastIds;
 
     // 确定状态栏显示内容
     if (statusCandidates.length > 0) {

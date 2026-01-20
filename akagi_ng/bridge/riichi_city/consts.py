@@ -39,6 +39,8 @@ CARD2MJAI = {
     0x125: "5mr",  # 0x105-0x125
 }
 
+MJAI2CARD = {v: k for k, v in CARD2MJAI.items()}
+
 
 class RCAction:
     CHI_LOW = 2
@@ -53,3 +55,9 @@ class RCAction:
     DAHAI_REACH = 11
     RYUKYOKU = 12
     NUKIDORA = 13
+
+
+class RCProtocol:
+    HEADER_LENGTH = 15
+    HEADER_SIGNATURE = b"\x00\x0f\x00\x01"
+    MSG_TYPE_REQ = 2

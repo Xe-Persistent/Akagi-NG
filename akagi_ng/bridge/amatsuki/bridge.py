@@ -10,6 +10,7 @@ from akagi_ng.bridge.amatsuki.consts import (
 )
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
+from akagi_ng.core.constants import MahjongConstants
 
 
 class STOMPFrame(Enum):
@@ -123,6 +124,8 @@ class AmatsukiBridge(BaseBridge):
         # 是否三人麻将
         # 用于检查游戏是否为三人麻将
         self.is_3p: bool = False
+        # 手牌 ID 列表
+        self.hand_ids: list[int] = []
 
         self.handlers = {
             AmatsukiTopic.JOIN_DESK_CALLBACK: self._handle_join_desk_callback,
@@ -164,43 +167,42 @@ class AmatsukiBridge(BaseBridge):
             logger.error(f"Failed to parse: {e} at {e.__traceback__.tb_lineno}")
             return None
 
-    def _handle_join_desk_callback(self, stomp: STOMP) -> None:  # noqa: PLR0911
+    def _handle_join_desk_callback(self, stomp: STOMP) -> None:
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return
-        if any(
-            key not in content_dict
-            for key in [
-                "status",
-                "errorCode",
-                "gameType",
-                "gameMode",
-                "roomType",
-                "currentPlayerCount",
-                "maxCount",
-            ]
-        ):
+
+        required_keys = ["status", "errorCode", "gameType", "gameMode", "roomType", "currentPlayerCount", "maxCount"]
+        if any(key not in content_dict for key in required_keys):
             logger.error(f"Invalid content: {stomp.content}")
             return
+
+        # 验证 status 和 errorCode
         if content_dict["status"] != 0:
             logger.warning(f"status: {content_dict['status']}")
             return
         if content_dict["errorCode"] != 0:
             logger.warning(f"errorCode: {content_dict['errorCode']}")
             return
+
+        # 验证 gameType（必须是日麻）
         if content_dict["gameType"] != 0:  # 0: Japanese Mahjong
             logger.warning(f"Unsupported gameType: {content_dict['gameType']}")
             return
-        if content_dict["gameMode"] == 0:  # 0: 4P, 1: 3P
+
+        # 设置游戏模式
+        game_mode = content_dict["gameMode"]
+        if game_mode == 0:  # 0: 4P, 1: 3P
             self.is_3p = False
-        elif content_dict["gameMode"] == 1:  # 0: 4P, 1: 3P
+        elif game_mode == 1:
             self.is_3p = True
         else:
-            logger.warning(f"Unsupported gameMode: {content_dict['gameMode']}")
+            logger.warning(f"Unsupported gameMode: {game_mode}")
             return
+
+        # 设置有效流程和桌号
         self.valid_flow = True
         self.desk_id = content_dict["deskId"]
-        return
 
     def _parse_tehais(self, player_tiles: list[dict]) -> list[list[str]]:
         tehais = []
@@ -213,7 +215,7 @@ class AmatsukiBridge(BaseBridge):
                 logger.error("Invalid content: missing keys in player_tile['tehai']")
                 return []
             if player_tile["tehai"]["hand"][0]["id"] == -1:
-                tehai = ["?"] * 13
+                tehai = ["?"] * MahjongConstants.TEHAI_SIZE
                 tehais.append(tehai)
                 continue
             self.seat = idx
@@ -251,7 +253,7 @@ class AmatsukiBridge(BaseBridge):
             return None
 
         if self.is_3p:
-            tehais.append(["?"] * 13)
+            tehais.append(["?"] * MahjongConstants.TEHAI_SIZE)
         if self.seat is None:
             logger.error("Seat not found")
             return None
@@ -260,21 +262,20 @@ class AmatsukiBridge(BaseBridge):
         self.last_discard_actor = None
         self.last_discard = None
 
-        command = {
-            "type": "start_kyoku",
-            "bakaze": BAKAZE_TO_MJAI_PAI[bakaze],
-            "dora_marker": None,
-            "kyoku": oya + 1,
-            "honba": honba,
-            "kyotaku": None,
-            "oya": oya,
-            "scores": player_points,
-            "tehais": tehais,
-        }
+        command = self.make_start_kyoku(
+            bakaze=BAKAZE_TO_MJAI_PAI[bakaze],
+            kyoku=oya + 1,
+            honba=honba,
+            kyotaku=None,
+            oya=oya,
+            dora_marker=None,
+            scores=player_points,
+            tehais=tehais,
+        )
         self.temp_start_round = command
         if not self.game_started:
             self.game_started = True
-            return [{"type": "start_game", "id": self.seat}]
+            return [self.make_start_game(self.seat)]
         return None
 
     def _handle_sync_dora(self, stomp: STOMP) -> list[dict] | None:
@@ -298,7 +299,7 @@ class AmatsukiBridge(BaseBridge):
         if len(content_dict["dora"]) > self.current_dora_count:
             dora_hai = ID_TO_MJAI_PAI[content_dict["dora"][-1]["id"]]
             self.current_dora_count = len(content_dict["dora"])
-            return [{"type": "dora", "dora_marker": dora_hai}]
+            return [self.make_dora(dora_hai)]
         return None
 
     def _handle_draw(self, stomp: STOMP) -> list[dict] | None:
@@ -315,12 +316,13 @@ class AmatsukiBridge(BaseBridge):
         pai: str = "?"
         if content_dict["position"] == self.seat:
             pai = ID_TO_MJAI_PAI[content_dict["hai"]["id"]]
+            self.hand_ids.append(content_dict["hai"]["id"])
 
         ret = []
         if self.temp_reach_accepted:
             ret.append(self.temp_reach_accepted)
             self.temp_reach_accepted = None
-        ret.append({"type": "tsumo", "actor": actor, "pai": pai})
+        ret.append(self.make_tsumo(actor, pai))
         return ret
 
     def _build_dahai(self, content_dict: dict, actor: int) -> list[dict]:
@@ -328,11 +330,15 @@ class AmatsukiBridge(BaseBridge):
         tsumogiri = content_dict["isKiri"]
         self.last_discard_actor = actor
         self.last_discard = pai
-        return [{"type": "dahai", "actor": actor, "pai": pai, "tsumogiri": tsumogiri}]
+        if actor == self.seat:
+            tid = content_dict["haiList"][0]["id"]
+            if tid in self.hand_ids:
+                self.hand_ids.remove(tid)
+        return [self.make_dahai(actor, pai, tsumogiri)]
 
     def _build_ankan(self, content_dict: dict, actor: int) -> list[dict]:
         consumed = [ID_TO_MJAI_PAI[tile["id"]] for tile in content_dict["haiList"]]
-        return [{"type": "ankan", "actor": actor, "consumed": consumed}]
+        return [self.make_ankan(actor, consumed)]
 
     def _build_kakan(self, content_dict: dict, actor: int) -> list[dict]:
         pai = ID_TO_MJAI_PAI[content_dict["haiList"][0]["id"]]
@@ -344,31 +350,30 @@ class AmatsukiBridge(BaseBridge):
             consumed = [pai[:-1]] * 3
         else:
             consumed = [pai] * 3
-        return [{"type": "kakan", "actor": actor, "pai": pai, "consumed": consumed}]
+        return [self.make_kakan(actor, pai, consumed)]
 
     def _build_reach(self, content_dict: dict, actor: int) -> list[dict]:
         pai = ID_TO_MJAI_PAI[content_dict["haiList"][0]["id"]]
         tsumogiri = content_dict["isKiri"]
-        self.temp_reach_accepted = {"type": "reach_accepted", "actor": actor}
+        self.temp_reach_accepted = self.make_reach_accepted(actor)
         self.last_discard_actor = actor
         return [
-            {"type": "reach", "actor": actor},
-            {"type": "dahai", "actor": actor, "pai": pai, "tsumogiri": tsumogiri},
+            self.make_reach(actor),
+            self.make_dahai(actor, pai, tsumogiri),
         ]
 
     def _build_wreach(self, content_dict: dict, actor: int) -> list[dict]:
         pai = ID_TO_MJAI_PAI[content_dict["haiList"][0]["id"]]
-        self.temp_reach_accepted = {"type": "reach_accepted", "actor": actor}
+        self.temp_reach_accepted = self.make_reach_accepted(actor)
         self.last_discard_actor = actor
         return [
-            {"type": "reach", "actor": actor},
-            {"type": "dahai", "actor": actor, "pai": pai, "tsumogiri": True},
+            self.make_reach(actor),
+            self.make_dahai(actor, pai, True),
         ]
 
     def _build_kita(self, content_dict: dict, actor: int) -> list[dict]:
         assert self.is_3p, "nukidora is only available in 3P"
-        pai = ID_TO_MJAI_PAI[content_dict["haiList"][0]["id"]]
-        return [{"type": "nukidora", "actor": actor, "pai": pai}]
+        return [self.make_nukidora(actor)]
 
     def _handle_tehai_action(self, stomp: STOMP) -> list[dict] | None:
         if not self.valid_flow:
@@ -397,6 +402,23 @@ class AmatsukiBridge(BaseBridge):
 
         return None
 
+    def _extract_consumed_from_menzu(self, menzu_list: list[dict], actor: int) -> list[str]:
+        consumed: list[str] = []
+        skip_pai = True
+        for tile in menzu_list:
+            tile_pai = ID_TO_MJAI_PAI[tile["id"]]
+            if skip_pai and tile_pai == self.last_discard:
+                skip_pai = False
+                continue
+            consumed.append(tile_pai)
+
+        if actor == self.seat:
+            for tile in menzu_list:
+                if tile["id"] in self.hand_ids:
+                    self.hand_ids.remove(tile["id"])
+
+        return consumed
+
     def _handle_river_action(self, stomp: STOMP) -> list[dict] | None:
         if not self.valid_flow:
             return None
@@ -412,15 +434,7 @@ class AmatsukiBridge(BaseBridge):
         target: int = self.last_discard_actor
         pai: str = self.last_discard
 
-        # Helper to extract consumed tiles
-        consumed: list[str] = []
-        skip_pai = True
-        for tile in content_dict["menzu"]["menzuList"]:
-            tile_pai = ID_TO_MJAI_PAI[tile["id"]]
-            if skip_pai and tile_pai == self.last_discard:
-                skip_pai = False
-                continue
-            consumed.append(tile_pai)
+        consumed = self._extract_consumed_from_menzu(content_dict["menzu"]["menzuList"], actor)
 
         ret = []
         if self.temp_reach_accepted:
@@ -458,7 +472,7 @@ class AmatsukiBridge(BaseBridge):
             return None
         if self.temp_reach_accepted:
             self.temp_reach_accepted = None
-        return [{"type": "end_kyoku"}]
+        return [self.make_end_kyoku()]
 
     def _handle_ryukyoku_action(self, stomp: STOMP) -> list[dict] | None:
         if not self.valid_flow:
@@ -468,7 +482,7 @@ class AmatsukiBridge(BaseBridge):
             return None
         if self.temp_reach_accepted:
             self.temp_reach_accepted = None
-        return [{"type": "end_kyoku"}]
+        return [self.make_end_kyoku()]
 
     def _handle_game_end(self, stomp: STOMP) -> list[dict] | None:
         if not self.valid_flow:
@@ -478,13 +492,10 @@ class AmatsukiBridge(BaseBridge):
             return None
         if self.temp_reach_accepted:
             self.temp_reach_accepted = None
-        return [{"type": "end_game"}]
+        return [self.make_end_game()]
 
     def _validate_content(self, content_dict: dict | None, stomp: STOMP) -> bool:
         if not content_dict:
             logger.error(f"Invalid content: {stomp.content}")
             return False
         return True
-
-    def build(self, command: dict) -> None | bytes:
-        pass

@@ -33,18 +33,6 @@ class MahjongConstants:
     MIN_RIICHI_CANDIDATES = 5  # 立直前瞻候选数
 
 
-class LiqiProtocolConstants:
-    """Liqi 协议常量"""
-
-    # 消息块类型
-    MSG_BLOCK_SIZE = 2  # 标准消息块大小
-    BLOCK_TYPE_VARINT = 0  # varint 类型
-    BLOCK_TYPE_STRING = 2  # string 类型
-
-    # 空数据长度
-    EMPTY_DATA_LEN = 0  # 空数据长度
-
-
 class ModelConstants:
     """模型相关常量"""
 

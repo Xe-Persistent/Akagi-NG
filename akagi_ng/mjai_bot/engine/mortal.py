@@ -7,7 +7,7 @@ from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
 
 
 class MortalEngine(BaseEngine):
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         brain,
         dqn,
@@ -82,7 +82,7 @@ class MortalEngine(BaseEngine):
         return result_actions, result_q_out, result_masks, result_is_greedy
 
 
-def _sample_top_p(logits, p):
+def _sample_top_p(logits: torch.Tensor, p: float) -> torch.Tensor:
     if p >= 1:
         return Categorical(logits=logits).sample()
     if p <= 0:

@@ -8,17 +8,6 @@ import StreamRenderComponent from './StreamRenderComponent.tsx';
 import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
 import type { FullRecommendationData } from '@/types';
 
-// 类型声明
-declare global {
-  interface Window {
-    documentPictureInPicture?: {
-      requestWindow(options: { width: number; height: number }): Promise<Window>;
-      window: Window | null;
-      onenter: ((this: EventTarget, ev: Event) => void) | null;
-    };
-  }
-}
-
 interface StreamPlayerProps {
   data: FullRecommendationData | null;
 }

@@ -4,6 +4,8 @@ import os
 import signal
 import threading
 import time
+from collections.abc import Callable
+from pathlib import Path
 
 from aiohttp import web
 
@@ -24,7 +26,7 @@ mimetypes.add_type("application/javascript", ".mjs")
 
 
 @web.middleware
-async def cors_middleware(request: web.Request, handler):
+async def cors_middleware(request: web.Request, handler: Callable[[web.Request], web.StreamResponse]) -> web.Response:
     """Add CORS headers to all responses."""
     if request.method == "OPTIONS":
         return web.Response(status=204, headers=CORS_HEADERS)
@@ -33,7 +35,7 @@ async def cors_middleware(request: web.Request, handler):
     return response
 
 
-def _json_response(data, status: int = 200) -> web.Response:
+def _json_response(data: dict, status: int = 200) -> web.Response:
     """Helper to create JSON response with ensure_ascii=False."""
     return web.json_response(
         data,
@@ -90,7 +92,7 @@ async def reset_settings_handler(_request: web.Request) -> web.Response:
 
 async def handle_shutdown(_request: web.Request) -> web.Response:
     def _kill():
-        time.sleep(1)  # Give time to send response
+        time.sleep(1)  # 给予时间发送响应
         logger.info("Shutdown requested via API. Sending SIGINT...")
         os.kill(os.getpid(), signal.SIGINT)
 
@@ -98,7 +100,7 @@ async def handle_shutdown(_request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "message": "Shutting down..."})
 
 
-def setup_routes(app: web.Application):
+def setup_routes(app: web.Application) -> None:
     app.router.add_get("/api/settings", get_settings_handler)
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
@@ -120,7 +122,7 @@ def _serve_with_gzip(file_path, accept_encoding: str) -> web.StreamResponse:
     return web.FileResponse(file_path)
 
 
-def _setup_assets_route(app: web.Application, assets_dir):
+def _setup_assets_route(app: web.Application, assets_dir: Path) -> None:
     """设置 assets 静态资源路由"""
     if not assets_dir.exists():
         return
@@ -130,7 +132,7 @@ def _setup_assets_route(app: web.Application, assets_dir):
         if not tail:
             return web.HTTPNotFound()
 
-        # Secure path handling to prevent traversal
+        # 安全路径处理以防止路径遍历攻击
         try:
             file_path = (assets_dir / tail).resolve()
             if not str(file_path).startswith(str(assets_dir.resolve())):
@@ -146,13 +148,13 @@ def _setup_assets_route(app: web.Application, assets_dir):
     app.router.add_get("/assets/{tail:.*}", _serve_asset)
 
 
-def _setup_resources_route(app: web.Application, resources_dir):
+def _setup_resources_route(app: web.Application, resources_dir: Path) -> None:
     """设置 Resources 静态资源路由"""
     if resources_dir.exists():
         app.router.add_static("/Resources/", resources_dir, show_index=False)
 
 
-def _setup_root_files_routes(app: web.Application, frontend_dist_dir):
+def _setup_root_files_routes(app: web.Application, frontend_dist_dir: Path) -> None:
     """设置根目录文件路由（除了 index.html）"""
     for p in frontend_dist_dir.iterdir():
         if not p.is_file() or p.name == "index.html":
@@ -164,7 +166,7 @@ def _setup_root_files_routes(app: web.Application, frontend_dist_dir):
         app.router.add_get(f"/{p.name}", _serve_file)
 
 
-def _setup_spa_routes(app: web.Application, frontend_dist_dir):
+def _setup_spa_routes(app: web.Application, frontend_dist_dir: Path) -> None:
     """设置 SPA 入口和回退路由"""
 
     async def _serve_index(_request: web.Request) -> web.StreamResponse:
@@ -175,7 +177,7 @@ def _setup_spa_routes(app: web.Application, frontend_dist_dir):
     app.router.add_get("/{tail:.*}", _serve_index)
 
 
-def setup_static_routes(app: web.Application, frontend_dist_dir):
+def setup_static_routes(app: web.Application, frontend_dist_dir: Path) -> None:
     if not frontend_dist_dir.exists():
         logger.warning(
             f"Frontend dist not found at {frontend_dist_dir}. Run `npm run build` in frontend/akagi_frontend first."

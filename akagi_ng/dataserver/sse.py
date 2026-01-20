@@ -35,7 +35,7 @@ class SSEManager:
         self.latest_recommendations = None
         self.latest_notification = None
         self.keep_alive_task = None
-        self.loop = None  # Reference to the event loop, set by DataServer
+        self.loop = None  # 事件循环引用，由 DataServer 设置
         self.running = False
 
     def set_loop(self, loop):
@@ -51,10 +51,10 @@ class SSEManager:
         if self.keep_alive_task:
             self.keep_alive_task.cancel()
 
-    async def _remove_client(self, client_id: str, expected_response=None):
+    async def _remove_client(self, client_id: str, expected_response=None) -> None:
         client_data = self.clients.get(client_id)
-        # If the stored response does not match the one we intend to close, skip removal to avoid
-        # kicking out a fresh connection that reused the same client_id.
+        # 如果存储的响应与我们打算关闭的不匹配，则跳过移除以避免
+        # 踢掉重用相同 client_id 的新连接
         if (
             expected_response is not None
             and client_data is not None
@@ -77,7 +77,7 @@ class SSEManager:
 
         logger.info(f"SSE client {client_id} disconnected.")
 
-    async def sse_handler(self, request):
+    async def sse_handler(self, request: web.Request) -> web.StreamResponse:
         client_id = request.query.get("clientId")
         if not client_id:
             logger.warning("Client connected without clientId, rejecting.")
@@ -129,7 +129,7 @@ class SSEManager:
 
         return response
 
-    async def _broadcast_async(self, payload: bytes):
+    async def _broadcast_async(self, payload: bytes) -> None:
         if not self.clients:
             return
 
@@ -173,13 +173,11 @@ class SSEManager:
             payload = _format_sse_message(data, event)
             asyncio.run_coroutine_threadsafe(self._broadcast_async(payload), self.loop)
 
-    async def keep_alive(self):
+    async def keep_alive(self) -> None:
         while True:
             await asyncio.sleep(10)
             if not self.clients:
                 continue
-
-            # logger.debug(f"Running keep-alive for {len(self.clients)} clients")
             zombie_client_ids = []
             zombie_responses = {}
             keepalive_payload = b": keep-alive\n\n"
@@ -196,7 +194,6 @@ class SSEManager:
                 try:
                     await response.write(keepalive_payload)
                 except ConnectionResetError:
-                    # logger.warning(f"Connection reset for {client_id}, marking as zombie.")
                     zombie_client_ids.append(client_id)
                     zombie_responses[client_id] = response
                 except Exception as exc:

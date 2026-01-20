@@ -1,4 +1,4 @@
-import type { ToastOptions, UpdateOptions } from 'react-toastify';
+import type { Id, ToastOptions, UpdateOptions } from 'react-toastify';
 import { toast } from 'react-toastify';
 import { TOAST_DURATION_DEFAULT } from '../config/constants';
 
@@ -12,25 +12,25 @@ const defaultOptions: ToastOptions = {
 };
 
 export const notify = {
-  success: (message: string, options?: ToastOptions) => {
-    toast.success(message, { ...defaultOptions, ...options });
+  success: (message: string, options?: ToastOptions): Id => {
+    return toast.success(message, { ...defaultOptions, ...options });
   },
-  error: (message: string, options?: ToastOptions) => {
-    toast.error(message, { ...defaultOptions, ...options });
+  error: (message: string, options?: ToastOptions): Id => {
+    return toast.error(message, { ...defaultOptions, ...options });
   },
-  info: (message: string, options?: ToastOptions) => {
-    toast.info(message, { ...defaultOptions, ...options });
+  info: (message: string, options?: ToastOptions): Id => {
+    return toast.info(message, { ...defaultOptions, ...options });
   },
-  warn: (message: string, options?: ToastOptions) => {
-    toast.warn(message, { ...defaultOptions, ...options });
+  warn: (message: string, options?: ToastOptions): Id => {
+    return toast.warn(message, { ...defaultOptions, ...options });
   },
-  loading: (message: string, options?: ToastOptions) => {
+  loading: (message: string, options?: ToastOptions): Id => {
     return toast.loading(message, { ...defaultOptions, ...options });
   },
-  update: (id: string | number, options: UpdateOptions) => {
+  update: (id: string | number, options: UpdateOptions): void => {
     toast.update(id, { ...defaultOptions, ...options });
   },
-  dismiss: (id?: string | number) => {
+  dismiss: (id?: string | number): void => {
     toast.dismiss(id);
   },
 };

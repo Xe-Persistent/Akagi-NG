@@ -16,16 +16,19 @@ from akagi_ng.core.constants import Platform
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
 
-# 用于存储已解析 MJAI 消息的消息队列
-mjai_messages: queue.Queue[dict] = queue.Queue()
-
-# 存储活动的流及其对应的 Bridge
-activated_flows: list[str] = []
-bridges: dict[str, BaseBridge] = {}
-bridge_lock = threading.Lock()
-
 
 class BridgeAddon:
+    def __init__(self):
+        self.active_majsoul_flow: mitmproxy.http.HTTPFlow | None = None
+
+        # 用于存储已解析 MJAI 消息的消息队列
+        self.mjai_messages: queue.Queue[dict] = queue.Queue()
+
+        # 存储活动的流及其对应的 Bridge
+        self.activated_flows: list[str] = []
+        self.bridges: dict[str, BaseBridge] = {}
+        self.bridge_lock = threading.Lock()
+
     def _get_platform_for_flow(self, flow: mitmproxy.http.HTTPFlow) -> Platform | None:
         url = flow.request.url
 
@@ -57,22 +60,22 @@ class BridgeAddon:
 
         logger.info(f"[MITM] WebSocket connection opened: {flow.id} ({flow.request.url}) for {platform.value}")
 
-        activated_flows.append(flow.id)
-        with bridge_lock:
+        self.activated_flows.append(flow.id)
+        with self.bridge_lock:
             if platform == Platform.MAJSOUL:
-                bridges[flow.id] = MajsoulBridge()
+                self.bridges[flow.id] = MajsoulBridge()
             elif platform == Platform.TENHOU:
-                bridges[flow.id] = TenhouBridge()
+                self.bridges[flow.id] = TenhouBridge()
             elif platform == Platform.AMATSUKI:
-                bridges[flow.id] = AmatsukiBridge()
+                self.bridges[flow.id] = AmatsukiBridge()
             elif platform == Platform.RIICHI_CITY:
-                bridges[flow.id] = RiichiCityBridge()
+                self.bridges[flow.id] = RiichiCityBridge()
             else:
                 logger.error(f"Unsupported platform: {platform}")
                 return
 
         # Notify system that client is connected
-        mjai_messages.put({"type": "system_event", "code": "client_connected"})
+        self.mjai_messages.put({"type": "system_event", "code": "client_connected"})
 
     def _is_target_platform(self, flow: mitmproxy.http.HTTPFlow, platform: Platform) -> bool:
         url = flow.request.url
@@ -88,7 +91,7 @@ class BridgeAddon:
         return True
 
     def websocket_message(self, flow: mitmproxy.http.HTTPFlow):
-        if flow.id not in activated_flows:
+        if flow.id not in self.activated_flows:
             return
 
         try:
@@ -96,30 +99,37 @@ class BridgeAddon:
             direction = "<-" if msg.from_client else "->"
             logger.trace(f"[MITM] {direction} Message: {msg.content}")
 
-            with bridge_lock:
-                if flow.id not in bridges:
+            with self.bridge_lock:
+                if flow.id not in self.bridges:
                     return
-                bridge = bridges[flow.id]
+                bridge = self.bridges[flow.id]
                 msgs = bridge.parse(msg.content)
 
             if msgs:
                 for m in msgs:
-                    mjai_messages.put(m)
+                    self.mjai_messages.put(m)
 
         except Exception as e:
             logger.error(f"[MITM] Error parsing message: {e}")
             logger.error(traceback.format_exc())
 
     def websocket_end(self, flow: mitmproxy.http.HTTPFlow):
-        if flow.id in activated_flows:
+        if flow.id in self.activated_flows:
             logger.info(f"[MITM] WebSocket connection closed: {flow.id}")
-            activated_flows.remove(flow.id)
-            with bridge_lock:
-                if flow.id in bridges:
-                    bridge = bridges[flow.id]
-                    # Check if game ended gracefully
+            self.activated_flows.remove(flow.id)
+            with self.bridge_lock:
+                if flow.id in self.bridges:
+                    bridge = self.bridges[flow.id]
                     game_ended = getattr(bridge, "game_ended", False)
-                    del bridges[flow.id]
+                    del self.bridges[flow.id]
 
                     code = "return_lobby" if game_ended else "game_disconnected"
-                    mjai_messages.put({"type": "system_event", "code": code})
+                    self.mjai_messages.put({"type": "system_event", "code": code})
+
+    def get_active_bridge(self) -> BaseBridge | None:
+        """
+        Get the bridge instance associated with the active Majsoul connection.
+        """
+        if self.active_majsoul_flow and self.active_majsoul_flow.id in self.bridges:
+            return self.bridges[self.active_majsoul_flow.id]
+        return None

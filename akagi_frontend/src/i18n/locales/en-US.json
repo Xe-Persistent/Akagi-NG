@@ -8,6 +8,10 @@
     "general": {
       "title": "General",
       "locale": "Language",
+      "theme": "Theme",
+      "theme_system": "System",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
       "log_level": "Log Level"
     },
     "online_model": {
@@ -17,12 +21,12 @@
       "api_key": "API Key"
     },
     "server": {
-      "title": "Service Settings",
+      "title": "Service",
       "host": "Service Address",
       "port": "Port"
     },
     "connection": {
-      "title": "Connection Method",
+      "title": "Game Connection",
       "mode": "Connection Mode",
       "mode_browser": "Browser",
       "mode_mitm": "Proxy",
@@ -33,13 +37,23 @@
         "size": "Window Size",
         "size_placeholder": "Select Resolution",
         "size_default": "Default",
-        "size_maximized": "Maximized"
+        "size_maximized": "Maximized",
+        "url": "Game URL",
+        "url_desc": "Leave empty to use the official default URL. Supports Majsoul and Tenhou only"
       },
       "mitm": {
         "title": "Proxy Settings",
         "host": "Listen Address",
         "port": "Listen Port",
         "upstream": "Upstream Proxy (Optional)"
+      },
+      "platform": {
+        "label": "Platform",
+        "majsoul": "Majsoul",
+        "tenhou": "Tenhou",
+        "riichi_city": "Riichi City",
+        "amatsuki": "Amatsuki",
+        "auto": "Auto Detect"
       }
     },
     "model_config": {
@@ -78,8 +92,8 @@
   },
   "app": {
     "title": "Akagi Next-Generation",
-    "launch_majsoul": "Launch Majsoul",
-    "launch_error": "Could not retrieve Majsoul URL. Please check settings.",
+    "launch_game": "Launch Game",
+    "launch_error": "Could not retrieve game URL. Please check settings.",
     "settings_title": "Akagi NG Settings",
     "settings_desc": "Application Configuration Panel",
     "pip_start": "Start PiP Mode",
@@ -126,6 +140,7 @@
     "model_load_failed": "Failed to load AI model",
     "bot_switch_failed": "Failed to switch AI model",
     "bot_runtime_error": "AI model runtime error",
-    "state_tracker_error": "Match state error"
+    "state_tracker_error": "Match state error",
+    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application"
   }
 }

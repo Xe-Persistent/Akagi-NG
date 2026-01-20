@@ -9,6 +9,7 @@ export const PIP_WINDOW_HEIGHT = 720;
 // SSE 连接配置
 export const SSE_MAX_BACKOFF_MS = 30_000;
 export const SSE_INITIAL_BACKOFF_MS = 1000;
+export const SSE_MAX_RETRIES = 10; // 最大重试次数
 
 // 设置保存 debounce 延迟
 export const SETTINGS_DEBOUNCE_MS = 1000;

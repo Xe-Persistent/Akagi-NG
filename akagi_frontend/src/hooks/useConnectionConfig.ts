@@ -1,0 +1,53 @@
+import { useState } from 'react';
+
+interface ConnectionConfig {
+  protocol: string;
+  backendAddress: string;
+  clientId: string;
+  apiBase: string;
+  backendUrl: string;
+}
+
+/**
+ * 管理后端连接配置的 Hook
+ *
+ * 自动从 localStorage 读取配置，在开发模式和生产模式下使用不同的默认值
+ */
+export function useConnectionConfig(): ConnectionConfig {
+  const [protocol] = useState(() => {
+    const saved = localStorage.getItem('protocol');
+    if (saved) return saved;
+    // 开发模式（端口 5173）默认使用 http，否则使用当前协议
+    if (window.location.port === '5173') return 'http';
+    return window.location.protocol.replace(':', '');
+  });
+
+  const [backendAddress] = useState(() => {
+    const saved = localStorage.getItem('backendAddress');
+    if (saved) return saved;
+    // 开发模式默认使用 127.0.0.1:8765
+    if (window.location.port === '5173') return '127.0.0.1:8765';
+    // 正式环境使用当前主机
+    return window.location.host;
+  });
+
+  const [clientId] = useState(() => {
+    let id = localStorage.getItem('clientId');
+    if (!id) {
+      id = Math.random().toString(36).slice(2);
+      localStorage.setItem('clientId', id);
+    }
+    return id;
+  });
+
+  const apiBase = `${protocol}://${backendAddress}`;
+  const backendUrl = `${protocol}://${backendAddress}/sse?clientId=${clientId}`;
+
+  return {
+    protocol,
+    backendAddress,
+    clientId,
+    apiBase,
+    backendUrl,
+  };
+}

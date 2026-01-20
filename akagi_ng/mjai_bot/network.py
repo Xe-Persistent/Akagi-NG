@@ -80,7 +80,7 @@ class ResBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         in_channels,
         conv_channels,
@@ -121,7 +121,7 @@ class ResNet(nn.Module):
 
 
 class Brain(nn.Module):
-    def __init__(self, obs_shape_func, oracle_obs_shape_func, *, conv_channels, num_blocks, is_oracle=False, version=1):
+    def __init__(self, obs_shape_func, oracle_obs_shape_func, *, conv_channels, num_blocks, is_oracle=False, version=1):  # noqa: PLR0913
         super().__init__()
         self.is_oracle = is_oracle
         self.version = version

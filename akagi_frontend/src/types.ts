@@ -25,14 +25,16 @@ export interface ApiResponse<T = void> {
 export interface Settings {
   log_level: string;
   locale: string;
-  majsoul_url: string;
   browser: {
     enabled: boolean;
+    platform: string;
+    url: string;
     headless: boolean;
     window_size: string;
   };
   mitm: {
     enabled: boolean;
+    platform: string;
     host: string;
     port: number;
     upstream: string;

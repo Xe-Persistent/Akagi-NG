@@ -197,7 +197,7 @@ def build_dataserver_payload(mjai_response: dict[str, Any], bot: Any) -> dict[st
         # 1. Generate Standard Recommendations
         recommendations = _process_standard_recommendations(meta, bot)
 
-        # 2. Attach Riichi Lookahead info if applicable
+        # 2. 如果适用，附加立直前瞻信息
         _attach_riichi_lookahead(recommendations, meta, bot)
 
         if recommendations:
@@ -209,6 +209,5 @@ def build_dataserver_payload(mjai_response: dict[str, Any], bot: Any) -> dict[st
         }
 
     except Exception as e:
-        # 防止前端适配器崩溃
         logger.error(f"Failed to build payload: {e}")
         return None

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["majsoul_url", "browser", "mitm", "server", "model_config"],
+  "required": ["browser", "mitm", "server", "model_config"],
   "properties": {
     "log_level": {
       "type": "string",
@@ -15,11 +15,6 @@
       "default": "en-US",
       "description": "UI Language locale."
     },
-    "majsoul_url": {
-      "type": "string",
-      "description": "The URL for the Majsoul game.",
-      "format": "uri"
-    },
     "browser": {
       "type": "object",
       "description": "Browser configuration.",
@@ -28,6 +23,18 @@
           "type": "boolean",
           "default": true,
           "description": "Enable internal browser automation (Playwright)."
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["majsoul", "tenhou"],
+          "default": "majsoul",
+          "description": "The target mahjong platform."
+        },
+        "url": {
+          "type": "string",
+          "default": "",
+          "description": "Game URL override.",
+          "format": "uri"
         },
         "headless": {
           "type": "boolean",

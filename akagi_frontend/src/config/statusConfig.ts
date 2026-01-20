@@ -106,7 +106,12 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
     domain: STATUS_DOMAIN.CONNECTION,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
-
+  max_retries_exceeded: {
+    level: STATUS_LEVEL.ERROR,
+    placement: STATUS_PLACEMENT.STATUS,
+    domain: STATUS_DOMAIN.CONNECTION,
+    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
+  },
   // 警告
   riichi_simulation_failed: {
     level: STATUS_LEVEL.WARNING,

@@ -36,7 +36,9 @@ class OTConfig:
 class BrowserConfig:
     enabled: bool
     headless: bool
-    window_size: str  # 例如 "1920,1080" 或留空
+    window_size: str  # 如 "1920,1080" 或留空
+    platform: Platform = Platform.MAJSOUL
+    url: str = ""
 
 
 @dataclass
@@ -68,7 +70,6 @@ class ModelConfig:
 class Settings:
     log_level: str
     locale: str
-    majsoul_url: str
     browser: BrowserConfig
     mitm: MITMConfig
     server: ServerConfig
@@ -103,12 +104,23 @@ class Settings:
         model_config_data = data.get("model_config", {})
         ot_data = model_config_data.get("ot", {})
 
+        def get_default_url(platform: Platform) -> str:
+            if platform == Platform.TENHOU:
+                return "https://tenhou.net/3/"
+            return "https://game.maj-soul.com/1/"
+
+        platform_val = Platform(browser_data.get("platform", Platform.MAJSOUL))
+        browser_url = browser_data.get("url", "")
+        if not browser_url:
+            browser_url = get_default_url(platform_val)
+
         settings = cls(
             log_level=data.get("log_level", "INFO"),
             locale=data.get("locale", "zh-CN"),
-            majsoul_url=data.get("majsoul_url", "https://game.maj-soul.com/1/"),
             browser=BrowserConfig(
                 enabled=browser_data.get("enabled", True),
+                platform=platform_val,
+                url=browser_url,
                 headless=browser_data.get("headless", False),
                 window_size=browser_data.get("window_size", ""),
             ),
@@ -197,8 +209,13 @@ def get_default_settings_dict() -> dict:
     return {
         "log_level": "INFO",
         "locale": detect_system_locale(),
-        "majsoul_url": "https://game.maj-soul.com/1/",
-        "browser": {"enabled": True, "headless": False, "window_size": ""},
+        "browser": {
+            "enabled": True,
+            "platform": Platform.MAJSOUL.value,
+            "url": "https://game.maj-soul.com/1/",
+            "headless": False,
+            "window_size": "",
+        },
         "mitm": {
             "enabled": False,
             "platform": Platform.MAJSOUL.value,
@@ -276,10 +293,10 @@ def _update_settings(settings: Settings, data: dict) -> None:
     """从字典更新 Settings 对象"""
     settings.log_level = data.get("log_level", "INFO")
     settings.locale = data.get("locale", "zh-CN")
-    settings.majsoul_url = data["majsoul_url"]
-
     browser_data = data.get("browser", {})
     settings.browser.enabled = browser_data.get("enabled", True)
+    settings.browser.platform = Platform(browser_data.get("platform", Platform.MAJSOUL))
+    settings.browser.url = browser_data.get("url", "")
     settings.browser.headless = browser_data.get("headless", False)
     settings.browser.window_size = browser_data.get("window_size", "")
 
@@ -303,12 +320,8 @@ def _update_settings(settings: Settings, data: dict) -> None:
 
     ot_data = model_config_data.get("ot", {})
     settings.model_config.ot.online = ot_data.get("online", False)
-    if settings.model_config.ot.online:
-        settings.model_config.ot.server = ot_data.get("server", "")
-        settings.model_config.ot.api_key = ot_data.get("api_key", "")
-    else:
-        settings.model_config.ot.server = ot_data.get("server", "")
-        settings.model_config.ot.api_key = ot_data.get("api_key", "")
+    settings.model_config.ot.server = ot_data.get("server", "")
+    settings.model_config.ot.api_key = ot_data.get("api_key", "")
 
 
 def _save_settings(data: dict) -> None:
@@ -320,7 +333,7 @@ def _save_settings(data: dict) -> None:
 def _backup_and_reset_settings(reason: str) -> dict:
     """
     备份当前设置文件并重建默认值。
-    返回新的默认设置字典。
+    返回默认设置字典。
     """
     logger.error(reason)
     bak_path = SETTINGS_JSON_PATH.with_suffix(".json.bak")

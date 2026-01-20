@@ -29,9 +29,14 @@ def test_settings_lifecycle():
     update_data = {
         "log_level": "DEBUG",
         "locale": "en-US",
-        "majsoul_url": "https://game.maj-soul.com/1/",
-        "browser": {"enabled": True, "headless": True, "window_size": "1920,1080"},
-        "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
+        "browser": {
+            "enabled": True,
+            "platform": "majsoul",
+            "url": "https://game.maj-soul.com/1/",
+            "headless": True,
+            "window_size": "1920,1080",
+        },
+        "mitm": {"enabled": False, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "127.0.0.1", "port": 9999},
         "model_config": {
             "device": "cuda",
@@ -60,9 +65,14 @@ def test_settings_lifecycle():
     conflict_data = {
         "log_level": "DEBUG",
         "locale": "en-US",
-        "majsoul_url": "https://game.maj-soul.com/1/",
-        "browser": {"enabled": True, "headless": False, "window_size": ""},
-        "mitm": {"enabled": True, "host": "127.0.0.1", "port": 6789, "upstream": ""},  # 同时启用
+        "browser": {
+            "enabled": True,
+            "platform": "majsoul",
+            "url": "https://game.maj-soul.com/1/",
+            "headless": False,
+            "window_size": "",
+        },
+        "mitm": {"enabled": True, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},  # 同时启用
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
@@ -83,9 +93,14 @@ def test_settings_lifecycle():
     both_disabled_data = {
         "log_level": "INFO",
         "locale": "zh-CN",
-        "majsoul_url": "https://game.maj-soul.com/1/",
-        "browser": {"enabled": False, "headless": False, "window_size": ""},
-        "mitm": {"enabled": False, "host": "127.0.0.1", "port": 6789, "upstream": ""},
+        "browser": {
+            "enabled": False,
+            "platform": "majsoul",
+            "url": "https://game.maj-soul.com/1/",
+            "headless": False,
+            "window_size": "",
+        },
+        "mitm": {"enabled": False, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
         "model_config": {
             "device": "auto",
@@ -132,7 +147,7 @@ async def test_sse_manager_lifecycle():
     sse_manager = SSEManager()
 
     # 设置事件循环
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     sse_manager.set_loop(loop)
 
     # 启动

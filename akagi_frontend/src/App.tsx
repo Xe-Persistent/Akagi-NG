@@ -12,46 +12,17 @@ import { fetchSettingsApi, saveSettingsApi } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { useSSEConnection } from '@/hooks/useSSEConnection';
 import { useStatusNotification } from '@/hooks/useStatusNotification';
+import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import type { Settings } from '@/types';
-
 import { TOAST_DURATION_DEFAULT } from './config/constants';
 
 export default function App() {
-  // Hook
+  // Hooks
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
-
-  // DataServer 配置
-  const [protocol] = useState(() => {
-    const saved = localStorage.getItem('protocol');
-    if (saved) return saved;
-    // 开发模式（端口 5173）默认使用 http，否则使用当前协议
-    if (window.location.port === '5173') return 'http';
-    return window.location.protocol.replace(':', '');
-  });
-
-  const [backendAddress] = useState(() => {
-    const saved = localStorage.getItem('backendAddress');
-    if (saved) return saved;
-    // 开发模式默认使用 127.0.0.1:8765
-    if (window.location.port === '5173') return '127.0.0.1:8765';
-    // 正式环境使用当前主机
-    return window.location.host;
-  });
-  const [clientId] = useState(() => {
-    let id = localStorage.getItem('clientId');
-    if (!id) {
-      id = Math.random().toString(36).slice(2);
-      localStorage.setItem('clientId', id);
-    }
-    return id;
-  });
-
-  const apiBase = `${protocol}://${backendAddress}`;
-  const backendUrl = `${protocol}://${backendAddress}/sse?clientId=${clientId}`;
+  const { apiBase, backendUrl } = useConnectionConfig();
 
   const { data: fullRecData, notifications, isConnected, error } = useSSEConnection(backendUrl);
   const { statusMessage, statusType } = useStatusNotification(notifications, error);
@@ -97,10 +68,11 @@ export default function App() {
   const handleOpenMajsoul = async () => {
     setIsLaunching(true);
     try {
-      const data = await fetchJson<Pick<Settings, 'majsoul_url'>>(`${apiBase}/api/settings`);
+      const settings = await fetchSettingsApi(apiBase);
+      const url = settings.browser.url;
 
-      if (data?.majsoul_url) {
-        window.open(data.majsoul_url, '_blank');
+      if (url) {
+        window.open(url, '_blank');
       } else {
         notify.error(`${t('status_messages.config_error')}: ${t('app.launch_error')}`);
       }
@@ -165,7 +137,7 @@ export default function App() {
         <div className='w-full sm:hidden'>
           <Button variant='outline' className='w-full' onClick={handleOpenMajsoul}>
             <ExternalLink className='mr-2 h-4 w-4' />
-            {t('app.launch_majsoul')}
+            {t('app.launch_game')}
           </Button>
         </div>
       </main>
@@ -179,6 +151,8 @@ export default function App() {
           syncSettings(); // Refresh settings (language might have changed in panel)
         }}
         apiBase={apiBase}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       <ConfirmationDialog

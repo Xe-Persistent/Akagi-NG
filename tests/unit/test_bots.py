@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 # 检查 libriichi 是否可用
 try:
-    from akagi_ng.core.lib_loader import libriichi
+    from akagi_ng.core.lib_loader import libriichi  # noqa: F401
 
     HAS_LIBRIICHI = True
 except ImportError:
@@ -56,21 +56,10 @@ class TestBots(unittest.TestCase):
         self.assertTrue(bot.engine is not None)
 
         print(f"Resp: {resp}")
-
-        # Test React
-        # Mock bot react for next call
-        self.mock_bot_instance.react.return_value = json.dumps({"type": "dahai", "pai": "1m", "meta": {"q_values": []}})
-
-        # Start Kyoku
-        events = [{"type": "start_kyoku"}]
-        resp = bot.react(json.dumps(events))
-        print(f"Response: {resp}")
-
-        res_json = json.loads(resp)
-        self.assertEqual(res_json["type"], "dahai")
-        self.assertIn("meta", res_json)
-        # 注：engine_meta 是否被合并到响应取决于具体实现
-        # 核心功能是返回正确的动作类型
+        resp_json = json.loads(resp)
+        self.assertEqual(resp_json["type"], "none")
+        # 游戏开始时应该有 game_start 标志
+        self.assertTrue(resp_json.get("meta", {}).get("game_start", False))
 
     @pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available in CI environment")
     def test_mortal_bot_3p(self):

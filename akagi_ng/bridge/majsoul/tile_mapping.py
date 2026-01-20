@@ -90,6 +90,15 @@ PAI_ORDER = [
 ]
 
 
+# 优化排序查找字典
+PAI_ORDER_INDEX = {pai: i for i, pai in enumerate(PAI_ORDER)}
+
+
+def get_pai_sort_key(pai: str) -> int:
+    """获取牌的排序索引（用于 list.sort(key=...)）"""
+    return PAI_ORDER_INDEX.get(pai, 999)
+
+
 def compare_pai(pai1: str, pai2: str) -> int:
     """
     比较两张牌的大小,用于排序。
@@ -99,8 +108,9 @@ def compare_pai(pai1: str, pai2: str) -> int:
          0: pai1 == pai2
          1: pai1 > pai2
     """
-    idx1 = PAI_ORDER.index(pai1)
-    idx2 = PAI_ORDER.index(pai2)
+    idx1 = PAI_ORDER_INDEX.get(pai1, 999)
+    idx2 = PAI_ORDER_INDEX.get(pai2, 999)
+
     if idx1 > idx2:
         return 1
     if idx1 == idx2:

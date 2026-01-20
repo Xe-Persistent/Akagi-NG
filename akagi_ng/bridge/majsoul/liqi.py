@@ -8,7 +8,7 @@ from google.protobuf.json_format import MessageToDict
 
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul import liqi_pb2 as pb
-from akagi_ng.core.constants import LiqiProtocolConstants
+from akagi_ng.bridge.majsoul.consts import LiqiProtocolConstants
 from akagi_ng.core.paths import get_assets_dir
 
 
@@ -21,7 +21,7 @@ class MsgType(Enum):
 keys = [0x84, 0x5E, 0x4E, 0x42, 0x39, 0xA2, 0x1F, 0x60, 0x1C]
 
 
-def parse_sync_game_actions(dict_obj):
+def parse_sync_game_actions(dict_obj: dict) -> dict:
     dict_obj["data"] = MessageToDict(
         getattr(pb, dict_obj["name"]).FromString(base64.b64decode(dict_obj["data"])),
         always_print_fields_with_no_presence=True,
@@ -30,12 +30,32 @@ def parse_sync_game_actions(dict_obj):
     return {"id": msg_id, "type": MsgType.Notify, "method": ".lq.ActionPrototype", "data": dict_obj}
 
 
-def parse_sync_game(sync_game):
-    assert sync_game["method"] == ".lq.FastTest.syncGame" or sync_game["method"] == ".lq.FastTest.enterGame"
+def parse_sync_game(msg_dict: dict) -> list[dict]:
+    """
+    解析 ResSyncGame 消息字典以提取恢复信息。
+    包括 ActionPrototype（回放）和 GameSnapshot（状态恢复）。
+    """
     msgs = []
-    if "gameRestore" in sync_game["data"]:
-        for action in sync_game["data"]["gameRestore"]["actions"]:
+    try:
+        data = msg_dict.get("data", {})
+
+        restore = data.get("game_restore")
+        if not restore:
+            return []
+
+        actions = restore.get("actions", [])
+        for action in actions:
             msgs.append(parse_sync_game_actions(action))
+
+        snapshot = restore.get("snapshot")
+        if snapshot:
+            hands = snapshot.get("hands", [])
+            seat = snapshot.get("index_player", 0)
+            msgs.append({"type": "sync_game", "hands": hands, "seat": seat})
+
+    except Exception as e:
+        logger.error(f"Error parsing sync game: {e}")
+
     return msgs
 
 
@@ -118,23 +138,24 @@ class LiqiProto:
                 msg_id = struct.unpack("<H", buf[1:3])[0]
                 msg_block = from_protobuf(buf[3:])
                 if msg_type == MsgType.Req:
+                    self.msg_id = msg_id  # Update max known msg_id
                     method_name, dict_obj = self._parse_request(msg_id, msg_block)
                 elif msg_type == MsgType.Res:
                     method_name, dict_obj = self._parse_response(msg_id, msg_block)
                 else:
-                    logger.warning(f"unknow msg: {buf}")
+                    logger.warning(f"unknown msg: {buf}")
                     return result
             result = {"id": msg_id, "type": msg_type, "method": method_name, "data": dict_obj}
             self.parsed_msg_count += 1
         except Exception as e:
             logger.warning(
-                f"{e!s} unknow msg: {buf} at {e.__traceback__.tb_lineno}, msg_id: {msg_id}, res_type: {self.res_type}"
+                f"{e!s} unknown msg: {buf} at {e.__traceback__.tb_lineno}, msg_id: {msg_id}, res_type: {self.res_type}"
             )
             return result
         return result
 
 
-def decode(data: bytes):
+def decode(data: bytes) -> bytes:
     data = bytearray(data)
     for i in range(len(data)):
         u = (23 ^ len(data)) + 5 * i + keys[i % len(keys)] & 255
@@ -142,7 +163,7 @@ def decode(data: bytes):
     return bytes(data)
 
 
-def parse_varint(buf, p):
+def parse_varint(buf: bytes, p: int) -> tuple[int, int]:
     # 从 protobuf 解析 varint
     data = 0
     base = 0
@@ -155,7 +176,7 @@ def parse_varint(buf, p):
     return data, p
 
 
-def from_protobuf(buf) -> list[dict]:
+def from_protobuf(buf: bytes) -> list[dict]:
     """
     转储 protobuf 结构
     buf: protobuf 字节流
@@ -167,9 +188,11 @@ def from_protobuf(buf) -> list[dict]:
         block_type = buf[p] & 7
         block_id = buf[p] >> 3
         p += 1
+
         if block_type == LiqiProtocolConstants.BLOCK_TYPE_VARINT:
             # 变长整数 (varint)
             block_type = "varint"
+
             data, p = parse_varint(buf, p)
         elif block_type == LiqiProtocolConstants.BLOCK_TYPE_STRING:
             # 字符串
@@ -178,6 +201,6 @@ def from_protobuf(buf) -> list[dict]:
             data = buf[p : p + s_len]
             p += s_len
         else:
-            raise Exception("未知类型:", block_type, " at", p)
+            raise Exception("unknown type:", block_type, " at", p)
         result.append({"id": block_id, "type": block_type, "data": data, "begin": block_begin})
     return result

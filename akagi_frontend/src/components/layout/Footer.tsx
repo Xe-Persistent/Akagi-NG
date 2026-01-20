@@ -1,7 +1,7 @@
-import type { FC } from 'react';
+import { memo, type FC } from 'react';
 import { AKAGI_VERSION } from '@/version';
 
-export const Footer: FC = () => {
+export const Footer: FC = memo(() => {
   return (
     <footer className='mt-auto border-t border-zinc-200/50 py-4 text-center text-xs text-zinc-400 backdrop-blur-sm dark:border-zinc-800/50 dark:text-zinc-600'>
       <div className='flex flex-col items-center gap-1 sm:flex-row sm:justify-center sm:gap-3'>
@@ -29,4 +29,6 @@ export const Footer: FC = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = 'Footer';

@@ -78,8 +78,13 @@ class TestSettingsClass(unittest.TestCase):
         self.settings = Settings(
             log_level="INFO",
             locale="zh-CN",
-            majsoul_url="https://game.maj-soul.com/1/",
-            browser=BrowserConfig(enabled=True, headless=False, window_size="1280x720"),
+            browser=BrowserConfig(
+                enabled=True,
+                headless=False,
+                window_size="1280x720",
+                platform="majsoul",
+                url="https://game.maj-soul.com/1/",
+            ),
             mitm=MITMConfig(enabled=False, host="127.0.0.1", port=6789, upstream=""),
             server=ServerConfig(host="127.0.0.1", port=8765),
             model_config=ModelConfig(
@@ -143,9 +148,14 @@ class TestSettingsClass(unittest.TestCase):
         data = {
             "log_level": "TRACE",
             "locale": "ja-JP",
-            "majsoul_url": "https://game.maj-soul.com/1/",
-            "browser": {"enabled": False, "headless": True, "window_size": "1920x1080"},
-            "mitm": {"enabled": True, "host": "0.0.0.0", "port": 7890, "upstream": ""},
+            "browser": {
+                "enabled": False,
+                "platform": "majsoul",
+                "url": "https://game.maj-soul.com/1/",
+                "headless": True,
+                "window_size": "1920x1080",
+            },
+            "mitm": {"enabled": True, "platform": "majsoul", "host": "0.0.0.0", "port": 7890, "upstream": ""},
             "server": {"host": "localhost", "port": 9000},
             "model_config": {
                 "device": "cuda",

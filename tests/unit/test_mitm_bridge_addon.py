@@ -5,7 +5,7 @@ from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
 from akagi_ng.bridge.riichi_city.bridge import RiichiCityBridge
 from akagi_ng.bridge.tenhou.bridge import TenhouBridge
 from akagi_ng.core.constants import Platform
-from akagi_ng.mitm_client.bridge_addon import BridgeAddon, activated_flows, bridges
+from akagi_ng.mitm_client.bridge_addon import BridgeAddon
 
 
 def test_bridge_addon_majsoul(mock_flow):
@@ -16,12 +16,8 @@ def test_bridge_addon_majsoul(mock_flow):
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
 
-        assert "test_flow_id" in activated_flows
-        assert isinstance(bridges.get("test_flow_id"), MajsoulBridge)
-
-        # Cleanup
-        activated_flows.clear()
-        bridges.clear()
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), MajsoulBridge)
 
 
 def test_bridge_addon_tenhou(mock_flow):
@@ -32,12 +28,8 @@ def test_bridge_addon_tenhou(mock_flow):
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
 
-        assert "test_flow_id" in activated_flows
-        assert isinstance(bridges.get("test_flow_id"), TenhouBridge)
-
-        # Cleanup
-        activated_flows.clear()
-        bridges.clear()
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), TenhouBridge)
 
 
 def test_bridge_addon_amatsuki(mock_flow):
@@ -48,12 +40,8 @@ def test_bridge_addon_amatsuki(mock_flow):
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
 
-        assert "test_flow_id" in activated_flows
-        assert isinstance(bridges.get("test_flow_id"), AmatsukiBridge)
-
-        # Cleanup
-        activated_flows.clear()
-        bridges.clear()
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), AmatsukiBridge)
 
 
 def test_bridge_addon_riichi_city(mock_flow):
@@ -64,12 +52,8 @@ def test_bridge_addon_riichi_city(mock_flow):
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
 
-        assert "test_flow_id" in activated_flows
-        assert isinstance(bridges.get("test_flow_id"), RiichiCityBridge)
-
-        # Cleanup
-        activated_flows.clear()
-        bridges.clear()
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), RiichiCityBridge)
 
 
 def test_bridge_addon_filtering(mock_flow):
@@ -81,8 +65,8 @@ def test_bridge_addon_filtering(mock_flow):
         addon.websocket_start(mock_flow)
 
         # Should filter out because URL does not match 'majsoul'
-        assert "test_flow_id" not in activated_flows
-        assert "test_flow_id" not in bridges
+        assert "test_flow_id" not in addon.activated_flows
+        assert "test_flow_id" not in addon.bridges
 
 
 def test_bridge_addon_auto_detect(mock_flow):
@@ -94,12 +78,8 @@ def test_bridge_addon_auto_detect(mock_flow):
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
 
-        assert "test_flow_id" in activated_flows
-        assert isinstance(bridges.get("test_flow_id"), MajsoulBridge)
-
-        # Cleanup
-        activated_flows.clear()
-        bridges.clear()
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), MajsoulBridge)
 
 
 def test_bridge_addon_ignore_unrelated(mock_flow):
@@ -109,4 +89,4 @@ def test_bridge_addon_ignore_unrelated(mock_flow):
         mock_settings.mitm.platform = Platform.AUTO
         addon = BridgeAddon()
         addon.websocket_start(mock_flow)
-        assert "test_flow_id" not in activated_flows
+        assert "test_flow_id" not in addon.activated_flows

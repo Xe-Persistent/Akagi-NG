@@ -16,7 +16,7 @@ class Controller:
         self.pending_start_game_event: dict | None = None
 
     def list_available_bots(self) -> list[type[Bot]]:
-        from akagi_ng.mjai_bot.mortal.bot import Mortal3pBot, MortalBot
+        from akagi_ng.mjai_bot.mortal import Mortal3pBot, MortalBot
 
         self.available_bots = [MortalBot, Mortal3pBot]
         self.available_bots_names = ["mortal", "mortal3p"]

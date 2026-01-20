@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SSE_INITIAL_BACKOFF_MS, SSE_MAX_BACKOFF_MS } from '@/config/constants';
+import { SSE_INITIAL_BACKOFF_MS, SSE_MAX_BACKOFF_MS, SSE_MAX_RETRIES } from '@/config/constants';
 import type { FullRecommendationData, NotificationItem } from '@/types';
 
 interface UseSSEConnectionResult {
@@ -22,12 +22,22 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
     let reconnectTimer: number | undefined;
     let stopped = false;
     let backoff = SSE_INITIAL_BACKOFF_MS;
+    let retryCount = 0;
     const maxBackoff = SSE_MAX_BACKOFF_MS;
 
     const scheduleReconnect = () => {
       if (stopped || reconnectTimer) return;
-      // 设置过渡状态，显示“重连中”而不是“已断开”
+
+      // 检查是否超过最大重试次数
+      if (retryCount >= SSE_MAX_RETRIES) {
+        setError('max_retries_exceeded');
+        setIsConnected(false);
+        return;
+      }
+
+      // 设置过渡状态，显示"重连中"而不是"已断开"
       setError('reconnecting');
+      retryCount++;
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = undefined;
         backoff = Math.min(backoff * 2, maxBackoff);
@@ -59,7 +69,8 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
       es.onopen = () => {
         setIsConnected(true);
         setError(null);
-        // 重连时不清除系统错误，因为可能在服务端仍然存在
+        // 重连成功后重置重试计数器
+        retryCount = 0;
         backoff = SSE_INITIAL_BACKOFF_MS;
         if (reconnectTimer) {
           clearTimeout(reconnectTimer);

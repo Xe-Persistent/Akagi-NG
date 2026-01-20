@@ -115,12 +115,12 @@ mask_unicode_3p = [
 ]
 
 
-def _is_approximately_equal(left, right):
+def _is_approximately_equal(left: float, right: float) -> bool:
     """检查两个浮点数是否近似相等"""
     return np.abs(left - right) <= np.finfo(float).eps
 
 
-def _softmax(arr, temperature=1.0):
+def _softmax(arr: list[float] | np.ndarray, temperature: float = 1.0) -> np.ndarray:
     """应用 softmax 变换到数组"""
     arr = np.array(arr, dtype=float)
 
@@ -192,7 +192,7 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
     return sorted(recommend, key=lambda x: x[1], reverse=True)
 
 
-def is_riichi_relevant(engine, player_id, event, is_3p=False):
+def is_riichi_relevant(engine: Any, player_id: int, event: dict, is_3p: bool = False) -> bool:
     """
     判断是否应在响应中包含 meta 字段。
     以下情况返回 True：

@@ -6,7 +6,7 @@ import threading
 from mitmproxy import options
 from mitmproxy.tools.dump import DumpMaster
 
-from akagi_ng.mitm_client.bridge_addon import BridgeAddon, mjai_messages
+from akagi_ng.mitm_client.bridge_addon import BridgeAddon
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
 
@@ -17,6 +17,7 @@ class MitmClient:
         self._thread: threading.Thread | None = None
         self._master: DumpMaster | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self.addon: BridgeAddon | None = None
 
     async def _start_proxy(self, host: str, port: int, upstream: str = ""):
         """
@@ -30,7 +31,8 @@ class MitmClient:
             with_termlog=False,
             with_dumper=False,
         )
-        self._master.addons.add(BridgeAddon())
+        self.addon = BridgeAddon()
+        self._master.addons.add(self.addon)
         logger.info(f"Starting MITM proxy server at {host}:{port}")
 
         try:
@@ -88,10 +90,12 @@ class MitmClient:
 
     def dump_messages(self) -> list[dict]:
         ans: list[dict] = []
-        while not mjai_messages.empty():
+        if not self.addon:
+            return ans
+
+        while not self.addon.mjai_messages.empty():
             try:
-                message = mjai_messages.get_nowait()
-                # logger.debug(f"Message: {message}")
+                message = self.addon.mjai_messages.get_nowait()
                 ans.append(message)
             except queue.Empty:
                 break

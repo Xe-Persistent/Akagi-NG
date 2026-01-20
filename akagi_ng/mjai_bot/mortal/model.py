@@ -1,5 +1,5 @@
-from akagi_ng.mjai_bot.engine.base import BaseEngine
-from akagi_ng.mjai_bot.engine.loader import load_model as _load_model
+from akagi_ng.mjai_bot.engine import BaseEngine
+from akagi_ng.mjai_bot.engine import load_model as _load_model
 from akagi_ng.mjai_bot.mortal.logger import logger
 from akagi_ng.mjai_bot.protocols import Bot
 

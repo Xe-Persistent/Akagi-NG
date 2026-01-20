@@ -2,7 +2,7 @@ import json
 
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
-from akagi_ng.bridge.riichi_city.consts import CARD2MJAI, RCAction
+from akagi_ng.bridge.riichi_city.consts import CARD2MJAI, RCAction, RCProtocol
 from akagi_ng.core.constants import MahjongConstants
 
 
@@ -35,12 +35,11 @@ class GameStatus:
 
 
 class RiichiCityBridge(BaseBridge):
-    HEADER_LENGTH = 15
-
     def __init__(self) -> None:
         super().__init__()
         self.uid: int = -1
         self.game_status = GameStatus()
+        self._next_is_reach = False
         self.handlers = {
             "cmd_enter_room": self._handle_enter_room,
             "cmd_game_start": self._handle_game_start,
@@ -69,7 +68,7 @@ class RiichiCityBridge(BaseBridge):
             return None
         # 检查接下来的 4 个字节是否为 00 0f 00 01
         # 尚不清楚这代表什么。
-        if content[4:8] != b"\x00\x0f\x00\x01":
+        if content[4:8] != RCProtocol.HEADER_SIGNATURE:
             logger.warning("Message is unknown format, expected 00 0f 00 01")
             logger.warning(f"Message: {content.hex(' ')}")
             return None
@@ -86,7 +85,9 @@ class RiichiCityBridge(BaseBridge):
         # 从剩余消息中加载 JSON 数据
         # 如果没有数据，将为空
         msg_data = (
-            {} if len(content) == self.HEADER_LENGTH else json.loads(content[self.HEADER_LENGTH :].decode("utf-8"))
+            {}
+            if len(content) == RCProtocol.HEADER_LENGTH
+            else json.loads(content[RCProtocol.HEADER_LENGTH :].decode("utf-8"))
         )
         logger.debug({"msg_id": msg_id, "msg_type": msg_type, "msg_data": msg_data})
 
@@ -127,7 +128,7 @@ class RiichiCityBridge(BaseBridge):
         self.game_status = GameStatus()
         self.game_status.game_start = True
         players = rc_msg.msg_data["data"]["players"]
-        if rc_msg.msg_data["data"]["options"]["player_count"] == MahjongConstants.PLAYER_COUNT_3P:
+        if rc_msg.msg_data["data"]["options"]["player_count"] == MahjongConstants.SEATS_3P:
             self.game_status.is_3p = True
         for idx, player in enumerate(players):
             self.game_status.player_list.append(player["user"]["user_id"])
@@ -147,27 +148,27 @@ class RiichiCityBridge(BaseBridge):
             position_at = self.game_status.player_list.index(self.uid)
             self.game_status.seat = position_at
             self.game_status.shift = rc_msg.msg_data["data"]["dealer_pos"]
-            mjai_msgs.append({"type": "start_game", "id": position_at})
+            mjai_msgs.append(self.make_start_game(position_at))
             if self.game_status.is_3p:
                 self.game_status.player_list.append(-1)
             self.game_status.game_start = False
         if self.game_status.is_3p:
-            kyoku = ((rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % 3) + 1
+            kyoku = ((rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % MahjongConstants.SEATS_3P) + 1
         else:
-            kyoku = ((rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % 4) + 1
+            kyoku = ((rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % MahjongConstants.SEATS_4P) + 1
         honba = rc_msg.msg_data["data"]["ben_chang_num"]
         kyotaku = rc_msg.msg_data["data"]["li_zhi_bang_num"]
         if self.game_status.is_3p:
-            oya = (rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % 3
+            oya = (rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % MahjongConstants.SEATS_3P
         else:
-            oya = (rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % 4
+            oya = (rc_msg.msg_data["data"]["dealer_pos"] - self.game_status.shift) % MahjongConstants.SEATS_4P
         scores = [player["hand_points"] for player in rc_msg.msg_data["data"]["user_info_list"]]
         if self.game_status.is_3p:
             scores.append(0)
-        tehais = [["?" for _ in range(13)] for _ in range(4)]
+        tehais = [["?" for _ in range(MahjongConstants.TEHAI_SIZE)] for _ in range(MahjongConstants.SEATS_4P)]
         if len(rc_msg.msg_data["data"]["hand_cards"]) == MahjongConstants.TSUMO_TEHAI_SIZE:
-            my_tehai = rc_msg.msg_data["data"]["hand_cards"][:13]
-            my_tsumo = rc_msg.msg_data["data"]["hand_cards"][13]
+            my_tehai = rc_msg.msg_data["data"]["hand_cards"][: MahjongConstants.TEHAI_SIZE]
+            my_tsumo = rc_msg.msg_data["data"]["hand_cards"][MahjongConstants.TEHAI_SIZE]
         else:
             my_tehai = rc_msg.msg_data["data"]["hand_cards"]
             my_tsumo = None
@@ -175,37 +176,24 @@ class RiichiCityBridge(BaseBridge):
         self.game_status.tehai = my_tehai
         tehais[self.game_status.seat] = my_tehai
         mjai_msgs.append(
-            {
-                "type": "start_kyoku",
-                "bakaze": bakaze,
-                "dora_marker": dora_marker,
-                "kyoku": kyoku,
-                "honba": honba,
-                "kyotaku": kyotaku,
-                "oya": oya,
-                "scores": scores,
-                "tehais": tehais,
-            }
+            self.make_start_kyoku(
+                bakaze=bakaze,
+                kyoku=kyoku,
+                honba=honba,
+                kyotaku=kyotaku,
+                oya=oya,
+                dora_marker=dora_marker,
+                scores=scores,
+                tehais=tehais,
+            )
         )
         self.game_status.dora_markers = []
         self.game_status.tsumo = my_tsumo
         if my_tsumo is not None:
             my_tsumo = CARD2MJAI[my_tsumo]
-            mjai_msgs.append(
-                {
-                    "type": "tsumo",
-                    "actor": self.game_status.seat,
-                    "pai": my_tsumo,
-                }
-            )
+            mjai_msgs.append(self.make_tsumo(self.game_status.seat, my_tsumo))
         else:
-            mjai_msgs.append(
-                {
-                    "type": "tsumo",
-                    "actor": oya,
-                    "pai": "?",
-                }
-            )
+            mjai_msgs.append(self.make_tsumo(oya, "?"))
         return mjai_msgs
 
     def _handle_in_card_brc(self, rc_msg: RCMessage) -> list[dict] | None:
@@ -215,57 +203,36 @@ class RiichiCityBridge(BaseBridge):
             self.game_status.accept_reach = None
         actor = self.game_status.player_list.index(rc_msg.msg_data["data"]["user_id"])
         pai = CARD2MJAI[rc_msg.msg_data["data"]["card"]]
-        mjai_msgs.append(
-            {
-                "type": "tsumo",
-                "actor": actor,
-                "pai": pai,
-            }
-        )
+        mjai_msgs.append(self.make_tsumo(actor, pai))
         return mjai_msgs
 
-    def _handle_rc_meld(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_chi(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
-        target = (actor - 1) % 4
+        target = (actor - 1) % MahjongConstants.SEATS_4P
         pai = CARD2MJAI[action["card"]]
         consumed = [CARD2MJAI[card] for card in action["group_cards"]]
-        mjai_msgs.append(
-            {
-                "type": "chi",
-                "actor": actor,
-                "target": target,
-                "pai": pai,
-                "consumed": consumed,
-            }
-        )
+        mjai_msgs.append(self.make_chi(actor, target, pai, consumed))
 
-    def _handle_rc_pon_daiminkan(self, action: dict, mjai_msgs: list[dict], meld_type: str) -> None:
+    def _handle_rc_pon(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
         target = self.game_status.last_dahai_actor
         pai = CARD2MJAI[action["card"]]
         consumed = [CARD2MJAI[card] for card in action["group_cards"]]
-        mjai_msgs.append(
-            {
-                "type": meld_type,
-                "actor": actor,
-                "target": target,
-                "pai": pai,
-                "consumed": consumed,
-            }
-        )
+        mjai_msgs.append(self.make_pon(actor, target, pai, consumed))
+
+    def _handle_rc_daiminkan(self, action: dict, mjai_msgs: list[dict]) -> None:
+        actor = self.game_status.player_list.index(action["user_id"])
+        target = self.game_status.last_dahai_actor
+        pai = CARD2MJAI[action["card"]]
+        consumed = [CARD2MJAI[card] for card in action["group_cards"]]
+        mjai_msgs.append(self.make_daiminkan(actor, target, pai, consumed))
 
     def _handle_rc_ankan(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
         consumed = [CARD2MJAI[action["card"]]] * 4
         if consumed[0] in ["5m", "5p", "5s"]:
             consumed[0] += "r"
-        mjai_msgs.append(
-            {
-                "type": "ankan",
-                "actor": actor,
-                "consumed": consumed,
-            }
-        )
+        mjai_msgs.append(self.make_ankan(actor, consumed))
 
     def _handle_rc_kakan(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
@@ -275,31 +242,7 @@ class RiichiCityBridge(BaseBridge):
             consumed[0] += "r"
         if pai in ["5mr", "5pr", "5sr"]:
             consumed = [pai[:2]] * 3
-        mjai_msgs.append(
-            {
-                "type": "kakan",
-                "actor": actor,
-                "pai": pai,
-                "consumed": consumed,
-            }
-        )
-
-    def _handle_rc_action(self, action: dict, mjai_msgs: list[dict]) -> None:
-        match action["action"]:
-            case RCAction.CHI_LOW | RCAction.CHI_MID | RCAction.CHI_HIGH:
-                self._handle_rc_meld(action, mjai_msgs)
-            case RCAction.PON:
-                self._handle_rc_pon_daiminkan(action, mjai_msgs, "pon")
-            case RCAction.DAIMINKAN:
-                self._handle_rc_pon_daiminkan(action, mjai_msgs, "daiminkan")
-            case RCAction.HORA:
-                mjai_msgs.append({"type": "end_kyoku"})
-            case RCAction.ANKAN:
-                self._handle_rc_ankan(action, mjai_msgs)
-            case RCAction.KAKAN:
-                self._handle_rc_kakan(action, mjai_msgs)
-            case RCAction.RON_TSUMO:
-                mjai_msgs.append({"type": "end_kyoku"})
+        mjai_msgs.append(self.make_kakan(actor, pai, consumed))
 
     def _handle_rc_dahai(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
@@ -308,42 +251,28 @@ class RiichiCityBridge(BaseBridge):
             action["move_cards_pos"][0] == MahjongConstants.TSUMO_TEHAI_SIZE if action["move_cards_pos"] else True
         )
         if action["is_li_zhi"]:
-            mjai_msgs.append({"type": "reach", "actor": actor})
-        mjai_msgs.append(
-            {
-                "type": "dahai",
-                "actor": actor,
-                "pai": pai,
-                "tsumogiri": tsumogiri,
-            }
-        )
+            mjai_msgs.append(self.make_reach(actor))
+        mjai_msgs.append(self.make_dahai(actor, pai, tsumogiri))
         self.game_status.last_dahai_actor = actor
         if action["is_li_zhi"]:
-            self.game_status.accept_reach = {"type": "reach_accepted", "actor": actor}
+            self.game_status.accept_reach = self.make_reach_accepted(actor)
         if self.game_status.dora_markers:
             for dora_marker in self.game_status.dora_markers:
-                mjai_msgs.append({"type": "dora", "dora_marker": dora_marker})
+                mjai_msgs.append(self.make_dora(dora_marker))
             self.game_status.dora_markers = []
 
     def _handle_rc_nukidora(self, action: dict, mjai_msgs: list[dict]) -> None:
         actor = self.game_status.player_list.index(action["user_id"])
-        pai = CARD2MJAI[action["card"]]
-        mjai_msgs.append(
-            {
-                "type": "nukidora",
-                "actor": actor,
-                "pai": pai,
-            }
-        )
+        mjai_msgs.append(self.make_nukidora(actor))
 
     def _handle_rc_action(self, action: dict, mjai_msgs: list[dict]) -> None:
         match action["action"]:
             case RCAction.CHI_LOW | RCAction.CHI_MID | RCAction.CHI_HIGH:
-                self._handle_rc_meld(action, mjai_msgs)
+                self._handle_rc_chi(action, mjai_msgs)
             case RCAction.PON:
-                self._handle_rc_pon_daiminkan(action, mjai_msgs, "pon")
+                self._handle_rc_pon(action, mjai_msgs)
             case RCAction.DAIMINKAN:
-                self._handle_rc_pon_daiminkan(action, mjai_msgs, "daiminkan")
+                self._handle_rc_daiminkan(action, mjai_msgs)
             case RCAction.ANKAN:
                 self._handle_rc_ankan(action, mjai_msgs)
             case RCAction.KAKAN:
@@ -353,7 +282,7 @@ class RiichiCityBridge(BaseBridge):
             case RCAction.NUKIDORA:
                 self._handle_rc_nukidora(action, mjai_msgs)
             case RCAction.HORA | RCAction.RON_TSUMO | RCAction.RYUKYOKU:
-                mjai_msgs.append({"type": "end_kyoku"})
+                mjai_msgs.append(self.make_end_kyoku())
             case _:
                 pass
 
@@ -365,13 +294,6 @@ class RiichiCityBridge(BaseBridge):
             self.game_status.accept_reach = None
         for action in action_info:
             self._handle_rc_action(action, mjai_msgs)
-            # Check if flow should stop (return immediately after constructing msgs?)
-            # The original logic used `return mjai_msgs` inside match cases, implying early return per action.
-            # But action_info is a list. Could there be multiple actions?
-            # Looking at original code: `return mjai_msgs` was inside EACH case.
-            # So it processes ONLY THE FIRST matched action and returns.
-            # If so, the loop `for action in action_info` is effectively doing `if action_info: action=action_info[0]`.
-            # Let's preserve the original behavior: return after handling one action.
             if mjai_msgs:
                 return mjai_msgs
         return None
@@ -383,13 +305,7 @@ class RiichiCityBridge(BaseBridge):
             self.game_status.accept_reach = None
         pai = CARD2MJAI[rc_msg.msg_data["data"]["in_card"]]
         if pai != "?":
-            mjai_msgs.append(
-                {
-                    "type": "tsumo",
-                    "actor": self.game_status.seat,
-                    "pai": pai,
-                }
-            )
+            mjai_msgs.append(self.make_tsumo(self.game_status.seat, pai))
         else:
             logger.warning(f"Unknown tsumo: {rc_msg.msg_data}")
         return mjai_msgs
@@ -401,7 +317,4 @@ class RiichiCityBridge(BaseBridge):
 
     def _handle_room_end(self, rc_msg: RCMessage) -> list[dict] | None:
         self.game_status = GameStatus()
-        return [{"type": "end_game"}]
-
-    def build(self, command: dict) -> None | bytes:
-        pass
+        return [self.make_end_game()]

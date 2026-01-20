@@ -4,10 +4,14 @@
     "discard": "放棄變更",
     "restore": "恢復預設設定",
     "restore_confirm_title": "恢復預設設定",
-    "restore_confirm_desc": "確定要將所有設定恢復為預設值嗎？此操作無法復原。",
+    "restore_confirm_desc": "確定要將所有設定恢復為預設值嗎？此操作無法復原",
     "general": {
       "title": "一般",
       "locale": "顯示語言",
+      "theme": "外觀主題",
+      "theme_system": "跟隨系統",
+      "theme_light": "淺色",
+      "theme_dark": "深色",
       "log_level": "紀錄層級"
     },
     "online_model": {
@@ -17,12 +21,12 @@
       "api_key": "API 金鑰"
     },
     "server": {
-      "title": "服務設定",
+      "title": "服務",
       "host": "服務位址",
       "port": "連接埠"
     },
     "connection": {
-      "title": "連線方式",
+      "title": "遊戲連線",
       "mode": "連線模式",
       "mode_browser": "瀏覽器",
       "mode_mitm": "代理",
@@ -33,13 +37,23 @@
         "size": "視窗尺寸",
         "size_placeholder": "選擇視窗解析度",
         "size_default": "預設",
-        "size_maximized": "最大化"
+        "size_maximized": "最大化",
+        "url": "遊戲位址",
+        "url_desc": "留空將使用平台官方預設位址。僅支援雀魂、天鳳"
       },
       "mitm": {
         "title": "代理設定",
         "host": "監聽位址",
         "port": "監聽連接埠",
         "upstream": "上游代理 (可選)"
+      },
+      "platform": {
+        "label": "目標平台",
+        "majsoul": "雀魂麻將",
+        "tenhou": "天鳳",
+        "riichi_city": "麻雀一番街",
+        "amatsuki": "天月麻雀",
+        "auto": "自動檢測"
       }
     },
     "model_config": {
@@ -56,16 +70,16 @@
     },
     "danger_zone": {
       "title": "危險區域",
-      "desc": "修改以下設定可能會影響應用程式的效能或行為表現，請謹慎操作。"
+      "desc": "修改以下設定可能會影響應用程式的效能或行為表現，請謹慎操作"
     },
-    "saved_success": "設定已更新，請在頁面中確認。",
+    "saved_success": "設定已更新，請在頁面中確認",
     "status_saved": "所有變更已儲存",
     "status_saving": "正在儲存…",
     "status_error": "儲存失敗",
-    "restart_required": "設定已變更，請重新啟動應用程式以套用變更。",
-    "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更。",
+    "restart_required": "設定已變更，請重新啟動應用程式以套用變更",
+    "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更",
     "loading": "正在載入設定…",
-    "load_error_desc": "無法載入設定，請確認應用程式已正確啟動。"
+    "load_error_desc": "無法載入設定，請確認應用程式已正確啟動"
   },
   "common": {
     "enabled": "已啟用",
@@ -78,8 +92,8 @@
   },
   "app": {
     "title": "Akagi Next-Generation",
-    "launch_majsoul": "啟動雀魂",
-    "launch_error": "無法取得雀魂 URL，請檢查設定。",
+    "launch_game": "啟動遊戲",
+    "launch_error": "無法取得游戏 URL，請檢查設定",
     "settings_title": "Akagi NG 設定",
     "settings_desc": "應用配置面板",
     "pip_start": "開啟畫中畫",
@@ -89,7 +103,7 @@
     "pip_playing_in_pip": "正在畫中畫模式播放",
     "pip_can_switch_tabs": "您可以切換到其他分頁繼續瀏覽",
     "shutdown_confirm_title": "確認退出",
-    "shutdown_confirm_desc": "確定要退出 Akagi NG 嗎？這將關閉後台服務，所有連線將中斷。",
+    "shutdown_confirm_desc": "確定要退出 Akagi NG 嗎？這將關閉後台服務，所有連線將中斷",
     "stopped_title": "應用程式已停止",
     "stopped_desc": "您可以安全地關閉此視窗"
   },
@@ -126,6 +140,7 @@
     "model_load_failed": "AI 模型載入失敗",
     "bot_switch_failed": "AI 模型切換失敗",
     "bot_runtime_error": "AI 模型運行異常",
-    "state_tracker_error": "對局狀態異常"
+    "state_tracker_error": "對局狀態異常",
+    "max_retries_exceeded": "連線失敗次數過多，請檢查網路或重新啟動應用程式"
   }
 }

@@ -93,7 +93,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
         }
       }
     },
-    [apiBase],
+    [apiBase, t],
   );
 
   const triggerSave = useCallback(

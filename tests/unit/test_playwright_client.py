@@ -196,7 +196,7 @@ class TestBasePlaywrightController(unittest.TestCase):
         controller = MajsoulController("https://example.com", "http://localhost:8765")
 
         # 处理停止命令
-        should_stop = controller._handle_command("stop", {})
+        should_stop = controller._handle_command("stop")
 
         self.assertTrue(should_stop)
 
@@ -205,7 +205,7 @@ class TestBasePlaywrightController(unittest.TestCase):
         controller = MajsoulController("https://example.com", "http://localhost:8765")
 
         # 处理未知命令
-        should_stop = controller._handle_command("unknown_command", {})
+        should_stop = controller._handle_command("unknown_command")
 
         self.assertFalse(should_stop)
 

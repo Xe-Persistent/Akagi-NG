@@ -1,5 +1,5 @@
-# Codecov 配置
-# 文档: https://docs.codecov.com/docs/codecov-yaml
+# Codecov Configuration
+# Docs: https://docs.codecov.com/docs/codecov-yaml
 
 coverage:
   precision: 2
@@ -33,23 +33,23 @@ flags:
     carryforward: true
 
 ignore:
-  # 自动生成的 Protobuf 代码
+  # Generated Protobuf code
   - "akagi_ng/bridge/majsoul/liqi_pb2.py"
 
-  # 测试文件
+  # Test files
   - "tests/"
   - "**/*_test.py"
   - "**/test_*.py"
 
-  # 初始化文件(通常只有导入)
+  # Init files (usually empty or just imports)
   - "**/__init__.py"
 
-  # 构建和临时文件
+  # Build and temporary files
   - "build/"
   - "dist/"
   - ".venv/"
   - "*.egg-info/"
-  - "akagi_frontend/" # 前端代码不计入后端覆盖率
+  - "akagi_frontend/" # Frontend code excluded from backend coverage
 
 github_checks:
   annotations: true

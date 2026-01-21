@@ -1,6 +1,6 @@
 import json
 
-from akagi_ng.core.notification_codes import NotificationCode
+from akagi_ng.core import NotificationCode
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.mjai_bot.utils import make_error_response
@@ -15,6 +15,13 @@ class Controller:
         # Bot 将在收到第一个 start_kyoku 事件时延迟初始化
         self.pending_start_game_event: dict | None = None
 
+    @property
+    def notification_flags(self) -> dict:
+        """从底层 Bot 获取通知标志"""
+        if self.bot and hasattr(self.bot, "notification_flags"):
+            return self.bot.notification_flags
+        return {}
+
     def list_available_bots(self) -> list[type[Bot]]:
         from akagi_ng.mjai_bot.mortal import Mortal3pBot, MortalBot
 
@@ -22,7 +29,7 @@ class Controller:
         self.available_bots_names = ["mortal", "mortal3p"]
         return self.available_bots
 
-    def _handle_nukidora_event(self, event: dict) -> dict | None:
+    def _handle_nukidora_event(self) -> dict | None:
         """处理 nukidora 事件（三麻特有）"""
         current_bot_name = self._get_current_bot_name()
         if current_bot_name != "mortal3p":
@@ -84,7 +91,7 @@ class Controller:
 
             # 三麻特殊事件检测：nukidora 只存在于三麻中
             if event["type"] == "nukidora":
-                result = self._handle_nukidora_event(event)
+                result = self._handle_nukidora_event()
                 if result:
                     return result
 

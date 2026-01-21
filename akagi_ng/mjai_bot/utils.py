@@ -1,7 +1,6 @@
-from typing import Any
-
 import numpy as np
 
+from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
 
 
@@ -141,38 +140,39 @@ def _softmax(arr: list[float] | np.ndarray, temperature: float = 1.0) -> np.ndar
     return exp_arr / sum_exp
 
 
-def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
-    # """
-    # {
-    #     "q_values":[
-    #         -9.09196,
-    #         -9.46696,
-    #         -8.365397,
-    #         -8.849772,
-    #         -9.43571,
-    #         -10.06071,
-    #         -9.295085,
-    #         -0.73649096,
-    #         -9.27946,
-    #         -9.357585,
-    #         0.3221028,
-    #         -2.7794597
-    #     ],
-    #     "mask_bits":2697207348,
-    #     "is_greedy":true,
-    #     "eval_time_ns":357088300
-    # }
-    # """
+def meta_to_recommend(meta: dict, is_3p: bool = False, temperature: float = 1.0) -> list[tuple[str, float]]:
+    """
+    ExampleMeta:
+    {
+        "q_values":[
+            -9.09196,
+            -9.46696,
+            -8.365397,
+            -8.849772,
+            -9.43571,
+            -10.06071,
+            -9.295085,
+            -0.73649096,
+            -9.27946,
+            -9.357585,
+            0.3221028,
+            -2.7794597
+        ],
+        "mask_bits":2697207348,
+        "is_greedy":true,
+        "eval_time_ns":357088300
+    }
+    """
 
     recommend = []
 
     mask_unicode = mask_unicode_3p if is_3p else mask_unicode_4p
 
-    def mask_bits_to_binary_string(mask_bits):
+    def mask_bits_to_binary_string(mask_bits: int) -> str:
         binary_string = bin(mask_bits)[2:]
         return binary_string.zfill(len(mask_unicode))
 
-    def mask_bits_to_bool_list(mask_bits):
+    def mask_bits_to_bool_list(mask_bits: int) -> list[bool]:
         binary_string = mask_bits_to_binary_string(mask_bits)
         bool_list = []
         for bit in binary_string[::-1]:
@@ -192,7 +192,7 @@ def meta_to_recommend(meta: dict, is_3p=False, temperature=1.0) -> list[Any]:
     return sorted(recommend, key=lambda x: x[1], reverse=True)
 
 
-def is_riichi_relevant(engine: Any, player_id: int, event: dict, is_3p: bool = False) -> bool:
+def is_riichi_relevant(engine: BaseEngine, is_3p: bool = False) -> bool:
     """
     判断是否应在响应中包含 meta 字段。
     以下情况返回 True：

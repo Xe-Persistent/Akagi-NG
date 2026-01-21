@@ -12,7 +12,7 @@ from akagi_ng.settings import local_settings
 
 
 class DataServer(threading.Thread):
-    def __init__(self, host=None, external_port=8765):
+    def __init__(self, host: str | None = None, external_port: int = 8765):
         super().__init__()
         self.host = host if host else local_settings.server.host
         self.daemon = True

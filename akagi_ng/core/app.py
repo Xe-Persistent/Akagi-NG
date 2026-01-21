@@ -3,14 +3,13 @@ import signal
 import threading
 import webbrowser
 
-from akagi_ng.core import context, paths
-from akagi_ng.core.event_handler import NotificationHandler
+from akagi_ng.core import NotificationCode, NotificationHandler, context, paths
 from akagi_ng.core.logging import configure_logging, logger
-from akagi_ng.core.notification_codes import NotificationCode
+from akagi_ng.dataserver import DataServer
 from akagi_ng.dataserver.adapter import build_dataserver_payload
-from akagi_ng.dataserver.dataserver import DataServer
-from akagi_ng.mitm_client.client import MitmClient
-from akagi_ng.playwright_client.client import PlaywrightClient
+from akagi_ng.mitm_client import MitmClient
+from akagi_ng.mjai_bot import Controller, StateTrackerBot
+from akagi_ng.playwright_client import PlaywrightClient
 from akagi_ng.settings import local_settings as loaded_settings
 
 logger = logger.bind(module="akagi")
@@ -78,7 +77,9 @@ class AkagiApp:
     def stop(self):
         self._stop_event.set()
 
-    def _process_message_batch(self, mjai_msgs: list[dict], bot, controller) -> tuple[list[dict], list[dict]]:
+    def _process_message_batch(
+        self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
+    ) -> tuple[list[dict], list[dict]]:
         """
         Process a batch of MJAI messages.
 
@@ -123,7 +124,9 @@ class AkagiApp:
             mjai_msgs.extend(context.app.mitm_client.dump_messages())
         return mjai_msgs
 
-    def _process_events(self, mjai_msgs: list[dict], bot, controller) -> dict:
+    def _process_events(
+        self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
+    ) -> dict:
         """
         Process the batch of MJAI messages.
         This is the PROCESS phase of the Reactor pattern.
@@ -139,12 +142,12 @@ class AkagiApp:
             "batch_notifications": batch_notifications,
         }
 
-    def _emit_outputs(self, result: dict, bot) -> None:
+    def _emit_outputs(self, result: dict, bot: StateTrackerBot | None, controller: Controller | None):
         """
         Send processed results to the DataServer.
         This is the OUTPUT phase of the Reactor pattern.
         """
-        if not bot or self.missing_resources:
+        if self.missing_resources:
             return
 
         mjai_responses = result["mjai_responses"]
@@ -157,11 +160,16 @@ class AkagiApp:
         # 2. Notifications: 从各种来源收集通知
         all_notifications = batch_notifications.copy()
 
-        # 2.1 从 bot.notification_flags 收集引擎和 bot 状态通知
+        # 2.1 收集 Notification Flags
+        # 优先检查 Controller (MortalBot 所在的组件)
+        if controller:
+            ctrl_flags = getattr(controller, "notification_flags", {})
+            all_notifications.extend(NotificationHandler.from_flags(ctrl_flags))
+
+        # 同时也检查 Bot (StateTrackerBot)
         if bot:
-            notification_flags = getattr(bot, "notification_flags", {})
-            bot_notifications = NotificationHandler.from_flags(notification_flags)
-            all_notifications.extend(bot_notifications)
+            bot_flags = getattr(bot, "notification_flags", {})
+            all_notifications.extend(NotificationHandler.from_flags(bot_flags))
 
         # 2.2 检查响应中的错误
         if error_notification := NotificationHandler.from_error_response(last_response):
@@ -198,6 +206,8 @@ class AkagiApp:
             logger.error(f"Missing resources: {self.missing_resources}")
             self.ds.update_system_error(NotificationCode.MISSING_RESOURCES, ", ".join(self.missing_resources))
 
+        # 启动主循环
+        logger.info("Starting main loop...")
         # 捕获引用以减少全局上下文访问
         bot = context.app.bot
         controller = context.app.controller
@@ -218,7 +228,7 @@ class AkagiApp:
                     result = self._process_events(mjai_msgs, bot, controller)
 
                     # 阶段 3：OUTPUT - 分发结果
-                    self._emit_outputs(result, bot)
+                    self._emit_outputs(result, bot, controller)
 
                 except Exception as e:
                     logger.exception(f"Critical error in main loop dispatch: {e}")

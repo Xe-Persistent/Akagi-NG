@@ -2,8 +2,7 @@ import queue
 
 from playwright.sync_api import WebSocket
 
-from akagi_ng.bridge import TenhouBridge
-from akagi_ng.bridge.base import BaseBridge
+from akagi_ng.bridge import BaseBridge, TenhouBridge
 from akagi_ng.playwright_client.base import BasePlaywrightController
 
 

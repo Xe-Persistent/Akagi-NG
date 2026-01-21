@@ -1,14 +1,13 @@
-from typing import Any
-
 from akagi_ng.core.paths import get_models_dir
 from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.mortal import load_local_mortal_engine
+from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.settings import local_settings
 
 
-def load_model(seat: int, is_3p: bool, logger: Any) -> tuple[Bot, BaseEngine]:
+def load_model(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
     """
     Mortal 统一加载器（四麻和三麻）。
     处理：
@@ -32,7 +31,7 @@ def load_model(seat: int, is_3p: bool, logger: Any) -> tuple[Bot, BaseEngine]:
     control_state_file = get_models_dir() / model_filename
 
     # 先尝试加载本地模型（作为主要或回退引擎）
-    mortal_engine = load_local_mortal_engine(control_state_file, consts=consts, is_3p=is_3p, logger=logger)
+    mortal_engine = load_local_mortal_engine(control_state_file, consts=consts, is_3p=is_3p)
 
     # 检查在线模式
     if local_settings.model_config.ot.online:

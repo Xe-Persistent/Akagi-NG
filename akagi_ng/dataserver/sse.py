@@ -38,7 +38,7 @@ class SSEManager:
         self.loop = None  # 事件循环引用，由 DataServer 设置
         self.running = False
 
-    def set_loop(self, loop):
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
         self.loop = loop
 
     def start(self):
@@ -51,7 +51,7 @@ class SSEManager:
         if self.keep_alive_task:
             self.keep_alive_task.cancel()
 
-    async def _remove_client(self, client_id: str, expected_response=None) -> None:
+    async def _remove_client(self, client_id: str, expected_response: web.StreamResponse | None = None):
         client_data = self.clients.get(client_id)
         # 如果存储的响应与我们打算关闭的不匹配，则跳过移除以避免
         # 踢掉重用相同 client_id 的新连接
@@ -129,7 +129,7 @@ class SSEManager:
 
         return response
 
-    async def _broadcast_async(self, payload: bytes) -> None:
+    async def _broadcast_async(self, payload: bytes):
         if not self.clients:
             return
 
@@ -173,7 +173,7 @@ class SSEManager:
             payload = _format_sse_message(data, event)
             asyncio.run_coroutine_threadsafe(self._broadcast_async(payload), self.loop)
 
-    async def keep_alive(self) -> None:
+    async def keep_alive(self):
         while True:
             await asyncio.sleep(10)
             if not self.clients:

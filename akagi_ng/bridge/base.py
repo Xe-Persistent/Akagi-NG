@@ -13,7 +13,7 @@ class BaseBridge:
     各平台继承此类并实现 `parse()` 方法。
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         # 公共状态属性
         self.seat: int = -1  # 玩家座位号
         self.is_3p: bool = False  # 是否三人麻将
@@ -34,7 +34,7 @@ class BaseBridge:
         """
         raise NotImplementedError
 
-    def reset(self) -> None:
+    def reset(self):
         """重置 Bridge 状态到初始值"""
         self.seat = -1
         self.is_3p = False
@@ -59,7 +59,7 @@ class BaseBridge:
         dora_marker: str,
         scores: list[int],
         tehais: list[list[str]],
-        **kwargs,
+        **kwargs: object,
     ) -> dict:
         """构建 start_kyoku（本局开始）消息"""
         msg = {

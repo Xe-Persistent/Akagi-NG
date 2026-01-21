@@ -1,25 +1,29 @@
+from pathlib import Path
+from types import ModuleType
+
 import numpy as np
 import torch
 from torch.distributions import Categorical
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
+from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
 
 
 class MortalEngine(BaseEngine):
     def __init__(  # noqa: PLR0913
         self,
-        brain,
-        dqn,
-        version,
-        is_oracle=False,
-        device=None,
-        stochastic_latent=False,
-        name="NoName",
-        boltzmann_epsilon=0,
-        boltzmann_temp=1,
-        top_p=1,
-        is_3p=False,
+        brain: torch.nn.Module,
+        dqn: torch.nn.Module,
+        version: int,
+        is_oracle: bool = False,
+        device: torch.device | None = None,
+        stochastic_latent: bool = False,
+        name: str = "NoName",
+        boltzmann_epsilon: float = 0,
+        boltzmann_temp: float = 1,
+        top_p: float = 1,
+        is_3p: bool = False,
     ):
         super().__init__(is_3p=is_3p, version=version, name=name, is_oracle=is_oracle)
 
@@ -34,7 +38,9 @@ class MortalEngine(BaseEngine):
         self.boltzmann_temp = boltzmann_temp
         self.top_p = top_p
 
-    def react_batch(self, obs, masks, invisible_obs):
+    def react_batch(
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         try:
             with (
                 torch.autocast(self.device.type, enabled=self.enable_amp),
@@ -44,7 +50,9 @@ class MortalEngine(BaseEngine):
         except Exception as ex:
             raise RuntimeError(f"Error during inference: {ex}") from ex
 
-    def _react_batch(self, obs, masks):
+    def _react_batch(
+        self, obs: np.ndarray, masks: np.ndarray
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         obs = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
         masks = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
         batch_size = obs.shape[0]
@@ -96,10 +104,9 @@ def _sample_top_p(logits: torch.Tensor, p: float) -> torch.Tensor:
 
 
 def load_local_mortal_engine(
-    model_path,
-    consts,
-    is_3p=False,
-    logger=None,
+    model_path: Path,
+    consts: ModuleType,
+    is_3p: bool = False,
 ) -> MortalEngine | None:
     """
     加载本地 Mortal 模型并返回 MortalEngine。
@@ -136,11 +143,9 @@ def load_local_mortal_engine(
             name="mortal",
             is_3p=is_3p,
         )
-        if logger:
-            logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded.")
+        logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded.")
         return engine
 
     except Exception as e:
-        if logger:
-            logger.warning(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
+        logger.warning(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
         return None

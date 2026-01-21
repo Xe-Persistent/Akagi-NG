@@ -133,7 +133,7 @@
     "game_disconnected": "游戏连接中断，请检查网络或刷新页面",
     "service_disconnected": "服务连接已中断",
     "return_lobby": "已离开当前对局",
-    "missing_resources": "缺少必要的系统资源",
+    "missing_resources": "缺少必要的系统资源：{details}",
     "json_decode_error": "JSON 数据解析失败",
     "config_error": "配置错误",
     "no_bot_loaded": "AI 模型未加载",

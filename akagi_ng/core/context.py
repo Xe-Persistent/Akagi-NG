@@ -4,10 +4,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from akagi_ng.mitm_client.client import MitmClient
-    from akagi_ng.mjai_bot.bot import StateTrackerBot
-    from akagi_ng.mjai_bot.controller import Controller
-    from akagi_ng.playwright_client.client import PlaywrightClient
+    from akagi_ng.mitm_client import MitmClient
+    from akagi_ng.mjai_bot import Controller, StateTrackerBot
+    from akagi_ng.playwright_client import PlaywrightClient
     from akagi_ng.settings import Settings
 
 

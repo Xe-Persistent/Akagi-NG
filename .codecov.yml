@@ -26,6 +26,12 @@ comment:
   require_base: false
   require_head: true
 
+flags:
+  backend:
+    paths:
+      - "akagi_ng/"
+    carryforward: true
+
 ignore:
   # 自动生成的 Protobuf 代码
   - "akagi_ng/bridge/majsoul/liqi_pb2.py"
@@ -43,6 +49,7 @@ ignore:
   - "dist/"
   - ".venv/"
   - "*.egg-info/"
+  - "akagi_frontend/" # 前端代码不计入后端覆盖率
 
 github_checks:
   annotations: true

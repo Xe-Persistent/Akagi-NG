@@ -23,7 +23,7 @@ class STOMPFrame(Enum):
 
 
 class STOMP:
-    def __init__(self) -> None:
+    def __init__(self):
         self.frame: STOMPFrame | None = None
         self.destination: str | None = None
         self.content_length: int = 0
@@ -94,7 +94,7 @@ class STOMP:
 
 
 class AmatsukiBridge(BaseBridge):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         # 流程是否有效
         # 当此流程为四人日麻游戏流程时为 True
@@ -167,7 +167,7 @@ class AmatsukiBridge(BaseBridge):
             logger.error(f"Failed to parse: {e} at {e.__traceback__.tb_lineno}")
             return None
 
-    def _handle_join_desk_callback(self, stomp: STOMP) -> None:
+    def _handle_join_desk_callback(self, stomp: STOMP):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return
@@ -342,7 +342,6 @@ class AmatsukiBridge(BaseBridge):
 
     def _build_kakan(self, content_dict: dict, actor: int) -> list[dict]:
         pai = ID_TO_MJAI_PAI[content_dict["haiList"][0]["id"]]
-        consumed = []
         if pai in ["5m", "5p", "5s"]:
             consumed = [pai] * 3
             consumed[0] += "r"
@@ -371,7 +370,7 @@ class AmatsukiBridge(BaseBridge):
             self.make_dahai(actor, pai, True),
         ]
 
-    def _build_kita(self, content_dict: dict, actor: int) -> list[dict]:
+    def _build_kita(self, actor: int) -> list[dict]:
         assert self.is_3p, "nukidora is only available in 3P"
         return [self.make_nukidora(actor)]
 

@@ -5,8 +5,8 @@ from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, parse_sync_game
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
+from akagi_ng.core import NotificationCode
 from akagi_ng.core.constants import MahjongConstants
-from akagi_ng.core.notification_codes import NotificationCode
 
 
 class MajsoulBridge(BaseBridge):
@@ -155,6 +155,30 @@ class MajsoulBridge(BaseBridge):
 
         return ret
 
+    def _save_tsumohai_to_hand(self):
+        """将摸牌保存到手牌中。
+
+        在执行某些操作（如吃碰杠、拔北）前调用此方法，
+        以防止 my_tsumohai 被后续的摸牌事件覆盖而丢失。
+        """
+        if self.my_tsumohai:
+            self.my_tehais.append(self.my_tsumohai)
+            self.my_tehais.sort(key=cmp_to_key(compare_pai))
+            self.my_tsumohai = None
+
+    def _remove_tile_from_hand(self, tile: str):
+        """从手牌中移除指定牌（支持赤宝牌匹配）。
+
+        Args:
+            tile: 要移除的牌，如 "5m"、"5mr" 等
+        """
+        if tile in self.my_tehais:
+            self.my_tehais.remove(tile)
+        elif tile.replace("r", "") in self.my_tehais:
+            self.my_tehais.remove(tile.replace("r", ""))
+        elif tile + "r" in self.my_tehais:
+            self.my_tehais.remove(tile + "r")
+
     def _update_hand_discard(self, actor: int, pai: str, tsumogiri: bool):
         """更新打牌后的手牌状态"""
         if actor != self.seat:
@@ -170,15 +194,16 @@ class MajsoulBridge(BaseBridge):
             else:
                 logger.warning(f"Discarded tile {pai} not found in hand {self.my_tehais}")
 
-            if self.my_tsumohai:
-                self.my_tehais.append(self.my_tsumohai)
-                self.my_tehais.sort(key=cmp_to_key(compare_pai))
-                self.my_tsumohai = None
+            # 手切后，将摸牌移入手牌
+            self._save_tsumohai_to_hand()
 
     def _update_hand_open_meld(self, actor: int, consumed: list[str]):
         """更新吃碰明杠后的手牌状态"""
         if actor != self.seat:
             return
+
+        # 吃碰杠前，先将 tsumohai 保存到手牌，防止后续摸牌覆盖
+        self._save_tsumohai_to_hand()
 
         for t in consumed:
             if t in self.my_tehais:
@@ -190,25 +215,32 @@ class MajsoulBridge(BaseBridge):
             return
 
         if is_kakan:
-            # 加杠
+            # 加杠前，检查 tsumohai 是否为被杠的牌
             if self.my_tsumohai == pai:
+                # tsumohai 本身被加杠，直接消耗
                 self.my_tsumohai = None
-            elif pai and pai in self.my_tehais:
-                self.my_tehais.remove(pai)
+            else:
+                # tsumohai 不是被杠的牌，先保存再从手牌中移除被杠的牌
+                self._save_tsumohai_to_hand()
+                if pai and pai in self.my_tehais:
+                    self.my_tehais.remove(pai)
         else:
-            # 暗杠
+            # 暗杠：检查 tsumohai 是否参与消耗
             removal_candidates = list(consumed)
+            tsumo_consumed = False
+
             if self.my_tsumohai in removal_candidates:
                 removal_candidates.remove(self.my_tsumohai)
                 self.my_tsumohai = None
+                tsumo_consumed = True
 
-            for t in removal_candidates:
-                if t in self.my_tehais:
-                    self.my_tehais.remove(t)
-                elif t.replace("r", "") in self.my_tehais:
-                    self.my_tehais.remove(t.replace("r", ""))
-                elif t + "r" in self.my_tehais:
-                    self.my_tehais.remove(t + "r")
+            # tsumohai 未被消耗，保存到手牌以等待岭上牌
+            if not tsumo_consumed:
+                self._save_tsumohai_to_hand()
+
+            # 从手牌中移除被杠的牌
+            for tile in removal_candidates:
+                self._remove_tile_from_hand(tile)
 
     def _handle_action_chi_peng_gang(self, action_data: dict) -> list[dict]:
         """处理吃碰杠动作"""
@@ -316,8 +348,13 @@ class MajsoulBridge(BaseBridge):
         if actor == self.seat:
             if "N" in self.my_tehais:
                 self.my_tehais.remove("N")
+            elif self.my_tsumohai == "N":
+                self.my_tsumohai = None
             else:
                 logger.warning(f"Nukidora 'N' not found in hand {self.my_tehais}")
+
+            # 拔北后，保存剩余的 tsumohai 以等待岭上牌
+            self._save_tsumohai_to_hand()
 
         return [self.make_nukidora(actor)]
 

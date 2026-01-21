@@ -2,8 +2,8 @@ import importlib
 from collections.abc import Callable
 from pathlib import Path
 
-from akagi_ng.core import paths
 from akagi_ng.core.logging import logger
+from akagi_ng.core.paths import get_lib_dir, get_models_dir
 
 logger = logger.bind(module="loader")
 
@@ -20,10 +20,10 @@ class ComponentLoader:
             return False
         return True
 
-    def load_bot_components(self):
+    def load_bot_components(self) -> tuple[object, object] | tuple[None, None]:
         """如果资源可用则加载 bot/controller"""
         # 1. 检查必需目录: lib
-        if not self.check_directory(paths.get_lib_dir, "lib"):
+        if not self.check_directory(get_lib_dir, "lib"):
             return None, None
 
         # 2. 尝试加载原生库 (lib_loader)
@@ -34,14 +34,13 @@ class ComponentLoader:
             return None, None
 
         # 3. 检查必需目录: models
-        if not self.check_directory(paths.get_models_dir, "models"):
+        if not self.check_directory(get_models_dir, "models"):
             return None, None
 
         # 4. 加载 bot 模块
         try:
             # 使用 importlib 或者是直接 import
-            from akagi_ng.mjai_bot.bot import StateTrackerBot
-            from akagi_ng.mjai_bot.controller import Controller
+            from akagi_ng.mjai_bot import Controller, StateTrackerBot
 
             logger.info("Bot components loaded successfully.")
             return StateTrackerBot(), Controller()

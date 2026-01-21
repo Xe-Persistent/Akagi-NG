@@ -2,6 +2,7 @@ import gzip
 import json
 import time
 
+import numpy as np
 import requests
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
@@ -119,7 +120,9 @@ class AkagiOTEngine(BaseEngine):
     def enable_rule_based_agari_guard(self) -> bool:
         return False
 
-    def react_batch(self, obs, masks, invisible_obs):
+    def react_batch(
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         try:
             list_obs = [o.tolist() for o in obs]
             list_masks = [m.tolist() for m in masks]

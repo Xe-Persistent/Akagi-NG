@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 tiles_mjai: list[str] = [
     "1m",
     "2m",
@@ -82,35 +80,12 @@ def tenhou_to_mjai_one(index: int) -> str:
     return tenhou_to_mjai([index])[0]
 
 
-def mjai_to_tenhou_one(state, label: str, tsumogiri: bool = False) -> int:
-    if tsumogiri:
-        return state.hand[-1]
-    return mjai_to_tenhou(state, [label])[0]
-
-
 def tenhou_to_mjai(indices: list[int]) -> list[str]:
     ret = []
 
     for index in indices:
         label = tiles_mjai[index // 4]
         ret.append(label + "r" if index in [16, 52, 88] else label)
-
-    return ret
-
-
-def mjai_to_tenhou(state, labels: list[str]) -> list[int]:
-    ret = []
-    # 赤ドラを優先して残すために降順ソート
-    hand = deepcopy(state.hand)
-    hand = sorted(hand, reverse=True)
-
-    for label in labels:
-        is_red = label[-1] == "r"
-        index = tiles_tenhou[label]
-        # 赤ドラが指定された場合インデックスの剰余は0
-        index = next(i for i in hand if i // 4 == index and (not is_red or i % 4 == 0))
-        ret.append(index)
-        # hand.remove(index)
 
     return ret
 

@@ -124,7 +124,7 @@ class LiqiProto:
         dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
         return method_name, dict_obj
 
-    def parse(self, flow_msg) -> dict:
+    def parse(self, flow_msg: bytes | object) -> dict:
         buf: bytes = flow_msg if isinstance(flow_msg, bytes) else flow_msg.content
         result = {}
         msg_id = -1

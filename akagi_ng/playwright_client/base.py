@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 from playwright.sync_api import Page, WebSocket, sync_playwright
 
-from akagi_ng.bridge.base import BaseBridge
+from akagi_ng.bridge import BaseBridge
 from akagi_ng.core.paths import get_playwright_data_dir
 from akagi_ng.playwright_client.logger import logger
 from akagi_ng.settings import local_settings
@@ -35,6 +35,10 @@ class BasePlaywrightController(ABC):
         self.frontend_page: Page | None = None
         self.bridge_lock = threading.Lock()
 
+        # 连接状态跟踪
+        self._active_connections = 0
+        self._connection_lock = threading.Lock()
+
     @abstractmethod
     def create_bridge(self) -> BaseBridge:
         """创建平台特定的 Bridge 实例"""
@@ -58,8 +62,8 @@ class BasePlaywrightController(ABC):
         # 为新 WebSocket 创建并存储 Bridge
         bridges_dict[ws] = self.create_bridge()
 
-        # 发送客户端连接成功通知
-        self.messages_queue.put({"type": "system_event", "code": "client_connected"})
+        # 更新连接计数并发送通知
+        self._on_connection_established()
 
         # 设置消息和关闭事件监听器
         def handle_sent(payload: str | bytes):
@@ -101,21 +105,45 @@ class BasePlaywrightController(ABC):
         except Exception as e:
             logger.error(f"[WebSocket] Error during message parsing: {e}")
 
+    def _on_connection_established(self):
+        """处理连接建立事件"""
+        with self._connection_lock:
+            self._active_connections += 1
+            is_first_connection = self._active_connections == 1
+
+        # 只在第一个连接建立时发送通知
+        if is_first_connection:
+            self.messages_queue.put({"type": "system_event", "code": "client_connected"})
+            logger.info("[WebSocket] Client connected (first connection)")
+
     def _on_socket_close(self, ws: WebSocket):
         """WebSocket 关闭回调"""
         bridges_dict = self.get_bridges_dict()
         if ws in bridges_dict:
             logger.info(f"[WebSocket] Connection closed: {ws.url}")
-            # 清理对应的 Bridge
+
+            # 获取游戏状态并清理 Bridge
             game_ended = getattr(bridges_dict[ws], "game_ended", False)
             del bridges_dict[ws]
-            # 通知主循环游戏连接已断开
-            code = "return_lobby" if game_ended else "game_disconnected"
-            self.messages_queue.put({"type": "system_event", "code": code})
+
+            # 更新连接计数并发送通知
+            self._on_connection_closed(game_ended)
         else:
             logger.warning(f"[WebSocket] Untracked WebSocket connection closed: {ws.url}")
 
-    def _handle_command(self, command: str, command_data: dict) -> bool:
+    def _on_connection_closed(self, game_ended: bool):
+        """处理连接关闭事件"""
+        with self._connection_lock:
+            self._active_connections = max(0, self._active_connections - 1)
+            all_connections_closed = self._active_connections == 0
+
+        # 只在所有连接都关闭时发送断线通知
+        if all_connections_closed:
+            code = "return_lobby" if game_ended else "game_disconnected"
+            self.messages_queue.put({"type": "system_event", "code": code})
+            logger.info(f"[WebSocket] All connections closed, sending {code}")
+
+    def _handle_command(self, command: str) -> bool:
         """处理单个命令。返回 True 表示应停止。"""
         if command == "stop":
             while not self.command_queue.empty():
@@ -130,7 +158,7 @@ class BasePlaywrightController(ABC):
         while True:
             try:
                 command_data = self.command_queue.get_nowait()
-                if self._handle_command(command_data.get("command"), command_data):
+                if self._handle_command(command_data.get("command")):
                     break
             except queue.Empty:
                 # 队列为空，检查生命周期

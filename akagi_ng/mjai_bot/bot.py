@@ -4,8 +4,8 @@ from mjai import Bot
 from mjai.bot.tools import calc_shanten
 from mjai.mlibriichi.state import PlayerState
 
+from akagi_ng.core import NotificationCode
 from akagi_ng.core.constants import MahjongConstants
-from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.utils import make_error_response
 

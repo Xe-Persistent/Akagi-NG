@@ -1,4 +1,4 @@
-from typing import Any
+import numpy as np
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
@@ -11,7 +11,7 @@ class ReplayEngine(BaseEngine):
     用于在 libriichi 中快进状态，避免触发网络请求。
     """
 
-    def __init__(self, delegate: BaseEngine, history_actions: list[Any]):
+    def __init__(self, delegate: BaseEngine, history_actions: list[int]):
         super().__init__(
             is_3p=delegate.is_3p,
             version=getattr(delegate, "version", 1),
@@ -42,7 +42,9 @@ class ReplayEngine(BaseEngine):
     def enable_amp(self) -> bool:
         return self.delegate.enable_amp
 
-    def react_batch(self, obs, masks, invisible_obs):
+    def react_batch(
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         if self.replay_mode:
             batch_size = len(masks)
             actions = []

@@ -75,12 +75,12 @@ class Settings:
     server: ServerConfig
     model_config: ModelConfig
 
-    def update(self, data: dict) -> None:
+    def update(self, data: dict):
         """从字典更新设置"""
         _update_settings(self, data)
         self.ensure_consistency()
 
-    def ensure_consistency(self) -> None:
+    def ensure_consistency(self):
         """确保设置一致性（如互斥性）"""
         # 互斥性：只能启用一种模式，默认使用浏览器模式
         if self.browser.enabled and self.mitm.enabled:
@@ -90,7 +90,7 @@ class Settings:
             logger.warning("Neither Browser nor MITM mode enabled. Defaulting to Browser mode.")
             self.browser.enabled = True
 
-    def save(self) -> None:
+    def save(self):
         """保存设置到 settings.json 文件"""
         _save_settings(asdict(self))
         logger.info(f"Saved settings to {SETTINGS_JSON_PATH}")
@@ -163,7 +163,7 @@ def _detect_locale_windows() -> str | None:
             return "zh-TW"
         if lcid == LCID_JA_JP:
             return "ja-JP"
-    except Exception as e:
+    except (AttributeError, OSError) as e:
         logger.debug(f"Failed to detect locale via Windows API: {e}")
     return None
 
@@ -289,7 +289,7 @@ def _get_schema() -> dict:
         return json.load(f)
 
 
-def _update_settings(settings: Settings, data: dict) -> None:
+def _update_settings(settings: Settings, data: dict):
     """从字典更新 Settings 对象"""
     settings.log_level = data.get("log_level", "INFO")
     settings.locale = data.get("locale", "zh-CN")
@@ -324,7 +324,7 @@ def _update_settings(settings: Settings, data: dict) -> None:
     settings.model_config.ot.api_key = ot_data.get("api_key", "")
 
 
-def _save_settings(data: dict) -> None:
+def _save_settings(data: dict):
     """保存 settings.json"""
     with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)

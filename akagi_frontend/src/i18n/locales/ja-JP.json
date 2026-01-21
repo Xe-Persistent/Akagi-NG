@@ -133,7 +133,7 @@
     "game_disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください",
     "service_disconnected": "サービスとの接続が切れました",
     "return_lobby": "対局から退出しました",
-    "missing_resources": "必要なシステムリソースが不足しています",
+    "missing_resources": "必要なシステムリソースが不足しています：{details}",
     "json_decode_error": "JSONデータの解析に失敗しました",
     "config_error": "設定エラー",
     "no_bot_loaded": "AIモデルが読み込まれていません",

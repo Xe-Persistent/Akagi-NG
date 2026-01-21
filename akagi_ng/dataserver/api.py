@@ -9,7 +9,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from akagi_ng.core.logging import configure_logging
+from akagi_ng.core import configure_logging
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.settings import get_default_settings_dict, get_settings_dict, local_settings, verify_settings
 
@@ -100,14 +100,14 @@ async def handle_shutdown(_request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "message": "Shutting down..."})
 
 
-def setup_routes(app: web.Application) -> None:
+def setup_routes(app: web.Application):
     app.router.add_get("/api/settings", get_settings_handler)
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
     app.router.add_post("/api/shutdown", handle_shutdown)
 
 
-def _serve_with_gzip(file_path, accept_encoding: str) -> web.StreamResponse:
+def _serve_with_gzip(file_path: Path, accept_encoding: str) -> web.StreamResponse:
     """Serve a file with gzip fallback if available and accepted."""
     gz_path = file_path.with_name(file_path.name + ".gz")
 
@@ -122,7 +122,7 @@ def _serve_with_gzip(file_path, accept_encoding: str) -> web.StreamResponse:
     return web.FileResponse(file_path)
 
 
-def _setup_assets_route(app: web.Application, assets_dir: Path) -> None:
+def _setup_assets_route(app: web.Application, assets_dir: Path):
     """设置 assets 静态资源路由"""
     if not assets_dir.exists():
         return
@@ -148,25 +148,25 @@ def _setup_assets_route(app: web.Application, assets_dir: Path) -> None:
     app.router.add_get("/assets/{tail:.*}", _serve_asset)
 
 
-def _setup_resources_route(app: web.Application, resources_dir: Path) -> None:
+def _setup_resources_route(app: web.Application, resources_dir: Path):
     """设置 Resources 静态资源路由"""
     if resources_dir.exists():
         app.router.add_static("/Resources/", resources_dir, show_index=False)
 
 
-def _setup_root_files_routes(app: web.Application, frontend_dist_dir: Path) -> None:
+def _setup_root_files_routes(app: web.Application, frontend_dist_dir: Path):
     """设置根目录文件路由（除了 index.html）"""
     for p in frontend_dist_dir.iterdir():
         if not p.is_file() or p.name == "index.html":
             continue
 
-        async def _serve_file(request: web.Request, _path=p) -> web.StreamResponse:
+        async def _serve_file(request: web.Request, _path: Path = p) -> web.StreamResponse:
             return _serve_with_gzip(_path, request.headers.get("Accept-Encoding", ""))
 
         app.router.add_get(f"/{p.name}", _serve_file)
 
 
-def _setup_spa_routes(app: web.Application, frontend_dist_dir: Path) -> None:
+def _setup_spa_routes(app: web.Application, frontend_dist_dir: Path):
     """设置 SPA 入口和回退路由"""
 
     async def _serve_index(_request: web.Request) -> web.StreamResponse:
@@ -177,7 +177,7 @@ def _setup_spa_routes(app: web.Application, frontend_dist_dir: Path) -> None:
     app.router.add_get("/{tail:.*}", _serve_index)
 
 
-def setup_static_routes(app: web.Application, frontend_dist_dir: Path) -> None:
+def setup_static_routes(app: web.Application, frontend_dist_dir: Path):
     if not frontend_dist_dir.exists():
         logger.warning(
             f"Frontend dist not found at {frontend_dist_dir}. Run `npm run build` in frontend/akagi_frontend first."

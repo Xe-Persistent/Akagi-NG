@@ -16,7 +16,7 @@ from akagi_ng.core.constants import MahjongConstants
 
 
 class TenhouBridge(BaseBridge):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.state = State()
         self.handlers = {
@@ -71,7 +71,7 @@ class TenhouBridge(BaseBridge):
 
     def _dispatch_message(self, message: dict) -> list[dict] | None:
         if "owari" in message:
-            return self._convert_end_game(message)
+            return self._convert_end_game()
 
         tag = message.get("tag")
         if not tag:
@@ -99,13 +99,13 @@ class TenhouBridge(BaseBridge):
             return self._convert_meld(message)
         return None
 
-    def _convert_helo(self, message: dict) -> list[dict] | None:
+    def _convert_helo(self) -> list[dict] | None:
         return None
 
-    def _convert_rejoin(self, message: dict) -> list[dict] | None:
+    def _convert_rejoin(self) -> list[dict] | None:
         return None
 
-    def _convert_go(self, message: dict) -> list[dict] | None:
+    def _convert_go(self) -> list[dict] | None:
         return None
 
     def _convert_start_game(self, message: dict) -> list[dict] | None:
@@ -265,7 +265,7 @@ class TenhouBridge(BaseBridge):
         scores = parse_sc_tag(message)
         return [{"type": "ryukyoku", "scores": scores}, {"type": "end_kyoku"}]
 
-    def _convert_end_game(self, message: dict) -> list[dict] | None:
+    def _convert_end_game(self) -> list[dict] | None:
         return [self.make_end_game()]
 
     def rel_to_abs(self, rel: int) -> int:

@@ -1,3 +1,5 @@
+import numpy as np
+
 from akagi_ng.settings import local_settings
 
 
@@ -25,7 +27,9 @@ class BaseEngine:
     def enable_quick_eval(self) -> bool:
         return local_settings.model_config.enable_quick_eval
 
-    def react_batch(self, obs, masks, invisible_obs):
+    def react_batch(
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         raise NotImplementedError
 
     def get_notification_flags(self) -> dict:

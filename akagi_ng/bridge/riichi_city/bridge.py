@@ -7,7 +7,7 @@ from akagi_ng.core.constants import MahjongConstants
 
 
 class RCMessage:
-    def __init__(self, msg_id: int, msg_type: int, msg_data: dict) -> None:
+    def __init__(self, msg_id: int, msg_type: int, msg_data: dict):
         self.msg_id = msg_id
         self.msg_type = msg_type
         self.msg_data = msg_data
@@ -17,7 +17,7 @@ class RCMessage:
 
 
 class GameStatus:
-    def __init__(self) -> None:
+    def __init__(self):
         self.seat: int = -1
         self.tehai: list[str] = []
         self.tsumo: str | None = None
@@ -35,7 +35,7 @@ class GameStatus:
 
 
 class RiichiCityBridge(BaseBridge):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.uid: int = -1
         self.game_status = GameStatus()
@@ -206,35 +206,35 @@ class RiichiCityBridge(BaseBridge):
         mjai_msgs.append(self.make_tsumo(actor, pai))
         return mjai_msgs
 
-    def _handle_rc_chi(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_chi(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         target = (actor - 1) % MahjongConstants.SEATS_4P
         pai = CARD2MJAI[action["card"]]
         consumed = [CARD2MJAI[card] for card in action["group_cards"]]
         mjai_msgs.append(self.make_chi(actor, target, pai, consumed))
 
-    def _handle_rc_pon(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_pon(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         target = self.game_status.last_dahai_actor
         pai = CARD2MJAI[action["card"]]
         consumed = [CARD2MJAI[card] for card in action["group_cards"]]
         mjai_msgs.append(self.make_pon(actor, target, pai, consumed))
 
-    def _handle_rc_daiminkan(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_daiminkan(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         target = self.game_status.last_dahai_actor
         pai = CARD2MJAI[action["card"]]
         consumed = [CARD2MJAI[card] for card in action["group_cards"]]
         mjai_msgs.append(self.make_daiminkan(actor, target, pai, consumed))
 
-    def _handle_rc_ankan(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_ankan(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         consumed = [CARD2MJAI[action["card"]]] * 4
         if consumed[0] in ["5m", "5p", "5s"]:
             consumed[0] += "r"
         mjai_msgs.append(self.make_ankan(actor, consumed))
 
-    def _handle_rc_kakan(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_kakan(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         pai = CARD2MJAI[action["card"]]
         consumed = [pai] * 3
@@ -244,7 +244,7 @@ class RiichiCityBridge(BaseBridge):
             consumed = [pai[:2]] * 3
         mjai_msgs.append(self.make_kakan(actor, pai, consumed))
 
-    def _handle_rc_dahai(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_dahai(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         pai = CARD2MJAI[action["card"]]
         tsumogiri = (
@@ -261,11 +261,11 @@ class RiichiCityBridge(BaseBridge):
                 mjai_msgs.append(self.make_dora(dora_marker))
             self.game_status.dora_markers = []
 
-    def _handle_rc_nukidora(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_nukidora(self, action: dict, mjai_msgs: list[dict]):
         actor = self.game_status.player_list.index(action["user_id"])
         mjai_msgs.append(self.make_nukidora(actor))
 
-    def _handle_rc_action(self, action: dict, mjai_msgs: list[dict]) -> None:
+    def _handle_rc_action(self, action: dict, mjai_msgs: list[dict]):
         match action["action"]:
             case RCAction.CHI_LOW | RCAction.CHI_MID | RCAction.CHI_HIGH:
                 self._handle_rc_chi(action, mjai_msgs)
@@ -315,6 +315,6 @@ class RiichiCityBridge(BaseBridge):
         self.game_status.dora_markers.append(dora_marker)
         return None
 
-    def _handle_room_end(self, rc_msg: RCMessage) -> list[dict] | None:
+    def _handle_room_end(self) -> list[dict] | None:
         self.game_status = GameStatus()
         return [self.make_end_game()]

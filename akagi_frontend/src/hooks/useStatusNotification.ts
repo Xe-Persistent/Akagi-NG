@@ -76,6 +76,7 @@ export function useStatusNotification(
       const config = getStatusConfig(note.code);
       const message = t(`status_messages.${config.messageKey || note.code}`, {
         defaultValue: note.msg || '',
+        details: note.msg,
       });
 
       // 处理 Toast 通知
@@ -113,9 +114,11 @@ export function useStatusNotification(
 
     // 清除不再需要的 toast
     activeToastIds.current.forEach((toastId) => {
-      if (!currentToastIds.has(toastId)) {
-        toast.dismiss(toastId);
-      }
+      if (currentToastIds.has(toastId)) return;
+      const config = getStatusConfig(toastId);
+      // 不要自动清除临时通知，让它们自然过期
+      if (config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL) return;
+      toast.dismiss(toastId);
     });
 
     // 更新活跃的 toast 列表

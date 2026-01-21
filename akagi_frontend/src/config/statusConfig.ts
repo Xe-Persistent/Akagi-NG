@@ -158,14 +158,14 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
   },
   model_loaded_local: {
     level: STATUS_LEVEL.SUCCESS,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
   },
   model_loaded_online: {
     level: STATUS_LEVEL.SUCCESS,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,

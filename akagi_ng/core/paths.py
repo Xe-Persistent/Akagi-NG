@@ -53,13 +53,13 @@ def ensure_dir(path: Path) -> Path:
     return path
 
 
-def ensure_runtime_dirs() -> None:
+def ensure_runtime_dirs():
     ensure_dir(get_lib_dir())
     ensure_dir(get_models_dir())
     ensure_dir(get_playwright_data_dir())
 
 
-def configure_playwright_env() -> None:
+def configure_playwright_env():
     if getattr(sys, "frozen", False):
         base = sys._MEIPASS if hasattr(sys, "_MEIPASS") else os.path.dirname(sys.executable)
         os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(base, "ms-playwright")

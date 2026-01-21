@@ -133,7 +133,7 @@
     "game_disconnected": "Game connection lost. Check your network or refresh the page.",
     "service_disconnected": "Service connection lost",
     "return_lobby": "Left the current match",
-    "missing_resources": "Missing required system resources",
+    "missing_resources": "Missing required system resources: {details}",
     "json_decode_error": "Failed to decode JSON data",
     "config_error": "Configuration Error",
     "no_bot_loaded": "AI model not loaded",

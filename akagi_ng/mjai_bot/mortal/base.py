@@ -1,8 +1,8 @@
 import json
-from typing import Any
 
-from akagi_ng.core.notification_codes import NotificationCode
+from akagi_ng.core import NotificationCode
 from akagi_ng.mjai_bot.engine import MortalEngine
+from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.mjai_bot.utils import is_riichi_relevant, make_error_response
 
 
@@ -42,7 +42,7 @@ class MortalBot:
         self.player_id: int | None = None
         self.riichi_candidates = []
         self.history = []
-        self.model: Any = None
+        self.model: Bot | None = None
         self.game_start_event = None
         self.meta = {}
         self.notification_flags = {}  # 系统状态通知标志
@@ -56,12 +56,12 @@ class MortalBot:
             from akagi_ng.core.lib_loader import libriichi3p
 
             self.libriichi = libriichi3p
-            self.model_loader = lambda seat: load_model(seat, is_3p=True, logger=logger)
+            self.model_loader = lambda seat: load_model(seat, is_3p=True)
         else:
             from akagi_ng.core.lib_loader import libriichi
 
             self.libriichi = libriichi
-            self.model_loader = lambda seat: load_model(seat, is_3p=False, logger=logger)
+            self.model_loader = lambda seat: load_model(seat, is_3p=False)
 
         self.logger = logger
 
@@ -89,6 +89,8 @@ class MortalBot:
                         self._pending_notifications["model_loaded_online"] = True
                     elif self.engine.engine_type == "mortal":
                         self._pending_notifications["model_loaded_local"] = True
+                else:
+                    self.logger.warning("Engine has no engine_type attribute")
 
                 continue
             if self.model is None or self.player_id is None:
@@ -110,7 +112,7 @@ class MortalBot:
 
         return return_action, is_game_start_batch
 
-    def _handle_riichi_lookahead(self, meta: dict, events: list[dict]) -> None:
+    def _handle_riichi_lookahead(self, meta: dict, events: list[dict]):
         """
         处理立直前瞻逻辑,如果满足条件则运行模拟并更新 meta 或 notification_flags。
 
@@ -131,7 +133,7 @@ class MortalBot:
         if "reach" not in top_3_actions:
             return
 
-        if not (events and is_riichi_relevant(self.engine, self.player_id, events[-1], is_3p=self.is_3p)):
+        if not (events and is_riichi_relevant(self.engine, is_3p=self.is_3p)):
             self.logger.debug(f"Riichi Lookahead: Reach is in Top 3 ({top_3_actions}) but not legal (skipped).")
             return
 
@@ -145,7 +147,7 @@ class MortalBot:
             else:
                 meta["riichi_lookahead"] = lookahead_meta
 
-    def _set_meta_to_response(self, raw_data: dict, meta: dict) -> None:
+    def _set_meta_to_response(self, raw_data: dict, meta: dict):
         """
         根据游戏模式设置 meta 到响应中。
 
@@ -225,7 +227,7 @@ class MortalBot:
             self.logger.error(traceback.format_exc())
             return json.dumps(make_error_response(NotificationCode.BOT_RUNTIME_ERROR), separators=(",", ":"))
 
-    def _run_riichi_lookahead(self):
+    def _run_riichi_lookahead(self) -> dict[str, object]:
         """
         使用 ReplayEngine 运行立直前瞻模拟。
         返回模拟元数据，失败时返回 None。

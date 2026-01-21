@@ -1,12 +1,11 @@
-from typing import Any
-
 from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.dataserver.logger import logger
+from akagi_ng.mjai_bot import StateTrackerBot
 from akagi_ng.mjai_bot.utils import meta_to_recommend
 from akagi_ng.settings import local_settings
 
 
-def _handle_chi_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
+def _handle_chi_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
     """处理吃的副露详情"""
     if not last_kawa:
         return []
@@ -29,7 +28,7 @@ def _handle_chi_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
     return results
 
 
-def _handle_pon_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
+def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
     """处理碰的副露详情"""
     if not last_kawa:
         return []
@@ -48,7 +47,7 @@ def _handle_pon_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
     return results
 
 
-def _handle_kan_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
+def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
     """处理杠的副露详情(大明杠/暗杠/加杠)"""
     results = []
 
@@ -76,7 +75,7 @@ def _handle_kan_fuuro(bot: Any, last_kawa: str | None) -> list[dict[str, Any]]:
     return results
 
 
-def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
+def _get_fuuro_details(action: str, bot: StateTrackerBot) -> list[dict[str, object]]:
     """
     获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。
     使用 mjai.Bot 原生方法而非手动逻辑。
@@ -94,7 +93,7 @@ def _get_fuuro_details(action: str, bot: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _handle_hora_action(base_item: dict[str, Any], bot: Any) -> None:
+def _handle_hora_action(base_item: dict[str, object], bot: StateTrackerBot):
     """处理和牌(hora)动作的特殊逻辑"""
     if getattr(bot, "can_tsumo_agari", False):
         # 情况A: 自摸
@@ -112,15 +111,15 @@ def _handle_hora_action(base_item: dict[str, Any], bot: Any) -> None:
             base_item["tile"] = last_kawa
 
 
-def _process_standard_recommendations(meta: dict[str, Any], bot: Any) -> list[dict[str, Any]]:
+def _process_standard_recommendations(meta: dict[str, object], bot: StateTrackerBot) -> list[dict[str, object]]:
     """处理标准推荐(q_values)"""
-    recommendations: list[dict[str, Any]] = []
+    recommendations: list[dict[str, object]] = []
     if "q_values" not in meta or "mask_bits" not in meta:
         return recommendations
 
     top3_recommendations = meta_to_recommend(meta, bot.is_3p, temperature=local_settings.model_config.temperature)[:3]
     for action, confidence in top3_recommendations:
-        base_item: dict[str, Any] = {
+        base_item: dict[str, object] = {
             "action": action,
             "confidence": float(confidence),
         }
@@ -147,7 +146,7 @@ def _process_standard_recommendations(meta: dict[str, Any], bot: Any) -> list[di
     return recommendations
 
 
-def _attach_riichi_lookahead(recommendations: list[dict[str, Any]], meta: dict[str, Any], bot: Any) -> None:
+def _attach_riichi_lookahead(recommendations: list[dict[str, object]], meta: dict[str, object], bot: StateTrackerBot):
     """为 reach 推荐附加立直前瞻候选"""
     riichi_lookahead = meta.get("riichi_lookahead")
     if not riichi_lookahead:
@@ -184,7 +183,7 @@ def _attach_riichi_lookahead(recommendations: list[dict[str, Any]], meta: dict[s
         logger.warning(f"Error attaching riichi lookahead: {e}")
 
 
-def build_dataserver_payload(mjai_response: dict[str, Any], bot: Any) -> dict[str, Any] | None:
+def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTrackerBot) -> dict[str, object] | None:
     """构建发送到 DataServer 的 Payload"""
     try:
         if bot is None:

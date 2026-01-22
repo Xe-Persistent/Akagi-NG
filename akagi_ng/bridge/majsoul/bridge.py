@@ -104,10 +104,9 @@ class MajsoulBridge(BaseBridge):
         elif len(tiles) == MahjongConstants.TSUMO_TEHAI_SIZE:
             # 将14张牌排序后，前13张作为手牌，最后1张作为摸牌
             all_tiles = sorted(
-                [*my_tehais, MS_TILE_2_MJAI_TILE[tiles[MahjongConstants.TEHAI_SIZE]]],
-                key=cmp_to_key(compare_pai)
+                [*my_tehais, MS_TILE_2_MJAI_TILE[tiles[MahjongConstants.TEHAI_SIZE]]], key=cmp_to_key(compare_pai)
             )
-            my_tehais = all_tiles[:MahjongConstants.TEHAI_SIZE]
+            my_tehais = all_tiles[: MahjongConstants.TEHAI_SIZE]
             my_tsumohai = all_tiles[MahjongConstants.TEHAI_SIZE]
             tehais[self.seat] = my_tehais
         else:
@@ -115,6 +114,7 @@ class MajsoulBridge(BaseBridge):
             return [], [], None
 
         return tehais, my_tehais, my_tsumohai
+
     def _handle_action_new_round(self, action_data: dict) -> list[dict]:
         """处理ActionNewRound动作"""
         ret = []

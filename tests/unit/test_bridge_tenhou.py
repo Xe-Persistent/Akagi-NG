@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.bridge.tenhou.bridge import TenhouBridge
 from akagi_ng.bridge.tenhou.utils.decoder import Meld
 
 

@@ -271,6 +271,7 @@ class AmatsukiBridge(BaseBridge):
             dora_marker=None,
             scores=player_points,
             tehais=tehais,
+            is_3p=self.is_3p,
         )
         self.temp_start_round = command
         if not self.game_started:

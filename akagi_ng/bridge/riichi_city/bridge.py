@@ -185,6 +185,7 @@ class RiichiCityBridge(BaseBridge):
                 dora_marker=dora_marker,
                 scores=scores,
                 tehais=tehais,
+                is_3p=self.game_status.is_3p,
             )
         )
         self.game_status.dora_markers = []

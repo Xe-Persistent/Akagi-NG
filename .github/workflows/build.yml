@@ -51,7 +51,7 @@ jobs:
 
       - name: Build release package
         run: |
-          python build_release.py
+          python scripts/build_release.py
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v6

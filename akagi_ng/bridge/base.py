@@ -14,13 +14,7 @@ class BaseBridge:
     """
 
     def __init__(self):
-        # 公共状态属性
-        self.seat: int = -1  # 玩家座位号
-        self.is_3p: bool = False  # 是否三人麻将
-        self.doras: list[str] = []  # 宝牌指示牌列表
-        self.accept_reach: dict | None = None  # 待发送的立直接受消息
-        self.last_discard_actor: int | None = None  # 最后弃牌玩家
-        self.last_discard_pai: str | None = None  # 最后弃牌
+        pass
 
     def parse(self, content: bytes) -> None | list[dict]:
         """
@@ -33,15 +27,6 @@ class BaseBridge:
             MJAI 格式消息列表，或 None（如果无法解析/无需返回）
         """
         raise NotImplementedError
-
-    def reset(self):
-        """重置 Bridge 状态到初始值"""
-        self.seat = -1
-        self.is_3p = False
-        self.doras = []
-        self.accept_reach = None
-        self.last_discard_actor = None
-        self.last_discard_pai = None
 
     # ===== MJAI 消息构建器 =====
 

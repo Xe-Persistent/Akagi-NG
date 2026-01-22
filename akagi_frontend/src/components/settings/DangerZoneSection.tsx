@@ -1,9 +1,10 @@
-import { memo, type FC } from 'react';
+import { memo, type FC, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -28,6 +29,12 @@ interface DangerZoneSectionProps {
 export const DangerZoneSection: FC<DangerZoneSectionProps> = memo(
   ({ settings, updateSetting, busy, onRestoreDefaults }) => {
     const { t } = useTranslation();
+    const [tempInput, setTempInput] = useState(settings.model_config.temperature.toString());
+
+    useEffect(() => {
+      setTempInput(settings.model_config.temperature.toString());
+    }, [settings.model_config.temperature]);
+
     return (
       <div className='border-destructive/50 bg-destructive/5 dark:bg-destructive/10 rounded-lg border p-6'>
         <h3 className='text-destructive mb-2 flex items-center gap-2 text-lg font-bold'>
@@ -63,19 +70,40 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = memo(
               label={t('settings.model_config.temperature')}
               description={t('settings.model_config.temperature_desc')}
             >
-              <Input
-                type='number'
-                step='0.1'
-                min='0'
-                value={settings.model_config.temperature}
-                onChange={(e) =>
-                  updateSetting(
-                    ['model_config', 'temperature'],
-                    parseFloat(e.target.value) || 0,
-                    true,
-                  )
-                }
-              />
+              <div className='flex items-center gap-4'>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={[
+                    100 *
+                      (Math.log(Math.max(0.1, settings.model_config.temperature) / 0.1) /
+                        Math.log(13)),
+                  ]}
+                  markers={[100 * (Math.log(0.3 / 0.1) / Math.log(13))]}
+                  onValueChange={(val) => {
+                    const temp = 0.1 * Math.pow(13, val[0] / 100);
+                    const rounded = Math.round(temp * 1000) / 1000;
+                    updateSetting(['model_config', 'temperature'], rounded, true);
+                  }}
+                  className='flex-1'
+                />
+                <Input
+                  className='w-16 text-center tabular-nums'
+                  value={tempInput}
+                  onChange={(e) => setTempInput(e.target.value)}
+                  onBlur={() => {
+                    let val = parseFloat(tempInput);
+                    if (isNaN(val)) {
+                      setTempInput(settings.model_config.temperature.toString());
+                      return;
+                    }
+                    val = Math.max(0.1, Math.min(1.3, val));
+                    updateSetting(['model_config', 'temperature'], val, true);
+                    setTempInput(val.toString());
+                  }}
+                />
+              </div>
             </SettingsItem>
           </div>
 

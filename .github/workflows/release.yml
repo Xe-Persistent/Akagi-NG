@@ -78,7 +78,7 @@ jobs:
 
       - name: Build release package
         run: |
-          python build_release.py
+          python scripts/build_release.py
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

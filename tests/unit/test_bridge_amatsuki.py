@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.bridge.amatsuki.bridge import STOMP, AmatsukiBridge
+from akagi_ng.bridge.amatsuki.bridge import STOMP
 from akagi_ng.bridge.amatsuki.consts import AmatsukiAction, AmatsukiTopic
 
 
@@ -114,6 +114,7 @@ class TestAmatsukiBridge(unittest.TestCase):
         self.bridge.last_discard = "4m"
 
         with patch("akagi_ng.bridge.amatsuki.bridge.ID_TO_MJAI_PAI") as mock_mapping:
+
             def mapping(x):
                 return {4: "2m", 8: "3m", 12: "4m"}.get(x, "?")
 

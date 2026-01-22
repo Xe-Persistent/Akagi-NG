@@ -9,7 +9,8 @@ from pathlib import Path
 
 def main():
     # Setup paths
-    root_dir = Path(__file__).parent
+    # root_dir is now the parent of the parent of this script (scripts/build_release.py -> root)
+    root_dir = Path(__file__).parent.parent
     dist_dir = root_dir / "dist"
     build_dir = root_dir / "build"
 
@@ -29,7 +30,12 @@ def main():
     # Run PyInstaller
     # We use subprocess to run it exactly as a command line tool would
     try:
-        subprocess.run([sys.executable, "-m", "PyInstaller", "akagi-ng.spec", "--clean", "--noconfirm"], check=True)
+        # Note: We need to run PyInstaller from the root directory so relative paths in spec file work
+        subprocess.run(
+            [sys.executable, "-m", "PyInstaller", "akagi-ng.spec", "--clean", "--noconfirm"],
+            cwd=root_dir,
+            check=True,
+        )
     except subprocess.CalledProcessError:
         print("❌ Build failed!")
         sys.exit(1)

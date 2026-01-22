@@ -133,7 +133,7 @@ class TenhouBridge(BaseBridge):
         kyotaku = seed[2]
         dora_marker = tenhou_to_mjai_one(seed[5])
         scores = [int(s) * 100 for s in message["ten"].split(",")]
-        tehais = [["?" for _ in range(MahjongConstants.TEHAI_SIZE)]] * MahjongConstants.SEATS_4P
+        tehais = [["?" for _ in range(MahjongConstants.TEHAI_SIZE)] for _ in range(MahjongConstants.SEATS_4P)]
         tehais[self.state.seat] = tenhou_to_mjai(self.state.hand)
 
         if bakaze == "E" and kyoku == 1 and honba == 0 and 0 in scores:
@@ -154,6 +154,7 @@ class TenhouBridge(BaseBridge):
                 dora_marker=dora_marker,
                 scores=scores,
                 tehais=tehais,
+                is_3p=self.state.is_3p,
             )
         ]
 

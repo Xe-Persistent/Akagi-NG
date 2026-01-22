@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from akagi_ng.bridge.riichi_city.bridge import RCMessage, RiichiCityBridge
+from akagi_ng.bridge.riichi_city.bridge import RCMessage
 from akagi_ng.bridge.riichi_city.consts import RCAction
 from akagi_ng.core.constants import MahjongConstants
 

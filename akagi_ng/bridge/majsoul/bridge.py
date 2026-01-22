@@ -23,7 +23,6 @@ class MajsoulBridge(BaseBridge):
         self.reach = False
         self.accept_reach = None
         self.AllReady = False
-        self.temp = {}
         self.doras = []
         self.my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
         self.my_tsumohai = "?"
@@ -99,20 +98,23 @@ class MajsoulBridge(BaseBridge):
             my_tehais[hai] = MS_TILE_2_MJAI_TILE[tiles[hai]]
 
         if len(tiles) == MahjongConstants.TEHAI_SIZE:
-            tehais[self.seat] = sorted(my_tehais, key=cmp_to_key(compare_pai))
-            my_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
+            sorted_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
+            tehais[self.seat] = sorted_tehais
+            my_tehais = sorted_tehais
         elif len(tiles) == MahjongConstants.TSUMO_TEHAI_SIZE:
-            my_tsumohai = MS_TILE_2_MJAI_TILE[tiles[MahjongConstants.TEHAI_SIZE]]
-            all_tehais = [*my_tehais, my_tsumohai]
-            all_tehais = sorted(all_tehais, key=cmp_to_key(compare_pai))
-            tehais[self.seat] = all_tehais[: MahjongConstants.TEHAI_SIZE]
-            my_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
+            # 将14张牌排序后，前13张作为手牌，最后1张作为摸牌
+            all_tiles = sorted(
+                [*my_tehais, MS_TILE_2_MJAI_TILE[tiles[MahjongConstants.TEHAI_SIZE]]],
+                key=cmp_to_key(compare_pai)
+            )
+            my_tehais = all_tiles[:MahjongConstants.TEHAI_SIZE]
+            my_tsumohai = all_tiles[MahjongConstants.TEHAI_SIZE]
+            tehais[self.seat] = my_tehais
         else:
             logger.error(f"Unexpected tile count in ActionNewRound: {len(tiles)}")
             return [], [], None
 
         return tehais, my_tehais, my_tsumohai
-
     def _handle_action_new_round(self, action_data: dict) -> list[dict]:
         """处理ActionNewRound动作"""
         ret = []
@@ -201,9 +203,6 @@ class MajsoulBridge(BaseBridge):
         """更新吃碰明杠后的手牌状态"""
         if actor != self.seat:
             return
-
-        # 吃碰杠前，先将 tsumohai 保存到手牌，防止后续摸牌覆盖
-        self._save_tsumohai_to_hand()
 
         for t in consumed:
             if t in self.my_tehais:

@@ -22,9 +22,9 @@
 
 ## What is Akagi-NG?
 
-**Akagi-NG** is the next-generation refactored version of the original **Akagi** project.
+**Akagi-NG** is the next-generation rewrite of the original **Akagi** project.
 
-It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), aimed at providing **real-time situation analysis and decision recommendations** for **Mahjong Soul (雀魂)** matches.
+It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), aimed at providing real-time situation analysis and decision recommendations for online Mahjong games.
 
 Core Philosophy of Akagi-NG:
 
@@ -40,7 +40,7 @@ Core Philosophy of Akagi-NG:
 This project is for **educational and research purposes only**.
 
 Using third-party auxiliary tools in online games may violate the game's Terms of Service.
-The authors and contributors of Akagi-NG **are not responsible for any consequences**, including but not limited to **account bans or suspensions**.
+The authors and contributors of Akagi-NG are **NOT responsible for any consequences**, including but not limited to **account bans or suspensions**.
 
 Please fully understand and assume the relevant risks before use.
 
@@ -49,7 +49,10 @@ Please fully understand and assume the relevant risks before use.
 ## Features
 
 - 🎮 **Supported Platforms**
-  - Mahjong Soul (雀魂麻将)
+  - Mahjong Soul
+  - Tenhou
+  - Riichi City
+  - Amatsuki Mahjong
 
 - 🀄 **Supported Modes**
   - Four-Player Mahjong (4p)
@@ -78,22 +81,23 @@ Please fully understand and assume the relevant risks before use.
 > However, for the user, after clicking the "Riichi" button, a tile must be discarded. Without Lookahead, the user can only guess or judge which tile to cut themselves, which may lead to deviations from the AI's intended strategy (e.g., discarding the wrong tile resulting in furiten or dealing into another player's hand).
 >
 > **2. How it works**
-> 
+>
 > The core idea of Lookahead is **"Simulating the Future"**. When the AI suggests Riichi, we create a temporary parallel universe, assume the player has declared Riichi, and then ask the AI what it would discard in that state.
 >
 > The process is divided into the following steps:
+>
 > 1. **Trigger**: In the current situation, the AI engine infers that `Riichi` is one of the top 5 best actions.
 > 2. **Start Simulation**: Akagi-NG creates a new, temporary `Simulation Bot`.
 > 3. **History Replay**:
->     - In order for the simulation bot to reach the current game state, we need to feed it all events that have occurred from the beginning of the game to the present (draws, discards, calls, etc.).
->     - **Old Mechanism**: When replaying every move of "my own actions", the simulation bot would foolishly ask the AI engine: "What should I do now?". This meant that if a game was in the 15th turn, Lookahead would need to perform 15+ AI inferences. For Online mode, this meant 15 HTTP requests, instantly triggering a 429 ban.
->     - **New Mechanism (ReplayEngine)**: We now use the `ReplayEngine` wrapper. During the replay phase, we explicitly know that this is just "retelling history", so when the simulation bot asks "What should I do now?", `ReplayEngine` directly returns a dummy action (such as `tsumogiri`), **completely skipping AI inference**. This makes the replay process almost instantaneous and with zero network cost.
+>    - In order for the simulation bot to reach the current game state, we need to feed it all events that have occurred from the beginning of the game to the present (draws, discards, calls, etc.).
+>    - **Old Mechanism**: When replaying every move of "my own actions", the simulation bot would foolishly ask the AI engine: "What should I do now?". This meant that if a game was in the 15th turn, Lookahead would need to perform 15+ AI inferences. For Online mode, this meant 15 HTTP requests, instantly triggering a 429 ban.
+>    - **New Mechanism (ReplayEngine)**: We now use the `ReplayEngine` wrapper. During the replay phase, we explicitly know that this is just "retelling history", so when the simulation bot asks "What should I do now?", `ReplayEngine` directly returns a dummy action (such as `tsumogiri`), **completely skipping AI inference**. This makes the replay process almost instantaneous and with zero network cost.
 > 4. **Branching**:
->     - When the state is fully restored to "now", we manually send a `Riichi` event to the simulation bot.
->     - At this point, the internal state of the simulation bot becomes: "The player has just declared Riichi and is waiting to discard a tile".
+>    - When the state is fully restored to "now", we manually send a `Riichi` event to the simulation bot.
+>    - At this point, the internal state of the simulation bot becomes: "The player has just declared Riichi and is waiting to discard a tile".
 > 5. **Final Inference**:
->     - In this new "Declared Riichi" state, we initiate a **real** inquiry to the AI engine: "Which is the best discard now?"
->     - The engine analyzes the situation and returns a specific discard action (e.g., `discard 6m`).
+>    - In this new "Declared Riichi" state, we initiate a **real** inquiry to the AI engine: "Which is the best discard now?"
+>    - The engine analyzes the situation and returns a specific discard action (e.g., `discard 6m`).
 > 6. **Result Display**: The frontend UI receives this `6m` information. The interface will highlight Riichi and other discard recommendations (such as `damaten`). It will also display the recommended discard tile `6m` in the Riichi recommendation sub-item. If there is more than one Riichi discard candidate, the sub-items will display each Riichi discard tile and its confidence respectively.
 > </details>
 
@@ -109,10 +113,10 @@ Please fully understand and assume the relevant risks before use.
 
 ## Demo
 
-<div align="left">
-  <video src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.mp4" controls="controls" muted="muted" style="max-height:720px; min-height: 200px">
-  </video>
-</div>
+<video controls muted playsinline width="720">
+  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.mp4" type="video/mp4; codecs=av01">
+  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.h264.mp4" type="video/mp4">
+</video>
 
 ---
 
@@ -146,6 +150,7 @@ When running `akagi-ng.exe` for the first time, it starts in Browser (Playwright
 When running Akagi-NG in Proxy mode, it will launch a system browser window to enter the UI interface, but will not automatically open the Mahjong Soul page.
 
 To exit the program, directly close the `akagi-ng.exe` web page, or click the red power icon in the top right of the page.
+
 > [!CAUTION]
 > When running Akagi-NG in proxy mode, closing the browser window **WILL NOT** automatically terminate the background program.
 
@@ -165,42 +170,42 @@ In this mode, Akagi-NG will launch an independent, clean Chromium browser window
   - **Safe and Stable**: Receives data directly from the game server, high stability.
 
 - **Usage**:
-    1. Ensure `browser.enabled` is `true` in `config/settings.json` (default is true).
-    2. Double-click to run `akagi-ng.exe`.
-    3. The program will automatically open a browser window. Please log in to your Mahjong Soul account in this window and start the game.
+  1. Ensure `browser.enabled` is `true` in `config/settings.json` (default is true).
+  2. Double-click to run `akagi-ng.exe`.
+  3. The program will automatically open a browser window. Please log in to your Mahjong Soul account in this window and start the game.
 
 ### 6. MITM Mode
 
 Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. This allows you to play using any browser or on a mobile device (with proxy configured).
 
 1. **Enable Configuration**:
-    Add or modify the `mitm` field in `config/settings.json`:
+   Add or modify the `mitm` field in `config/settings.json`:
 
-    ```json
-    "mitm": {
-        "enabled": true,
-        "host": "127.0.0.1",
-        "port": 6789
-    }
-    ```
+   ```json
+   "mitm": {
+       "enabled": true,
+       "host": "127.0.0.1",
+       "port": 6789
+   }
+   ```
 
 2. **Set Proxy**:
-    Set your browser or system proxy to `127.0.0.1:6789`.
+   Set your browser or system proxy to `127.0.0.1:6789`.
 
 3. **Install Certificate**:
-    > Note: If you use Scheme B (Clash splitting), you may not be able to open mitm.it. **Method 2** is recommended.
 
-    - **Method 1: Online Installation (Recommended for Scheme A Users)**
-        - Start Akagi-NG.
-        - Visit [http://mitm.it](http://mitm.it).
-        - Download the Windows certificate (p12 or cer).
+   > Note: If you use Scheme B (Clash splitting), you may not be able to open mitm.it. **Method 2** is recommended.
+   - **Method 1: Online Installation (Recommended for Scheme A Users)**
+     - Start Akagi-NG.
+     - Visit [http://mitm.it](http://mitm.it).
+     - Download the Windows certificate (p12 or cer).
 
-    - **Method 2: Local Installation (Recommended for Scheme B Users)**
-        - Find the `.mitmproxy` folder under the user directory (e.g., `C:\Users\<YourName>\.mitmproxy`).
-        - Double-click `mitmproxy-ca-cert.p12` to install.
+   - **Method 2: Local Installation (Recommended for Scheme B Users)**
+     - Find the `.mitmproxy` folder under the user directory (e.g., `C:\Users\<YourName>\.mitmproxy`).
+     - Double-click `mitmproxy-ca-cert.p12` to install.
 
-    - **Critical Step**:
-        - Double-click certificate -> Install Certificate -> Select Store Location "**Trusted Root Certification Authorities**".
+   - **Critical Step**:
+     - Double-click certificate -> Install Certificate -> Select Store Location "**Trusted Root Certification Authorities**".
 
 > [!WARNING]
 > Be sure to install the certificate into "**Trusted Root Certification Authorities**".
@@ -216,30 +221,30 @@ This scheme is suitable for **Web version** players, configuration is simplest a
 **Configuration Steps (Taking Clash Verge Tun mode as an example)**:
 
 1. **Prepare Environment**:
-    - Keep Clash Verge Tun mode **ON**.
-    - Ensure Akagi-NG is started and `mitm.enabled` is `true` (default port 6789).
+   - Keep Clash Verge Tun mode **ON**.
+   - Ensure Akagi-NG is started and `mitm.enabled` is `true` (default port 6789).
 
 2. **Install SwitchyOmega**:
-    - Chrome/Edge users please search regarding "SwitchyOmega" in the store and install it.
+   - Chrome/Edge users please search regarding "SwitchyOmega" in the store and install it.
 
 3. **Configure Profile**:
-    - Open SwitchyOmega settings interface.
-    - Click **"New Profile"** on the left -> Name it `Akagi-Mitm` -> Select type **"Proxy Profile"**.
-    - In `Akagi-Mitm` settings:
-        - Protocol: `HTTP`
-        - Server: `127.0.0.1`
-        - Port: `6789`
-    - Click **"Apply Changes"** on the left to save.
+   - Open SwitchyOmega settings interface.
+   - Click **"New Profile"** on the left -> Name it `Akagi-Mitm` -> Select type **"Proxy Profile"**.
+   - In `Akagi-Mitm` settings:
+     - Protocol: `HTTP`
+     - Server: `127.0.0.1`
+     - Port: `6789`
+   - Click **"Apply Changes"** on the left to save.
 
 4. **Configure Auto Switch (Critical)**:
-    - Click **"Auto Switch"** on the left.
-    - Delete all existing rules (if any).
-    - **Add Rules**:
-        - Rule condition: `*.maj-soul.com  ->  Akagi-Mitm`
-        - Rule condition: `*.majsoul.com  ->  Akagi-Mitm`
-        - Rule condition: `*.mahjongsoul.com  ->  Akagi-Mitm`
-    - **Default Rule**:
-        - Select **"Direct"**, then click **"Apply Changes"** to save.
+   - Click **"Auto Switch"** on the left.
+   - Delete all existing rules (if any).
+   - **Add Rules**:
+     - Rule condition: `*.maj-soul.com  ->  Akagi-Mitm`
+     - Rule condition: `*.majsoul.com  ->  Akagi-Mitm`
+     - Rule condition: `*.mahjongsoul.com  ->  Akagi-Mitm`
+   - **Default Rule**:
+     - Select **"Direct"**, then click **"Apply Changes"** to save.
 
 > [!TIP]
 > Because your system has Tun mode enabled, "Direct" traffic will be automatically taken over and proxied by the Tun network card, so you don't need to select "System Proxy" or "Clash" here.
@@ -248,8 +253,8 @@ This scheme is suitable for **Web version** players, configuration is simplest a
 > If you don't enable Tun mode and only enabled System Proxy, please select "System Proxy" here.
 
 5. **Start Game**:
-    - Click the SwitchyOmega icon in the upper right corner of the browser and select **"Auto Switch"**.
-    - Visit Mahjong Soul web version, Akagi-NG should be able to capture game events normally, while you can still access Google/YouTube (via Tun).
+   - Click the SwitchyOmega icon in the upper right corner of the browser and select **"Auto Switch"**.
+   - Visit Mahjong Soul web version, Akagi-NG should be able to capture game events normally, while you can still access Google/YouTube (via Tun).
 
 #### Configuration Scheme B: Mahjong Soul Client (Clash Rule Splitting)
 
@@ -259,44 +264,44 @@ This scheme is suitable for **PC/Steam Client** players. Since the client cannot
 > When playing with the PC/Steam client, please ensure Clash is in TUN mode, otherwise it will not be able to proxy client traffic.
 
 1. **Find Configuration Entry**:
-    - Find your configuration file in Clash Verge (or use "Merge" / "Script" function to inject, to avoid overwriting the original configuration).
+   - Find your configuration file in Clash Verge (or use "Merge" / "Script" function to inject, to avoid overwriting the original configuration).
 
 2. **Add Proxy Node (Proxies)**:
-    Define a node pointing to the Akagi-NG local proxy.
+   Define a node pointing to the Akagi-NG local proxy.
 
-    ```yaml
-    proxies:
-      - name: Akagi-Mitm
-        type: http
-        server: 127.0.0.1
-        port: 6789
-        tls: false
-    ```
+   ```yaml
+   proxies:
+     - name: Akagi-Mitm
+       type: http
+       server: 127.0.0.1
+       port: 6789
+       tls: false
+   ```
 
-    You can also define a proxy group (Proxy-groups) containing the local proxy node and Direct, making it convenient to toggle whether to use the Akagi-NG local proxy.
+   You can also define a proxy group (Proxy-groups) containing the local proxy node and Direct, making it convenient to toggle whether to use the Akagi-NG local proxy.
 
-    ```yaml
-    proxy-groups:
-      - name: 🀄 Mahjong Soul
-        proxies:
-          - Akagi-Mitm
-          - DIRECT
-        type: select
-    ```
+   ```yaml
+   proxy-groups:
+     - name: 🀄 Mahjong Soul
+       proxies:
+         - Akagi-Mitm
+         - DIRECT
+       type: select
+   ```
 
 3. **Add Splitting Rules (Rules)**:
-    Force Mahjong Soul related domains to point to the node defined above. Please note the rule order, it is recommended to place them near the top.
+   Force Mahjong Soul related domains to point to the node defined above. Please note the rule order, it is recommended to place them near the top.
 
-    ```yaml
-    rules:
-      - PROCESS-NAME,雀魂麻將,🀄 Mahjong Soul
-      - PROCESS-NAME,jantama_mahjongsoul.exe,🀄 Mahjong Soul
-      - PROCESS-NAME,Jantama_MahjongSoul.exe,🀄 Mahjong Soul
-    ```
+   ```yaml
+   rules:
+     - PROCESS-NAME,雀魂麻將,🀄 Mahjong Soul
+     - PROCESS-NAME,Jantama_MahjongSoul.exe,🀄 Mahjong Soul
+     - DOMAIN-Keyword,maj-soul,🀄 Mahjong Soul
+   ```
 
 4. **Apply Configuration**:
-    Save and refresh the Clash configuration. Now start the Mahjong Soul client, the traffic path is:
-    `Mahjong Soul Client -> Clash (TUN) -> Matches Rules -> Forward to Akagi-NG (6789) -> Your Network/Upstream Proxy`
+   Save and refresh the Clash configuration. Now start the Mahjong Soul client, the traffic path is:
+   `Mahjong Soul Client -> Clash (TUN) -> Matches Rules -> Forward to Akagi-NG (6789) -> Your Network/Upstream Proxy`
 
 ---
 
@@ -343,7 +348,7 @@ python -m akagi_ng
 Build standalone ZIP release package (containing executable):
 
 ```bash
-python build_release.py
+python scripts/build_release.py
 ```
 
 Build artifacts will be generated in the `dist/` directory.

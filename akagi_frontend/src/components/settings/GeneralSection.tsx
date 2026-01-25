@@ -1,6 +1,5 @@
 import { memo, type FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Theme } from '@/hooks/useTheme';
 import {
   Select,
   SelectContent,
@@ -10,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { SUPPORTED_LOCALES } from '@/config/locales';
-import type { Paths, PathValue, Settings } from '@/types';
+import type { Paths, PathValue, Settings, Theme } from '@/types';
 
 interface GeneralSectionProps {
   settings: Settings;
@@ -28,9 +27,7 @@ export const GeneralSection: FC<GeneralSectionProps> = memo(
     const { t } = useTranslation();
     return (
       <div className='space-y-4'>
-        <h3 className='border-border border-b pb-2 text-lg font-semibold'>
-          {t('settings.general.title')}
-        </h3>
+        <h3 className='settings-section-title'>{t('settings.general.title')}</h3>
 
         <SettingsItem label={t('settings.general.locale')}>
           <Select

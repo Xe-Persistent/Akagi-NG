@@ -32,9 +32,7 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(
 
     return (
       <div className='space-y-4'>
-        <h3 className='border-border border-b pb-2 text-lg font-semibold'>
-          {t('settings.connection.title')}
-        </h3>
+        <h3 className='settings-section-title'>{t('settings.connection.title')}</h3>
 
         <SettingsItem label={t('settings.connection.mode')}>
           <CapsuleSwitch

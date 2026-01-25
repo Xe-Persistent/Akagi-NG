@@ -3,9 +3,7 @@ import { notify } from '@/lib/notify';
 import { useTranslation } from 'react-i18next';
 import { fetchJson } from '@/lib/api-client';
 import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
-import type { ApiResponse, Paths, PathValue, Settings } from '@/types';
-
-type SaveSettingsResponse = ApiResponse & { restartRequired?: boolean };
+import type { Paths, PathValue, SaveSettingsResponse, Settings } from '@/types';
 
 export async function fetchSettingsApi(apiBase: string): Promise<Settings> {
   return fetchJson<Settings>(`${apiBase}/api/settings`);

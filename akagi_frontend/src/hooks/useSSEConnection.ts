@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import { SSE_INITIAL_BACKOFF_MS, SSE_MAX_BACKOFF_MS, SSE_MAX_RETRIES } from '@/config/constants';
-import type { FullRecommendationData, NotificationItem } from '@/types';
+import type { FullRecommendationData, NotificationItem, SSEErrorCode } from '@/types';
 
 interface UseSSEConnectionResult {
   data: FullRecommendationData | null;
   notifications: NotificationItem[];
   isConnected: boolean;
-  error: string | null;
+  error: SSEErrorCode | string | null;
 }
 
 export function useSSEConnection(url: string | null): UseSSEConnectionResult {
   const [data, setData] = useState<FullRecommendationData | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<SSEErrorCode | string | null>(null);
 
   useEffect(() => {
     if (!url) return;

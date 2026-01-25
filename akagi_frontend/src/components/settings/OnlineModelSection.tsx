@@ -19,9 +19,7 @@ export const OnlineModelSection: FC<OnlineModelSectionProps> = memo(
     const { t } = useTranslation();
     return (
       <div className='space-y-4'>
-        <h3 className='border-border border-b pb-2 text-lg font-semibold'>
-          {t('settings.online_model.title')}
-        </h3>
+        <h3 className='settings-section-title'>{t('settings.online_model.title')}</h3>
 
         <CapsuleSwitch
           checked={settings.model_config.ot.online}

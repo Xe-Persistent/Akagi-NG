@@ -70,6 +70,10 @@
     @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/95 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/95;
   }
 
+  .vertical-divider {
+    @apply h-24 w-px bg-zinc-200 dark:bg-zinc-700;
+  }
+
   .background-glow {
     @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-40;
   }
@@ -114,17 +118,17 @@
     @apply border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500;
   }
 
-  /* Components: MahjongTile - Rotated */
-  .rotated-tile {
-    transform: rotate(90deg);
-    width: 80px; /* 正常牌的高度 */
-    height: 56px; /* 正常牌的宽度 */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: center;
-    margin-top: -28px; /* -height/2 */
-    margin-left: -40px; /* -width/2 */
+  /* Components: Settings */
+  .settings-section-title {
+    @apply border-border border-b pb-2 text-lg font-semibold;
+  }
+
+  /* Prevent FOUC / White flash */
+  html {
+    background-color: theme('colors.zinc.50');
+  }
+  html.dark {
+    background-color: theme('colors.zinc.900');
   }
 }
 

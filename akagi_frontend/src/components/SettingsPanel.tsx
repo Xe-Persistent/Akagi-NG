@@ -13,8 +13,7 @@ import {
   ModalHeader,
   ModalTitle,
 } from '@/components/ui/modal';
-import type { Settings } from '@/types';
-import type { Theme } from '@/hooks/useTheme';
+import type { Settings, Theme } from '@/types';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { GeneralSection } from './settings/GeneralSection';
 import { ServiceSection } from './settings/ServiceSection';

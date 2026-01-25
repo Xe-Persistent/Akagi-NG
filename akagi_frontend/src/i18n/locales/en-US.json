@@ -74,7 +74,7 @@
     },
     "saved_success": "Settings updated.",
     "status_saved": "All changes saved",
-    "status_saving": "Saving...",
+    "status_saving": "Saving…",
     "status_error": "Save failed",
     "restart_required": "Settings changed, Please restart the application to apply the changes.",
     "restored_success": "Settings restored to defaults. Please restart the application to apply the changes.",

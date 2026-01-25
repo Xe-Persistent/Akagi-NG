@@ -17,9 +17,7 @@ export const ServiceSection: FC<ServiceSectionProps> = memo(({ settings, updateS
   const { t } = useTranslation();
   return (
     <div className='space-y-4'>
-      <h3 className='border-border border-b pb-2 text-lg font-semibold'>
-        {t('settings.server.title')}
-      </h3>
+      <h3 className='settings-section-title'>{t('settings.server.title')}</h3>
       <div className='grid grid-cols-2 gap-4'>
         <SettingsItem label={t('settings.server.host')}>
           <Input

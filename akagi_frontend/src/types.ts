@@ -57,6 +57,10 @@ export interface Settings {
   };
 }
 
+export interface SaveSettingsResponse extends ApiResponse {
+  restartRequired?: boolean;
+}
+
 type Primitive = string | number | boolean | null | undefined | symbol | bigint;
 
 export type Paths<T> = {
@@ -76,3 +80,11 @@ export type PathValue<T, P extends readonly unknown[]> = P extends [infer K]
       ? PathValue<T[K], R>
       : never
     : never;
+
+export type Theme = 'light' | 'dark' | 'system';
+
+export type SSEErrorCode =
+  | 'max_retries_exceeded'
+  | 'reconnecting'
+  | 'config_error'
+  | 'service_disconnected';

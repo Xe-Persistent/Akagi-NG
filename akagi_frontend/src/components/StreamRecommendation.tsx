@@ -85,7 +85,7 @@ const Recommendation: FC<RecommendationProps> = ({
         </div>
 
         {/* Separator */}
-        <div className='mr-10 h-24 w-px bg-zinc-200 dark:bg-zinc-700' />
+        <div className='vertical-divider mr-10' />
 
         {/* Center: Tile Display Area */}
         <div className='flex h-full grow items-center justify-start gap-8 overflow-x-auto overflow-y-hidden px-2'>

@@ -1,8 +1,5 @@
 import numpy as np
 
-from akagi_ng.mjai_bot.engine.base import BaseEngine
-from akagi_ng.mjai_bot.logger import logger
-
 
 def make_error_response(error_code: str) -> dict:
     """

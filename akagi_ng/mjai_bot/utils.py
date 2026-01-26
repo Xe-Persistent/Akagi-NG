@@ -190,31 +190,3 @@ def meta_to_recommend(meta: dict, is_3p: bool = False, temperature: float = 1.0)
             q_value_idx += 1
 
     return sorted(recommend, key=lambda x: x[1], reverse=True)
-
-
-def is_riichi_relevant(engine: BaseEngine, is_3p: bool = False) -> bool:
-    """
-    判断是否应在响应中包含 meta 字段。
-    以下情况返回 True：
-    1. 立直 (reach) 是当前状态的合法操作
-
-    注意: 此函数使用 engine.last_inference_result (内部推理状态),
-    而不是 meta (外部接口数据)。
-    """
-    if not (engine and engine.last_inference_result):
-        return False
-
-    mask_unicode_list = mask_unicode_3p if is_3p else mask_unicode_4p
-
-    # 检查立直是否可能 (使用 last_inference_result 中的 masks)
-    masks = engine.last_inference_result.get("masks")
-    if masks:
-        current_mask = masks[0]
-        try:
-            reach_index = mask_unicode_list.index("reach")
-            if len(current_mask) > reach_index and current_mask[reach_index]:
-                return True
-        except ValueError:
-            logger.warning("'reach' not found in mask_unicode_list")
-
-    return False

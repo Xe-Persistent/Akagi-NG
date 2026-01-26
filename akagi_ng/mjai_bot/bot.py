@@ -78,10 +78,13 @@ class StateTrackerBot(Bot):
 
             return self.think()
 
-        except Exception as e:
+        except BaseException as e:
             logger.error(f"Exception: {e!s}")
             logger.error("Brief info:")
             logger.error(self.brief_info())
+            import traceback
+
+            logger.error(traceback.format_exc())
 
         return json.dumps(make_error_response(NotificationCode.STATE_TRACKER_ERROR), separators=(",", ":"))
 

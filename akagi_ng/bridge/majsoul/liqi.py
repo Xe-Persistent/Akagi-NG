@@ -33,13 +33,13 @@ def parse_sync_game_actions(dict_obj: dict) -> dict:
 def parse_sync_game(msg_dict: dict) -> list[dict]:
     """
     解析 ResSyncGame 消息字典以提取恢复信息。
-    包括 ActionPrototype（回放）和 GameSnapshot（状态恢复）。
+    包括 ActionPrototype 回放和 GameSnapshot 快照。
     """
     msgs = []
     try:
         data = msg_dict.get("data", {})
 
-        restore = data.get("game_restore")
+        restore = data.get("gameRestore")
         if not restore:
             return []
 
@@ -49,14 +49,30 @@ def parse_sync_game(msg_dict: dict) -> list[dict]:
 
         snapshot = restore.get("snapshot")
         if snapshot:
-            hands = snapshot.get("hands", [])
-            seat = snapshot.get("index_player", 0)
-            msgs.append({"type": "sync_game", "hands": hands, "seat": seat})
+            msgs.append({"type": "sync_game", "snapshot": snapshot})
 
     except Exception as e:
         logger.error(f"Error parsing sync game: {e}")
-
     return msgs
+
+
+def analyze_sync_game(msgs: list[dict]) -> tuple[dict | None, list[dict]]:
+    """
+    分析 syncGame 消息列表，查找 ActionPrototype 回放和 GameSnapshot 快照。
+    Returns:
+        (snapshot_msg, action_msgs)
+    """
+    snapshot_msg = None
+    action_msgs = []
+
+    for msg in msgs:
+        if msg.get("type") == "sync_game":
+            snapshot_msg = msg
+            continue
+
+        action_msgs.append(msg)
+
+    return snapshot_msg, action_msgs
 
 
 class LiqiProto:

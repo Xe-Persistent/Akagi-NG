@@ -28,7 +28,7 @@ dependencies = [
     # Majsoul
     "protobuf~=6.33.0",
     # PyTorch
-    "torch~=2.9.0",
+    "torch~=2.10.0",
     "numpy~=2.4.0",
     # Playwright
     "playwright~=1.57.0",

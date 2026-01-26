@@ -150,7 +150,11 @@ class MajsoulBridge(BaseBridge):
         return []
 
     def _extract_snapshot_hands(self, snapshot: dict) -> tuple[list[list[str]], list[str], str | None]:
-        """提取手牌信息 returns (tehais_display, my_tehai, my_tsumohai)"""
+        """提取手牌信息
+
+        Returns:
+            tuple: (tehais_display, my_tehais, my_tsumohai)
+        """
         tehais = [["?"] * MahjongConstants.TEHAI_SIZE for _ in range(MahjongConstants.SEATS_4P)]
         my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
         my_tsumohai = None
@@ -174,7 +178,7 @@ class MajsoulBridge(BaseBridge):
             else:
                 my_tehais = sorted(my_hand_tiles, key=cmp_to_key(compare_pai))
 
-            tehais[self.seat] = my_tehais
+            tehais[self.seat] = list(my_tehais)
 
         return tehais, my_tehais, my_tsumohai
 
@@ -211,7 +215,7 @@ class MajsoulBridge(BaseBridge):
 
         if len(tiles) == MahjongConstants.TEHAI_SIZE:
             sorted_tehais = sorted(my_tehais, key=cmp_to_key(compare_pai))
-            tehais[self.seat] = sorted_tehais
+            tehais[self.seat] = list(sorted_tehais)
             my_tehais = sorted_tehais
         elif len(tiles) == MahjongConstants.TSUMO_TEHAI_SIZE:
             # 将14张牌排序后，前13张作为手牌，最后1张作为摸牌
@@ -220,7 +224,7 @@ class MajsoulBridge(BaseBridge):
             )
             my_tehais = all_tiles[: MahjongConstants.TEHAI_SIZE]
             my_tsumohai = all_tiles[MahjongConstants.TEHAI_SIZE]
-            tehais[self.seat] = my_tehais
+            tehais[self.seat] = list(my_tehais)
         else:
             logger.error(f"Unexpected tile count in ActionNewRound: {len(tiles)}")
             return [], [], None

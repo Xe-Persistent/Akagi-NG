@@ -298,6 +298,56 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         # 3. Tsumo event (since 14 tiles)
         self.assertEqual(events[2]["type"], "tsumo")
 
+    def test_start_kyoku_immutability(self):
+        """Test that start_kyoku event is not mutated by subsequent actions (Reference Bug Fix)."""
+        self.bridge.is_3p = True
+        self.bridge.seat = 0
+
+        # 1. ActionNewRound with 13 tiles
+        tiles = ["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1s", "2s", "3s", "4s"]
+
+        action_new_round = {
+            "name": "ActionNewRound",
+            "data": {
+                "chang": 0,
+                "ju": 0,
+                "ben": 0,
+                "liqibang": 0,
+                "doras": ["1s"],
+                "scores": [25000, 25000, 25000],
+                "tiles": tiles,
+            },
+        }
+
+        # Trigger New Round
+        events = self.bridge._handle_action_new_round(action_new_round)
+        start_kyoku_event = events[0]
+
+        self.assertIn("1m", start_kyoku_event["tehais"][0])
+
+        # 2. ActionDiscardTile (Discard 1m)
+        action_discard = {
+            "name": "ActionDiscardTile",
+            "data": {
+                "seat": 0,
+                "tile": "1m",  # discard 1m
+                "moqie": False,
+                "isLiqi": False,
+            },
+        }
+
+        # Trigger Discard
+        # This will remove 1m from self.my_tehais
+        self.bridge._handle_action_discard_tile(action_discard)
+
+        # 3. Assert Mutated or Not
+        # If bug exists, 1m will be missing from start_kyoku_event
+        self.assertIn(
+            "1m",
+            start_kyoku_event["tehais"][0],
+            "ActionNewRound event was mutated by subsequent discard! 1m should still be there.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

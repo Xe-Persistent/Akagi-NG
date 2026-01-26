@@ -3,37 +3,12 @@ import json
 from akagi_ng.core import NotificationCode
 from akagi_ng.mjai_bot.engine import MortalEngine
 from akagi_ng.mjai_bot.protocols import Bot
-from akagi_ng.mjai_bot.utils import is_riichi_relevant, make_error_response
+from akagi_ng.mjai_bot.utils import make_error_response
 
 
 class MortalBot:
     """
     Mortal Bot 的封装类,负责处理事件并返回推荐动作。
-
-    数据结构说明:
-
-    1. meta (来自 libriichi mjai.Bot):
-       - 用途: 前端显示推荐、立直前瞻
-       - 格式: {
-           "q_values": list[float],      # Q 值数组
-           "mask_bits": int,              # 合法操作的位掩码
-           "is_greedy": bool,
-           "eval_time_ns": int
-         }
-       - 来源: self.model.react() 返回值中的 "meta" 字段
-
-    2. last_inference_result (来自 Python MortalEngine):
-       - 用途: 内部推理状态检查 (如 is_riichi_relevant)
-       - 格式: {
-           "actions": list[int],          # 动作索引数组
-           "q_out": list[list[float]],    # Q 输出张量
-           "masks": list[list[bool]],     # 合法操作的布尔数组
-           "is_greedy": list[bool]
-         }
-       - 来源: MortalEngine.react_batch() 的内部状态
-
-    注意: 这两个数据结构格式不同,不应混合使用。
-    meta 用于外部接口, last_inference_result 用于内部逻辑。
     """
 
     def __init__(self, engine: MortalEngine | None = None, is_3p: bool = False):
@@ -112,7 +87,7 @@ class MortalBot:
 
         return return_action, is_game_start_batch
 
-    def _handle_riichi_lookahead(self, meta: dict, events: list[dict]):
+    def _handle_riichi_lookahead(self, meta: dict):
         """
         处理立直前瞻逻辑,如果满足条件则运行模拟并更新 meta 或 notification_flags。
 
@@ -129,16 +104,11 @@ class MortalBot:
         recommendations = meta_to_recommend(meta, is_3p=self.is_3p)
         top_3_actions = [rec[0] for rec in recommendations[:3]]
 
-        # 检查立直是否在 Top 3 推荐中且技术上可行
+        # 检查立直是否在 Top 3 推荐中
         if "reach" not in top_3_actions:
             return
 
-        if not (events and is_riichi_relevant(self.engine, is_3p=self.is_3p)):
-            self.logger.debug(f"Riichi Lookahead: Reach is in Top 3 ({top_3_actions}) but not legal (skipped).")
-            return
-
-        # 立直在 Top 3 且技术上可行,运行前瞻
-        self.logger.info(f"Riichi Lookahead: Reach is in Top 3 ({top_3_actions}) and legal. Starting simulation.")
+        self.logger.info(f"Riichi Lookahead: Reach is in Top 3 ({top_3_actions}). Starting simulation.")
         lookahead_meta = self._run_riichi_lookahead()
         if lookahead_meta:
             # 区分: 立直前瞻错误放到通知标志中,成功的元数据放到 meta 中
@@ -165,7 +135,7 @@ class MortalBot:
         # 三麻特殊处理：如果只有一个合法操作，不显示推荐
         mask_bits = meta.get("mask_bits")
         if mask_bits and mask_bits.bit_count() == 1:
-            self.logger.debug("Bot (3p): Suppressing metadata because only 1 legal action exists (forced move).")
+            self.logger.debug("Bot (3p): Suppressing metadata because only 1 legal action exists.")
             raw_data.pop("meta", None)
         else:
             raw_data["meta"] = meta
@@ -209,7 +179,7 @@ class MortalBot:
                 meta["game_start"] = True
 
             # 5. 处理立直前瞻逻辑
-            self._handle_riichi_lookahead(meta, events)
+            self._handle_riichi_lookahead(meta)
 
             # 6. 设置 meta 到响应中
             self._set_meta_to_response(raw_data, meta)

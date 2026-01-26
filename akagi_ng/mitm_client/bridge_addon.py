@@ -12,6 +12,7 @@ from akagi_ng.bridge import (
     RiichiCityBridge,
     TenhouBridge,
 )
+from akagi_ng.core import NotificationCode
 from akagi_ng.core.constants import Platform
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
@@ -123,7 +124,7 @@ class BridgeAddon:
 
         # 只在第一个连接建立时发送通知
         if is_first_connection:
-            self.mjai_messages.put({"type": "system_event", "code": "client_connected"})
+            self.mjai_messages.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
             logger.info("[MITM] Client connected (first connection)")
 
     def websocket_end(self, flow: mitmproxy.http.HTTPFlow):

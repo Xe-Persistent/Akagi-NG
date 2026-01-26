@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from playwright.sync_api import Page, WebSocket, sync_playwright
 
 from akagi_ng.bridge import BaseBridge
+from akagi_ng.core import NotificationCode
 from akagi_ng.core.paths import get_playwright_data_dir
 from akagi_ng.playwright_client.logger import logger
 from akagi_ng.settings import local_settings
@@ -113,7 +114,7 @@ class BasePlaywrightController(ABC):
 
         # 只在第一个连接建立时发送通知
         if is_first_connection:
-            self.messages_queue.put({"type": "system_event", "code": "client_connected"})
+            self.messages_queue.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
             logger.info("[WebSocket] Client connected (first connection)")
 
     def _on_socket_close(self, ws: WebSocket):

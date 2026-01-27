@@ -1,7 +1,8 @@
+import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { Button } from './button';
 import { Modal, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from './modal';
-import type { FC } from 'react';
 
 interface ConfirmationDialogProps {
   open: boolean;

@@ -1,4 +1,8 @@
-import { memo, type FC } from 'react';
+import { type FC, memo } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { CapsuleSwitch } from '@/components/ui/capsule-switch';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -6,9 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { useTranslation } from 'react-i18next';
-import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { PLATFORM_DEFAULTS, PLATFORMS } from '@/config/platforms';
 import type { Paths, PathValue, Settings } from '@/types';

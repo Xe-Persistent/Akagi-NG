@@ -1,7 +1,9 @@
+import { X } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
 import { useEffect } from 'react';
+
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+
 import { Button } from './button';
 
 interface ModalProps {
@@ -11,29 +13,54 @@ interface ModalProps {
   className?: string;
 }
 
-export const Modal: FC<ModalProps> = ({ open, children, className }) => {
-  // 模态框打开时禁止页面滚动
+export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className }) => {
+  // 模态框打开时禁止页面滚动 + Escape 键监听
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
+
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onOpenChange(false);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.removeEventListener('keydown', handleEscape);
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [open]);
+  }, [open, onOpenChange]);
 
   if (!open) return null;
 
   return (
-    <div className='animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200'>
+    <div
+      className='animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200'
+      role='button'
+      tabIndex={-1}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onOpenChange(false);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onOpenChange(false);
+        }
+      }}
+    >
       <div
+        role='dialog'
+        aria-modal='true'
+        tabIndex={-1}
         className={cn(
           'bg-background border-border animate-in zoom-in-95 relative flex max-h-[90vh] w-full flex-col rounded-lg border shadow-lg duration-200',
           className,
         )}
-        onClick={(e) => e.stopPropagation()}
       >
         {children}
       </div>

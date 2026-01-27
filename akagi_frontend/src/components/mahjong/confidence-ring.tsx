@@ -22,9 +22,15 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = ({
   const startValueRef = React.useRef(0);
   const targetValueRef = React.useRef(percentage);
 
+  // 追踪最新的 currentPercentage 以避免在 effect 依赖中包含它
+  const currentPercentageRef = React.useRef(currentPercentage);
+  React.useLayoutEffect(() => {
+    currentPercentageRef.current = currentPercentage;
+  }, [currentPercentage]);
+
   React.useEffect(() => {
     // 目标变化时重置动画
-    startValueRef.current = currentPercentage;
+    startValueRef.current = currentPercentageRef.current;
     targetValueRef.current = percentage;
     startTimeRef.current = undefined;
 

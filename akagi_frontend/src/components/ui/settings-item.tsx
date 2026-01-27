@@ -1,4 +1,5 @@
 import { type HTMLAttributes, type ReactNode } from 'react';
+
 import { cn } from '@/lib/utils';
 
 interface SettingsItemProps extends HTMLAttributes<HTMLDivElement> {

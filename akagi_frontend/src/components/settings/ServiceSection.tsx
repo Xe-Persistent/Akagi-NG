@@ -1,6 +1,7 @@
-import { memo, type FC } from 'react';
-import { Input } from '@/components/ui/input';
+import { type FC, memo } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { Input } from '@/components/ui/input';
 import { SettingsItem } from '@/components/ui/settings-item';
 import type { Paths, PathValue, Settings } from '@/types';
 

@@ -1,8 +1,9 @@
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import type { FC } from 'react';
 import { Suspense, use, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Loader2 } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import {
@@ -13,30 +14,27 @@ import {
   ModalHeader,
   ModalTitle,
 } from '@/components/ui/modal';
-import type { Settings, Theme } from '@/types';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
-import { GeneralSection } from './settings/GeneralSection';
-import { ServiceSection } from './settings/ServiceSection';
-import { OnlineModelSection } from './settings/OnlineModelSection';
+import type { Settings } from '@/types';
+
 import { ConnectionSection } from './settings/ConnectionSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
+import { GeneralSection } from './settings/GeneralSection';
+import { OnlineModelSection } from './settings/OnlineModelSection';
+import { ServiceSection } from './settings/ServiceSection';
 
 interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
   apiBase: string;
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
 }
 
 interface SettingsFormProps {
   apiBase: string;
   settingsPromise: Promise<Settings>;
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
 }
 
-const SettingsForm = ({ apiBase, settingsPromise, theme, setTheme }: SettingsFormProps) => {
+const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
   const initialSettings = use(settingsPromise);
   const { t } = useTranslation();
 
@@ -58,12 +56,7 @@ const SettingsForm = ({ apiBase, settingsPromise, theme, setTheme }: SettingsFor
         )}
 
         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-          <GeneralSection
-            settings={settings}
-            updateSetting={updateSetting}
-            theme={theme}
-            setTheme={setTheme}
-          />
+          <GeneralSection settings={settings} updateSetting={updateSetting} />
           <ConnectionSection
             settings={settings}
             updateSetting={updateSetting}
@@ -96,7 +89,7 @@ const SettingsForm = ({ apiBase, settingsPromise, theme, setTheme }: SettingsFor
   );
 };
 
-const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase, theme, setTheme }) => {
+const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
   const { t } = useTranslation();
   const settingsPromise = useMemo(() => {
     if (open) {
@@ -138,12 +131,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase, theme, 
             }
           >
             {settingsPromise && (
-              <SettingsForm
-                apiBase={apiBase}
-                settingsPromise={settingsPromise}
-                theme={theme}
-                setTheme={setTheme}
-              />
+              <SettingsForm apiBase={apiBase} settingsPromise={settingsPromise} />
             )}
           </Suspense>
         </ErrorBoundary>

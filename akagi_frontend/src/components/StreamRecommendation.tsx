@@ -1,11 +1,11 @@
 import { type FC, memo } from 'react';
-import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
-import { MahjongTile } from '@/components/mahjong/mahjong-tile';
 import { ConfidenceRing } from '@/components/mahjong/confidence-ring';
 import { ConsumedDisplay } from '@/components/mahjong/consumed-display';
+import { MahjongTile } from '@/components/mahjong/mahjong-tile';
 import { ACTION_CONFIG, SHOW_CONSUMED_ACTIONS } from '@/config/actionConfig';
+import { cn } from '@/lib/utils';
 
 // --- 类型定义 ---
 

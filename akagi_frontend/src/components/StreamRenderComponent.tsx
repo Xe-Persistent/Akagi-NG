@@ -1,14 +1,28 @@
 import { type FC, useMemo } from 'react';
-import StreamRecommendation from './StreamRecommendation.tsx';
-import type { FullRecommendationData } from '@/types';
+
 import { cn } from '@/lib/utils';
+import type { FullRecommendationData } from '@/types';
+
+import StreamRecommendation from './StreamRecommendation.tsx';
 
 interface StreamRenderComponentProps {
   data: FullRecommendationData | null;
 }
 
 const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
-  if (!data || data.recommendations.length === 0) {
+  const recommendations = useMemo(() => data?.recommendations || [], [data]);
+  const is_riichi = data?.is_riichi || false;
+
+  const filteredRecommendations = useMemo(() => {
+    return is_riichi
+      ? recommendations.filter(
+          (rec) =>
+            ['kan_select', 'tsumo', 'ron', 'ryukyoku', 'nukidora'].includes(rec.action) || false,
+        )
+      : recommendations;
+  }, [recommendations, is_riichi]);
+
+  if (!data || recommendations.length === 0) {
     return (
       <div
         id='render-source'
@@ -19,17 +33,6 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
       </div>
     );
   }
-
-  const { recommendations, is_riichi } = data;
-
-  const filteredRecommendations = useMemo(() => {
-    return is_riichi
-      ? recommendations.filter(
-          (rec) =>
-            ['kan_select', 'tsumo', 'ron', 'ryukyoku', 'nukidora'].includes(rec.action) || false,
-        )
-      : recommendations;
-  }, [recommendations, is_riichi]);
 
   if (is_riichi && filteredRecommendations.length === 0) {
     return null;

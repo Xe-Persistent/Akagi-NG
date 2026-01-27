@@ -3,6 +3,10 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import unusedImports from 'eslint-plugin-unused-imports';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config([
@@ -33,16 +37,44 @@ export default tseslint.config([
     },
     plugins: {
       'react-refresh': reactRefresh,
+      'simple-import-sort': simpleImportSort,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+      'unused-imports': unusedImports,
     },
     rules: {
+      // React
       'react/prop-types': 'off',
       'react/display-name': 'off',
       'react/jsx-pascal-case': 'warn',
+
+      // React Refresh
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      '@typescript-eslint/no-unused-vars': [
+
+      // React Hooks
+      ...reactHooks.configs.recommended.rules,
+
+      // JSX A11y
+      ...jsxA11y.configs.recommended.rules,
+
+      // Import Sorting
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+
+      // Unused Imports & Vars
+      '@typescript-eslint/no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
         'warn',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+        },
       ],
+
+      // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': 'warn',
     },

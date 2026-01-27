@@ -1,5 +1,5 @@
-import { memo, type FC } from 'react';
 import { Laptop, Moon, Sun } from 'lucide-react';
+import { type FC, memo } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 

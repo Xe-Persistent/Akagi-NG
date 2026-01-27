@@ -1,15 +1,16 @@
-import type { FC } from 'react';
 import { ExternalLink, Globe, Power, RefreshCw, SettingsIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { FC } from 'react';
+import { use } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SUPPORTED_LOCALES } from '@/config/locales';
+import { GameContext } from '@/contexts/GameContext';
+import { useTheme } from '@/hooks/useTheme';
 
 interface HeaderProps {
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  isConnected: boolean;
   isLaunching: boolean;
   onLaunch: () => void;
   onOpenSettings: () => void;
@@ -19,9 +20,6 @@ interface HeaderProps {
 }
 
 export const Header: FC<HeaderProps> = ({
-  theme,
-  setTheme,
-  isConnected,
   isLaunching,
   onLaunch,
   onOpenSettings,
@@ -30,6 +28,11 @@ export const Header: FC<HeaderProps> = ({
   onShutdown,
 }) => {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
+
+  const gameContext = use(GameContext);
+  if (!gameContext) throw new Error('GameContext not found');
+  const { isConnected } = gameContext;
 
   return (
     <header className='sticky top-0 z-40 w-full border-b border-zinc-200 bg-white/70 backdrop-blur-lg dark:border-zinc-800 dark:bg-black/70'>

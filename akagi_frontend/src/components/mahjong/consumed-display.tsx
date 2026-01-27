@@ -1,7 +1,9 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
-import { MahjongTile } from './mahjong-tile';
+
 import { sortTiles } from '@/lib/mahjong';
+
+import { MahjongTile } from './mahjong-tile';
 
 interface ConsumedDisplayProps {
   action: string;

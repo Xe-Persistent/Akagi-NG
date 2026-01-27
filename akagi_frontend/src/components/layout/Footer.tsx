@@ -1,4 +1,5 @@
-import { memo, type FC } from 'react';
+import { type FC, memo } from 'react';
+
 import { AKAGI_VERSION } from '@/version';
 
 export const Footer: FC = memo(() => {

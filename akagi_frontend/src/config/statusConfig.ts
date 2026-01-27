@@ -38,7 +38,7 @@ type ReplaceableConfig = BaseStatusUIConfig & {
 
 export type StatusUIConfig = EphemeralConfig | PersistentConfig | ReplaceableConfig;
 
-export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
+export const STATUS_UI_MAP = {
   // 系统缺失资源错误
   missing_resources: {
     level: STATUS_LEVEL.ERROR,
@@ -196,11 +196,11 @@ export const STATUS_UI_MAP: Record<string, StatusUIConfig> = {
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_SHORT,
   },
-};
+} satisfies Record<string, StatusUIConfig>;
 
 export function getStatusConfig(code: string): StatusUIConfig {
   return (
-    STATUS_UI_MAP[code] || {
+    (STATUS_UI_MAP as Record<string, StatusUIConfig>)[code] || {
       level: STATUS_LEVEL.INFO,
       placement: STATUS_PLACEMENT.TOAST,
       domain: STATUS_DOMAIN.RUNTIME,

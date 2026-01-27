@@ -1,10 +1,10 @@
-import { memo, type FC, useState, useEffect } from 'react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { type FC, memo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { SettingsItem } from '@/components/ui/settings-item';
-import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { SettingsItem } from '@/components/ui/settings-item';
+import { Slider } from '@/components/ui/slider';
 import type { Paths, PathValue, Settings } from '@/types';
 
 interface DangerZoneSectionProps {
@@ -30,10 +31,13 @@ export const DangerZoneSection: FC<DangerZoneSectionProps> = memo(
   ({ settings, updateSetting, busy, onRestoreDefaults }) => {
     const { t } = useTranslation();
     const [tempInput, setTempInput] = useState(settings.model_config.temperature.toString());
+    const [prevTemp, setPrevTemp] = useState(settings.model_config.temperature);
 
-    useEffect(() => {
+    // Derived state: 当 props 更新时重置 local state
+    if (settings.model_config.temperature !== prevTemp) {
+      setPrevTemp(settings.model_config.temperature);
       setTempInput(settings.model_config.temperature.toString());
-    }, [settings.model_config.temperature]);
+    }
 
     return (
       <div className='border-destructive/50 bg-destructive/5 dark:bg-destructive/10 rounded-lg border p-6'>

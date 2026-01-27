@@ -1,7 +1,7 @@
-import path from 'path';
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
 import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig({
@@ -17,6 +17,7 @@ export default defineConfig({
     }),
   ],
   build: {
+    target: 'esnext',
     outDir: path.resolve(__dirname, 'frontend'),
     emptyOutDir: true,
     rollupOptions: {

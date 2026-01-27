@@ -1,8 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
-import { notify } from '@/lib/notify';
-import { useTranslation } from 'react-i18next';
-import { fetchJson } from '@/lib/api-client';
+
 import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
+import i18n from '@/i18n/i18n';
+import { fetchJson } from '@/lib/api-client';
+import { notify } from '@/lib/notify';
 import type { Paths, PathValue, SaveSettingsResponse, Settings } from '@/types';
 
 export async function fetchSettingsApi(apiBase: string): Promise<Settings> {
@@ -48,18 +49,16 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
   const debounceTimer = useRef<NodeJS.Timeout>(null);
   const toastId = useRef<string | number>(null);
 
-  const { t } = useTranslation();
-
   const performSave = useCallback(
     async (newSettings: Settings) => {
       setSaveStatus('saving');
       if (toastId.current) {
         notify.update(toastId.current, {
-          render: t('settings.status_saving'),
+          render: i18n.t('settings.status_saving'),
           isLoading: true,
         });
       } else {
-        toastId.current = notify.loading(t('settings.status_saving'));
+        toastId.current = notify.loading(i18n.t('settings.status_saving'));
       }
 
       try {
@@ -70,7 +69,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
         setSaveStatus('saved');
         if (toastId.current !== null) {
           notify.update(toastId.current, {
-            render: t('settings.status_saved'),
+            render: i18n.t('settings.status_saved'),
             type: 'success',
             isLoading: false,
             autoClose: 2000,
@@ -82,7 +81,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
         setSaveStatus('error');
         if (toastId.current !== null) {
           notify.update(toastId.current, {
-            render: t('settings.status_error'),
+            render: i18n.t('settings.status_error'),
             type: 'error',
             isLoading: false,
             autoClose: TOAST_DURATION_DEFAULT,
@@ -91,7 +90,7 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
         }
       }
     },
-    [apiBase, t],
+    [apiBase],
   );
 
   const triggerSave = useCallback(
@@ -135,11 +134,11 @@ export function useSettings(apiBase: string, initialSettings: Settings) {
       (data) => {
         setSettings(data);
         setRestartRequired(true);
-        notify.success(t('settings.restored_success'));
+        notify.success(i18n.t('settings.restored_success'));
       },
       'Restore Defaults',
     );
-  }, [apiBase, performAction, t]);
+  }, [apiBase, performAction]);
 
   const updateSetting = useCallback(
     <P extends Paths<Settings>>(

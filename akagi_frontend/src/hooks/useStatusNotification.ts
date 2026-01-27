@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
+
+import type { NotificationItem } from '@/types';
+
+import { TOAST_DURATION_DEFAULT } from '../config/constants';
 import { getStatusConfig } from '../config/statusConfig';
 import {
   STATUS_DOMAIN,
@@ -10,8 +14,6 @@ import {
   type StatusDomain,
   type StatusLevel,
 } from '../config/statusConstants';
-import { TOAST_DURATION_DEFAULT } from '../config/constants';
-import type { NotificationItem } from '@/types';
 
 const DOMAIN_PRIORITY: Record<StatusDomain, number> = {
   [STATUS_DOMAIN.CONNECTION]: 0,
@@ -33,120 +35,109 @@ export function useStatusNotification(
   connectionError: string | null,
 ) {
   const { t } = useTranslation();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [statusType, setStatusType] = useState<StatusLevel>(STATUS_LEVEL.INFO);
-  const [activeStatusCode, setActiveStatusCode] = useState<string | null>(null);
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
   const activeToastIds = useRef<Set<string>>(new Set());
 
   // 合并后端通知和连接错误
   const allNotifications = useMemo(() => {
     const list = [...notifications];
-
     if (connectionError) {
       list.push({ code: connectionError, level: STATUS_LEVEL.ERROR });
     }
-
     return list;
   }, [notifications, connectionError]);
+  // 确定状态栏显示内容 (Derived State)
+  const { statusMessage, statusType, activeStatusCode } = useMemo(() => {
+    // 过滤出候选状态
+    const statusCandidates = allNotifications
+      .map((note) => {
+        const config = getStatusConfig(note.code);
+        // 只处理 STATUS_PLACEMENT.STATUS
+        if (config.placement !== STATUS_PLACEMENT.STATUS) return null;
+        if (hiddenCodes.has(note.code)) return null;
 
-  useEffect(() => {
-    if (allNotifications.length === 0) {
-      setStatusMessage(null);
-      // 清除所有活跃的 toast
-      activeToastIds.current.forEach((toastId) => {
-        toast.dismiss(toastId);
-      });
-      activeToastIds.current.clear();
-      return;
+        const message = t(`status_messages.${config.messageKey || note.code}`, {
+          defaultValue: note.msg || '',
+          details: note.msg,
+        });
+
+        return {
+          code: note.code,
+          message,
+          level: config.level || STATUS_LEVEL.INFO,
+          domain: config.domain || STATUS_DOMAIN.RUNTIME,
+          lifecycle: config.lifecycle,
+          autoHide: config.autoHide,
+        };
+      })
+      .filter((item) => item !== null);
+
+    if (statusCandidates.length === 0) {
+      return { statusMessage: null, statusType: STATUS_LEVEL.INFO, activeStatusCode: null };
     }
 
-    const statusCandidates: Array<{
-      code: string;
-      message: string;
-      level: StatusLevel;
-      domain: StatusDomain;
-      lifecycle: string;
-      autoHide?: number;
-    }> = [];
+    // 排序
+    statusCandidates.sort((a, b) => {
+      const lA = LEVEL_PRIORITY[a.level] ?? 99;
+      const lB = LEVEL_PRIORITY[b.level] ?? 99;
+      if (lA !== lB) return lA - lB;
 
+      const dA = DOMAIN_PRIORITY[a.domain] ?? 99;
+      const dB = DOMAIN_PRIORITY[b.domain] ?? 99;
+      if (dA !== dB) return dA - dB;
+
+      return 0;
+    });
+
+    const winner = statusCandidates[0];
+    return {
+      statusMessage: winner.message,
+      statusType: winner.level,
+      activeStatusCode: winner.code,
+    };
+  }, [allNotifications, hiddenCodes, t]);
+
+  // 处理 Toast (Side Effects)
+  useEffect(() => {
+    // 1. Identify active toasts
     const currentToastIds = new Set<string>();
 
     allNotifications.forEach((note) => {
       const config = getStatusConfig(note.code);
-      const message = t(`status_messages.${config.messageKey || note.code}`, {
-        defaultValue: note.msg || '',
-        details: note.msg,
-      });
-
-      // 处理 Toast 通知
       if (config.placement === STATUS_PLACEMENT.TOAST) {
-        const autoClose =
-          config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL
-            ? config.autoHide || TOAST_DURATION_DEFAULT
-            : false;
-
-        toast(message, {
-          type: config.level,
-          autoClose,
-          toastId: note.code,
-        });
-
-        // 记录当前应该活跃的 toast
         currentToastIds.add(note.code);
-      }
 
-      // 处理状态栏
-      if (config.placement === STATUS_PLACEMENT.STATUS) {
-        // 如果已经被手动隐藏（自动消失），则不再显示
-        if (!hiddenCodes.has(note.code)) {
-          statusCandidates.push({
-            code: note.code,
-            message,
-            level: config.level || STATUS_LEVEL.INFO,
-            domain: config.domain || STATUS_DOMAIN.RUNTIME,
-            lifecycle: config.lifecycle,
-            autoHide: config.autoHide,
+        if (!activeToastIds.current.has(note.code)) {
+          const message = t(`status_messages.${config.messageKey || note.code}`, {
+            defaultValue: note.msg || '',
+            details: note.msg,
+          });
+          const autoClose =
+            config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL
+              ? config.autoHide || TOAST_DURATION_DEFAULT
+              : false;
+
+          toast(message, {
+            type: config.level,
+            autoClose,
+            toastId: note.code,
           });
         }
       }
     });
 
-    // 清除不再需要的 toast
+    // 2. Dismiss removed toasts
     activeToastIds.current.forEach((toastId) => {
       if (currentToastIds.has(toastId)) return;
       const config = getStatusConfig(toastId);
       // 不要自动清除临时通知，让它们自然过期
       if (config.lifecycle === STATUS_LIFECYCLE.EPHEMERAL) return;
+
       toast.dismiss(toastId);
     });
 
-    // 更新活跃的 toast 列表
     activeToastIds.current = currentToastIds;
-
-    // 确定状态栏显示内容
-    if (statusCandidates.length > 0) {
-      statusCandidates.sort((a, b) => {
-        const lA = LEVEL_PRIORITY[a.level] ?? 99;
-        const lB = LEVEL_PRIORITY[b.level] ?? 99;
-        if (lA !== lB) return lA - lB;
-
-        const dA = DOMAIN_PRIORITY[a.domain] ?? 99;
-        const dB = DOMAIN_PRIORITY[b.domain] ?? 99;
-        if (dA !== dB) return dA - dB;
-
-        return 0;
-      });
-
-      const winner = statusCandidates[0];
-      setStatusMessage(winner.message);
-      setStatusType(winner.level);
-      setActiveStatusCode(winner.code);
-    } else {
-      setStatusMessage(null);
-      setActiveStatusCode(null);
-    }
-  }, [allNotifications, t, hiddenCodes]);
+  }, [allNotifications, t]);
 
   // 处理临时状态的自动消失
   useEffect(() => {
@@ -172,20 +163,23 @@ export function useStatusNotification(
 
   // 清理不再存在的 hiddenCodes
   useEffect(() => {
-    setHiddenCodes((prev) => {
-      const currentCodes = new Set(allNotifications.map((n) => n.code));
-      let hasChanges = false;
-      const next = new Set(prev);
+    const timer = setTimeout(() => {
+      setHiddenCodes((prev) => {
+        const currentCodes = new Set(allNotifications.map((n) => n.code));
+        let hasChanges = false;
+        const next = new Set(prev);
 
-      next.forEach((code) => {
-        if (!currentCodes.has(code)) {
-          next.delete(code);
-          hasChanges = true;
-        }
+        next.forEach((code) => {
+          if (!currentCodes.has(code)) {
+            next.delete(code);
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : prev;
       });
-
-      return hasChanges ? next : prev;
-    });
+    }, 0);
+    return () => clearTimeout(timer);
   }, [allNotifications]);
 
   return { statusMessage, statusType };

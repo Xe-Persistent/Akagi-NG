@@ -1,16 +1,15 @@
-import type { FC } from 'react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Loader2, PictureInPicture2 } from 'lucide-react';
+import { type FC, use, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/button.tsx';
-import { Loader2, PictureInPicture2 } from 'lucide-react';
-import StreamRenderComponent from './StreamRenderComponent.tsx';
 import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
+import { GameContext } from '@/contexts/GameContext';
+import { notify } from '@/lib/notify';
 import type { FullRecommendationData } from '@/types';
 
-interface StreamPlayerProps {
-  data: FullRecommendationData | null;
-}
+import StreamRenderComponent from './StreamRenderComponent.tsx';
 
 // ==========================================
 // PiP 窗口内自动缩放逻辑
@@ -19,26 +18,28 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
   const [pipScale, setPipScale] = useState(1);
 
   useLayoutEffect(() => {
-    const handleResize = () => {
-      if (!pipWin) return;
+    if (!pipWin) return;
 
-      // 获取 PiP 窗口实际尺寸
-      const width = pipWin.innerWidth;
-      const height = pipWin.innerHeight;
+    const handleResize = (entries: ResizeObserverEntry[]) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
 
-      // 计算缩放比例以保持 16:9 宽高比
-      const scaleX = width / PIP_WINDOW_WIDTH;
-      const scaleY = height / PIP_WINDOW_HEIGHT;
+        const effectiveWidth = width || pipWin.innerWidth;
+        const effectiveHeight = height || pipWin.innerHeight;
 
-      // 使用较小值确保内容完全包含
-      setPipScale(Math.min(scaleX, scaleY));
+        const scaleX = effectiveWidth / PIP_WINDOW_WIDTH;
+        const scaleY = effectiveHeight / PIP_WINDOW_HEIGHT;
+
+        setPipScale(Math.min(scaleX, scaleY));
+      }
     };
 
-    // 监听 PiP 窗口尺寸变化
-    pipWin.addEventListener('resize', handleResize);
-    handleResize(); // 初始化
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(pipWin.document.body);
 
-    return () => pipWin.removeEventListener('resize', handleResize);
+    return () => {
+      observer.disconnect();
+    };
   }, [pipWin]);
 
   return (
@@ -58,7 +59,11 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
   );
 };
 
-const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
+const StreamPlayer: FC = () => {
+  const context = use(GameContext);
+  if (!context) throw new Error('GameContext not found');
+  const { data } = context;
+
   const { t } = useTranslation();
   // 状态管理
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -90,11 +95,11 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ data }) => {
   }, []);
 
   // ==========================================
-  // 文档画中画
+  // Document PiP
   // ==========================================
   const startDocumentPiP = async () => {
     if (!window.documentPictureInPicture) {
-      alert(t('app.pip_not_supported'));
+      notify.warn(t('app.pip_not_supported'));
       return;
     }
 

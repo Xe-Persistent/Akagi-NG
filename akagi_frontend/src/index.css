@@ -122,14 +122,6 @@
   .settings-section-title {
     @apply border-border border-b pb-2 text-lg font-semibold;
   }
-
-  /* Prevent FOUC / White flash */
-  html {
-    background-color: theme('colors.zinc.50');
-  }
-  html.dark {
-    background-color: theme('colors.zinc.900');
-  }
 }
 
 @layer base {
@@ -194,8 +186,19 @@
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+    background-color: theme('colors.zinc.50');
+  }
+  html.dark {
+    background-color: theme('colors.zinc.900');
+  }
+
   body {
-    @apply text-foreground bg-zinc-100 dark:bg-zinc-950;
+    @apply text-foreground bg-zinc-100 antialiased dark:bg-zinc-950;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     background-image:
       radial-gradient(at 0% 0%, rgb(236 72 153 / 0.1) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgb(139 92 246 / 0.1) 0px, transparent 50%),

@@ -13,17 +13,17 @@ const THEME_OPTIONS: ThemeOption[] = [
   {
     value: 'light',
     icon: Sun,
-    activeColor: 'bg-white text-amber-500 shadow-sm dark:bg-zinc-600',
+    activeColor: 'bg-zinc-200/80 text-amber-600 shadow-xs dark:bg-zinc-700/80',
   },
   {
     value: 'dark',
     icon: Moon,
-    activeColor: 'bg-white text-indigo-400 shadow-sm dark:bg-zinc-600',
+    activeColor: 'bg-zinc-200/80 text-indigo-600 shadow-xs dark:bg-zinc-700/80',
   },
   {
     value: 'system',
     icon: Laptop,
-    activeColor: 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-600 dark:text-zinc-100',
+    activeColor: 'bg-zinc-200/80 text-zinc-900 shadow-xs dark:bg-zinc-700/80 dark:text-zinc-100',
   },
 ];
 
@@ -34,7 +34,7 @@ interface ThemeToggleProps {
 
 export const ThemeToggle: FC<ThemeToggleProps> = memo(({ theme, setTheme }) => {
   return (
-    <div className='flex items-center rounded-full border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-800'>
+    <div className='flex items-center rounded-full border border-zinc-500/20 bg-transparent p-1 dark:border-zinc-400/20'>
       {THEME_OPTIONS.map(({ value, icon: Icon, activeColor }) => (
         <button
           key={value}

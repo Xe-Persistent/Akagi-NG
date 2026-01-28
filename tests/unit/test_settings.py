@@ -36,9 +36,8 @@ class TestSettingsDataclasses(unittest.TestCase):
 
     def test_browser_config_creation(self):
         """测试 BrowserConfig 创建"""
-        config = BrowserConfig(enabled=True, headless=False, window_size="1280x720")
+        config = BrowserConfig(enabled=True, window_size="1280x720")
         self.assertTrue(config.enabled)
-        self.assertFalse(config.headless)
         self.assertEqual(config.window_size, "1280x720")
 
     def test_mitm_config_creation(self):
@@ -56,18 +55,14 @@ class TestSettingsDataclasses(unittest.TestCase):
 
     def test_model_config_creation(self):
         """测试 ModelConfig 创建"""
-        ot = OTConfig(online=True, server="https://api.example.com", api_key="test-key")
         config = ModelConfig(
             device="cuda",
             temperature=0.7,
             enable_amp=True,
             enable_quick_eval=False,
             rule_based_agari_guard=True,
-            ot=ot,
         )
         self.assertEqual(config.device, "cuda")
-        self.assertEqual(config.temperature, 0.7)
-        self.assertTrue(config.ot.online)
 
 
 class TestSettingsClass(unittest.TestCase):
@@ -80,20 +75,19 @@ class TestSettingsClass(unittest.TestCase):
             locale="zh-CN",
             browser=BrowserConfig(
                 enabled=True,
-                headless=False,
                 window_size="1280x720",
                 platform="majsoul",
                 url="https://game.maj-soul.com/1/",
             ),
             mitm=MITMConfig(enabled=False, host="127.0.0.1", port=6789, upstream=""),
             server=ServerConfig(host="127.0.0.1", port=8765),
+            ot=OTConfig(online=False),
             model_config=ModelConfig(
                 device="cpu",
                 temperature=1.0,
                 enable_amp=False,
                 enable_quick_eval=True,
                 rule_based_agari_guard=True,
-                ot=OTConfig(online=False),
             ),
         )
 
@@ -134,14 +128,7 @@ class TestSettingsClass(unittest.TestCase):
         # 其他字段应保持不变
         self.assertTrue(self.settings.browser.enabled)
 
-    def test_settings_browser_attribute_update(self):
-        """测试直接更新嵌套属性"""
-        self.settings.browser.headless = True
 
-        # headless 应该更新
-        self.assertTrue(self.settings.browser.headless)
-        # 其他字段应保持不变
-        self.assertTrue(self.settings.browser.enabled)
 
     def test_settings_from_dict(self):
         """测试从字典创建 Settings"""
@@ -152,7 +139,6 @@ class TestSettingsClass(unittest.TestCase):
                 "enabled": False,
                 "platform": "majsoul",
                 "url": "https://game.maj-soul.com/1/",
-                "headless": True,
                 "window_size": "1920x1080",
             },
             "mitm": {"enabled": True, "platform": "majsoul", "host": "0.0.0.0", "port": 7890, "upstream": ""},
@@ -174,7 +160,7 @@ class TestSettingsClass(unittest.TestCase):
         self.assertFalse(settings.browser.enabled)
         self.assertTrue(settings.mitm.enabled)
         self.assertEqual(settings.server.port, 9000)
-        self.assertTrue(settings.model_config.ot.online)
+        self.assertTrue(settings.ot.online)
 
 
 class TestSettingsFunctions(unittest.TestCase):

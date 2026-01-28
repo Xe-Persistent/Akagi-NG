@@ -35,7 +35,6 @@ class OTConfig:
 @dataclass
 class BrowserConfig:
     enabled: bool
-    headless: bool
     window_size: str  # 如 "1920,1080" 或留空
     platform: Platform = Platform.MAJSOUL
     url: str = ""
@@ -63,7 +62,6 @@ class ModelConfig:
     enable_amp: bool
     enable_quick_eval: bool
     rule_based_agari_guard: bool
-    ot: OTConfig
 
 
 @dataclass
@@ -73,6 +71,7 @@ class Settings:
     browser: BrowserConfig
     mitm: MITMConfig
     server: ServerConfig
+    ot: OTConfig
     model_config: ModelConfig
 
     def update(self, data: dict):
@@ -102,7 +101,10 @@ class Settings:
         mitm_data = data.get("mitm", {})
         server_data = data.get("server", {})
         model_config_data = data.get("model_config", {})
-        ot_data = model_config_data.get("ot", {})
+        ot_data = data.get("ot", {})
+        # Legacy support: if ot in model_config_data but not in root, move it
+        if not ot_data and "ot" in model_config_data:
+            ot_data = model_config_data["ot"]
 
         def get_default_url(platform: Platform) -> str:
             if platform == Platform.TENHOU:
@@ -121,7 +123,6 @@ class Settings:
                 enabled=browser_data.get("enabled", True),
                 platform=platform_val,
                 url=browser_url,
-                headless=browser_data.get("headless", False),
                 window_size=browser_data.get("window_size", ""),
             ),
             mitm=MITMConfig(
@@ -135,17 +136,17 @@ class Settings:
                 host=server_data.get("host", "0.0.0.0"),
                 port=server_data.get("port", 8765),
             ),
+            ot=OTConfig(
+                online=ot_data.get("online", False),
+                server=ot_data.get("server", ""),
+                api_key=ot_data.get("api_key", ""),
+            ),
             model_config=ModelConfig(
                 device=model_config_data.get("device", "auto"),
                 temperature=model_config_data.get("temperature", 0.3),
                 enable_amp=model_config_data.get("enable_amp", False),
                 enable_quick_eval=model_config_data.get("enable_quick_eval", False),
                 rule_based_agari_guard=model_config_data.get("rule_based_agari_guard", True),
-                ot=OTConfig(
-                    online=ot_data.get("online", False),
-                    server=ot_data.get("server", ""),
-                    api_key=ot_data.get("api_key", ""),
-                ),
             ),
         )
         settings.ensure_consistency()
@@ -213,7 +214,6 @@ def get_default_settings_dict() -> dict:
             "enabled": True,
             "platform": Platform.MAJSOUL.value,
             "url": "https://game.maj-soul.com/1/",
-            "headless": False,
             "window_size": "",
         },
         "mitm": {
@@ -224,13 +224,13 @@ def get_default_settings_dict() -> dict:
             "upstream": "",
         },
         "server": {"host": "0.0.0.0", "port": 8765},
+        "ot": {"online": False, "server": "http://127.0.0.1:5000", "api_key": "<YOUR_API_KEY>"},
         "model_config": {
             "device": "auto",
             "temperature": 0.3,
             "enable_amp": False,
             "enable_quick_eval": False,
             "rule_based_agari_guard": True,
-            "ot": {"online": False, "server": "http://127.0.0.1:5000", "api_key": "<YOUR_API_KEY>"},
         },
     }
 
@@ -297,7 +297,6 @@ def _update_settings(settings: Settings, data: dict):
     settings.browser.enabled = browser_data.get("enabled", True)
     settings.browser.platform = Platform(browser_data.get("platform", Platform.MAJSOUL))
     settings.browser.url = browser_data.get("url", "")
-    settings.browser.headless = browser_data.get("headless", False)
     settings.browser.window_size = browser_data.get("window_size", "")
 
     mitm_data = data.get("mitm", {})
@@ -318,10 +317,10 @@ def _update_settings(settings: Settings, data: dict):
     settings.model_config.enable_quick_eval = model_config_data.get("enable_quick_eval", False)
     settings.model_config.rule_based_agari_guard = model_config_data.get("rule_based_agari_guard", True)
 
-    ot_data = model_config_data.get("ot", {})
-    settings.model_config.ot.online = ot_data.get("online", False)
-    settings.model_config.ot.server = ot_data.get("server", "")
-    settings.model_config.ot.api_key = ot_data.get("api_key", "")
+    ot_data = data.get("ot", {})
+    settings.ot.online = ot_data.get("online", False)
+    settings.ot.server = ot_data.get("server", "")
+    settings.ot.api_key = ot_data.get("api_key", "")
 
 
 def _save_settings(data: dict):

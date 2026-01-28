@@ -29,7 +29,6 @@ export interface Settings {
     enabled: boolean;
     platform: string;
     url: string;
-    headless: boolean;
     window_size: string;
   };
   mitm: {
@@ -43,17 +42,17 @@ export interface Settings {
     host: string;
     port: number;
   };
+  ot: {
+    online: boolean;
+    server: string;
+    api_key: string;
+  };
   model_config: {
     device: string;
     temperature: number;
     enable_amp: boolean;
     enable_quick_eval: boolean;
     rule_based_agari_guard: boolean;
-    ot: {
-      online: boolean;
-      server: string;
-      api_key: string;
-    };
   };
 }
 

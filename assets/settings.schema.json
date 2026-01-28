@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["browser", "mitm", "server", "model_config"],
+  "required": ["browser", "mitm", "server", "ot", "model_config"],
   "properties": {
     "log_level": {
       "type": "string",
@@ -36,18 +36,13 @@
           "description": "Game URL override.",
           "format": "uri"
         },
-        "headless": {
-          "type": "boolean",
-          "default": false,
-          "description": "Run browser in headless mode."
-        },
         "window_size": {
           "type": "string",
           "default": "",
           "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
         }
       },
-      "required": ["headless"],
+      "required": ["enabled", "platform", "url", "window_size"],
       "additionalProperties": false
     },
     "mitm": {
@@ -81,7 +76,7 @@
           "description": "Upstream proxy URL (e.g. http://127.0.0.1:7890)."
         }
       },
-      "required": ["enabled", "host", "port", "upstream"],
+      "required": ["enabled", "platform", "host", "port", "upstream"],
       "additionalProperties": false
     },
     "server": {
@@ -100,6 +95,38 @@
         }
       },
       "required": ["host", "port"],
+      "additionalProperties": false
+    },
+    "ot": {
+      "description": "Online learning/teacher configuration.",
+      "type": "object",
+      "properties": {
+        "online": {
+          "type": "boolean",
+          "description": "Whether to use the online service.",
+          "default": false
+        },
+        "server": {
+          "type": "string",
+          "description": "The server URL for the online service.",
+          "format": "uri"
+        },
+        "api_key": {
+          "type": "string",
+          "description": "The API key for the online service."
+        }
+      },
+      "required": ["online"],
+      "if": {
+        "properties": {
+          "online": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": ["server", "api_key"]
+      },
       "additionalProperties": false
     },
     "model_config": {
@@ -131,38 +158,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable rule-based check to prevent missing wins."
-        },
-        "ot": {
-          "description": "Online learning/teacher configuration.",
-          "type": "object",
-          "properties": {
-            "online": {
-              "type": "boolean",
-              "description": "Whether to use the online service.",
-              "default": false
-            },
-            "server": {
-              "type": "string",
-              "description": "The server URL for the online service.",
-              "format": "uri"
-            },
-            "api_key": {
-              "type": "string",
-              "description": "The API key for the online service."
-            }
-          },
-          "required": ["online"],
-          "if": {
-            "properties": {
-              "online": {
-                "const": true
-              }
-            }
-          },
-          "then": {
-            "required": ["server", "api_key"]
-          },
-          "additionalProperties": false
         }
       },
       "required": [
@@ -170,8 +165,7 @@
         "temperature",
         "enable_amp",
         "enable_quick_eval",
-        "rule_based_agari_guard",
-        "ot"
+        "rule_based_agari_guard"
       ],
       "additionalProperties": false
     }

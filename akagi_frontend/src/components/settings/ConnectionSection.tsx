@@ -115,18 +115,6 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(
                 onChange={(e) => updateSetting(['browser', 'url'], e.target.value)}
               />
             </SettingsItem>
-
-            <SettingsItem
-              label={t('settings.connection.browser.headless')}
-              description={t('settings.connection.browser.headless_desc')}
-            >
-              <CapsuleSwitch
-                checked={settings.browser.headless}
-                onCheckedChange={(val) => updateSetting(['browser', 'headless'], val)}
-                labelOn={t('common.enabled')}
-                labelOff={t('common.disabled')}
-              />
-            </SettingsItem>
           </>
         ) : (
           <>

@@ -16,8 +16,7 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
   const filteredRecommendations = useMemo(() => {
     return is_riichi
       ? recommendations.filter(
-          (rec) =>
-            ['kan_select', 'tsumo', 'ron', 'ryukyoku', 'nukidora'].includes(rec.action) || false,
+          (rec) => ['kan', 'tsumo', 'ron', 'ryukyoku', 'nukidora'].includes(rec.action) || false,
         )
       : recommendations;
   }, [recommendations, is_riichi]);

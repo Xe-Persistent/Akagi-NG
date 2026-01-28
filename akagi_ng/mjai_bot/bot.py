@@ -136,7 +136,7 @@ class StateTrackerBot(Bot):
         candidates = []
 
         # 加杠需要手牌中有一张与已有碰副相同的牌
-        events = self.get_call_events(self.player_id)
+        events = [ev for ev in self.__call_events if ev.get("actor") == self.player_id]
         pons = [ev for ev in events if ev["type"] == "pon"]
         current_shanten = calc_shanten(self.tehai)
 

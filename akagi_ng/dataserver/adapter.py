@@ -87,7 +87,7 @@ def _get_fuuro_details(action: str, bot: StateTrackerBot) -> list[dict[str, obje
         return _handle_chi_fuuro(bot, last_kawa)
     if action == "pon":
         return _handle_pon_fuuro(bot, last_kawa)
-    if action == "kan_select":
+    if action == "kan":
         return _handle_kan_fuuro(bot, last_kawa)
 
     return []
@@ -119,6 +119,9 @@ def _process_standard_recommendations(meta: dict[str, object], bot: StateTracker
 
     top3_recommendations = meta_to_recommend(meta, bot.is_3p, temperature=local_settings.model_config.temperature)[:3]
     for action, confidence in top3_recommendations:
+        if action == "kan_select":
+            action = "kan"
+
         base_item: dict[str, object] = {
             "action": action,
             "confidence": float(confidence),

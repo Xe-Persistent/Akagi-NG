@@ -4,7 +4,7 @@
     "discard": "Discard Changes",
     "restore": "Restore Defaults",
     "restore_confirm_title": "Restore Default Settings",
-    "restore_confirm_desc": "Are you sure you want to restore all settings to their default values? This action cannot be undone.",
+    "restore_confirm_desc": "Are you sure you want to restore all settings to default values? This action cannot be undone.",
     "general": {
       "title": "General",
       "locale": "Language",
@@ -39,7 +39,7 @@
         "size_default": "Default",
         "size_maximized": "Maximized",
         "url": "Game URL",
-        "url_desc": "Leave empty to use the official default URL. Supports Majsoul and Tenhou only"
+        "url_desc": "Leave empty to use the official default URL. Supports Majsoul and Tenhou only."
       },
       "mitm": {
         "title": "Proxy Settings",
@@ -52,15 +52,15 @@
         "majsoul": "Majsoul",
         "tenhou": "Tenhou",
         "riichi_city": "Riichi City",
-        "amatsuki": "Amatsuki",
+        "amatsuki": "Amatsuki Mahjong",
         "auto": "Auto Detect"
       }
     },
     "model_config": {
       "device": "Device",
-      "device_desc": "Choose the device used by the model. Auto will automatically select a suitable available device",
+      "device_desc": "Choose the device used by the model. Auto will automatically select a suitable available device.",
       "temperature": "Temperature",
-      "temperature_desc": "Controls the randomness of the model output. Higher values produce more random results",
+      "temperature_desc": "Controls the randomness of the model output. Higher values produce more random results.",
       "amp": "Enable AMP",
       "amp_desc": "Enable automatic mixed precision to improve performance",
       "agari_guard": "Rule-driven Agari Guard",
@@ -101,7 +101,7 @@
     "pip_exit": "Exit PiP Mode",
     "pip_not_supported": "Your browser does not support PiP API",
     "pip_playing_in_pip": "Playing in PiP Mode",
-    "pip_can_switch_tabs": "You can switch tabs now",
+    "pip_can_switch_tabs": "You can switch to other tabs now",
     "shutdown_confirm_title": "Confirm Shutdown",
     "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
     "stopped_title": "Application Stopped",
@@ -111,7 +111,7 @@
     "reach": "Reach",
     "chi": "Chi",
     "pon": "Pon",
-    "kan_select": "Kan",
+    "kan": "Kan",
     "ron": "Ron",
     "tsumo": "Tsumo",
     "ryukyoku": "Draw",
@@ -120,8 +120,8 @@
     "discard": "Discard"
   },
   "status_messages": {
-    "client_connected": "Game connected",
-    "game_connected": "Match connected. AI is ready",
+    "client_connected": "Game connected.",
+    "game_connected": "Match connected. AI is ready.",
     "model_loaded_local": "Local model loaded",
     "model_loaded_online": "Online model loaded",
     "game_syncing": "Syncing match data…",
@@ -141,6 +141,6 @@
     "bot_switch_failed": "Failed to switch AI model",
     "bot_runtime_error": "AI model runtime error",
     "state_tracker_error": "Match state error",
-    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application"
+    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application."
   }
 }

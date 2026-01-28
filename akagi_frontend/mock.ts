@@ -1,18 +1,9 @@
 import http from 'node:http';
 
-interface Recommendation {
-  action: string;
-  confidence: number;
-  consumed?: string[];
-  tile?: string;
-}
-interface RecommendationData {
-  recommendations: Recommendation[];
-  is_riichi?: boolean;
-}
+import type { FullRecommendationData, Settings } from './src/types.ts';
 
-// Visual Verification Mock Server for Riichi Discard
-console.log('Starting server in MOCK mode (SSE) for Riichi Visual Test.');
+// Visual Verification Mock Server for Recommendations
+console.log('Starting server in MOCK mode (SSE) for Recommendation Visual Test.');
 
 const STREAM_INTERVAL_MS = 3000;
 const KEEPALIVE_INTERVAL_MS = 3000;
@@ -27,19 +18,38 @@ const port = 8765;
 const hostname = '127.0.0.1';
 
 // In-memory settings storage
-let mockSettings = {
-  log_level: 'INFO',
+let mockSettings: Settings = {
+  log_level: 'TRACE',
   locale: 'zh-CN',
-  majsoul_url: 'https://www.majsoul.com/1/',
-  model: 'mortal',
   browser: {
+    enabled: false,
     headless: false,
-    channel: 'msedge',
-    window_size: '1280x720',
+    window_size: '',
+    platform: 'majsoul',
+    url: 'https://game.maj-soul.com/1/',
+  },
+  mitm: {
+    enabled: true,
+    host: '127.0.0.1',
+    port: 6789,
+    upstream: '',
+    platform: 'majsoul',
   },
   server: {
-    host: '127.0.0.1',
+    host: '0.0.0.0',
     port: 8765,
+  },
+  model_config: {
+    device: 'auto',
+    temperature: 0.3,
+    enable_amp: false,
+    enable_quick_eval: false,
+    rule_based_agari_guard: true,
+    ot: {
+      online: true,
+      server: 'http://127.0.0.1:8765',
+      api_key: 'mock',
+    },
   },
 };
 
@@ -136,7 +146,7 @@ server.listen(port, hostname, () => {
 
 let stateCounter = 0;
 
-function generateMockData(): RecommendationData {
+function generateMockData(): FullRecommendationData {
   const scenarios = [
     // Scenario 1: Standard Discard (Mid-game)
     {
@@ -165,13 +175,12 @@ function generateMockData(): RecommendationData {
       ],
     },
 
-    // Scenario 3 (Revised): Pure Multi-Kan Self Turn
-    // Hand: 4444m 567m 7777s (holding all 4)
+    // Scenario 3: Mixed Kan (Ankan 4m + Kakan 7s)
     {
-      tehai: ['4m', '4m', '4m', '4m', '5m', '6m', '7m', '7s', '7s', '7s', '7s', 'E', 'E', 'S'],
+      tehai: ['4m', '4m', '4m', '4m', '5m', '6m', '7m', 'E', 'E', 'E', '7s'], // has a 7s, 7s, 7s from Pon
       recommendations: [
-        { action: 'kan_select', confidence: 0.9, tile: '4m', consumed: ['4m', '4m', '4m', '4m'] },
-        { action: 'kan_select', confidence: 0.9, tile: '7s', consumed: ['7s', '7s', '7s', '7s'] },
+        { action: 'kan', confidence: 0.9, tile: '4m', consumed: ['4m', '4m', '4m', '4m'] }, // Ankan (consumes 4 from hand)
+        { action: 'kan', confidence: 0.9, tile: '7s', consumed: ['7s'] }, // Kakan (consumes 1 from hand)
         { action: '7s', confidence: 0.1 }, // Skip kan
       ],
     },
@@ -180,7 +189,7 @@ function generateMockData(): RecommendationData {
     {
       tehai: ['9p', '9p', '9p', '1s', '2s', '3s', '4s', '5s', '6s', 'E', 'E', 'S', 'S'],
       recommendations: [
-        { action: 'kan_select', confidence: 0.9, tile: '9p', consumed: ['9p', '9p', '9p'] }, // Daiminkan (consumes 3 from hand)
+        { action: 'kan', confidence: 0.9, tile: '9p', consumed: ['9p', '9p', '9p'] }, // Daiminkan (consumes 3 from hand)
         { action: 'pon', confidence: 0.08, tile: '9p', consumed: ['9p', '9p'] }, // Pon (consumes 2 from hand)
         { action: 'none', confidence: 0.02 },
       ],

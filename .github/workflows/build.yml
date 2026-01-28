@@ -41,6 +41,12 @@ jobs:
         run: |
           playwright install --with-deps chromium
 
+      - name: Cleanup Playwright headers/ffmpeg
+        run: |
+          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\chromium-headless-shell-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\ffmpeg-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          exit 0
+
       - name: Install frontend dependencies
         working-directory: akagi_frontend
         run: npm ci

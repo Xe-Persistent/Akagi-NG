@@ -79,6 +79,36 @@ version_file = 'assets/file_version_info.txt'
 with open(version_file, 'w', encoding='utf-8') as f:
     f.write(version_info_content)
 
+def collect_playwright_browsers():
+    base_dir = os.path.join(os.environ['LOCALAPPDATA'], 'ms-playwright')
+    if not os.path.exists(base_dir):
+        print(f"WARNING: Playwright directory not found at {base_dir}")
+        return []
+
+    data_entries = []
+    print(f"Scanning Playwright browsers in {base_dir}...")
+    
+    for item in os.listdir(base_dir):
+        full_path = os.path.join(base_dir, item)
+        if not os.path.isdir(full_path):
+            continue
+
+        # Filter logic
+        if "chromium-headless-shell" in item:
+            print(f"Skipping headless shell: {item}")
+            continue
+        if "ffmpeg" in item:
+            print(f"Skipping ffmpeg: {item}")
+            continue
+        if "chromium" in item:
+            print(f"Including browser: {item}")
+            # Target path in dist matches source folder name under ms-playwright
+            data_entries.append((full_path, os.path.join('ms-playwright', item)))
+        else:
+            print(f"Skipping unknown/unused component: {item}")
+
+    return data_entries
+
 block_cipher = None
 
 hiddenimports = (
@@ -93,9 +123,8 @@ a = Analysis(
     datas=[
         ('assets', 'assets'),
         ('akagi_frontend/frontend', 'frontend'),
-        (os.path.join(os.environ['LOCALAPPDATA'], 'ms-playwright'), 'ms-playwright'),
         ('pyproject.toml', '.'),
-    ],
+    ] + collect_playwright_browsers(),
     hiddenimports=hiddenimports,
     excludes=["pytest", "setuptools", "pip"],
     noarchive=False,

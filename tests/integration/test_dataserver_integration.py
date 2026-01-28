@@ -33,18 +33,17 @@ def test_settings_lifecycle():
             "enabled": True,
             "platform": "majsoul",
             "url": "https://game.maj-soul.com/1/",
-            "headless": True,
             "window_size": "1920,1080",
         },
         "mitm": {"enabled": False, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "127.0.0.1", "port": 9999},
+        "ot": {"online": False, "server": "", "api_key": ""},
         "model_config": {
             "device": "cuda",
             "temperature": 0.5,
             "enable_amp": True,
             "enable_quick_eval": True,
             "rule_based_agari_guard": False,
-            "ot": {"online": False, "server": "", "api_key": ""},
         },
     }
     settings.update(update_data)
@@ -54,7 +53,6 @@ def test_settings_lifecycle():
     assert settings.locale == "en-US"
     assert settings.server.port == 9999
     assert settings.server.host == "127.0.0.1"
-    assert settings.browser.headless is True
     assert settings.browser.window_size == "1920,1080"
     assert settings.model_config.device == "cuda"
     assert settings.model_config.temperature == 0.5
@@ -69,18 +67,17 @@ def test_settings_lifecycle():
             "enabled": True,
             "platform": "majsoul",
             "url": "https://game.maj-soul.com/1/",
-            "headless": False,
             "window_size": "",
         },
         "mitm": {"enabled": True, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},  # 同时启用
         "server": {"host": "0.0.0.0", "port": 8765},
+        "ot": {"online": False, "server": "", "api_key": ""},
         "model_config": {
             "device": "auto",
             "temperature": 0.3,
             "enable_amp": False,
             "enable_quick_eval": False,
             "rule_based_agari_guard": True,
-            "ot": {"online": False, "server": "", "api_key": ""},
         },
     }
     settings.update(conflict_data)
@@ -97,18 +94,17 @@ def test_settings_lifecycle():
             "enabled": False,
             "platform": "majsoul",
             "url": "https://game.maj-soul.com/1/",
-            "headless": False,
             "window_size": "",
         },
         "mitm": {"enabled": False, "platform": "majsoul", "host": "127.0.0.1", "port": 6789, "upstream": ""},
         "server": {"host": "0.0.0.0", "port": 8765},
+        "ot": {"online": False, "server": "", "api_key": ""},
         "model_config": {
             "device": "auto",
             "temperature": 0.3,
             "enable_amp": False,
             "enable_quick_eval": False,
             "rule_based_agari_guard": True,
-            "ot": {"online": False, "server": "", "api_key": ""},
         },
     }
     settings.update(both_disabled_data)

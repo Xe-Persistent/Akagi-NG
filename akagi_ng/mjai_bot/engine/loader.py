@@ -34,9 +34,9 @@ def load_model(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
     mortal_engine = load_local_mortal_engine(control_state_file, consts=consts, is_3p=is_3p)
 
     # 检查在线模式
-    if local_settings.model_config.ot.online:
+    if local_settings.ot.online:
         logger.info(f"Online mode enabled. Initializing AkagiOTEngine ({'3P' if is_3p else '4P'}).")
-        api_config = local_settings.model_config.ot
+        api_config = local_settings.ot
 
         # 传入 mortal_engine 作为回退引擎
         engine = AkagiOTEngine(

@@ -67,15 +67,15 @@
 
   /* Components: StreamRecommendation */
   .glass-card {
-    @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/95 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/95;
+    @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/75;
   }
 
   .vertical-divider {
-    @apply h-24 w-px bg-zinc-200 dark:bg-zinc-700;
+    @apply h-24 w-px bg-zinc-200/50 dark:bg-white/10;
   }
 
   .background-glow {
-    @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-40;
+    @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition duration-500 group-hover:opacity-60 dark:opacity-30 dark:group-hover:opacity-60;
   }
 
   .action-text-gradient {
@@ -101,13 +101,13 @@
 
   /* Components: StreamPlayer */
   .stream-player-container {
-    @apply relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100/50 shadow-lg dark:border-zinc-800 dark:bg-zinc-900/50;
+    @apply relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20;
   }
   .pip-overlay {
-    @apply absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-900/60 text-white backdrop-blur-sm transition-all duration-300;
+    @apply absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 text-zinc-900 backdrop-blur-sm transition-all duration-300 dark:bg-zinc-900/60 dark:text-white;
   }
   .pip-icon-wrapper {
-    @apply mb-4 rounded-full bg-white/10 p-4 ring-1 ring-white/20;
+    @apply mb-4 rounded-full bg-zinc-900/5 p-4 ring-1 ring-zinc-900/10 dark:bg-white/10 dark:ring-white/20;
   }
 
   /* Components: Alerts (SettingsPanel) */
@@ -195,24 +195,24 @@
   }
 
   body {
-    @apply text-foreground bg-zinc-100 antialiased dark:bg-zinc-950;
+    @apply text-foreground bg-zinc-100 antialiased dark:bg-zinc-900;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
     background-image:
-      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.2) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.2) 0px, transparent 50%);
     background-attachment: fixed;
   }
 
   .dark body {
     background-image:
-      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.15) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.15) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.3) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.3) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.3) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.3) 0px, transparent 50%);
   }
 
   /* 滚动条样式 - 亮色主题 */

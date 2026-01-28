@@ -1,7 +1,7 @@
 import 'react-toastify/dist/ReactToastify.css';
 
-import { ExternalLink, Power } from 'lucide-react';
-import { Suspense, use, useEffect, useMemo, useState } from 'react';
+import { Power } from 'lucide-react';
+import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToastContainer } from 'react-toastify';
 
@@ -10,7 +10,6 @@ import { LaunchScreen } from '@/components/LaunchScreen';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { Button } from '@/components/ui/button';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { GameContext } from '@/contexts/GameContext';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
@@ -41,12 +40,14 @@ function AppContent({ settingsPromise }: AppContentProps) {
   if (!context) throw new Error('GameContext not found');
   const { statusMessage, statusType } = context;
 
-  // 初始设置获取和语言同步
-  useEffect(() => {
+  // 初始设置获取和语言同步 - 仅执行一次
+  const isLanguageInitialized = useRef(false);
+  if (!isLanguageInitialized.current) {
     if (initialSettings.locale && initialSettings.locale !== i18n.language) {
       i18n.changeLanguage(initialSettings.locale);
     }
-  }, [initialSettings.locale, i18n]);
+    isLanguageInitialized.current = true;
+  }
 
   const handleLocaleChange = async (newLocale: string) => {
     await i18n.changeLanguage(newLocale);
@@ -160,14 +161,6 @@ function AppContent({ settingsPromise }: AppContentProps) {
           <div className='w-full'>
             <StreamPlayer />
           </div>
-
-          {/* Mobile Launch Button (Shown when hidden on Header) */}
-          <div className='w-full sm:hidden'>
-            <Button variant='outline' className='w-full' onClick={handleOpenMajsoul}>
-              <ExternalLink className='mr-2 h-4 w-4' />
-              {t('app.launch_game')}
-            </Button>
-          </div>
         </main>
 
         <Footer />
@@ -210,7 +203,7 @@ export default function App() {
   const { apiBase } = useConnectionConfig();
 
   const settingsPromise = useMemo(() => {
-    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 3000));
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 2400));
     return Promise.all([fetchSettingsApi(apiBase), minDelay]).then(([settings]) => settings);
   }, [apiBase]);
 

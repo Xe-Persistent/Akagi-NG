@@ -4,6 +4,7 @@ import type { Theme } from '@/types';
 
 interface ThemeContextType {
   theme: Theme;
+  resolvedTheme: Exclude<Theme, 'system'>;
   setTheme: (theme: Theme) => void;
 }
 

@@ -1,11 +1,12 @@
 import { Loader2, PictureInPicture2 } from 'lucide-react';
-import { type FC, use, useLayoutEffect, useRef, useState } from 'react';
+import { type FC, use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button.tsx';
 import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
+import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/lib/notify';
 import type { FullRecommendationData } from '@/types';
 
@@ -43,7 +44,7 @@ const PiPContent = ({ data, pipWin }: { data: FullRecommendationData | null; pip
   }, [pipWin]);
 
   return (
-    <div className='flex h-full w-full items-center justify-center overflow-hidden bg-zinc-100 dark:bg-zinc-950'>
+    <div className='flex h-full w-full items-center justify-center overflow-hidden bg-transparent'>
       <div
         style={{
           transform: `scale(${pipScale})`,
@@ -65,6 +66,8 @@ const StreamPlayer: FC = () => {
   const { data } = context;
 
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
+
   // 状态管理
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,6 +75,15 @@ const StreamPlayer: FC = () => {
   // 自动缩放状态
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 主题同步到 PiP 窗口
+  useEffect(() => {
+    if (pipWindow) {
+      const root = pipWindow.document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(resolvedTheme);
+    }
+  }, [resolvedTheme, pipWindow]);
 
   // ==========================================
   // 网页模式自动缩放逻辑
@@ -132,7 +144,7 @@ const StreamPlayer: FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: window.getComputedStyle(document.body).backgroundColor,
+        backgroundColor: 'transparent',
       });
 
       pipWin.addEventListener('pagehide', () => {
@@ -158,7 +170,7 @@ const StreamPlayer: FC = () => {
   return (
     <div className='flex w-full flex-col items-center gap-6'>
       {/* Main Display Area */}
-      <div ref={containerRef} className='stream-player-container group'>
+      <div ref={containerRef} className='stream-player-container'>
         {/* Scaled Container */}
         <div
           style={{
@@ -179,7 +191,9 @@ const StreamPlayer: FC = () => {
               <PictureInPicture2 className='h-8 w-8 opacity-90' />
             </div>
             <p className='text-lg font-medium tracking-wide'>{t('app.pip_playing_in_pip')}</p>
-            <p className='mt-2 text-sm text-zinc-300'>{t('app.pip_can_switch_tabs')}</p>
+            <p className='mt-2 text-sm text-zinc-500 dark:text-zinc-300'>
+              {t('app.pip_can_switch_tabs')}
+            </p>
           </div>
         )}
       </div>

@@ -35,7 +35,7 @@ export const Header: FC<HeaderProps> = ({
   const { isConnected } = gameContext;
 
   return (
-    <header className='sticky top-0 z-40 w-full border-b border-zinc-200 bg-white/70 backdrop-blur-lg dark:border-zinc-800 dark:bg-black/70'>
+    <header className='sticky top-0 z-40 w-full bg-linear-to-b from-white/50 to-transparent backdrop-blur-md dark:from-black/50 dark:to-transparent'>
       <div className='mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6'>
         {/* Logo & Title */}
         <div className='flex items-center gap-3'>
@@ -48,12 +48,12 @@ export const Header: FC<HeaderProps> = ({
         </div>
 
         {/* Actions */}
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-1'>
           {/* Launch Button */}
           <Button
             variant='ghost'
             size='sm'
-            className='hidden text-zinc-500 hover:text-zinc-900 sm:flex dark:text-zinc-400 dark:hover:text-zinc-100'
+            className='hidden rounded-md px-3 py-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 sm:flex dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
             onClick={onLaunch}
             disabled={isLaunching}
           >
@@ -68,7 +68,7 @@ export const Header: FC<HeaderProps> = ({
           {/* Language Switcher */}
           {locale && onLocaleChange && (
             <Select value={locale} onValueChange={onLocaleChange}>
-              <SelectTrigger className='h-9 w-9 justify-center rounded-md border-none bg-transparent p-0 text-zinc-500 shadow-none hover:bg-zinc-100 focus:ring-0 focus:ring-offset-0 dark:text-zinc-400 dark:hover:bg-zinc-800 [&>svg:last-child]:hidden'>
+              <SelectTrigger className='h-9 w-9 justify-center rounded-md border-none bg-transparent p-0 text-zinc-500 shadow-none transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus:ring-0 focus:ring-offset-0 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 [&>svg:last-child]:hidden'>
                 <Globe className='h-4 w-4' />
               </SelectTrigger>
               <SelectContent align='end'>
@@ -89,7 +89,7 @@ export const Header: FC<HeaderProps> = ({
             variant='ghost'
             size='icon'
             onClick={onOpenSettings}
-            className='ml-1 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+            className='text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
           >
             <SettingsIcon className='h-5 w-5' />
           </Button>
@@ -100,7 +100,7 @@ export const Header: FC<HeaderProps> = ({
               variant='ghost'
               size='icon'
               onClick={onShutdown}
-              className='ml-1 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/30'
+              className='text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'
             >
               <Power className='h-5 w-5' />
             </Button>

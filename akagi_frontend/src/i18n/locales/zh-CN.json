@@ -4,7 +4,7 @@
     "discard": "放弃更改",
     "restore": "恢复默认设置",
     "restore_confirm_title": "恢复默认设置",
-    "restore_confirm_desc": "确定要将所有设置恢复为默认值吗？此操作无法撤销",
+    "restore_confirm_desc": "确定要将所有设置恢复为默认值吗？此操作无法撤销。",
     "general": {
       "title": "常规",
       "locale": "语言",
@@ -70,7 +70,7 @@
     },
     "danger_zone": {
       "title": "危险区域",
-      "desc": "修改以下设置可能会影响应用的性能或行为表现，请谨慎操作"
+      "desc": "修改以下设置可能会影响应用的性能或行为表现，请谨慎操作。"
     },
     "saved_success": "设置已更新，请在页面中确认",
     "status_saved": "所有更改已保存",
@@ -103,7 +103,7 @@
     "pip_playing_in_pip": "正在画中画模式播放",
     "pip_can_switch_tabs": "您可以切换到其他标签页继续浏览",
     "shutdown_confirm_title": "确认退出",
-    "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开",
+    "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
     "stopped_title": "应用已停止",
     "stopped_desc": "您可以安全地关闭此窗口"
   },
@@ -111,7 +111,7 @@
     "reach": "立直",
     "chi": "吃",
     "pon": "碰",
-    "kan_select": "杠",
+    "kan": "杠",
     "ron": "和",
     "tsumo": "自摸",
     "ryukyoku": "流局",

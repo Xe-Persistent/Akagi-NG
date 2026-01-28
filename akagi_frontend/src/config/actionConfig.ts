@@ -24,8 +24,8 @@ export const ACTION_CONFIG: Record<string, ActionConfigItem> = {
     color: 'var(--color-action-pon)',
     gradient: 'from-blue-400 to-indigo-600',
   },
-  kan_select: {
-    label: 'actions.kan_select',
+  kan: {
+    label: 'actions.kan',
     color: 'var(--color-action-kan)',
     gradient: 'from-purple-400 to-fuchsia-600',
   },
@@ -62,4 +62,4 @@ export const ACTION_CONFIG: Record<string, ActionConfigItem> = {
 };
 
 // 需要显示 consumed 牌的动作集合
-export const SHOW_CONSUMED_ACTIONS = new Set(['chi', 'pon', 'kan_select']);
+export const SHOW_CONSUMED_ACTIONS = new Set(['chi', 'pon', 'kan']);

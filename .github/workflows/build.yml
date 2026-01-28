@@ -43,7 +43,7 @@ jobs:
 
       - name: Cleanup Playwright headers/ffmpeg
         run: |
-          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\chromium-headless-shell-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\*headless*shell-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
           Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\ffmpeg-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
           exit 0
 

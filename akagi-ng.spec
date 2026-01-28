@@ -94,7 +94,7 @@ def collect_playwright_browsers():
             continue
 
         # Filter logic
-        if "chromium-headless-shell" in item:
+        if "headless" in item:
             print(f"Skipping headless shell: {item}")
             continue
         if "ffmpeg" in item:

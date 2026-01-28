@@ -23,30 +23,26 @@ export const OnlineModelSection: FC<OnlineModelSectionProps> = memo(
         <h3 className='settings-section-title'>{t('settings.online_model.title')}</h3>
 
         <CapsuleSwitch
-          checked={settings.model_config.ot.online}
-          onCheckedChange={(val) => updateSetting(['model_config', 'ot', 'online'], val)}
+          checked={settings.ot.online}
+          onCheckedChange={(val) => updateSetting(['ot', 'online'], val)}
           labelOn={t('common.enabled')}
           labelOff={t('common.disabled')}
         />
 
-        {settings.model_config.ot.online && (
+        {settings.ot.online && (
           <div className='animate-in fade-in slide-in-from-top-2 grid grid-cols-2 gap-4 duration-300'>
             <SettingsItem label={t('settings.online_model.server_url')}>
               <Input
-                value={settings.model_config.ot.server}
-                onChange={(e) =>
-                  updateSetting(['model_config', 'ot', 'server'], e.target.value, true)
-                }
+                value={settings.ot.server}
+                onChange={(e) => updateSetting(['ot', 'server'], e.target.value, true)}
                 placeholder='http://...'
               />
             </SettingsItem>
             <SettingsItem label={t('settings.online_model.api_key')}>
               <Input
                 type='password'
-                value={settings.model_config.ot.api_key}
-                onChange={(e) =>
-                  updateSetting(['model_config', 'ot', 'api_key'], e.target.value, true)
-                }
+                value={settings.ot.api_key}
+                onChange={(e) => updateSetting(['ot', 'api_key'], e.target.value, true)}
                 placeholder='API Key'
               />
             </SettingsItem>

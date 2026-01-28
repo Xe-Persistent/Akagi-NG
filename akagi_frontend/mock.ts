@@ -23,7 +23,6 @@ let mockSettings: Settings = {
   locale: 'zh-CN',
   browser: {
     enabled: false,
-    headless: false,
     window_size: '',
     platform: 'majsoul',
     url: 'https://game.maj-soul.com/1/',
@@ -39,17 +38,17 @@ let mockSettings: Settings = {
     host: '0.0.0.0',
     port: 8765,
   },
+  ot: {
+    online: true,
+    server: 'http://127.0.0.1:8765',
+    api_key: 'mock',
+  },
   model_config: {
     device: 'auto',
     temperature: 0.3,
     enable_amp: false,
     enable_quick_eval: false,
     rule_based_agari_guard: true,
-    ot: {
-      online: true,
-      server: 'http://127.0.0.1:8765',
-      api_key: 'mock',
-    },
   },
 };
 

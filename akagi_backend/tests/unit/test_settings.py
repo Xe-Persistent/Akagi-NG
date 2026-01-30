@@ -106,13 +106,13 @@ class TestSettingsClass(unittest.TestCase):
             "platform": "majsoul",
             "mitm": {"enabled": True, "platform": "majsoul", "host": "0.0.0.0", "port": 7890, "upstream": ""},
             "server": {"host": "localhost", "port": 9000},
+            "ot": {"online": True, "server": "https://api.test.com", "api_key": "abc123"},
             "model_config": {
                 "device": "cuda",
                 "temperature": 0.5,
                 "enable_amp": True,
                 "enable_quick_eval": False,
                 "rule_based_agari_guard": False,
-                "ot": {"online": True, "server": "https://api.test.com", "api_key": "abc123"},
             },
         }
 

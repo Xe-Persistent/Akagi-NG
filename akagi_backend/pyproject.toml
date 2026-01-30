@@ -1,0 +1,140 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "akagi-ng"
+version = "1.0.0"
+description = "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "AGPL-3.0-only"
+authors = [{ name = "Akagi-NG Contributors" }]
+keywords = ["mahjong", "riichi", "majsoul", "ai", "bot"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment :: Board Games",
+]
+dynamic = []
+dependencies = [
+    # Basic
+    "mjai~=0.2.1",
+    "loguru~=0.7.0",
+    "requests~=2.32.0",
+    "jsonschema~=4.26.0",
+    # Majsoul
+    "protobuf~=6.33.0",
+    # PyTorch
+    "torch~=2.10.0",
+    "numpy~=2.4.0",
+    # MITM
+    "mitmproxy~=12.2.0",
+    # DataServer
+    "aiohttp~=3.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.14.0",
+    "pytest>=9.0.0",
+    "pytest-asyncio>=1.3.0",
+    "pytest-playwright>=0.7.0",
+    "pytest-cov>=7.0.0",
+    "pyinstaller>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Xe-Persistent/Akagi-NG"
+"Bug Tracker" = "https://github.com/Xe-Persistent/Akagi-NG/issues"
+"Source Code" = "https://github.com/Xe-Persistent/Akagi-NG"
+
+[project.scripts]
+akagi-ng = "akagi_ng.__main__:main"
+
+[tool.ruff]
+src = ["akagi_ng"]
+line-length = 120
+target-version = "py312"
+extend-exclude = [
+    "akagi_ng/bridge/majsoul/liqi_pb2.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RET", "C90", "PLR", "TID", "C4", "RUF", "ANN"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[tool.ruff.lint.isort]
+known-first-party = ["akagi_ng"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true
+allow-star-arg-any = true
+suppress-none-returning = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"akagi_ng/bridge/majsoul/liqi_pb2.py" = ["ALL"]
+"tests/*" = ["ANN"]
+
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["akagi_ng*"]
+exclude = ["frontend*", "logs*", "playwright_data*", ".venv*"]
+
+[tool.setuptools.package-data]
+"akagi_ng" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "performance: marks tests as performance tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["akagi_ng"]
+omit = [
+    "akagi_ng/bridge/majsoul/liqi_pb2.py",
+    "tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+ignore_errors = true

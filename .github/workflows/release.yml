@@ -7,6 +7,7 @@ on:
 
 env:
   PYTHONUTF8: 1
+  AKAGI_MOCK_MODE: 0
 
 jobs:
   pre-release-test:
@@ -22,11 +23,13 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
+        working-directory: akagi_backend
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
       - name: Run tests
+        working-directory: akagi_backend
         run: |
           python -m pytest tests/ -k "not e2e" --tb=short
 
@@ -42,6 +45,7 @@ jobs:
 
       - name: Extract version from tag
         id: version
+        shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
@@ -57,39 +61,36 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-          cache-dependency-path: akagi_frontend/package-lock.json
+          cache-dependency-path: |
+            akagi_frontend/package-lock.json
+            electron/package-lock.json
 
       - name: Install Python dependencies
+        working-directory: akagi_backend
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Install Playwright browsers
-        run: |
-          playwright install --with-deps chromium
-
-      - name: Cleanup Playwright headers/ffmpeg
-        run: |
-          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\chromium-headless-shell-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          Get-ChildItem -Path "$env:LOCALAPPDATA\ms-playwright\ffmpeg-*" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          exit 0
-
-      - name: Install frontend dependencies
+      - name: Install Frontend dependencies
         working-directory: akagi_frontend
         run: npm ci
 
-      - name: Build frontend
-        working-directory: akagi_frontend
-        run: npm run build
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm ci
 
-      - name: Build release package
-        run: |
-          python scripts/build_release.py
+      - name: Build Electron App
+        working-directory: electron
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/akagi-ng-${{ steps.version.outputs.VERSION }}.zip
+          files: |
+            dist/release/*.exe
+            dist/release/*.zip
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}

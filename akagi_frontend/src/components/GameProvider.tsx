@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { GameContext } from '@/contexts/GameContext';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
@@ -9,6 +9,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const { backendUrl } = useConnectionConfig();
   const { data, notifications, isConnected, error } = useSSEConnection(backendUrl);
   const { statusMessage, statusType } = useStatusNotification(notifications, error);
+  const [isHudActive, setIsHudActive] = useState(window.location.hash === '#/hud');
 
   return (
     <GameContext.Provider
@@ -19,6 +20,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         error,
         statusMessage,
         statusType,
+        isHudActive,
+        setIsHudActive,
       }}
     >
       {children}

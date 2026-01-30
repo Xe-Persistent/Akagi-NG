@@ -1,19 +1,46 @@
+export interface SimCandidate {
+  tile: string;
+  confidence: number;
+}
+
 export interface Recommendation {
   action: string;
   confidence: number;
   consumed?: string[];
+  sim_candidates?: SimCandidate[];
   tile?: string;
+}
+
+export interface FullRecommendationData {
+  recommendations: Recommendation[];
+  is_riichi?: boolean;
+}
+
+export interface HeaderProps {
+  isLaunching: boolean;
+  onLaunch: () => void;
+  onOpenSettings: () => void;
+  locale?: string;
+  onLocaleChange?: (locale: string) => void;
+  onShutdown?: () => void;
+  onToggleHud?: (show: boolean) => void;
+  isHudActive?: boolean;
+}
+
+export interface SettingsPanelProps {
+  open: boolean;
+  onClose: () => void;
+  apiBase: string;
+}
+
+export interface StreamPlayerProps {
+  className?: string;
 }
 
 export interface NotificationItem {
   level: string;
   code: string;
   msg?: string;
-}
-
-export interface FullRecommendationData {
-  recommendations: Recommendation[];
-  is_riichi?: boolean;
 }
 
 export interface ApiResponse<T = void> {
@@ -25,15 +52,10 @@ export interface ApiResponse<T = void> {
 export interface Settings {
   log_level: string;
   locale: string;
-  browser: {
-    enabled: boolean;
-    platform: string;
-    url: string;
-    window_size: string;
-  };
+  game_url: string;
+  platform: string;
   mitm: {
     enabled: boolean;
-    platform: string;
     host: string;
     port: number;
     upstream: string;
@@ -87,3 +109,10 @@ export type SSEErrorCode =
   | 'reconnecting'
   | 'config_error'
   | 'service_disconnected';
+
+export interface ResourceStatus {
+  lib: boolean;
+  models: boolean;
+  missingCritical: string[];
+  missingOptional: string[];
+}

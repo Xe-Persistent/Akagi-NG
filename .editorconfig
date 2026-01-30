@@ -1,0 +1,21 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python files
+[*.py]
+indent_size = 4
+
+# Frontend files (JS, TS, JSON, etc.)
+[*.{json,yaml,yml,md,js,jsx,ts,tsx,css,scss,html}]
+indent_size = 2
+
+# Windows batch scripts
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

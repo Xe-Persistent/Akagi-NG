@@ -12,7 +12,17 @@
       "theme_system": "跟随系统",
       "theme_light": "浅色",
       "theme_dark": "深色",
-      "log_level": "日志级别"
+      "log_level": "日志级别",
+      "platform": {
+        "label": "游戏平台",
+        "majsoul": "雀魂麻将",
+        "tenhou": "天凤",
+        "riichi_city": "麻雀一番街",
+        "amatsuki": "天月麻雀",
+        "auto": "自动检测"
+      },
+      "game_url": "游戏地址",
+      "game_url_desc": "仅支持雀魂、天凤。其他平台请使用“外部代理”模式"
     },
     "online_model": {
       "title": "在线模型",
@@ -28,32 +38,14 @@
     "connection": {
       "title": "游戏连接",
       "mode": "连接模式",
-      "mode_browser": "浏览器",
-      "mode_mitm": "代理",
-      "browser": {
-        "title": "浏览器设置",
-        "headless": "无头模式",
-        "headless_desc": "在后台运行浏览器，不显示浏览器窗口",
-        "size": "窗口尺寸",
-        "size_placeholder": "选择窗口分辨率",
-        "size_default": "默认",
-        "size_maximized": "最大化",
-        "url": "游戏地址",
-        "url_desc": "留空将使用平台官方默认地址。仅支持雀魂、天凤"
-      },
+      "mode_browser": "内置窗口",
+      "mode_mitm": "外部代理",
+      "mitm_required_notice": "麻雀一番街和天月麻雀仅支持外部代理模式，请切换连接模式。",
       "mitm": {
-        "title": "代理设置",
+        "title": "代理服务配置",
         "host": "监听地址",
         "port": "监听端口",
         "upstream": "上游代理 (可选)"
-      },
-      "platform": {
-        "label": "目标平台",
-        "majsoul": "雀魂麻将",
-        "tenhou": "天凤",
-        "riichi_city": "麻雀一番街",
-        "amatsuki": "天月麻雀",
-        "auto": "自动检测"
       }
     },
     "model_config": {
@@ -96,16 +88,12 @@
     "launch_error": "无法获取游戏 URL，请检查设置",
     "settings_title": "Akagi NG 设置",
     "settings_desc": "应用配置面板",
-    "pip_start": "开启画中画",
-    "pip_loading": "正在启动画中画…",
-    "pip_exit": "退出画中画",
-    "pip_not_supported": "您的浏览器不支持画中画 API",
-    "pip_playing_in_pip": "正在画中画模式播放",
-    "pip_can_switch_tabs": "您可以切换到其他标签页继续浏览",
+    "hud_active": "HUD 模式已启用",
+    "hud_desc": "AI 打牌建议将在独立的 HUD 窗口中实时显示",
     "shutdown_confirm_title": "确认退出",
     "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
     "stopped_title": "应用已停止",
-    "stopped_desc": "您可以安全地关闭此窗口"
+    "stopped_desc": "感谢您使用 Akagi NG"
   },
   "actions": {
     "reach": "立直",
@@ -133,7 +121,6 @@
     "game_disconnected": "游戏连接中断，请检查网络或刷新页面",
     "service_disconnected": "服务连接已中断",
     "return_lobby": "已离开当前对局",
-    "missing_resources": "缺少必要的系统资源：{details}",
     "json_decode_error": "JSON 数据解析失败",
     "config_error": "配置错误",
     "no_bot_loaded": "AI 模型未加载",
@@ -141,6 +128,8 @@
     "bot_switch_failed": "AI 模型切换失败",
     "bot_runtime_error": "AI 模型运行异常",
     "state_tracker_error": "对局状态异常",
-    "max_retries_exceeded": "连接失败次数过多，请检查网络或重新启动应用"
+    "max_retries_exceeded": "连线失败次数过多，请检查网络或重新启动应用。",
+    "lib_missing": "本地核心组件 (lib) 缺失或不完整，程序无法正常运行。",
+    "models_missing": "本地模型文件 (models) 缺失。如果未配置在线模型，程序将无法运行。"
   }
 }

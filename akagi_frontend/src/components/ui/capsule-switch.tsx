@@ -22,7 +22,7 @@ export function CapsuleSwitch({
   return (
     <div
       className={cn(
-        'group bg-muted border-input ring-offset-background focus-within:ring-ring relative inline-flex h-9 items-center rounded-full border p-1 font-medium transition-colors focus-within:ring-2 focus-within:ring-offset-2',
+        'group border-input ring-offset-background focus-within:ring-ring relative inline-flex h-9 items-center rounded-full border bg-white/10 p-1 font-medium backdrop-blur-sm transition-colors focus-within:ring-2 focus-within:ring-offset-2',
         disabled && 'cursor-not-allowed opacity-50',
         className,
       )}

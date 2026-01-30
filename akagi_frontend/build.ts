@@ -8,7 +8,7 @@ try {
   // This assumes 'akagi-ng' is installed in the environment, OR we parse pyproject.toml directly.
   // Parsing pyproject.toml is safer as it doesn't require the package to be installed.
 
-  const pyprojectPath = path.join(process.cwd(), '..', 'pyproject.toml');
+  const pyprojectPath = path.join(process.cwd(), '..', 'akagi_backend', 'pyproject.toml');
   const pyprojectContent = fs.readFileSync(pyprojectPath, 'utf-8');
   const versionMatch = pyprojectContent.match(/^\s*version\s*=\s*["']([^"']+)["']/m);
 
@@ -29,20 +29,6 @@ try {
     stdio: 'inherit',
     env: { ...process.env, AKAGI_VERSION: version },
   });
-  // 3. Copy dist to backend
-
-  const src = path.resolve('frontend');
-  const dst = path.resolve('../frontend');
-
-  if (!fs.existsSync(src)) {
-    console.error('frontend build not found, run frontend build first');
-    process.exit(1);
-  }
-
-  fs.rmSync(dst, { recursive: true, force: true });
-  fs.cpSync(src, dst, { recursive: true });
-
-  console.log('frontend synced to ./frontend');
 } catch (error) {
   console.error('Build failed:', error);
   process.exit(1);

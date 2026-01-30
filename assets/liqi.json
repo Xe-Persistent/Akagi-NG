@@ -855,6 +855,54 @@
             }
           }
         },
+        "NotifyCustomizedContestReady": {
+          "fields": {
+            "unique_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "ready": {
+              "type": "uint32",
+              "id": 2
+            },
+            "reason": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "NotifyCustomizedContestRuleModify": {
+          "fields": {
+            "unique_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "auto_match": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "NotifyCustomizedContestPlanReady": {
+          "fields": {
+            "game_plan": {
+              "type": "CustomizedContestGamePlan",
+              "id": 1
+            }
+          }
+        },
+        "NotifyCustomizedContestPlanCancel": {
+          "fields": {
+            "unique_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "uuid": {
+              "type": "string",
+              "id": 2
+            }
+          }
+        },
         "Error": {
           "fields": {
             "code": {
@@ -874,6 +922,10 @@
             "json_param": {
               "type": "string",
               "id": 4
+            },
+            "level": {
+              "type": "uint32",
+              "id": 5
             }
           }
         },
@@ -913,6 +965,56 @@
             "error": {
               "type": "Error",
               "id": 1
+            }
+          }
+        },
+        "StringDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "type": "string",
+              "id": 2
+            }
+          }
+        },
+        "StringArrayDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "rule": "repeated",
+              "type": "string",
+              "id": 2
+            }
+          }
+        },
+        "UInt32ArrayDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "UInt32Dirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "type": "uint32",
+              "id": 2
             }
           }
         },
@@ -2235,6 +2337,11 @@
             "beishuizhizhan_mode": {
               "type": "uint32",
               "id": 73
+            },
+            "amusement_switches": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 74
             }
           }
         },
@@ -3354,10 +3461,25 @@
               "type": "lq.SimulationV2Data",
               "id": 16
             },
+            "quest_crew_data": {
+              "rule": "repeated",
+              "type": "lq.ActivityQuestCrewChanges",
+              "id": 17
+            },
             "shoot_data": {
               "rule": "repeated",
               "type": "lq.ActivityShootData",
-              "id": 17
+              "id": 18
+            },
+            "bingo_data": {
+              "rule": "repeated",
+              "type": "lq.ActivityBingoData",
+              "id": 19
+            },
+            "snowball_data": {
+              "rule": "repeated",
+              "type": "lq.ActivitySnowballValueChanges",
+              "id": 20
             }
           }
         },
@@ -3971,6 +4093,161 @@
               "rule": "repeated",
               "type": "uint32",
               "id": 2
+            }
+          }
+        },
+        "QCMember": {
+          "fields": {
+            "member_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "consumed_sta": {
+              "type": "TimeCounterData",
+              "id": 2
+            }
+          }
+        },
+        "ActivityQuestCrewEffectResult": {
+          "fields": {
+            "result_change": {
+              "type": "QCQuestResultChange",
+              "id": 1
+            },
+            "consumed_change": {
+              "rule": "repeated",
+              "type": "QCQuestConsumeChange",
+              "id": 2
+            },
+            "reward": {
+              "type": "QCItemReward",
+              "id": 3
+            }
+          },
+          "nested": {
+            "QCQuestResultChange": {
+              "fields": {
+                "from": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "to": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            },
+            "QCQuestConsumeChange": {
+              "fields": {
+                "member_id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "from": {
+                  "type": "uint32",
+                  "id": 2
+                },
+                "to": {
+                  "type": "uint32",
+                  "id": 3
+                }
+              }
+            },
+            "QCItemReward": {
+              "fields": {
+                "execute_reward": {
+                  "rule": "repeated",
+                  "type": "ExecuteReward",
+                  "id": 1
+                }
+              }
+            }
+          }
+        },
+        "QCQuest": {
+          "fields": {
+            "quest_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "finished": {
+              "type": "uint32",
+              "id": 2
+            },
+            "finished_time": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ActivityQuestCrewData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "members": {
+              "rule": "repeated",
+              "type": "QCMember",
+              "id": 2
+            },
+            "quest_board": {
+              "rule": "repeated",
+              "type": "QCQuest",
+              "id": 3
+            },
+            "market_board": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 4
+            }
+          }
+        },
+        "ActivityQuestCrewChanges": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "members": {
+              "type": "QCMemberArrayDirty",
+              "id": 2
+            },
+            "quest_board": {
+              "type": "QCQuestArrayDirty",
+              "id": 3
+            },
+            "market_board": {
+              "type": "UInt32ArrayDirty",
+              "id": 4
+            }
+          },
+          "nested": {
+            "QCMemberArrayDirty": {
+              "fields": {
+                "dirty": {
+                  "type": "bool",
+                  "id": 1
+                },
+                "value": {
+                  "rule": "repeated",
+                  "type": "QCMember",
+                  "id": 2
+                }
+              }
+            },
+            "QCQuestArrayDirty": {
+              "fields": {
+                "dirty": {
+                  "type": "bool",
+                  "id": 1
+                },
+                "value": {
+                  "rule": "repeated",
+                  "type": "QCQuest",
+                  "id": 2
+                }
+              }
             }
           }
         },
@@ -5171,6 +5448,48 @@
             "show_team_rank": {
               "type": "bool",
               "id": 22
+            },
+            "tied_rank": {
+              "type": "uint32",
+              "id": 23
+            },
+            "match_start_time": {
+              "type": "uint32",
+              "id": 24
+            },
+            "match_end_time": {
+              "type": "uint32",
+              "id": 25
+            }
+          }
+        },
+        "CustomizedContestGamePlan": {
+          "fields": {
+            "unique_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "uuid": {
+              "type": "string",
+              "id": 2
+            },
+            "ready_players": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 3
+            },
+            "account_ids": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 4
+            },
+            "game_start_time": {
+              "type": "uint32",
+              "id": 5
+            },
+            "expired_time": {
+              "type": "uint32",
+              "id": 6
             }
           }
         },
@@ -7996,6 +8315,15 @@
               "rule": "repeated",
               "type": "uint32",
               "id": 4
+            },
+            "ended": {
+              "type": "bool",
+              "id": 5
+            },
+            "rewarded_records": {
+              "rule": "repeated",
+              "type": "ActivityShootRewardRecord",
+              "id": 6
             }
           }
         },
@@ -8010,6 +8338,325 @@
               "id": 2
             },
             "hp": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ActivityShootRewardRecord": {
+          "fields": {
+            "enemy_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "reward_id": {
+              "type": "uint32",
+              "id": 2
+            },
+            "rewarded_time": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ActivityBingoCardData": {
+          "fields": {
+            "card_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "achieved_pos": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 2
+            },
+            "rewarded_ids": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 3
+            },
+            "state": {
+              "type": "uint32",
+              "id": 4
+            },
+            "achieved_records": {
+              "rule": "repeated",
+              "type": "BingoAchievedRecord",
+              "id": 5
+            },
+            "reward_records": {
+              "rule": "repeated",
+              "type": "BingoRewardRecord",
+              "id": 6
+            }
+          },
+          "nested": {
+            "BingoAchievedRecord": {
+              "fields": {
+                "pos": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "time": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            },
+            "BingoRewardRecord": {
+              "fields": {
+                "id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "time": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            }
+          }
+        },
+        "ActivityBingoData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "cards": {
+              "rule": "repeated",
+              "type": "ActivityBingoCardData",
+              "id": 2
+            }
+          }
+        },
+        "ActivityIdTimeRecord": {
+          "fields": {
+            "id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "time": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ActivitySnowballData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "level": {
+              "type": "uint32",
+              "id": 2
+            },
+            "upgrade": {
+              "rule": "repeated",
+              "type": "ActivitySnowballUpgrade",
+              "id": 3
+            },
+            "rewarded_level": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 4
+            },
+            "finished_level": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 5
+            },
+            "random_seed": {
+              "type": "uint32",
+              "id": 6
+            },
+            "battle_id": {
+              "type": "string",
+              "id": 7
+            },
+            "level_finished_count": {
+              "type": "uint32",
+              "id": 8
+            },
+            "player_combo": {
+              "type": "uint32",
+              "id": 9
+            },
+            "reward_records": {
+              "rule": "repeated",
+              "type": "ActivityIdTimeRecord",
+              "id": 10
+            },
+            "finish_records": {
+              "rule": "repeated",
+              "type": "ActivityIdTimeRecord",
+              "id": 11
+            }
+          }
+        },
+        "ActivitySnowballUpgrade": {
+          "fields": {
+            "id": {
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ActivitySnowballUpgradeDirty": {
+          "fields": {
+            "value": {
+              "rule": "repeated",
+              "type": "ActivitySnowballUpgrade",
+              "id": 1
+            },
+            "dirty": {
+              "type": "bool",
+              "id": 2
+            }
+          }
+        },
+        "ActivitySnowballValueChanges": {
+          "fields": {
+            "level": {
+              "type": "UInt32Dirty",
+              "id": 1
+            },
+            "upgrade": {
+              "type": "ActivitySnowballUpgradeDirty",
+              "id": 2
+            },
+            "rewarded_level": {
+              "type": "UInt32ArrayDirty",
+              "id": 3
+            },
+            "finished_level": {
+              "type": "UInt32ArrayDirty",
+              "id": 4
+            },
+            "level_finished_count": {
+              "type": "UInt32Dirty",
+              "id": 5
+            },
+            "player_combo": {
+              "type": "UInt32Dirty",
+              "id": 6
+            }
+          }
+        },
+        "ActivitySnowballPlayerAttackedInfo": {
+          "fields": {
+            "target": {
+              "type": "uint32",
+              "id": 1
+            },
+            "track": {
+              "type": "uint32",
+              "id": 2
+            },
+            "damage": {
+              "type": "uint32",
+              "id": 3
+            },
+            "critia": {
+              "type": "uint32",
+              "id": 4
+            }
+          }
+        },
+        "ActivitySnowballPlayerAction": {
+          "fields": {
+            "tick": {
+              "type": "uint32",
+              "id": 1
+            },
+            "track": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ActivitySnowballPlayerState": {
+          "fields": {
+            "player": {
+              "type": "uint32",
+              "id": 1
+            },
+            "hp": {
+              "type": "uint32",
+              "id": 2
+            },
+            "mp": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "SnowballActivityBossAction": {
+          "fields": {
+            "tick": {
+              "type": "uint32",
+              "id": 1
+            },
+            "type": {
+              "type": "uint32",
+              "id": 2
+            },
+            "track": {
+              "type": "uint32",
+              "id": 3
+            },
+            "attack_info": {
+              "type": "SnowballActivityBossAttackInfo",
+              "id": 4
+            },
+            "mp_consume_info": {
+              "type": "SnowballActivityBossMPConsumeInfo",
+              "id": 5
+            }
+          },
+          "nested": {
+            "SnowballActivityBossAttackInfo": {
+              "fields": {
+                "damage": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "is_con_attack": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            },
+            "SnowballActivityBossMPConsumeInfo": {
+              "fields": {
+                "mp_consume": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "before_delay": {
+                  "type": "uint32",
+                  "id": 2
+                },
+                "after_delay": {
+                  "type": "uint32",
+                  "id": 3
+                }
+              }
+            }
+          }
+        },
+        "ClientDeviceInfoLog": {
+          "fields": {
+            "device_info": {
+              "type": "lq.ClientDeviceInfo",
+              "id": 1
+            },
+            "login_time": {
+              "type": "uint32",
+              "id": 2
+            },
+            "account_id": {
               "type": "uint32",
               "id": 3
             }
@@ -8046,7 +8693,7 @@
               "responseType": "ResCommon"
             },
             "fastLogin": {
-              "requestType": "ReqCommon",
+              "requestType": "ReqFastLogin",
               "responseType": "ResFastLogin"
             },
             "fetchInfo": {
@@ -8961,6 +9608,10 @@
               "requestType": "ReqCompleteActivityTask",
               "responseType": "ResCommon"
             },
+            "completeActivityFlipTaskBatch": {
+              "requestType": "ReqCompleteActivityFlipTaskBatch",
+              "responseType": "ResCompleteActivityFlipTaskBatch"
+            },
             "completePeriodActivityTask": {
               "requestType": "ReqCompleteActivityTask",
               "responseType": "ResCommon"
@@ -8980,6 +9631,10 @@
             "receiveActivityFlipTask": {
               "requestType": "ReqReceiveActivityFlipTask",
               "responseType": "ResReceiveActivityFlipTask"
+            },
+            "receiveActivityFlipTaskBatch": {
+              "requestType": "ReqReceiveActivityFlipTaskBatch",
+              "responseType": "ResReceiveActivityFlipTaskBatch"
             },
             "completeSegmentTaskReward": {
               "requestType": "ReqCompleteSegmentTaskReward",
@@ -9580,6 +10235,46 @@
             "fetchProgressRewardActivityInfo": {
               "requestType": "ReqFetchProgressRewardActivityInfo",
               "responseType": "ResFetchProgressRewardActivityInfo"
+            },
+            "questCrewActivityStartQuest": {
+              "requestType": "ReqQuestCrewActivityStartQuest",
+              "responseType": "ResQuestCrewActivityStartQuest"
+            },
+            "questCrewActivityHire": {
+              "requestType": "ReqQuestCrewActivityHire",
+              "responseType": "ResQuestCrewActivityHire"
+            },
+            "questCrewActivityFeed": {
+              "requestType": "ReqQuestCrewActivityFeed",
+              "responseType": "ResQuestCrewActivityFeed"
+            },
+            "questCrewActivityRefreshMarket": {
+              "requestType": "ReqQuestCrewActivityRefreshMarket",
+              "responseType": "ResQuestCrewActivityRefreshMarket"
+            },
+            "bingoActivityReceiveReward": {
+              "requestType": "ReqBingoActivityReceiveReward",
+              "responseType": "ResBingoActivityReceiveReward"
+            },
+            "fetchBingoActivityData": {
+              "requestType": "ReqFetchBingoActivityData",
+              "responseType": "ResFetchBingoActivityData"
+            },
+            "snowballActivityStartBattle": {
+              "requestType": "ReqSnowballActivityStartBattle",
+              "responseType": "ResSnowballActivityStartBattle"
+            },
+            "snowballActivityFinishBattle": {
+              "requestType": "ReqSnowballActivityFinishBattle",
+              "responseType": "ResSnowballActivityFinishBattle"
+            },
+            "snowballActivityUpgrade": {
+              "requestType": "ReqSnowballActivityUpgrade",
+              "responseType": "ResSnowballActivityUpgrade"
+            },
+            "snowballActivityReceiveReward": {
+              "requestType": "ReqSnowballActivityReceiveReward",
+              "responseType": "ResSnowballActivityReceiveReward"
             }
           }
         },
@@ -9775,6 +10470,14 @@
             "type": {
               "type": "uint32",
               "id": 2
+            }
+          }
+        },
+        "ReqFastLogin": {
+          "fields": {
+            "client_version_string": {
+              "type": "string",
+              "id": 1
             }
           }
         },
@@ -14280,6 +14983,10 @@
             "is_admin": {
               "type": "bool",
               "id": 6
+            },
+            "game_plan": {
+              "type": "CustomizedContestGamePlan",
+              "id": 7
             }
           }
         },
@@ -14628,10 +15335,25 @@
               "type": "lq.ActivityProgressRewardData",
               "id": 32
             },
+            "quest_crew_data": {
+              "rule": "repeated",
+              "type": "lq.ActivityQuestCrewData",
+              "id": 33
+            },
             "shoot_data": {
               "rule": "repeated",
               "type": "lq.ActivityShootData",
-              "id": 33
+              "id": 34
+            },
+            "bingo_data": {
+              "rule": "repeated",
+              "type": "lq.ActivityBingoData",
+              "id": 35
+            },
+            "snowball_data": {
+              "rule": "repeated",
+              "type": "lq.ActivitySnowballData",
+              "id": 36
             }
           },
           "nested": {
@@ -14828,6 +15550,27 @@
             }
           }
         },
+        "ReqReceiveActivityFlipTaskBatch": {
+          "fields": {
+            "task_list": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ResReceiveActivityFlipTaskBatch": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "count": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
         "ReqCompleteSegmentTaskReward": {
           "fields": {
             "task_id": {
@@ -14875,6 +15618,28 @@
             "error": {
               "type": "Error",
               "id": 3
+            }
+          }
+        },
+        "ReqCompleteActivityFlipTaskBatch": {
+          "fields": {
+            "task_list": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ResCompleteActivityFlipTaskBatch": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "total_rewards": {
+              "rule": "repeated",
+              "type": "ExecuteReward",
+              "id": 2
             }
           }
         },
@@ -16980,12 +17745,29 @@
               "rule": "repeated",
               "type": "ServerFunctionMaintenanceInfo",
               "id": 1
+            },
+            "activity_maintenance": {
+              "rule": "repeated",
+              "type": "ServerActivityMaintenanceInfo",
+              "id": 2
             }
           },
           "nested": {
             "ServerFunctionMaintenanceInfo": {
               "fields": {
                 "name": {
+                  "type": "string",
+                  "id": 1
+                },
+                "open": {
+                  "type": "bool",
+                  "id": 2
+                }
+              }
+            },
+            "ServerActivityMaintenanceInfo": {
+              "fields": {
+                "activity_type": {
                   "type": "string",
                   "id": 1
                 },
@@ -17480,6 +18262,10 @@
                 "value": {
                   "type": "uint32",
                   "id": 2
+                },
+                "operate": {
+                  "type": "uint32",
+                  "id": 3
                 }
               }
             }
@@ -17615,6 +18401,36 @@
             "rank_type": {
               "type": "uint32",
               "id": 12
+            },
+            "season": {
+              "type": "SeasonInfo",
+              "id": 13
+            },
+            "match_start_time": {
+              "type": "uint32",
+              "id": 14
+            },
+            "match_end_time": {
+              "type": "uint32",
+              "id": 15
+            }
+          },
+          "nested": {
+            "SeasonInfo": {
+              "fields": {
+                "create_time": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "start_time": {
+                  "type": "uint32",
+                  "id": 2
+                },
+                "end_time": {
+                  "type": "uint32",
+                  "id": 3
+                }
+              }
             }
           }
         },
@@ -17761,6 +18577,10 @@
                 "team_name": {
                   "type": "string",
                   "id": 4
+                },
+                "modify_score": {
+                  "type": "int32",
+                  "id": 5
                 }
               }
             },
@@ -17777,6 +18597,10 @@
                 "team_name": {
                   "type": "string",
                   "id": 3
+                },
+                "modify_score": {
+                  "type": "int32",
+                  "id": 4
                 }
               }
             }
@@ -19321,6 +20145,338 @@
             }
           }
         },
+        "ReqQuestCrewActivityStartQuest": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "joined_members": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 2
+            },
+            "quest_id": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ResQuestCrewActivityStartQuest": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "result": {
+              "type": "uint32",
+              "id": 2
+            },
+            "value_changes": {
+              "type": "ActivityQuestCrewChanges",
+              "id": 3
+            },
+            "effect_info": {
+              "rule": "repeated",
+              "type": "ActivityQuestCrewEffectInfo",
+              "id": 4
+            }
+          },
+          "nested": {
+            "ActivityQuestCrewEffectInfo": {
+              "fields": {
+                "member_id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "effect_id": {
+                  "type": "uint32",
+                  "id": 2
+                },
+                "result": {
+                  "type": "ActivityQuestCrewEffectResult",
+                  "id": 3
+                }
+              }
+            }
+          }
+        },
+        "ReqQuestCrewActivityHire": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "member_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ResQuestCrewActivityHire": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "value_changes": {
+              "type": "ActivityQuestCrewChanges",
+              "id": 2
+            },
+            "execute_result": {
+              "rule": "repeated",
+              "type": "ExecuteResult",
+              "id": 3
+            }
+          }
+        },
+        "ReqQuestCrewActivityFeed": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "member_id": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ResQuestCrewActivityFeed": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "value_changes": {
+              "type": "ActivityQuestCrewChanges",
+              "id": 2
+            },
+            "execute_result": {
+              "rule": "repeated",
+              "type": "ExecuteResult",
+              "id": 3
+            }
+          }
+        },
+        "ReqQuestCrewActivityRefreshMarket": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ResQuestCrewActivityRefreshMarket": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "value_changes": {
+              "type": "ActivityQuestCrewChanges",
+              "id": 2
+            },
+            "execute_result": {
+              "rule": "repeated",
+              "type": "ExecuteResult",
+              "id": 3
+            }
+          }
+        },
+        "ReqBingoActivityReceiveReward": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "rewards": {
+              "rule": "repeated",
+              "type": "BingoReward",
+              "id": 2
+            }
+          },
+          "nested": {
+            "BingoReward": {
+              "fields": {
+                "reward_id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "card_id": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            }
+          }
+        },
+        "ResBingoActivityReceiveReward": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "execute_result": {
+              "rule": "repeated",
+              "type": "ExecuteResult",
+              "id": 2
+            },
+            "cards": {
+              "rule": "repeated",
+              "type": "ActivityBingoCardData",
+              "id": 3
+            }
+          }
+        },
+        "ReqFetchBingoActivityData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ResFetchBingoActivityData": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "data": {
+              "type": "ActivityBingoData",
+              "id": 2
+            }
+          }
+        },
+        "ReqSnowballActivityStartBattle": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ResSnowballActivityStartBattle": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "random_seed": {
+              "type": "uint32",
+              "id": 2
+            },
+            "boss_action": {
+              "rule": "repeated",
+              "type": "SnowballActivityBossAction",
+              "id": 3
+            },
+            "battle_id": {
+              "type": "string",
+              "id": 4
+            },
+            "player_state": {
+              "rule": "repeated",
+              "type": "ActivitySnowballPlayerState",
+              "id": 5
+            },
+            "random_seq": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 6
+            }
+          }
+        },
+        "ReqSnowballActivityFinishBattle": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "player_action": {
+              "rule": "repeated",
+              "type": "ActivitySnowballPlayerAction",
+              "id": 2
+            },
+            "result": {
+              "type": "uint32",
+              "id": 3
+            },
+            "battle_id": {
+              "type": "string",
+              "id": 4
+            }
+          }
+        },
+        "ResSnowballActivityFinishBattle": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivitySnowballValueChanges",
+              "id": 2
+            }
+          }
+        },
+        "ReqSnowballActivityUpgrade": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "upgrade": {
+              "rule": "repeated",
+              "type": "ActivitySnowballUpgrade",
+              "id": 2
+            }
+          }
+        },
+        "ResSnowballActivityUpgrade": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivitySnowballValueChanges",
+              "id": 2
+            }
+          }
+        },
+        "ReqSnowballActivityReceiveReward": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "level": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ResSnowballActivityReceiveReward": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivitySnowballValueChanges",
+              "id": 2
+            },
+            "rewards": {
+              "rule": "repeated",
+              "type": "ExecuteReward",
+              "id": 3
+            }
+          }
+        },
         "AmuletBadgeData": {
           "fields": {
             "id": {
@@ -20484,44 +21640,6 @@
             }
           }
         },
-        "StringDirty": {
-          "fields": {
-            "dirty": {
-              "type": "bool",
-              "id": 1
-            },
-            "value": {
-              "type": "string",
-              "id": 2
-            }
-          }
-        },
-        "StringArrayDirty": {
-          "fields": {
-            "dirty": {
-              "type": "bool",
-              "id": 1
-            },
-            "value": {
-              "rule": "repeated",
-              "type": "string",
-              "id": 2
-            }
-          }
-        },
-        "UInt32ArrayDirty": {
-          "fields": {
-            "dirty": {
-              "type": "bool",
-              "id": 1
-            },
-            "value": {
-              "rule": "repeated",
-              "type": "uint32",
-              "id": 2
-            }
-          }
-        },
         "AmuletMingInfoArrayDirty": {
           "fields": {
             "dirty": {
@@ -20531,18 +21649,6 @@
             "value": {
               "rule": "repeated",
               "type": "AmuletMingInfo",
-              "id": 2
-            }
-          }
-        },
-        "UInt32Dirty": {
-          "fields": {
-            "dirty": {
-              "type": "bool",
-              "id": 1
-            },
-            "value": {
-              "type": "uint32",
               "id": 2
             }
           }
@@ -21175,17 +22281,9 @@
               "type": "string",
               "id": 3
             },
-            "session": {
-              "type": "string",
-              "id": 4
-            },
-            "gift": {
-              "type": "string",
-              "id": 5
-            },
-            "vs": {
-              "type": "uint32",
-              "id": 6
+            "device": {
+              "type": "ClientDeviceInfo",
+              "id": 7
             }
           }
         },
@@ -21845,6 +22943,15 @@
             }
           }
         },
+        "XiaKeShangInfo": {
+          "fields": {
+            "score_coefficients": {
+              "rule": "repeated",
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
         "ActionNewCard": {
           "fields": {
             "field_spell": {
@@ -21952,6 +23059,10 @@
             "saltSha256": {
               "type": "string",
               "id": 21
+            },
+            "xia_ke_shang": {
+              "type": "XiaKeShangInfo",
+              "id": 26
             }
           }
         },
@@ -22065,6 +23176,10 @@
             "salt": {
               "type": "string",
               "id": 25
+            },
+            "xia_ke_shang": {
+              "type": "XiaKeShangInfo",
+              "id": 26
             }
           },
           "nested": {
@@ -22427,6 +23542,10 @@
             "liqi_type_beishuizhizhan": {
               "type": "uint32",
               "id": 5
+            },
+            "xia_ke_shang": {
+              "type": "XiaKeShangInfo",
+              "id": 6
             }
           }
         },
@@ -22559,6 +23678,10 @@
             "hu_tile_baiDa_changed": {
               "type": "string",
               "id": 26
+            },
+            "xia_ke_shang_coefficient": {
+              "type": "uint32",
+              "id": 27
             }
           }
         },

@@ -22,6 +22,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme, effectiveTheme]);
 
   useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme' && e.newValue) {
+        setTheme(e.newValue as Theme);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       setSystemPrefersDark(e.matches);

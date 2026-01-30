@@ -21,7 +21,7 @@ updates:
 
   # Python 后端依赖更新
   - package-ecosystem: "pip"
-    directory: "/"
+    directory: "/akagi_backend"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -71,4 +71,29 @@ updates:
     ignore:
       # @types/node 应该与 Node.js 运行时版本保持一致，手动更新
       - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  # Electron Desktop 依赖更新
+  - package-ecosystem: "npm"
+    directory: "/electron"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    labels:
+      - "dependencies"
+      - "electron"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    open-pull-requests-limit: 10
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "electron"
         update-types: ["version-update:semver-major"]

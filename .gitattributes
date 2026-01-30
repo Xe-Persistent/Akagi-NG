@@ -4,11 +4,24 @@
 # Python 文件明确使用 LF
 *.py text eol=lf
 
+# 前端代码使用 LF
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+
 # 配置文件使用 LF
 *.toml text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
 *.json text eol=lf
+
+# 文档使用 LF
+*.txt text eol=lf
 *.md text eol=lf
 
 # Shell 脚本使用 LF
@@ -33,3 +46,12 @@
 *.so binary
 *.dll binary
 *.dylib binary
+
+# 自动生成的文件
+*pb2.py linguist-generated=true
+package-lock.json linguist-generated=true
+
+# Git 配置文件在导出时忽略
+.gitattributes export-ignore
+.gitignore export-ignore
+.editorconfig export-ignore

@@ -16,9 +16,10 @@ export default defineConfig({
       ext: '.gz',
     }),
   ],
+  base: './',
   build: {
     target: 'esnext',
-    outDir: path.resolve(__dirname, 'frontend'),
+    outDir: '../dist/renderer',
     emptyOutDir: true,
     rollupOptions: {
       output: {

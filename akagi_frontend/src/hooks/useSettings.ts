@@ -7,6 +7,13 @@ import { notify } from '@/lib/notify';
 import type { Paths, PathValue, SaveSettingsResponse, Settings } from '@/types';
 
 export async function fetchSettingsApi(apiBase: string): Promise<Settings> {
+  for (let i = 0; i < 20; i++) {
+    try {
+      return await fetchJson<Settings>(`${apiBase}/api/settings`);
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
   return fetchJson<Settings>(`${apiBase}/api/settings`);
 }
 

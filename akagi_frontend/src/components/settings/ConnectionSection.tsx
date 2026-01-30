@@ -3,15 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
-import { PLATFORM_DEFAULTS, PLATFORMS } from '@/config/platforms';
 import type { Paths, PathValue, Settings } from '@/types';
 
 interface ConnectionSectionProps {
@@ -21,152 +13,63 @@ interface ConnectionSectionProps {
     value: PathValue<Settings, P>,
     shouldDebounce?: boolean,
   ) => void;
-  updateSettingsBatch: (
-    updates: { path: readonly string[]; value: unknown }[],
-    shouldDebounce?: boolean,
-  ) => void;
 }
 
-export const ConnectionSection: FC<ConnectionSectionProps> = memo(
-  ({ settings, updateSetting, updateSettingsBatch }) => {
-    const { t } = useTranslation();
+export const ConnectionSection: FC<ConnectionSectionProps> = memo(({ settings, updateSetting }) => {
+  const { t } = useTranslation();
 
-    return (
-      <div className='space-y-4'>
-        <h3 className='settings-section-title'>{t('settings.connection.title')}</h3>
+  return (
+    <div className='space-y-4'>
+      <h3 className='settings-section-title'>{t('settings.connection.title')}</h3>
 
-        <SettingsItem label={t('settings.connection.mode')}>
-          <CapsuleSwitch
-            className='w-48'
-            checked={settings.mitm.enabled}
-            onCheckedChange={(val) => {
-              updateSettingsBatch([
-                { path: ['mitm', 'enabled'], value: val },
-                { path: ['browser', 'enabled'], value: !val },
-              ]);
-            }}
-            labelOn={t('settings.connection.mode_mitm')}
-            labelOff={t('settings.connection.mode_browser')}
-          />
-        </SettingsItem>
+      <SettingsItem label={t('settings.connection.mode')}>
+        <CapsuleSwitch
+          className='w-64'
+          checked={settings.mitm.enabled}
+          onCheckedChange={(val) => {
+            updateSetting(['mitm', 'enabled'], val);
+          }}
+          labelOn={t('settings.connection.mode_mitm')}
+          labelOff={t('settings.connection.mode_browser')}
+        />
+      </SettingsItem>
 
-        {!settings.mitm.enabled ? (
-          <>
-            <SettingsItem label={t('settings.connection.platform.label')}>
-              <Select
-                value={settings.browser.platform || PLATFORMS.MAJSOUL}
-                onValueChange={(val) => {
-                  const defaultUrl =
-                    PLATFORM_DEFAULTS[val]?.url || PLATFORM_DEFAULTS[PLATFORMS.MAJSOUL].url;
-                  updateSettingsBatch([
-                    { path: ['browser', 'platform'], value: val },
-                    { path: ['browser', 'url'], value: defaultUrl },
-                  ]);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Select Platform' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='majsoul'>
-                    {t('settings.connection.platform.majsoul')}
-                  </SelectItem>
-                  <SelectItem value='tenhou'>{t('settings.connection.platform.tenhou')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingsItem>
+      {['riichi_city', 'amatsuki'].includes(settings.platform) && !settings.mitm.enabled && (
+        <div className='flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'>
+          {t('settings.connection.mitm_required_notice')}
+        </div>
+      )}
 
-            <SettingsItem label={t('settings.connection.browser.size')}>
-              <Select
-                value={settings.browser.window_size || 'default'}
-                onValueChange={(val) =>
-                  updateSetting(['browser', 'window_size'], val === 'default' ? '' : val)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('settings.connection.browser.size_placeholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='default'>
-                    {t('settings.connection.browser.size_default')}
-                  </SelectItem>
-                  <SelectItem value='maximized'>
-                    {t('settings.connection.browser.size_maximized')}
-                  </SelectItem>
-                  <SelectItem value='1280,720'>1280x720</SelectItem>
-                  <SelectItem value='1920,1080'>1920x1080</SelectItem>
-                  <SelectItem value='2560,1440'>2560x1440</SelectItem>
-                  <SelectItem value='3840,2160'>3840x2160</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingsItem>
+      {settings.mitm.enabled && (
+        <div className='mt-6 space-y-4'>
+          <h4 className='text-sm font-semibold tracking-wider text-zinc-500 uppercase'>
+            {t('settings.connection.mitm.title')}
+          </h4>
 
-            <SettingsItem
-              label={t('settings.connection.browser.url')}
-              description={t('settings.connection.browser.url_desc')}
-            >
-              <Input
-                value={settings.browser.url}
-                placeholder={
-                  settings.browser.platform === 'tenhou'
-                    ? 'https://tenhou.net/3/'
-                    : 'https://game.maj-soul.com/1/'
-                }
-                onChange={(e) => updateSetting(['browser', 'url'], e.target.value)}
-              />
-            </SettingsItem>
-          </>
-        ) : (
-          <>
-            <SettingsItem label={t('settings.connection.platform.label')}>
-              <Select
-                value={settings.mitm.platform || 'majsoul'}
-                onValueChange={(val) => updateSetting(['mitm', 'platform'], val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Select Platform' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='majsoul'>
-                    {t('settings.connection.platform.majsoul')}
-                  </SelectItem>
-                  <SelectItem value='tenhou'>{t('settings.connection.platform.tenhou')}</SelectItem>
-                  <SelectItem value='riichi_city'>
-                    {t('settings.connection.platform.riichi_city')}
-                  </SelectItem>
-                  <SelectItem value='amatsuki'>
-                    {t('settings.connection.platform.amatsuki')}
-                  </SelectItem>
-                  <SelectItem value='auto'>{t('settings.connection.platform.auto')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingsItem>
-
-            <SettingsItem label={t('settings.connection.mitm.host')}>
-              <Input
-                value={settings.mitm.host}
-                onChange={(e) => updateSetting(['mitm', 'host'], e.target.value)}
-              />
-            </SettingsItem>
-            <SettingsItem label={t('settings.connection.mitm.port')}>
-              <Input
-                type='number'
-                value={settings.mitm.port}
-                onChange={(e) => updateSetting(['mitm', 'port'], parseInt(e.target.value) || 0)}
-              />
-            </SettingsItem>
-            <SettingsItem label={t('settings.connection.mitm.upstream')}>
-              <Input
-                value={settings.mitm.upstream}
-                placeholder='http://127.0.0.1:7890'
-                onChange={(e) => updateSetting(['mitm', 'upstream'], e.target.value)}
-              />
-            </SettingsItem>
-          </>
-        )}
-      </div>
-    );
-  },
-);
+          <SettingsItem label={t('settings.connection.mitm.host')}>
+            <Input
+              value={settings.mitm.host}
+              onChange={(e) => updateSetting(['mitm', 'host'], e.target.value)}
+            />
+          </SettingsItem>
+          <SettingsItem label={t('settings.connection.mitm.port')}>
+            <Input
+              type='number'
+              value={settings.mitm.port}
+              onChange={(e) => updateSetting(['mitm', 'port'], parseInt(e.target.value) || 0)}
+            />
+          </SettingsItem>
+          <SettingsItem label={t('settings.connection.mitm.upstream')}>
+            <Input
+              value={settings.mitm.upstream}
+              placeholder='http://127.0.0.1:7890'
+              onChange={(e) => updateSetting(['mitm', 'upstream'], e.target.value)}
+            />
+          </SettingsItem>
+        </div>
+      )}
+    </div>
+  );
+});
 
 ConnectionSection.displayName = 'ConnectionSection';

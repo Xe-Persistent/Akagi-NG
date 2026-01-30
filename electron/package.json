@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Akagi-NG Electron Desktop App",
   "main": "../dist/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xe-Persistent/Akagi-NG.git"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "dev:mock": "concurrently \"npm run dev:frontend\" \"npm run dev:electron:mock\"",

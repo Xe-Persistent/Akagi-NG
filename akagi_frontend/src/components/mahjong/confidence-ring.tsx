@@ -117,7 +117,7 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = ({
           stroke='currentColor'
           strokeWidth={stroke}
           fill='transparent'
-          className='text-zinc-200 dark:text-zinc-800'
+          className='text-zinc-300/40 dark:text-zinc-800'
         />
 
         {/* Main Progress Ring (Static/Smooth) */}

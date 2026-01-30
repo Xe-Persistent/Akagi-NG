@@ -18,9 +18,9 @@ export function LaunchScreen({
       <div className='flex flex-col items-center space-y-8 p-8'>
         {/* Logo Container with Glow Effect */}
         <div className='relative'>
-          <div className='absolute -inset-4 rounded-full bg-rose-500/20 blur-xl dark:bg-rose-500/10' />
+          <div className='logo-glow-effect' />
           <img
-            src='/torii.svg'
+            src='torii.svg'
             alt='Akagi Logo'
             className={cn(
               'relative h-24 w-24 drop-shadow-lg duration-1000 lg:h-32 lg:w-32',

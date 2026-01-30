@@ -1,0 +1,109 @@
+{
+  "name": "akagi-ng-desktop",
+  "version": "1.0.0",
+  "description": "Akagi-NG Electron Desktop App",
+  "main": "../dist/main/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
+    "dev:mock": "concurrently \"npm run dev:frontend\" \"npm run dev:electron:mock\"",
+    "dev:frontend": "cd ../akagi_frontend && npm run dev",
+    "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.json && electron .",
+    "dev:electron:mock": "wait-on http://localhost:5173 && tsc -p tsconfig.json && set AKAGI_MOCK_MODE=1&& electron .",
+    "syncdeps": "npm install",
+    "clean": "tsx scripts/clean.ts",
+    "sync-version": "tsx scripts/sync_version.ts",
+    "prepare-release": "tsx scripts/prepare_release.ts",
+    "build": "npm run clean && npm run sync-version && npm run build:frontend && npm run build:backend && npm run build:electron && npm run prepare-release && electron-builder",
+    "build:frontend": "cd ../akagi_frontend && npm run build",
+    "build:backend": "..\\akagi_backend\\.venv\\Scripts\\python ..\\akagi_backend\\scripts\\build_backend.py",
+    "build:electron": "tsc -p tsconfig.json",
+    "postinstall": "cd ../akagi_frontend && npm install",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "Akagi-NG Contributors",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "devtools-protocol": "^0.0.1575685",
+    "electron": "39.4.0",
+    "electron-builder": "^26.6.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.3.0",
+    "globals": "^17.2.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "me.akagi.ng",
+    "productName": "Akagi-NG",
+    "icon": "../assets/torii.ico",
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh-TW",
+      "ja"
+    ],
+    "directories": {
+      "output": "../dist/release",
+      "buildResources": "build"
+    },
+    "files": [
+      {
+        "from": "../dist/main",
+        "to": "dist/main"
+      },
+      {
+        "from": "../dist/renderer",
+        "to": "dist/renderer"
+      },
+      "package.json",
+      "!node_modules",
+      "!**/*.map"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/main.js"
+    },
+    "extraFiles": [
+      {
+        "from": "../dist/backend/akagi-ng",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../assets",
+        "to": "assets"
+      },
+      {
+        "from": "../build/extra",
+        "to": "."
+      },
+      {
+        "from": "../README.txt",
+        "to": "."
+      }
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": "zip",
+      "icon": "../assets/torii.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "../assets/torii.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "../assets/torii.png"
+    }
+  }
+}

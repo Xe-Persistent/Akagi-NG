@@ -12,7 +12,17 @@
       "theme_system": "システム設定",
       "theme_light": "ライトテーマ",
       "theme_dark": "ダークテーマ",
-      "log_level": "ログ収集レベル"
+      "log_level": "ログ収集レベル",
+      "platform": {
+        "label": "ゲームプラットフォーム",
+        "majsoul": "雀魂",
+        "tenhou": "天鳳",
+        "riichi_city": "麻雀一番街",
+        "amatsuki": "天月麻雀",
+        "auto": "自動検出"
+      },
+      "game_url": "ゲームURL",
+      "game_url_desc": "雀魂・天鳳のみ対応しています。その他のプラットフォームは「プロキシ」モードを使用してください。"
     },
     "online_model": {
       "title": "オンラインモデル",
@@ -28,32 +38,14 @@
     "connection": {
       "title": "ゲーム接続",
       "mode": "接続モード",
-      "mode_browser": "ブラウザ",
-      "mode_mitm": "プロキシ",
-      "browser": {
-        "title": "ブラウザ設定",
-        "headless": "ヘッドレスモード",
-        "headless_desc": "ウィンドウを表示せずにブラウザを実行",
-        "size": "ウィンドウサイズ",
-        "size_placeholder": "解像度を選択",
-        "size_default": "デフォルト",
-        "size_maximized": "最大化",
-        "url": "ゲームURL",
-        "url_desc": "空欄の場合は公式のデフォルトURLを使用します。雀魂・天鳳のみ対応しています。"
-      },
+      "mode_browser": "内蔵ブラウザ",
+      "mode_mitm": "外部プロキシ",
+      "mitm_required_notice": "麻雀一番街と天月麻雀は外部プロキシモードのみ対応しています。接続モードを切り替えてください。",
       "mitm": {
         "title": "プロキシ設定",
         "host": "リッスンアドレス",
         "port": "リッスンポート",
         "upstream": "上流プロキシ (任意)"
-      },
-      "platform": {
-        "label": "対象プラットフォーム",
-        "majsoul": "雀魂",
-        "tenhou": "天鳳",
-        "riichi_city": "麻雀一番街",
-        "amatsuki": "天月麻雀",
-        "auto": "自動検出"
       }
     },
     "model_config": {
@@ -96,19 +88,15 @@
     "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
     "settings_title": "Akagi NG 設定",
     "settings_desc": "アプリケーション設定パネル",
-    "pip_start": "PiPモード開始",
-    "pip_loading": "ピクチャーインピクチャーを起動中…",
-    "pip_exit": "PiPモード終了",
-    "pip_not_supported": "お使いのブラウザはPiP APIをサポートしていません。",
-    "pip_playing_in_pip": "PiPモードで表示中",
-    "pip_can_switch_tabs": "他のタブに切り替えても最上部に表示されます",
+    "hud_active": "HUDモードが有効です",
+    "hud_desc": "AIの打牌推奨が専用のHUDウィンドウに表示されます",
     "shutdown_confirm_title": "終了しますか？",
     "shutdown_confirm_desc": "本当にAkagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
     "stopped_title": "アプリケーションは終了しました",
-    "stopped_desc": "このウィンドウは閉じることができます。"
+    "stopped_desc": "Akagi NGをご利用いただきありがとうございました。"
   },
   "actions": {
-    "reach": "立直",
+    "reach": "リーチ",
     "chi": "チー",
     "pon": "ポン",
     "kan": "カン",
@@ -117,7 +105,7 @@
     "ryukyoku": "流局",
     "nukidora": "北抜き",
     "none": "スキップ",
-    "discard": "打"
+    "discard": "切る"
   },
   "status_messages": {
     "client_connected": "ゲームに接続しました。",
@@ -133,7 +121,6 @@
     "game_disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください。",
     "service_disconnected": "サービスとの接続が切れました。",
     "return_lobby": "対局から退出しました。",
-    "missing_resources": "必要なファイルが不足しています：{details}",
     "json_decode_error": "JSONデータの解析に失敗しました。",
     "config_error": "設定エラー",
     "no_bot_loaded": "AIモデルが読み込まれていません。",
@@ -141,6 +128,8 @@
     "bot_switch_failed": "AIモデルの切り替えに失敗しました。",
     "bot_runtime_error": "AIモデルの実行異常",
     "state_tracker_error": "対局状態に異常が発生しました。",
-    "max_retries_exceeded": "接続失敗が多すぎます。ネットワークを確認するか、アプリケーションを再起動してください。"
+    "max_retries_exceeded": "接続失敗が多すぎます。ネットワークを確認するか、アプリケーションを再起動してください。",
+    "lib_missing": "コアコンポーネントファイル (lib) が不足しているか不完全です。アプリケーションは正常に動作しません。",
+    "models_missing": "ローカルモデルファイル (models) が不足しています。オンラインモデルが設定されていない場合、アプリケーションは動作しません。"
   }
 }

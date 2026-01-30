@@ -6,20 +6,12 @@ import { ConsumedDisplay } from '@/components/mahjong/consumed-display';
 import { MahjongTile } from '@/components/mahjong/mahjong-tile';
 import { ACTION_CONFIG, SHOW_CONSUMED_ACTIONS } from '@/config/actionConfig';
 import { cn } from '@/lib/utils';
-
 // --- 类型定义 ---
-
-interface RecommendationProps {
-  action: string;
-  confidence: number;
-  consumed?: string[];
-  sim_candidates?: { tile: string; confidence: number }[];
-  tile?: string;
-}
+import type { Recommendation } from '@/types';
 
 // --- 主组件 ---
 
-const Recommendation: FC<RecommendationProps> = ({
+const Recommendation: FC<Recommendation> = ({
   action,
   confidence,
   consumed,

@@ -21,18 +21,13 @@ const hostname = '127.0.0.1';
 let mockSettings: Settings = {
   log_level: 'TRACE',
   locale: 'zh-CN',
-  browser: {
-    enabled: false,
-    window_size: '',
-    platform: 'majsoul',
-    url: 'https://game.maj-soul.com/1/',
-  },
+  game_url: 'https://game.maj-soul.com/1/',
+  platform: 'majsoul',
   mitm: {
     enabled: true,
     host: '127.0.0.1',
     port: 6789,
     upstream: '',
-    platform: 'majsoul',
   },
   server: {
     host: '0.0.0.0',
@@ -94,6 +89,7 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/sse')) {
     console.log('SSE client connected');
+    let connectionStateCounter = 0;
 
     res.writeHead(200, {
       ...corsHeaders,
@@ -103,8 +99,8 @@ const server = http.createServer((req, res) => {
     });
 
     const sendData = () => {
-      const mockData = generateMockData();
-      console.log('Generated and sending new mock data');
+      const mockData = generateMockData(connectionStateCounter);
+      connectionStateCounter++;
       // 匹配后端格式: event: recommendations
       res.write(`event: recommendations\n`);
       res.write(`data: ${JSON.stringify(mockData)}\n\n`);
@@ -143,11 +139,8 @@ server.listen(port, hostname, () => {
   console.log(`Mock server listening on http://${hostname}:${port}`);
 });
 
-let stateCounter = 0;
-
-function generateMockData(): FullRecommendationData {
+function generateMockData(counter: number): FullRecommendationData {
   const scenarios = [
-    // Scenario 1: Standard Discard (Mid-game)
     {
       tehai: ['1m', '2m', '3m', '5m', '6m', '7m', '1p', '1p', '5p', '0p', '9p', 'E', 'E', 'W'],
       recommendations: [
@@ -239,8 +232,7 @@ function generateMockData(): FullRecommendationData {
   ];
 
   // Cycle through scenarios
-  const scenario = scenarios[stateCounter % scenarios.length];
-  stateCounter++;
+  const scenario = scenarios[counter % scenarios.length];
 
   return {
     recommendations: scenario.recommendations,

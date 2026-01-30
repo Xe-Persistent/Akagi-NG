@@ -19,6 +19,7 @@ export function useConnectionConfig(): ConnectionConfig {
     if (saved) return saved;
     // 开发模式（端口 5173）默认使用 http，否则使用当前协议
     if (window.location.port === '5173') return 'http';
+    if (window.location.protocol === 'file:') return 'http';
     return window.location.protocol.replace(':', '');
   });
 
@@ -27,17 +28,14 @@ export function useConnectionConfig(): ConnectionConfig {
     if (saved) return saved;
     // 开发模式默认使用 127.0.0.1:8765
     if (window.location.port === '5173') return '127.0.0.1:8765';
+    // Electron file 协议下默认指向本地后端
+    if (window.location.protocol === 'file:') return '127.0.0.1:8765';
     // 正式环境使用当前主机
     return window.location.host;
   });
 
   const [clientId] = useState(() => {
-    let id = localStorage.getItem('clientId');
-    if (!id) {
-      id = Math.random().toString(36).slice(2);
-      localStorage.setItem('clientId', id);
-    }
-    return id;
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
   });
 
   const apiBase = `${protocol}://${backendAddress}`;

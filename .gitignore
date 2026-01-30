@@ -10,8 +10,6 @@ lib/*
 logs/
 models/*
 node_modules/
-playwright_data/
-frontend/
 
 __pycache__/
 *.py[cod]

@@ -12,7 +12,17 @@
       "theme_system": "System",
       "theme_light": "Light",
       "theme_dark": "Dark",
-      "log_level": "Log Level"
+      "log_level": "Log Level",
+      "platform": {
+        "label": "Platform",
+        "majsoul": "Majsoul",
+        "tenhou": "Tenhou",
+        "riichi_city": "Riichi City",
+        "amatsuki": "Amatsuki Mahjong",
+        "auto": "Auto Detect"
+      },
+      "game_url": "Game URL",
+      "game_url_desc": "Only supports Majsoul and Tenhou. Use Proxy mode for other platforms."
     },
     "online_model": {
       "title": "Online Model",
@@ -28,37 +38,19 @@
     "connection": {
       "title": "Game Connection",
       "mode": "Connection Mode",
-      "mode_browser": "Browser",
-      "mode_mitm": "Proxy",
-      "browser": {
-        "title": "Browser Settings",
-        "headless": "Headless Mode",
-        "headless_desc": "Run the browser in the background without a visible window",
-        "size": "Window Size",
-        "size_placeholder": "Select Resolution",
-        "size_default": "Default",
-        "size_maximized": "Maximized",
-        "url": "Game URL",
-        "url_desc": "Leave empty to use the official default URL. Supports Majsoul and Tenhou only."
-      },
+      "mode_browser": "Internal Browser",
+      "mode_mitm": "External Proxy",
+      "mitm_required_notice": "Riichi City and Amatsuki Mahjong only support External Proxy mode. Please switch the connection mode.",
       "mitm": {
-        "title": "Proxy Settings",
+        "title": "Proxy Configuration",
         "host": "Listen Address",
         "port": "Listen Port",
         "upstream": "Upstream Proxy (Optional)"
-      },
-      "platform": {
-        "label": "Platform",
-        "majsoul": "Majsoul",
-        "tenhou": "Tenhou",
-        "riichi_city": "Riichi City",
-        "amatsuki": "Amatsuki Mahjong",
-        "auto": "Auto Detect"
       }
     },
     "model_config": {
       "device": "Device",
-      "device_desc": "Choose the device used by the model. Auto will automatically select a suitable available device.",
+      "device_desc": "Choose the device used by the model. Auto selects a suitable available device.",
       "temperature": "Temperature",
       "temperature_desc": "Controls the randomness of the model output. Higher values produce more random results.",
       "amp": "Enable AMP",
@@ -96,16 +88,12 @@
     "launch_error": "Could not retrieve game URL. Please check settings.",
     "settings_title": "Akagi NG Settings",
     "settings_desc": "Application Configuration Panel",
-    "pip_start": "Start PiP Mode",
-    "pip_loading": "Starting Picture-in-Picture…",
-    "pip_exit": "Exit PiP Mode",
-    "pip_not_supported": "Your browser does not support PiP API.",
-    "pip_playing_in_pip": "Playing in PiP Mode",
-    "pip_can_switch_tabs": "You can switch to other tabs now",
+    "hud_active": "HUD Mode Active",
+    "hud_desc": "AI play suggestions are shown in a dedicated HUD window",
     "shutdown_confirm_title": "Confirm Shutdown",
     "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
     "stopped_title": "Application Stopped",
-    "stopped_desc": "You can now safely close this window."
+    "stopped_desc": "Thank you for using Akagi NG."
   },
   "actions": {
     "reach": "Reach",
@@ -128,19 +116,20 @@
     "fallback_used": "Online service unavailable. Switched to local model.",
     "online_service_restored": "Online service connection restored.",
     "reconnecting": "Reconnecting…",
-    "riichi_simulation_failed": "Riichi Simulation Failed.",
+    "riichi_simulation_failed": "Riichi simulation failed.",
     "game_data_parse_failed": "Failed to parse match data.",
     "game_disconnected": "Game connection lost. Check your network or refresh the page.",
     "service_disconnected": "Service connection lost.",
     "return_lobby": "Left the current match.",
-    "missing_resources": "Missing required system resources: {details}",
     "json_decode_error": "Failed to decode JSON data.",
     "config_error": "Configuration Error",
     "no_bot_loaded": "AI model not loaded.",
     "model_load_failed": "Failed to load AI model.",
     "bot_switch_failed": "Failed to switch AI model.",
     "bot_runtime_error": "AI model runtime error",
-    "state_tracker_error": "Match state error",
-    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application."
+    "state_tracker_error": "Match state corrupted.",
+    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application.",
+    "lib_missing": "Local core components (lib) are missing or incomplete. The application cannot run properly.",
+    "models_missing": "Local model files (models) are missing. The application cannot run without an online model configured."
   }
 }

@@ -15,19 +15,13 @@ import {
   ModalTitle,
 } from '@/components/ui/modal';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
-import type { Settings } from '@/types';
+import type { Settings, SettingsPanelProps } from '@/types';
 
 import { ConnectionSection } from './settings/ConnectionSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
 import { GeneralSection } from './settings/GeneralSection';
 import { OnlineModelSection } from './settings/OnlineModelSection';
 import { ServiceSection } from './settings/ServiceSection';
-
-interface SettingsPanelProps {
-  open: boolean;
-  onClose: () => void;
-  apiBase: string;
-}
 
 interface SettingsFormProps {
   apiBase: string;
@@ -56,12 +50,12 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
         )}
 
         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-          <GeneralSection settings={settings} updateSetting={updateSetting} />
-          <ConnectionSection
+          <GeneralSection
             settings={settings}
             updateSetting={updateSetting}
             updateSettingsBatch={updateSettingsBatch}
           />
+          <ConnectionSection settings={settings} updateSetting={updateSetting} />
         </div>
 
         <ServiceSection settings={settings} updateSetting={updateSetting} />

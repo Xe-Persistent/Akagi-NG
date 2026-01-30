@@ -39,14 +39,6 @@ type ReplaceableConfig = BaseStatusUIConfig & {
 export type StatusUIConfig = EphemeralConfig | PersistentConfig | ReplaceableConfig;
 
 export const STATUS_UI_MAP = {
-  // 系统缺失资源错误
-  missing_resources: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.STATUS,
-    domain: STATUS_DOMAIN.RUNTIME,
-    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
-  },
-
   // JSON数据解析错误
   json_decode_error: {
     level: STATUS_LEVEL.ERROR,
@@ -59,7 +51,7 @@ export const STATUS_UI_MAP = {
   // Bot 错误
   no_bot_loaded: {
     level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
@@ -95,20 +87,20 @@ export const STATUS_UI_MAP = {
   // 配置文件错误
   config_error: {
     level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.RUNTIME,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   // 服务断开连接
   service_disconnected: {
     level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.CONNECTION,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
   max_retries_exceeded: {
     level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.CONNECTION,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
@@ -129,7 +121,7 @@ export const STATUS_UI_MAP = {
   },
   fallback_used: {
     level: STATUS_LEVEL.WARNING,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.SERVICE,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
@@ -172,7 +164,7 @@ export const STATUS_UI_MAP = {
   },
   reconnecting: {
     level: STATUS_LEVEL.INFO,
-    placement: STATUS_PLACEMENT.STATUS,
+    placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.SERVICE,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },

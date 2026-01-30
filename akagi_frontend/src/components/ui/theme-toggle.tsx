@@ -34,12 +34,12 @@ interface ThemeToggleProps {
 
 export const ThemeToggle: FC<ThemeToggleProps> = memo(({ theme, setTheme }) => {
   return (
-    <div className='flex items-center rounded-full border border-zinc-500/20 bg-transparent p-1 dark:border-zinc-400/20'>
+    <div className='no-drag flex items-center rounded-full border border-zinc-500/20 bg-transparent p-1 dark:border-zinc-400/20'>
       {THEME_OPTIONS.map(({ value, icon: Icon, activeColor }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`rounded-full p-1.5 transition-all ${
+          className={`no-drag rounded-full p-1.5 transition-all ${
             theme === value
               ? activeColor
               : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'

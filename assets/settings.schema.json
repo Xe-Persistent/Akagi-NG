@@ -1,7 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["browser", "mitm", "server", "ot", "model_config"],
+  "required": [
+    "log_level",
+    "locale",
+    "game_url",
+    "platform",
+    "mitm",
+    "server",
+    "ot",
+    "model_config"
+  ],
   "properties": {
     "log_level": {
       "type": "string",
@@ -15,35 +24,16 @@
       "default": "en-US",
       "description": "UI Language locale."
     },
-    "browser": {
-      "type": "object",
-      "description": "Browser configuration.",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable internal browser automation (Playwright)."
-        },
-        "platform": {
-          "type": "string",
-          "enum": ["majsoul", "tenhou"],
-          "default": "majsoul",
-          "description": "The target mahjong platform."
-        },
-        "url": {
-          "type": "string",
-          "default": "",
-          "description": "Game URL override.",
-          "format": "uri"
-        },
-        "window_size": {
-          "type": "string",
-          "default": "",
-          "description": "Initial window size (e.g., '1920,1080'). Leave empty for maximized."
-        }
-      },
-      "required": ["enabled", "platform", "url", "window_size"],
-      "additionalProperties": false
+    "game_url": {
+      "type": "string",
+      "default": "",
+      "description": "Game URL for internal Electron window."
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["auto", "majsoul", "tenhou", "amatsuki", "riichi_city"],
+      "default": "auto",
+      "description": "The target mahjong platform."
     },
     "mitm": {
       "type": "object",
@@ -53,12 +43,6 @@
           "type": "boolean",
           "default": false,
           "description": "Enable MITM proxy."
-        },
-        "platform": {
-          "type": "string",
-          "enum": ["auto", "majsoul", "tenhou", "amatsuki", "riichi_city"],
-          "default": "auto",
-          "description": "The target mahjong platform."
         },
         "host": {
           "type": "string",
@@ -76,7 +60,7 @@
           "description": "Upstream proxy URL (e.g. http://127.0.0.1:7890)."
         }
       },
-      "required": ["enabled", "platform", "host", "port", "upstream"],
+      "required": ["enabled", "host", "port", "upstream"],
       "additionalProperties": false
     },
     "server": {
@@ -98,7 +82,7 @@
       "additionalProperties": false
     },
     "ot": {
-      "description": "Online learning/teacher configuration.",
+      "description": "Online service configuration.",
       "type": "object",
       "properties": {
         "online": {

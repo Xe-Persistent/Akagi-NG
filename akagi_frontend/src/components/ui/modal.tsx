@@ -39,7 +39,7 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className 
 
   return (
     <div
-      className='animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200'
+      className='animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/0 p-4 backdrop-blur-none duration-200'
       role='button'
       tabIndex={-1}
       onClick={(e) => {
@@ -58,7 +58,7 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className 
         aria-modal='true'
         tabIndex={-1}
         className={cn(
-          'bg-background border-border animate-in zoom-in-95 relative flex max-h-[90vh] w-full flex-col rounded-lg border shadow-lg duration-200',
+          'animate-in zoom-in-95 relative flex max-h-[90vh] w-full flex-col rounded-xl border border-zinc-200 bg-white/80 shadow-lg backdrop-blur-xl duration-200 dark:border-white/10 dark:bg-zinc-900/40',
           className,
         )}
       >
@@ -127,12 +127,12 @@ export const ModalClose: FC<ModalCloseProps> = ({ onClick, className }) => (
     variant='ghost'
     size='icon'
     className={cn(
-      'ring-offset-background data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 h-4 w-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none',
+      'ring-offset-background data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 h-8 w-8 rounded-full opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none dark:hover:bg-white/10',
       className,
     )}
     onClick={onClick}
   >
-    <X className='h-4 w-4' />
+    <X className='h-5 w-5' />
     <span className='sr-only'>Close</span>
   </Button>
 );

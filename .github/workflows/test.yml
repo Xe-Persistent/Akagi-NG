@@ -26,9 +26,11 @@ jobs:
         run: pip install ruff
 
       - name: Run Ruff linting
+        working-directory: akagi_backend
         run: ruff check akagi_ng/
 
       - name: Run Ruff format check
+        working-directory: akagi_backend
         run: ruff format --check akagi_ng/
 
   test-backend:
@@ -45,11 +47,13 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
+        working-directory: akagi_backend
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
       - name: Run unit tests with coverage
+        working-directory: akagi_backend
         run: |
           python -m pytest tests/ -k "not e2e" -v --tb=short --cov=akagi_ng --cov-report=xml --cov-report=term
         continue-on-error: false
@@ -58,7 +62,7 @@ jobs:
         uses: codecov/codecov-action@v5
         if: always()
         with:
-          files: ./coverage.xml
+          files: akagi_backend/coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -91,4 +95,35 @@ jobs:
 
       - name: Run TypeScript check
         working-directory: akagi_frontend
+        run: npx tsc --noEmit --pretty
+
+  lint-electron:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install electron dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: electron
+        run: npm run lint
+
+      - name: Run Prettier format check
+        working-directory: electron
+        run: |
+          npx prettier --check .
+
+      - name: Run TypeScript check
+        working-directory: electron
         run: npx tsc --noEmit --pretty

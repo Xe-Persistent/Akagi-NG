@@ -71,7 +71,7 @@
   }
 
   .vertical-divider {
-    @apply h-24 w-px bg-zinc-200/50 dark:bg-white/10;
+    @apply h-24 w-px bg-zinc-950/10 dark:bg-white/10;
   }
 
   .background-glow {
@@ -101,13 +101,11 @@
 
   /* Components: StreamPlayer */
   .stream-player-container {
-    @apply relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20;
+    @apply relative flex items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20;
   }
-  .pip-overlay {
-    @apply absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 text-zinc-900 backdrop-blur-sm transition-all duration-300 dark:bg-zinc-900/60 dark:text-white;
-  }
-  .pip-icon-wrapper {
-    @apply mb-4 rounded-full bg-zinc-900/5 p-4 ring-1 ring-zinc-900/10 dark:bg-white/10 dark:ring-white/20;
+
+  .stream-player-overlay {
+    @apply flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-white/20 bg-white/5 p-8 text-center backdrop-blur-md dark:border-white/10 dark:bg-black/20;
   }
 
   /* Components: Alerts (SettingsPanel) */
@@ -121,6 +119,19 @@
   /* Components: Settings */
   .settings-section-title {
     @apply border-border border-b pb-2 text-lg font-semibold;
+  }
+
+  /* Components: Footer */
+  .footer-link {
+    @apply flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100;
+  }
+  .footer-divider {
+    @apply h-3 w-px bg-zinc-500/20; /* Keep generic name in case used elsewhere, but specific to footer usage */
+  }
+
+  /* Components: Logo Glow */
+  .logo-glow-effect {
+    @apply absolute -inset-4 rounded-full bg-rose-500/20 blur-xl dark:bg-rose-500/10;
   }
 }
 
@@ -215,7 +226,16 @@
       radial-gradient(at 0% 100%, rgb(16 185 129 / 0.3) 0px, transparent 50%);
   }
 
-  /* 滚动条样式 - 亮色主题 */
+  /* HUD Transparency Overrides */
+  html.is-hud,
+  .is-hud body {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  /* Scrollbar Styles */
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
@@ -241,7 +261,7 @@
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* 滚动条样式 - 暗色主题 */
+  /* Dark Mode Scrollbar Styles */
   .dark * {
     scrollbar-color: hsl(var(--muted)) transparent;
   }
@@ -252,5 +272,14 @@
 
   .dark *::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.3);
+  }
+}
+
+@layer utilities {
+  .draggable {
+    -webkit-app-region: drag;
+  }
+  .no-drag {
+    -webkit-app-region: no-drag;
   }
 }

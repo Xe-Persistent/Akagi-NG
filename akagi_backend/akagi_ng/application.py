@@ -158,6 +158,7 @@ class AkagiApp:
         return {
             "mjai_responses": mjai_responses,
             "batch_notifications": batch_notifications,
+            "is_sync": any(msg.get("sync", False) for msg in mjai_msgs),
         }
 
     def _emit_outputs(self, result: dict, bot: StateTrackerBot | None, controller: Controller | None):
@@ -167,6 +168,7 @@ class AkagiApp:
         """
         mjai_responses = result["mjai_responses"]
         batch_notifications = result["batch_notifications"]
+        is_sync = result.get("is_sync", False)
 
         # 1. Payload：使用最后一个有效响应
         last_response = mjai_responses[-1] if mjai_responses else {}
@@ -193,7 +195,8 @@ class AkagiApp:
         if all_notifications:
             self.ds.send_notifications(all_notifications)
 
-        if payload:
+        # 同步期间屏蔽推荐输出，仅保留通知
+        if payload and not is_sync:
             self.ds.send_recommendations(payload)
 
     def run(self) -> int:

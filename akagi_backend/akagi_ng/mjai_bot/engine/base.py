@@ -41,3 +41,9 @@ class BaseEngine:
             通知标志字典
         """
         return {}
+
+    def get_additional_meta(self) -> dict:
+        """
+        返回包含在推理响应中的附加元数据。
+        """
+        return {}

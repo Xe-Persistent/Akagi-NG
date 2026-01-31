@@ -69,6 +69,8 @@ class MajsoulBridge(BaseBridge):
         for msg in action_msgs:
             parsed = self.parse_liqi(msg)
             if parsed:
+                for event in parsed:
+                    event["sync"] = True
                 parsed_list.extend(parsed)
 
         has_start_kyoku = any(evt.get("type") == "start_kyoku" for evt in parsed_list)
@@ -77,6 +79,8 @@ class MajsoulBridge(BaseBridge):
             logger.info("start_kyoku missing (ActionNewRound missing or failed), recovering from snapshot.")
             start_kyoku_and_tsumo = self._handle_sync_game_snapshot(snapshot_msg)
             if start_kyoku_and_tsumo:
+                for event in start_kyoku_and_tsumo:
+                    event["sync"] = True
                 parsed_list[1:1] = start_kyoku_and_tsumo
 
         self.syncing = False

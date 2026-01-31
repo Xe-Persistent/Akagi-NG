@@ -17,6 +17,7 @@ class MortalBot:
         self.player_id: int | None = None
         self.riichi_candidates = []
         self.history = []
+        self.history_json = []  # 缓存已序列化的事件以提升性能
         self.model: Bot | None = None
         self.game_start_event = None
         self.meta = {}
@@ -51,41 +52,66 @@ class MortalBot:
         is_game_start_batch = False
 
         for e in events:
-            if e["type"] == "start_game":
-                self.player_id = e["id"]
-                self.model, self.engine = self.model_loader(self.player_id)
-                self.history = []
-                self.game_start_event = e
+            e_type = e["type"]
+            if e_type == "start_game":
+                self._handle_start_game(e)
                 is_game_start_batch = True
-
-                # 检测加载的模型类型并设置通知
-                if hasattr(self.engine, "engine_type"):
-                    if self.engine.engine_type == "akagiot":
-                        self._pending_notifications["model_loaded_online"] = True
-                    elif self.engine.engine_type == "mortal":
-                        self._pending_notifications["model_loaded_local"] = True
-                else:
-                    self.logger.warning("Engine has no engine_type attribute")
-
                 continue
+
             if self.model is None or self.player_id is None:
-                self.logger.error("Model is not loaded yet")
+                self.logger.error(f"Model is not loaded yet, skipping event: {e_type}")
                 continue
 
-            if e["type"] == "start_kyoku":
+            if e_type == "start_kyoku":
                 self.history = []
+                self.history_json = []
 
+            # 预备序列化数据并缓存
+            e_json = json.dumps(e, separators=(",", ":"))
             self.history.append(e)
+            self.history_json.append(e_json)
 
-            if e["type"] == "end_game":
-                self.player_id = None
-                self.model = None
-                self.engine = None
-                self.game_start_event = None
+            if e_type == "end_game":
+                self._handle_end_game()
                 continue
-            return_action = self.model.react(json.dumps(e, separators=(",", ":")))
+
+            # 处理同步/回放标志
+            is_sync = e.get("sync", False)
+            if is_sync and hasattr(self.engine, "start_replaying"):
+                self.engine.start_replaying()
+
+            return_action = self.model.react(e_json)
+
+            if is_sync and hasattr(self.engine, "stop_replaying"):
+                self.engine.stop_replaying()
 
         return return_action, is_game_start_batch
+
+    def _handle_start_game(self, e: dict):
+        """处理游戏开始事件，初始化模型和引擎"""
+        self.player_id = e["id"]
+        self.model, self.engine = self.model_loader(self.player_id)
+        self.history = []
+        self.history_json = []
+        self.game_start_event = e
+
+        # 检测加载的模型类型并设置通知
+        delegate = getattr(self.engine, "delegate", self.engine)
+        engine_type = getattr(delegate, "engine_type", "unknown")
+
+        if engine_type == "akagiot":
+            self._pending_notifications["model_loaded_online"] = True
+        elif engine_type == "mortal":
+            self._pending_notifications["model_loaded_local"] = True
+        else:
+            self.logger.warning(f"Unknown engine type: {engine_type}")
+
+    def _handle_end_game(self):
+        """处理游戏结束事件，清理状态"""
+        self.player_id = None
+        self.model = None
+        self.engine = None
+        self.game_start_event = None
 
     def _handle_riichi_lookahead(self, meta: dict):
         """
@@ -174,7 +200,11 @@ class MortalBot:
                 self.notification_flags.update(self._pending_notifications)
                 self._pending_notifications.clear()
 
-            # 4. 注入 game_start 标志到 meta
+            # 4. 注入引擎附加元数据和 game_start 标志到 meta
+            if self.engine and hasattr(self.engine, "get_additional_meta"):
+                additional_meta = self.engine.get_additional_meta()
+                meta.update(additional_meta)
+
             if is_game_start_batch:
                 meta["game_start"] = True
 
@@ -185,10 +215,6 @@ class MortalBot:
             self._set_meta_to_response(raw_data, meta)
 
             return json.dumps(raw_data, separators=(",", ":"))
-
-        except FileNotFoundError as e:
-            self.logger.error(f"Model file missing: {e}")
-            return json.dumps(make_error_response(NotificationCode.MISSING_RESOURCES), separators=(",", ":"))
 
         except Exception as e:
             self.logger.error(f"MortalBot error: {e}")
@@ -212,15 +238,15 @@ class MortalBot:
             # 创建模拟 Bot
             sim_bot = self.libriichi.mjai.Bot(sim_engine, self.player_id)
 
-            # 回放历史事件
-            self.logger.debug(f"Riichi Lookahead: Replaying {len(self.history)} events.")
+            # 回放历史事件 (使用缓存的 JSON 字符串以提升性能)
+            self.logger.debug(f"Riichi Lookahead: Replaying {len(self.history_json)} events.")
 
             # 三麻需要先回放 game_start 事件以初始化模式
             if self.is_3p and self.game_start_event:
                 sim_bot.react(json.dumps(self.game_start_event, separators=(",", ":")))
 
-            for h_event in self.history:
-                sim_bot.react(json.dumps(h_event, separators=(",", ":")))
+            for h_json in self.history_json:
+                sim_bot.react(h_json)
 
             # 停止回放模式，让引擎处理前瞻
             sim_engine.stop_replaying()

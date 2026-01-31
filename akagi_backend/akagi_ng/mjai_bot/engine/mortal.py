@@ -38,6 +38,21 @@ class MortalEngine(BaseEngine):
         self.boltzmann_temp = boltzmann_temp
         self.top_p = top_p
 
+    def warmup(self):
+        """执行一次 dummy 推理以预热 CUDA/CPU 内核，消除首个真实请求的卡顿。"""
+        try:
+            # 构造最小规模的有效观测
+            # 观测维由 Brain.encoder 决定，通常是 (B, C, 34)
+            obs = np.zeros((1, 93, 34), dtype=np.float32)
+            masks = np.ones((1, 54), dtype=bool)
+            invisible_obs = np.zeros((1, 93, 34), dtype=np.float32)
+
+            logger.debug(f"MortalEngine ({self.name}): Warming up engine...")
+            self.react_batch(obs, masks, invisible_obs)
+            logger.info(f"MortalEngine ({self.name}): Warmup completed.")
+        except Exception as e:
+            logger.warning(f"MortalEngine warmup failed (non-critical): {e}")
+
     def react_batch(
         self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
@@ -143,6 +158,7 @@ def load_local_mortal_engine(
             name="mortal",
             is_3p=is_3p,
         )
+        engine.warmup()
         logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded.")
         return engine
 

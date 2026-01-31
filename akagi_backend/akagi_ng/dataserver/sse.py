@@ -33,7 +33,8 @@ class SSEManager:
     def __init__(self):
         self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "request": Request}}
         self.latest_recommendations = None
-        self.latest_notification = None
+        self.notification_history: list[dict] = []
+        self.MAX_HISTORY = 10
         self.keep_alive_task = None
         self.loop = None  # 事件循环引用，由 DataServer 设置
         self.running = False
@@ -110,10 +111,9 @@ class SSEManager:
                 client_id, response, _format_sse_message(self.latest_recommendations, event="recommendations")
             )
 
-        if self.latest_notification:
-            await _send_payload(
-                client_id, response, _format_sse_message(self.latest_notification, event="notification")
-            )
+        # 发送历史通知，确保客户端能看到启动过程中的所有状态
+        for notification in self.notification_history:
+            await _send_payload(client_id, response, _format_sse_message(notification, event="notification"))
 
         try:
             while True:
@@ -167,7 +167,9 @@ class SSEManager:
         if event == "recommendations":
             self.latest_recommendations = data
         elif event == "notification":
-            self.latest_notification = data
+            self.notification_history.append(data)
+            if len(self.notification_history) > self.MAX_HISTORY:
+                self.notification_history.pop(0)
 
         if self.loop and self.running:
             payload = _format_sse_message(data, event)

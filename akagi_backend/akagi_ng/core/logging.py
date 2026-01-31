@@ -11,7 +11,7 @@ log_file = LOG_DIR / f"akagi_{datetime.now():%Y%m%d_%H%M%S}.log"
 LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | {extra[module]} | {message}"
 
 
-def configure_logging(level: str = "TRACE"):
+def configure_logging(level: str = "INFO"):
     logger.remove()
     logger.add(
         log_file,

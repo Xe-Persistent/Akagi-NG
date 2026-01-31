@@ -10,7 +10,7 @@ interface MahjongTileProps {
 }
 
 export const MahjongTile: FC<MahjongTileProps> = ({ tile, className, isGhost, isBack }) => {
-  const svgPath = `/Resources/${tile}.svg`;
+  const svgPath = `Resources/${tile}.svg`;
 
   return (
     <div

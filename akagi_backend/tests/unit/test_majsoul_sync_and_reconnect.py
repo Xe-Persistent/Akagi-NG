@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
-from akagi_ng.bridge.majsoul.liqi import MsgType, parse_sync_game
+from akagi_ng.bridge.majsoul.liqi import MsgType
 from akagi_ng.core import NotificationCode
 from akagi_ng.core.constants import MahjongConstants
 
@@ -30,7 +30,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
             }
         }
 
-        msgs = parse_sync_game(msg_dict)
+        msgs = self.bridge._parse_sync_game_raw(msg_dict)
 
         # It should return at least one message for the snapshot.
         self.assertEqual(len(msgs), 1)
@@ -40,7 +40,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
     def test_parse_sync_game_fallback_snake_case_failure(self):
         """Verify that snake_case keys are no longer supported or ignored if we only check gameRestore."""
         msg_dict = {"data": {"game_restore": {"actions": [], "snapshot": {"dummy": "data"}}}}
-        msgs = parse_sync_game(msg_dict)
+        msgs = self.bridge._parse_sync_game_raw(msg_dict)
         # Should be empty as we expect 'gameRestore'
         self.assertEqual(len(msgs), 0)
 
@@ -86,7 +86,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
 
     # --- Tests from test_majsoul_reconnect.py ---
 
-    @patch("akagi_ng.bridge.majsoul.bridge.parse_sync_game")
+    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
     def test_reconnect_synthesize_start_kyoku(self, mock_parse_sync_game):
         """
         Verify that if syncGame lacks ActionNewRound but has a snapshot,
@@ -140,7 +140,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         self.assertEqual(events[1]["scores"][0], 25000)
         self.assertEqual(events[1]["dora_marker"], "1m")
 
-    @patch("akagi_ng.bridge.majsoul.bridge.parse_sync_game")
+    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
     def test_reconnect_existing_action_new_round(self, mock_parse_sync_game):
         """
         Verify that if ActionNewRound exists, we DO NOT synthesize start_kyoku from snapshot.
@@ -177,7 +177,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         start_kyoku_count = sum(1 for e in events if e["type"] == "start_kyoku")
         self.assertEqual(start_kyoku_count, 1)
 
-    @patch("akagi_ng.bridge.majsoul.bridge.parse_sync_game")
+    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
     def test_reconnect_3p_scores(self, mock_parse_sync_game):
         """
         Verify that in 3-player mode, missing ActionNewRound results in 35000 starting score
@@ -212,7 +212,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         self.assertEqual(len(events[1]["scores"]), 4)
         self.assertEqual(events[1]["scores"][3], 0)
 
-    @patch("akagi_ng.bridge.majsoul.bridge.parse_sync_game")
+    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
     def test_reconnect_with_invalid_snapshot_players_list(self, mock_parse_sync_game):
         """
         Refined test based on trace log observation:

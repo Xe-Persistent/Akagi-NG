@@ -33,9 +33,6 @@ flags:
     carryforward: true
 
 ignore:
-  # Generated Protobuf code
-  - "akagi_ng/bridge/majsoul/liqi_pb2.py"
-
   # Test files
   - "tests/"
   - "**/*_test.py"

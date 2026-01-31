@@ -1,9 +1,12 @@
+import base64
 from functools import cmp_to_key
+
+from google.protobuf.json_format import MessageToDict
 
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
-from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, analyze_sync_game, parse_sync_game
+from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
 from akagi_ng.bridge.types import MJAIEvent
 from akagi_ng.core import NotificationCode
@@ -58,10 +61,10 @@ class MajsoulBridge(BaseBridge):
     def _parse_sync_game(self, liqi_message: dict) -> list[MJAIEvent]:
         """处理游戏同步消息"""
         self.syncing = True
-        sync_game_msgs = parse_sync_game(liqi_message)
+        sync_game_msgs = self._parse_sync_game_raw(liqi_message)
         parsed_list: list[MJAIEvent] = [{"type": "system_event", "code": NotificationCode.GAME_SYNCING}]
 
-        snapshot_msg, action_msgs = analyze_sync_game(sync_game_msgs)
+        snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
         for msg in action_msgs:
             parsed = self.parse_liqi(msg)
@@ -78,6 +81,51 @@ class MajsoulBridge(BaseBridge):
 
         self.syncing = False
         return parsed_list if len(parsed_list) >= 1 else []
+
+    def _parse_sync_game_raw(self, msg_dict: dict) -> list[dict]:
+        """从后端同步字典中解析出原始消息列表"""
+        msgs = []
+        try:
+            data = msg_dict.get("data", {})
+            restore = data.get("gameRestore")
+            if not restore:
+                return []
+
+            actions = restore.get("actions", [])
+            for action in actions:
+                msgs.append(self._parse_sync_game_action_item(action))
+
+            snapshot = restore.get("snapshot")
+            if snapshot:
+                msgs.append({"type": "sync_game", "snapshot": snapshot})
+        except Exception as e:
+            logger.error(f"Error parsing sync game: {e}")
+        return msgs
+
+    def _parse_sync_game_action_item(self, action_dict: dict) -> dict:
+        """解析同步消息中的单个动作项"""
+        msg_cls = self.liqi_proto.get_message_class(action_dict["name"])
+        if not msg_cls:
+            return {}
+
+        action_dict["data"] = MessageToDict(
+            msg_cls.FromString(base64.b64decode(action_dict["data"])),
+            always_print_fields_with_no_presence=True,
+        )
+        return {"id": -1, "type": MsgType.Notify, "method": ".lq.ActionPrototype", "data": action_dict}
+
+    def _analyze_sync_game(self, msgs: list[dict]) -> tuple[dict | None, list[dict]]:
+        """分析同步消息列表，分离快照和动作"""
+        snapshot_msg = None
+        action_msgs = []
+        for msg in msgs:
+            if not msg:
+                continue
+            if msg.get("type") == "sync_game":
+                snapshot_msg = msg
+                continue
+            action_msgs.append(msg)
+        return snapshot_msg, action_msgs
 
     def _handle_sync_game_snapshot(self, snapshot_msg: dict) -> list[MJAIEvent]:
         """从 syncGame 的 snapshot 中恢复 start_kyoku"""

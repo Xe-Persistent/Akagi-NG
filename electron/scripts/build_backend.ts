@@ -33,7 +33,7 @@ function buildBackend() {
     const result = spawnSync(pythonPath, [buildScript], {
       cwd: electronDir,
       stdio: 'inherit',
-      shell: true, // Needed for system 'python' on some Windows setups
+      shell: false,
     });
 
     if (result.status !== 0) {

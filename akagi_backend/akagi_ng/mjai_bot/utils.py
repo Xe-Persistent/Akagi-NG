@@ -1,6 +1,28 @@
 import numpy as np
 
 
+def decode_tile(tile: str) -> tuple[int, str]:
+    """
+    解码 MJAI 牌代码为 (数值, 类型)。
+    例如: "1m" -> (1, "m"), "5pr" -> (5, "p"), "E" -> (1, "z")
+    """
+    if not tile:
+        return 0, ""
+
+    # 字牌特殊处理
+    z_map = {"E": 1, "S": 2, "W": 3, "N": 4, "P": 5, "F": 6, "C": 7}
+    if tile in z_map:
+        return z_map[tile], "z"
+
+    # 数牌处理
+    try:
+        val_str = tile[0]
+        type_str = tile[1]
+        return int(val_str), type_str
+    except (ValueError, IndexError):
+        return 0, ""
+
+
 def make_error_response(error_code: str) -> dict:
     """
     构造统一格式的错误响应。
@@ -53,9 +75,9 @@ mask_unicode_4p = [
     "5pr",
     "5sr",
     "reach",
-    "chi",
-    "chi",
-    "chi",
+    "chi_low",
+    "chi_mid",
+    "chi_high",
     "pon",
     "kan_select",
     "hora",
@@ -180,10 +202,15 @@ def meta_to_recommend(meta: dict, is_3p: bool = False, temperature: float = 1.0)
     mask_bits = meta["mask_bits"]
     mask = mask_bits_to_bool_list(mask_bits)
     scaled_q_values = _softmax(q_values, temperature)
+
+    is_full_space = len(q_values) == len(mask_unicode)
     q_value_idx = 0
+
     for i in range(len(mask_unicode)):
         if mask[i]:
-            recommend.append((mask_unicode[i], scaled_q_values[q_value_idx]))
-            q_value_idx += 1
+            confidence = scaled_q_values[i] if is_full_space else scaled_q_values[q_value_idx]
+            recommend.append((mask_unicode[i], confidence))
+            if not is_full_space:
+                q_value_idx += 1
 
     return sorted(recommend, key=lambda x: x[1], reverse=True)

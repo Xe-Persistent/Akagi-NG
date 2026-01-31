@@ -5,8 +5,10 @@ from akagi_ng.mjai_bot.utils import meta_to_recommend
 from akagi_ng.settings import local_settings
 
 
-def _handle_chi_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
-    """处理吃的副露详情"""
+def _handle_chi_fuuro(
+    bot: StateTrackerBot, last_kawa: str | None, chi_type: str | None = None
+) -> list[dict[str, object]]:
+    """处理吃的副露详情，支持根据位置（左、中、右）过滤"""
     if not last_kawa:
         return []
 
@@ -17,13 +19,30 @@ def _handle_chi_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
             consumed = cand.get("consumed", [])
             if len(consumed) != MahjongConstants.CHI_CONSUMED:
                 continue
+
+            # 如果指定了 chi_type，则进行过滤
+            if chi_type:
+                from akagi_ng.mjai_bot.utils import decode_tile
+
+                last_val = decode_tile(last_kawa)[0]
+                c1_val = decode_tile(consumed[0])[0]
+                c2_val = decode_tile(consumed[1])[0]
+                all_vals = sorted([last_val, c1_val, c2_val])
+
+                if chi_type == "chi_low" and last_val != all_vals[0]:
+                    continue
+                if chi_type == "chi_mid" and last_val != all_vals[1]:
+                    continue
+                if chi_type == "chi_high" and last_val != all_vals[2]:
+                    continue
+
             results.append({"tile": last_kawa, "consumed": consumed})
 
-        # 回退:未找到候选但有 last_kawa
-        if not results:
+        # 回退:未找到候选且未指定 chi_type 但有 last_kawa
+        if not results and not chi_type:
             results.append({"tile": last_kawa, "consumed": []})
     except (AttributeError, Exception) as e:
-        logger.debug(f"Error in chi fuuro: {e}")
+        logger.warning(f"Error in chi fuuro: {e}")
 
     return results
 
@@ -42,7 +61,7 @@ def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
             # 回退
             results.append({"tile": last_kawa, "consumed": []})
     except (AttributeError, Exception) as e:
-        logger.debug(f"Error in pon fuuro: {e}")
+        logger.warning(f"Error in pon fuuro: {e}")
 
     return results
 
@@ -70,7 +89,7 @@ def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
             consumed = cand.get("consumed", [])
             results.append({"tile": consumed[0] if consumed else "?", "consumed": consumed})
     except (AttributeError, Exception) as e:
-        logger.debug(f"Error in kan fuuro: {e}")
+        logger.warning(f"Error in kan fuuro: {e}")
 
     return results
 
@@ -83,8 +102,9 @@ def _get_fuuro_details(action: str, bot: StateTrackerBot) -> list[dict[str, obje
     """
     last_kawa = getattr(bot, "last_kawa_tile", None)
 
-    if action == "chi":
-        return _handle_chi_fuuro(bot, last_kawa)
+    if action in ["chi", "chi_low", "chi_mid", "chi_high"]:
+        chi_type = action if action.startswith("chi_") else None
+        return _handle_chi_fuuro(bot, last_kawa, chi_type=chi_type)
     if action == "pon":
         return _handle_pon_fuuro(bot, last_kawa)
     if action == "kan":
@@ -126,6 +146,9 @@ def _process_standard_recommendations(meta: dict[str, object], bot: StateTracker
             "action": action,
             "confidence": float(confidence),
         }
+
+        if action.startswith("chi_"):
+            base_item["action"] = "chi"
 
         # 获取副露详情
         fuuro_details_list = _get_fuuro_details(action, bot)

@@ -149,8 +149,8 @@ export class GameHandler {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).catch(() => {
-      // Ignore errors
+    }).catch((err) => {
+      console.error('[GameHandler] Failed to send to backend:', err);
     });
   }
 }

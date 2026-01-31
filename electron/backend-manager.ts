@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
-import { app } from 'electron';
+import { app, dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,7 +52,7 @@ export class BackendManager {
     const backendRoot = path.join(projectRoot, 'akagi_backend');
     const venvDir = path.join(backendRoot, '.venv');
 
-    let pythonExecutable = '';
+    let pythonExecutable: string;
     if (process.platform === 'win32') {
       pythonExecutable = path.join(venvDir, 'Scripts', 'python.exe');
     } else {
@@ -60,7 +60,9 @@ export class BackendManager {
     }
 
     if (!fs.existsSync(pythonExecutable)) {
-      console.error(`[BackendManager] Python executable NOT FOUND at: ${pythonExecutable}`);
+      const errorMsg = `Python executable NOT FOUND at: ${pythonExecutable}. Please check your environment.`;
+      console.error(`[BackendManager] ${errorMsg}`);
+      dialog.showErrorBox('Backend Initialization Failed', errorMsg);
       return;
     }
 
@@ -94,7 +96,7 @@ export class BackendManager {
     }
 
     // Use npx tsx to run the mock script
-    const shell = process.platform === 'win32' ? true : false;
+    const shell = process.platform === 'win32';
     this.pyProcess = spawn('npx', ['tsx', 'mock.ts'], {
       cwd: frontendRoot,
       shell: shell,

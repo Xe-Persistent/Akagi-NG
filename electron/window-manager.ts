@@ -3,13 +3,6 @@ import path from 'path';
 
 import { GameHandler } from './game-handler';
 
-// Define window types
-export enum WindowType {
-  DASHBOARD = 'dashboard',
-  GAME = 'game',
-  HUD = 'hud',
-}
-
 export class WindowManager {
   private dashboardWindow: BrowserWindow | null = null;
   private gameWindow: BrowserWindow | null = null;
@@ -77,11 +70,15 @@ export class WindowManager {
     });
 
     this.dashboardWindow.on('maximize', () => {
-      this.dashboardWindow?.webContents.send('window-state-changed', true);
+      if (!this.dashboardWindow?.isDestroyed() && this.dashboardWindow?.webContents) {
+        this.dashboardWindow.webContents.send('window-state-changed', true);
+      }
     });
 
     this.dashboardWindow.on('unmaximize', () => {
-      this.dashboardWindow?.webContents.send('window-state-changed', false);
+      if (!this.dashboardWindow?.isDestroyed() && this.dashboardWindow?.webContents) {
+        this.dashboardWindow.webContents.send('window-state-changed', false);
+      }
     });
 
     // Preload HUD window so it is ready instantly
@@ -109,7 +106,9 @@ export class WindowManager {
     } else {
       if (this.hudWindow?.isVisible()) {
         this.hudWindow.hide();
-        this.dashboardWindow?.webContents.send('hud-visibility-changed', false);
+        if (!this.dashboardWindow?.isDestroyed() && this.dashboardWindow?.webContents) {
+          this.dashboardWindow.webContents.send('hud-visibility-changed', false);
+        }
       }
     }
   }
@@ -161,7 +160,9 @@ export class WindowManager {
       if (!this.isQuitting) {
         e.preventDefault();
         this.hudWindow?.hide();
-        this.dashboardWindow?.webContents.send('hud-visibility-changed', false);
+        if (!this.dashboardWindow?.isDestroyed() && this.dashboardWindow?.webContents) {
+          this.dashboardWindow.webContents.send('hud-visibility-changed', false);
+        }
       }
     });
 
@@ -254,7 +255,12 @@ export class WindowManager {
     // If NOT using MITM, attach GameHandler (Debugger API) for local interception
     if (!useMitm) {
       try {
-        if (this.gameWindow && !this.gameWindow.isDestroyed()) {
+        if (
+          this.gameWindow &&
+          !this.gameWindow.isDestroyed() &&
+          this.gameWindow.webContents &&
+          !this.gameWindow.webContents.isDestroyed()
+        ) {
           this.gameHandler = new GameHandler(this.gameWindow.webContents);
           await this.gameHandler.attach();
         }

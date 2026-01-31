@@ -90,14 +90,20 @@ hiddenimports = (
 
 a = Analysis(
     ['akagi_ng/__main__.py'],
-    pathex=['akagi_ng'],
+    pathex=['.'],
     binaries=[],
     datas=[
         ('../assets', 'assets'),
         ('pyproject.toml', '.'),
     ],
     hiddenimports=hiddenimports,
-    excludes=["pytest", "setuptools", "pip"],
+    excludes=[
+        "pytest", "pytest-asyncio", "pytest-cov", "ruff", "pyinstaller",
+        "setuptools", "pip", "pkg_resources",
+        "tkinter", "tcl", "tk", "unittest", "unittest.mock",
+        "torch.distributions", "torch.testing",
+        "PIL", "matplotlib", "IPython", "cv2"
+    ],
     noarchive=False,
 )
 
@@ -113,12 +119,18 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    upx_exclude=[
+        "torch_cpu.dll", "torch_cuda.dll", "torch_cuda_cpp.dll", "torch_cuda_cu.dll",
+        "nvrtc64_*.dll", "cudnn64_*.dll", "cublas64_*.dll",
+        "libiomp5md.dll", "libuv.dll", "mkl_rt.2.dll", "mkl_intel_thread.2.dll"
+    ],
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version=version_file,
     icon='../assets/torii.ico',
 )
 coll = COLLECT(

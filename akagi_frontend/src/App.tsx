@@ -1,6 +1,6 @@
 import 'react-toastify/dist/ReactToastify.css';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 
 import { ExitOverlay } from '@/components/ExitOverlay';
@@ -9,9 +9,11 @@ import { LaunchScreen } from '@/components/LaunchScreen';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
-import { Dashboard } from '@/pages/Dashboard';
-import { Hud } from '@/pages/HUD';
 import type { Settings } from '@/types';
+
+// Lazy load pages for code splitting
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Hud = lazy(() => import('@/pages/HUD'));
 
 export default function App() {
   const { apiBase } = useConnectionConfig();
@@ -31,7 +33,7 @@ export default function App() {
         game_url: '',
         platform: 'majsoul',
         mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
-        server: { host: '0.0.0.0', port: 8765 },
+        server: { host: '127.0.0.1', port: 8765 },
         ot: { online: false, server: '', api_key: '' },
         model_config: {
           device: 'auto',

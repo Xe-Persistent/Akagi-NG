@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import StreamPlayer from '@/components/StreamPlayer';
 import { Button } from '@/components/ui/button';
 
-export function Hud() {
+function Hud() {
   const handleClose = () => {
     window.electron?.invoke('toggle-hud', false);
   };
@@ -25,3 +25,5 @@ export function Hud() {
     </div>
   );
 }
+
+export default Hud;

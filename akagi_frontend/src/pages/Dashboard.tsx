@@ -21,7 +21,7 @@ interface DashboardProps {
   settingsPromise: Promise<Settings>;
 }
 
-export function Dashboard({ settingsPromise }: DashboardProps) {
+function Dashboard({ settingsPromise }: DashboardProps) {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { apiBase } = useConnectionConfig();
@@ -200,3 +200,5 @@ export function Dashboard({ settingsPromise }: DashboardProps) {
     </div>
   );
 }
+
+export default Dashboard;

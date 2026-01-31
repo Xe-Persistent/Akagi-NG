@@ -218,6 +218,16 @@ export class WindowManager {
       }
     }
 
+    // Sanitize User Agent to remove Electron fingerprint
+    // This dynamically uses the Chrome version bundled with Electron, so it auto-updates!
+    const defaultUA = this.gameWindow.webContents.session.getUserAgent();
+    // Remove "akagi-ng-desktop/1.0.0" and "Electron/x.y.z"
+    const cleanUA = defaultUA
+      .replace(/akagi-ng-desktop\/\S+\s/g, '')
+      .replace(/Electron\/\S+\s/g, '');
+
+    this.gameWindow.webContents.setUserAgent(cleanUA);
+
     try {
       await this.gameWindow.loadURL(targetUrl);
     } catch (err) {

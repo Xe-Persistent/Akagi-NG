@@ -243,8 +243,8 @@ class MortalBot:
                 from akagi_ng.mjai_bot.utils import meta_to_recommend
 
                 sim_recs = meta_to_recommend(sim_meta, is_3p=self.is_3p)
-                best_sim_action = sim_recs[0][0] if sim_recs else "none"
-                self.logger.info(f"Riichi Lookahead: Success. Best sim action: {best_sim_action}")
+                all_candidates = ", ".join([f"{action}({conf:.3f})" for action, conf in sim_recs])
+                self.logger.info(f"Riichi Lookahead: Success. Candidates: {all_candidates}")
             else:
                 self.logger.warning("Riichi Lookahead: Simulation meta missing q_values or mask_bits.")
 

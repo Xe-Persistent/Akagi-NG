@@ -38,7 +38,7 @@ class TestMortalBotDecisionLogic(unittest.TestCase):
     def setUp(self):
         """每个测试前初始化"""
         # Mock engine loader
-        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.loader.load_model")
+        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.load_model")
         self.mock_loader = self.loader_patcher.start()
 
         # Mock Bot 返回合理的推荐数据

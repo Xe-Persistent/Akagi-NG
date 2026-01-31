@@ -56,7 +56,9 @@ class TestMaskUnicode(unittest.TestCase):
 
     def test_4p_contains_chi(self):
         """测试四麻掩码包含吃操作"""
-        self.assertIn("chi", mask_unicode_4p)
+        self.assertIn("chi_low", mask_unicode_4p)
+        self.assertIn("chi_mid", mask_unicode_4p)
+        self.assertIn("chi_high", mask_unicode_4p)
 
     def test_3p_contains_nukidora(self):
         """测试三麻掩码包含拔北操作"""

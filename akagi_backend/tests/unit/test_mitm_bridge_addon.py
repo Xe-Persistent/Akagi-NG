@@ -1,3 +1,4 @@
+import queue
 from unittest.mock import patch
 
 from akagi_ng.bridge.amatsuki.bridge import AmatsukiBridge
@@ -13,7 +14,7 @@ def test_bridge_addon_majsoul(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.MAJSOUL
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         assert "test_flow_id" in addon.activated_flows
@@ -25,7 +26,7 @@ def test_bridge_addon_tenhou(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.TENHOU
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         assert "test_flow_id" in addon.activated_flows
@@ -37,7 +38,7 @@ def test_bridge_addon_amatsuki(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.AMATSUKI
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         assert "test_flow_id" in addon.activated_flows
@@ -49,7 +50,7 @@ def test_bridge_addon_riichi_city(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.RIICHI_CITY
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         assert "test_flow_id" in addon.activated_flows
@@ -61,7 +62,7 @@ def test_bridge_addon_filtering(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.MAJSOUL
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         # Should filter out because URL does not match 'majsoul'
@@ -75,7 +76,7 @@ def test_bridge_addon_auto_detect(mock_flow):
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.AUTO
 
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
 
         assert "test_flow_id" in addon.activated_flows
@@ -87,6 +88,6 @@ def test_bridge_addon_ignore_unrelated(mock_flow):
     mock_flow.request.url = "wss://google.com"
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
         mock_settings.platform = Platform.AUTO
-        addon = BridgeAddon()
+        addon = BridgeAddon(shared_queue=queue.Queue())
         addon.websocket_start(mock_flow)
         assert "test_flow_id" not in addon.activated_flows

@@ -14,18 +14,24 @@ class MockDelegate(BaseEngine):
 
 class TestReplayEngine(unittest.TestCase):
     def test_react_batch_size(self):
+        import numpy as np
+
         delegate = MockDelegate()
         replay = ReplayEngine(delegate, history_actions=[])
+        replay.start_replaying()
 
         # Simulate a batch of 2
-        # Obs and Invisible Obs shapes don't matter much for ReplayEngine as it ignores them in replay mode
-        obs = [None, None]
-        masks = [[True, False], [False, True]]
-        invisible_obs = [None, None]
+        batch_size = 2
+        obs = np.zeros((batch_size, 93, 34))
+        masks = np.zeros((batch_size, 54), dtype=bool)
+        masks[0, 5] = True
+        masks[1, 10] = True
+        invisible_obs = np.zeros((batch_size, 93, 34))
 
         actions, q_out, clean_masks, is_greedy = replay.react_batch(obs, masks, invisible_obs)
 
         self.assertEqual(len(actions), 2, "Should return 2 actions")
+        self.assertEqual(actions, [5, 10])
         self.assertEqual(len(q_out), 2, "Should return 2 q_outs")
         self.assertEqual(len(clean_masks), 2, "Should return 2 clean_masks")
         self.assertEqual(len(is_greedy), 2, "Should return 2 is_greedy flags")

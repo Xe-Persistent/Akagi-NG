@@ -23,7 +23,7 @@ from akagi_ng.mjai_bot.mortal.bot import Mortal3pBot, MortalBot
 class TestBots(unittest.TestCase):
     def setUp(self):
         # Mock engine loader
-        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.loader.load_model")
+        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.load_model")
         self.mock_loader = self.loader_patcher.start()
 
         # Mock Bot (libriichi.mjai.Bot-like object)

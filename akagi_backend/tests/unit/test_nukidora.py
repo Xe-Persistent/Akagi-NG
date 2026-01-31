@@ -3,7 +3,10 @@ import json
 import pytest
 
 # Try to import libriichi3p, skip test if not available
-libriichi3p = pytest.importorskip("lib.libriichi3p", reason="libriichi3p not available")
+try:
+    from akagi_ng.core.lib_loader import libriichi3p
+except ImportError:
+    pytest.skip("libriichi3p not available", allow_module_level=True)
 
 
 def test_nukidora():

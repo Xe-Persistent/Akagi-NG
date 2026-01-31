@@ -37,3 +37,15 @@ class ModelConstants:
     """模型相关常量"""
 
     MODEL_VERSION_4 = 4  # Mortal模型版本4
+
+
+class ServerConstants:
+    """服务器和网络相关常量"""
+
+    # SSE相关
+    SSE_MAX_NOTIFICATION_HISTORY = 10  # 最大通知历史记录数
+    SSE_KEEPALIVE_INTERVAL_SECONDS = 10  # SSE 保活间隔(秒)
+    SSE_CLIENT_QUEUE_MAXSIZE = 1000  # 客户端消息队列最大大小
+
+    # MITM相关
+    MITM_MESSAGE_QUEUE_MAXSIZE = 1000  # MITM消息队列最大大小

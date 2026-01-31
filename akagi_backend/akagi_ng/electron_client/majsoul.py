@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import queue
 
 from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
 from akagi_ng.core.paths import ensure_dir, get_assets_dir
@@ -10,8 +11,8 @@ from akagi_ng.electron_client.logger import logger
 
 
 class MajsoulElectronClient(BaseElectronClient):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, shared_queue: queue.Queue[dict]):
+        super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = MajsoulBridge()
         except Exception as e:

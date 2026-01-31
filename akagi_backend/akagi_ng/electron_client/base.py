@@ -8,8 +8,8 @@ from akagi_ng.electron_client.logger import logger
 
 
 class BaseElectronClient(ABC):
-    def __init__(self):
-        self.message_queue: queue.Queue[dict] = queue.Queue()
+    def __init__(self, shared_queue: queue.Queue[dict]):
+        self.message_queue: queue.Queue[dict] = shared_queue
         self.running = False
         self._active_connections = 0
         self._lock = threading.Lock()
@@ -24,8 +24,6 @@ class BaseElectronClient(ABC):
 
     def stop(self):
         with self._lock:
-            self.running = True  # Wait, wait, this should be False
-            # Bug in original code? No, I'm editing.
             self.running = False
             self._active_connections = 0
             logger.info(f"{self.__class__.__name__} stopped")
@@ -81,17 +79,3 @@ class BaseElectronClient(ABC):
     def handle_message(self, message: dict):
         """Handle platform-specific messages (abstract)"""
         pass
-
-    def dump_messages(self) -> list[dict]:
-        """Poll and return all pending MJAI messages."""
-        ans: list[dict] = []
-        if not self.running:
-            return ans
-
-        while not self.message_queue.empty():
-            try:
-                msg = self.message_queue.get_nowait()
-                ans.append(msg)
-            except queue.Empty:
-                break
-        return ans

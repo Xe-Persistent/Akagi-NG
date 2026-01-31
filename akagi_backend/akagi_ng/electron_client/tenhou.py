@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import queue
+
 from akagi_ng.bridge.tenhou.bridge import TenhouBridge
 from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
 
 
 class TenhouElectronClient(BaseElectronClient):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, shared_queue: queue.Queue[dict]):
+        super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = TenhouBridge()
         except Exception as e:

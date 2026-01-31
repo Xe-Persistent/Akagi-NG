@@ -1,5 +1,6 @@
 import queue
 import threading
+import time
 import traceback
 
 import mitmproxy.http
@@ -17,34 +18,36 @@ from akagi_ng.core.constants import Platform
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
 
+# Mapping of platforms to URL patterns for detection
+PLATFORM_URL_PATTERNS = {
+    Platform.MAJSOUL: ["majsoul", "maj-soul"],
+    Platform.TENHOU: ["tenhou.net", "nodocchi"],
+    Platform.AMATSUKI: ["amatsukimj", "amatsuki"],
+    Platform.RIICHI_CITY: ["mahjong-jp.city", "riichicity"],
+}
+
 
 class BridgeAddon:
-    def __init__(self):
+    def __init__(self, shared_queue: queue.Queue[dict]):
         self.active_majsoul_flow: mitmproxy.http.HTTPFlow | None = None
-
-        # 存储已解析 MJAI 消息的消息队列
-        self.mjai_messages: queue.Queue[dict] = queue.Queue()
+        # 共享的消息队列（事件驱动模式）
+        self.mjai_messages = shared_queue
 
         # 存储活动的流及其对应的 Bridge
         self.activated_flows: list[str] = []
         self.bridges: dict[str, BaseBridge] = {}
+        self.last_activity: dict[str, float] = {}  # flow_id -> timestamp
         self.bridge_lock = threading.Lock()
 
         # 连接状态跟踪
         self._active_connections = 0
 
     def _get_platform_for_flow(self, flow: mitmproxy.http.HTTPFlow) -> Platform | None:
-        url = flow.request.url
+        url = flow.request.url.lower()
 
-        # Check patterns for each platform
-        if "majsoul" in url or "maj-soul" in url:
-            return Platform.MAJSOUL
-        if "tenhou.net" in url or "nodocchi" in url:
-            return Platform.TENHOU
-        if "amatsukimj" in url or "amatsuki" in url:
-            return Platform.AMATSUKI
-        if "mahjong-jp.city" in url or "riichicity" in url:
-            return Platform.RIICHI_CITY
+        for platform, patterns in PLATFORM_URL_PATTERNS.items():
+            if any(pattern in url for pattern in patterns):
+                return platform
 
         return None
 
@@ -78,21 +81,14 @@ class BridgeAddon:
                 logger.error(f"Unsupported platform: {platform}")
                 return
 
+            self.last_activity[flow.id] = time.time()
             # 更新连接计数并发送通知
             self._on_connection_established()
 
     def _is_target_platform(self, flow: mitmproxy.http.HTTPFlow, platform: Platform) -> bool:
-        url = flow.request.url
-        if platform == Platform.MAJSOUL:
-            return "majsoul" in url or "maj-soul" in url
-        if platform == Platform.TENHOU:
-            # Tenhou usually uses TCP, but WS wrapper might be used
-            return "tenhou.net" in url or "nodocchi" in url
-        if platform == Platform.AMATSUKI:
-            return "amatsukimj" in url or "amatsuki" in url
-        if platform == Platform.RIICHI_CITY:
-            return "mahjong-jp.city" in url or "riichicity" in url
-        return True
+        url = flow.request.url.lower()
+        patterns = PLATFORM_URL_PATTERNS.get(platform, [])
+        return any(pattern in url for pattern in patterns) if patterns else True
 
     def websocket_message(self, flow: mitmproxy.http.HTTPFlow):
         if flow.id not in self.activated_flows:
@@ -107,11 +103,15 @@ class BridgeAddon:
                 if flow.id not in self.bridges:
                     return
                 bridge = self.bridges[flow.id]
+                self.last_activity[flow.id] = time.time()
                 msgs = bridge.parse(msg.content)
 
             if msgs:
                 for m in msgs:
-                    self.mjai_messages.put(m)
+                    try:
+                        self.mjai_messages.put(m, block=False)
+                    except queue.Full:
+                        logger.warning("[MITM] MJAI message queue is full, dropping message.")
 
         except Exception as e:
             logger.error(f"[MITM] Error parsing message: {e}")
@@ -136,6 +136,7 @@ class BridgeAddon:
                     bridge = self.bridges[flow.id]
                     game_ended = getattr(bridge, "game_ended", False)
                     del self.bridges[flow.id]
+                    self.last_activity.pop(flow.id, None)
 
                     # 更新连接计数并发送通知
                     self._on_connection_closed(game_ended)
@@ -160,3 +161,22 @@ class BridgeAddon:
         if self.active_majsoul_flow and self.active_majsoul_flow.id in self.bridges:
             return self.bridges[self.active_majsoul_flow.id]
         return None
+
+    def _cleanup_stale_bridges(self, max_age_seconds: int = 300):
+        """清理超过指定时间未活动的bridge"""
+        current_time = time.time()
+        with self.bridge_lock:
+            for flow_id in list(self.bridges.keys()):
+                # 情况1：已经在 activated_flows 之外（可能 websocket_end 没删干净）
+                # 情况2：虽然在 activated_flows，但太久没说话了 (max_age_seconds)
+                last_active = self.last_activity.get(flow_id, 0)
+                is_stale = (current_time - last_active) > max_age_seconds
+
+                if flow_id not in self.activated_flows or is_stale:
+                    logger.warning(f"[MITM] Cleaning up stale bridge for flow {flow_id} (stale={is_stale})")
+                    if flow_id in self.bridges:
+                        del self.bridges[flow_id]
+                    self.last_activity.pop(flow_id, None)
+                    if flow_id in self.activated_flows:
+                        self.activated_flows.remove(flow_id)
+                        self._active_connections = max(0, self._active_connections - 1)

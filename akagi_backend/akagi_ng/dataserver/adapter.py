@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.mjai_bot import StateTrackerBot

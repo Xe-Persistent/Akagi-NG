@@ -12,12 +12,13 @@ from akagi_ng.settings import local_settings
 
 
 class MitmClient:
-    def __init__(self):
+    def __init__(self, shared_queue: queue.Queue[dict]):
         self.running = False
         self._thread: threading.Thread | None = None
         self._master: DumpMaster | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self.addon: BridgeAddon | None = None
+        self.shared_queue = shared_queue  # For event-driven mode
 
     async def _start_proxy(self, host: str, port: int, upstream: str = ""):
         """
@@ -25,13 +26,16 @@ class MitmClient:
         """
         opts = options.Options(listen_host=host, listen_port=port)
         if upstream:
-            opts.mode = [f"upstream:{upstream}"]
+            if upstream.startswith(("http://", "https://")):
+                opts.mode = [f"upstream:{upstream}"]
+            else:
+                logger.warning(f"Invalid upstream protocol in '{upstream}', only http/https allowed. Ignoring.")
         self._master = DumpMaster(
             opts,
             with_termlog=False,
             with_dumper=False,
         )
-        self.addon = BridgeAddon()
+        self.addon = BridgeAddon(shared_queue=self.shared_queue)
         self._master.addons.add(self.addon)
         logger.info(f"Starting MITM proxy server at {host}:{port}")
 
@@ -87,16 +91,3 @@ class MitmClient:
 
         self.running = False
         logger.info("MITM client stopped.")
-
-    def dump_messages(self) -> list[dict]:
-        ans: list[dict] = []
-        if not self.addon:
-            return ans
-
-        while not self.addon.mjai_messages.empty():
-            try:
-                message = self.addon.mjai_messages.get_nowait()
-                ans.append(message)
-            except queue.Empty:
-                break
-        return ans

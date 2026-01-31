@@ -8,20 +8,40 @@ from akagi_ng.dataserver.logger import logger
 from akagi_ng.settings import get_default_settings_dict, get_settings_dict, local_settings, verify_settings
 
 # CORS Headers configuration
+# For Electron desktop app, restrict to localhost origins
 CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
 
+def _is_allowed_origin(origin: str | None) -> bool:
+    """Check if origin is from localhost/127.0.0.1"""
+    if not origin:
+        return True  # Allow requests without Origin header (e.g., EventSource from local)
+    return "localhost" in origin or "127.0.0.1" in origin
+
+
 @web.middleware
 async def cors_middleware(request: web.Request, handler: Callable[[web.Request], web.StreamResponse]) -> web.Response:
-    """Add CORS headers to all responses."""
+    """Add CORS headers to all responses, restricting to localhost origins."""
+    origin = request.headers.get("Origin")
+
+    # Only allow localhost/127.0.0.1 origins, or no origin (local requests)
+    if not _is_allowed_origin(origin):
+        logger.warning(f"Blocked CORS request from unauthorized origin: {origin}")
+        return web.Response(status=403, text="Forbidden: Invalid origin")
+
+    # Set allowed origin (echo back the origin for credentials support, or * if no origin)
+    allow_origin = origin if origin else "*"
+
     if request.method == "OPTIONS":
-        return web.Response(status=204, headers=CORS_HEADERS)
+        headers = dict(CORS_HEADERS)
+        headers["Access-Control-Allow-Origin"] = allow_origin
+        return web.Response(status=204, headers=headers)
+
     response = await handler(request)
-    response.headers.update({"Access-Control-Allow-Origin": "*"})
+    response.headers.update({"Access-Control-Allow-Origin": allow_origin})
     return response
 
 
@@ -89,11 +109,17 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
         logger.error(f"Ingest JSON error: {e}")
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
-    try:
-        from akagi_ng.core import context
+    # Basic structural validation
+    if not isinstance(payload, dict) or "type" not in payload:
+        logger.warning(f"Invalid MJAI ingest payload: {payload}")
+        return _json_response({"ok": False, "error": "Invalid MJAI payload structure"}, status=400)
 
-        if context.app.electron_client:
-            context.app.electron_client.push_message(payload)
+    try:
+        from akagi_ng.core import get_app_context
+
+        app = get_app_context()
+        if app.electron_client:
+            app.electron_client.push_message(payload)
             return _json_response({"ok": True})
 
         logger.warning("ElectronClient is not active")

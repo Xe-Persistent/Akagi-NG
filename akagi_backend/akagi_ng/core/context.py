@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class AppContext:
+    """Application context containing all core components."""
+
     settings: Settings
     controller: Controller | None
     bot: StateTrackerBot | None
@@ -19,4 +21,24 @@ class AppContext:
     electron_client: ElectronClient | None = None
 
 
-app: AppContext
+# Global variable for application context (shared across threads)
+_app_context: AppContext | None = None
+
+
+def get_app_context() -> AppContext:
+    """
+    Get the current application context.
+
+    Raises:
+        RuntimeError: If context has not been initialized
+    """
+    global _app_context
+    if _app_context is None:
+        raise RuntimeError("Application context not initialized. Call set_app_context() first.")
+    return _app_context
+
+
+def set_app_context(context: AppContext) -> None:
+    """Set the application context."""
+    global _app_context
+    _app_context = context

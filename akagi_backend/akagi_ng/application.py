@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import contextlib
+import queue
 import signal
 import threading
 
-from akagi_ng.core import NotificationHandler, context
+from akagi_ng.core import AppContext, NotificationHandler, get_app_context, set_app_context
+from akagi_ng.core.constants import ServerConstants
 from akagi_ng.core.logging import configure_logging, logger
 from akagi_ng.dataserver import DataServer
 from akagi_ng.dataserver.adapter import build_dataserver_payload
@@ -18,10 +22,12 @@ class AkagiApp:
         self._stop_event = threading.Event()
         self.ds: DataServer | None = None
         self.frontend_url = ""
+        self.message_queue: queue.Queue[dict] = queue.Queue(maxsize=ServerConstants.MITM_MESSAGE_QUEUE_MAXSIZE)
 
     def initialize(self):
+        import importlib
+
         from akagi_ng import AKAGI_VERSION
-        from akagi_ng.core.loader import ComponentLoader
         from akagi_ng.electron_client import create_electron_client
 
         logger.info(f"Starting Akagi-NG {AKAGI_VERSION}...")
@@ -29,34 +35,45 @@ class AkagiApp:
         settings = loaded_settings
         configure_logging(settings.log_level)
 
-        # DataServer
+        # Start DataServer
         host, port = settings.server.host, settings.server.port
         self.ds = DataServer(host=host, external_port=port)
 
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        loader = ComponentLoader()
-        mjai_bot, mjai_controller = loader.load_bot_components()
+        # Load MJAI Bot components
+        mjai_bot, mjai_controller = None, None
+        try:
+            importlib.import_module("akagi_ng.core.lib_loader")
+            from akagi_ng.mjai_bot import Controller, StateTrackerBot
 
-        context.app = context.AppContext(
+            mjai_bot, mjai_controller = StateTrackerBot(), Controller()
+            logger.info("Bot components loaded successfully.")
+        except ImportError as e:
+            logger.error(f"Failed to load bot components or native library: {e}")
+
+        app_context = AppContext(
             settings=settings,
             controller=mjai_controller,
             bot=mjai_bot,
-            mitm_client=MitmClient(),
-            electron_client=create_electron_client(settings.platform),
+            mitm_client=MitmClient(shared_queue=self.message_queue),
+            electron_client=create_electron_client(settings.platform, shared_queue=self.message_queue),
         )
+
+        set_app_context(app_context)
 
     def start(self):
         self.ds.start()
         logger.info(f"DataServer started at {self.frontend_url}")
 
-        if context.app.settings.mitm.enabled and context.app.mitm_client:
-            context.app.mitm_client.start()
+        app = get_app_context()
+        if app.settings.mitm.enabled and app.mitm_client:
+            app.mitm_client.start()
 
         # Always start Electron client if available, so we can listen to API inputs
-        if context.app.electron_client:
-            context.app.electron_client.start()
+        if app.electron_client:
+            app.electron_client.start()
 
         self._setup_signals()
         logger.info("Akagi backend loop started.")
@@ -106,22 +123,24 @@ class AkagiApp:
                     if flags:
                         batch_notifications.extend(NotificationHandler.from_flags(flags))
 
+            except (ValueError, KeyError, TypeError) as e:
+                logger.error(f"Invalid MJAI message format: {msg}, error: {e}")
             except Exception:
-                logger.exception(f"Error processing mjai msg: {msg}")
+                logger.exception(f"Unexpected error processing MJAI message: {msg}")
 
         return mjai_responses, batch_notifications
 
-    def _poll_inputs(self) -> list[dict]:
+    def _get_next_message(self, timeout: float = 0.1) -> dict | None:
         """
-        Poll all event sources and collect incoming MJAI messages.
-        This is the INPUT phase of the Reactor pattern.
+        Get the next message from the event queue (blocking with timeout).
+        Returns None if timeout expires or queue is empty.
+
+        This is the event-driven INPUT phase replacing polling.
         """
-        mjai_msgs: list[dict] = []
-        if context.app.mitm_client:
-            mjai_msgs.extend(context.app.mitm_client.dump_messages())
-        if context.app.electron_client:
-            mjai_msgs.extend(context.app.electron_client.dump_messages())
-        return mjai_msgs
+        try:
+            return self.message_queue.get(block=True, timeout=timeout)
+        except queue.Empty:
+            return None
 
     def _process_events(
         self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
@@ -177,10 +196,6 @@ class AkagiApp:
         if payload:
             self.ds.send_recommendations(payload)
 
-    def _should_exit(self) -> bool:
-        """检查主循环是否应退出"""
-        return False
-
     def run(self) -> int:
         """
         使用 Reactor 模式的主应用循环。
@@ -193,19 +208,20 @@ class AkagiApp:
         # 启动主循环
         logger.info("Starting main loop...")
         # 捕获引用以减少全局上下文访问
-        bot = context.app.bot
-        controller = context.app.controller
+        app = get_app_context()
+        bot = app.bot
+        controller = app.controller
 
         try:
             while not self._stop_event.is_set():
-                if self._should_exit():
-                    break
-
-                # 阶段 1：INPUT - 轮询所有事件源
-                mjai_msgs = self._poll_inputs()
-                if not mjai_msgs:
-                    self._stop_event.wait(0.05)
+                # 阶段 1：INPUT - 从事件队列获取消息（阻塞模式，替代轮询）
+                msg = self._get_next_message(timeout=0.1)
+                if not msg:
+                    # Timeout, check stop event and continue
                     continue
+
+                # 将单个消息包装为列表以兼容现有处理逻辑
+                mjai_msgs = [msg]
 
                 try:
                     # 阶段 2：PROCESS - 处理事件
@@ -225,12 +241,13 @@ class AkagiApp:
 
     def cleanup(self):
         logger.info("Stopping Akagi-NG...")
+        app = get_app_context()
         with contextlib.suppress(Exception):
-            if context.app.mitm_client:
-                context.app.mitm_client.stop()
+            if app.mitm_client:
+                app.mitm_client.stop()
         with contextlib.suppress(Exception):
-            if context.app.electron_client:
-                context.app.electron_client.stop()
+            if app.electron_client:
+                app.electron_client.stop()
         with contextlib.suppress(Exception):
             self.ds.stop()
         logger.info("Akagi-NG stopped.")

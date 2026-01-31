@@ -1,8 +1,10 @@
 import asyncio
+import contextlib
 import json
 
 from aiohttp import web
 
+from akagi_ng.core.constants import ServerConstants
 from akagi_ng.dataserver.logger import logger
 
 
@@ -13,31 +15,20 @@ def _format_sse_message(data: dict, event: str | None = None) -> bytes:
     return f"{msg}\n".encode()
 
 
-async def _send_payload(client_id: str, response: web.StreamResponse, payload: bytes) -> bool:
-    try:
-        await response.write(payload)
-        return True
-    except ConnectionResetError:
-        logger.warning(f"SSE connection reset for {client_id}")
-        return False
-    except Exception as exc:
-        logger.error(f"Failed to send data to {client_id}: {exc}")
-        return False
-
-
 class SSEManager:
     """
-    Manages SSE connections, broadcasting, and keep-alives.
+    Manages SSE connections, broadcasting, and keep-alive.
     """
 
     def __init__(self):
-        self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "request": Request}}
+        self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "queue": asyncio.Queue}}
         self.latest_recommendations = None
         self.notification_history: list[dict] = []
-        self.MAX_HISTORY = 10
+        self.MAX_HISTORY = ServerConstants.SSE_MAX_NOTIFICATION_HISTORY
         self.keep_alive_task = None
         self.loop = None  # 事件循环引用，由 DataServer 设置
         self.running = False
+        self.lock = asyncio.Lock()
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self.loop = loop
@@ -53,17 +44,18 @@ class SSEManager:
             self.keep_alive_task.cancel()
 
     async def _remove_client(self, client_id: str, expected_response: web.StreamResponse | None = None):
-        client_data = self.clients.get(client_id)
-        # 如果存储的响应与我们打算关闭的不匹配，则跳过移除以避免
-        # 踢掉重用相同 client_id 的新连接
-        if (
-            expected_response is not None
-            and client_data is not None
-            and client_data.get("response") is not expected_response
-        ):
-            return
+        async with self.lock:
+            client_data = self.clients.get(client_id)
+            # 如果存储的响应与打算关闭的不匹配，则跳过移除以避免踢掉重用相同 client_id 的新连接
+            if (
+                expected_response is not None
+                and client_data is not None
+                and client_data.get("response") is not expected_response
+            ):
+                return
 
-        client_data = self.clients.pop(client_id, None)
+            client_data = self.clients.pop(client_id, None)
+
         if not client_data:
             return
 
@@ -71,8 +63,8 @@ class SSEManager:
         try:
             if response:
                 await response.write_eof()
-        except ConnectionResetError:
-            logger.debug(f"Client {client_id} already closed connection.")
+        except (ConnectionResetError, asyncio.CancelledError):
+            logger.debug(f"Client {client_id} already closed or connection reset.")
         except Exception as exc:
             logger.warning(f"Error while closing connection for {client_id}: {exc}")
 
@@ -94,70 +86,64 @@ class SSEManager:
         response = web.StreamResponse(status=200, headers=headers)
         await response.prepare(request)
 
-        if client_id in self.clients:
-            logger.warning(f"Client {client_id} already connected. Closing old connection.")
-            await self._remove_client(client_id, expected_response=self.clients[client_id].get("response"))
+        # 为每个客户端创建消息队列，使用常量定义的上限
+        queue = asyncio.Queue(maxsize=ServerConstants.SSE_CLIENT_QUEUE_MAXSIZE)
 
-        self.clients[client_id] = {"response": response, "request": request}
+        async with self.lock:
+            if client_id in self.clients:
+                logger.warning(f"Client {client_id} already connected. Closing old connection.")
+                await self._remove_client(client_id, expected_response=self.clients[client_id].get("response"))
+
+            self.clients[client_id] = {"response": response, "queue": queue}
+
         logger.info(f"SSE client {client_id} connected from {request.remote}")
 
         try:
             await response.write(b": connected\n\n")
-        except Exception as exc:
-            logger.warning(f"Failed to send initial SSE comment to {client_id}: {exc}")
 
-        if self.latest_recommendations:
-            await _send_payload(
-                client_id, response, _format_sse_message(self.latest_recommendations, event="recommendations")
-            )
+            # 发送缓存的最新推荐
+            if self.latest_recommendations:
+                payload = _format_sse_message(self.latest_recommendations, event="recommendations")
+                await response.write(payload)
 
-        # 发送历史通知，确保客户端能看到启动过程中的所有状态
-        for notification in self.notification_history:
-            await _send_payload(client_id, response, _format_sse_message(notification, event="notification"))
+            # 发送历史通知，确保客户端能看到启动过程中的所有状态
+            for notification in self.notification_history:
+                payload = _format_sse_message(notification, event="notification")
+                await response.write(payload)
 
-        try:
+            # 事件驱动的消息循环：等待并发送队列中的新消息
             while True:
-                await asyncio.sleep(1)
-                transport = request.transport
-                if not transport or transport.is_closing():
-                    logger.info(f"SSE client {client_id} closed the connection.")
-                    break
-        except asyncio.CancelledError:
-            logger.debug(f"SSE handler for {client_id} cancelled.")
+                payload = await queue.get()
+                try:
+                    await response.write(payload)
+                finally:
+                    queue.task_done()
+
+        except (asyncio.CancelledError, ConnectionResetError):
+            logger.debug(f"SSE handler for {client_id} closed/cancelled.")
+        except Exception as exc:
+            logger.error(f"Error in SSE handler for {client_id}: {exc}")
         finally:
             await self._remove_client(client_id, expected_response=response)
 
         return response
 
     async def _broadcast_async(self, payload: bytes):
-        if not self.clients:
-            return
+        """
+        异步广播，不再直接写入响应，而是推送到客户端各自的队列中。
+        """
+        async with self.lock:
+            if not self.clients:
+                return
+            targets = list(self.clients.values())
 
-        zombie_client_ids = []
-        zombie_responses = {}
-        tasks = []
-        client_order = []
-
-        for client_id, client_data in list(self.clients.items()):
-            request = client_data.get("request")
-            response = client_data.get("response")
-            if not request or not request.transport or request.transport.is_closing():
-                zombie_client_ids.append(client_id)
-                zombie_responses[client_id] = response
-                continue
-
-            client_order.append(client_id)
-            tasks.append(_send_payload(client_id, response, payload))
-
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for client_id, result in zip(client_order, results, strict=True):
-                if result is False or isinstance(result, Exception):
-                    zombie_client_ids.append(client_id)
-                    zombie_responses[client_id] = self.clients.get(client_id, {}).get("response")
-
-        for client_id in zombie_client_ids:
-            await self._remove_client(client_id, expected_response=zombie_responses.get(client_id))
+        for client_data in targets:
+            queue = client_data.get("queue")
+            if queue:
+                try:
+                    queue.put_nowait(payload)
+                except asyncio.QueueFull:
+                    logger.warning("SSE client queue full, dropping message.")
 
     def broadcast_event(self, event: str, data: dict):
         """
@@ -176,32 +162,28 @@ class SSEManager:
             asyncio.run_coroutine_threadsafe(self._broadcast_async(payload), self.loop)
 
     async def keep_alive(self):
+        """
+        定期保活，推送到客户端队列中。
+        """
         while True:
-            await asyncio.sleep(10)
-            if not self.clients:
-                continue
-            zombie_client_ids = []
-            zombie_responses = {}
-            keepalive_payload = b": keep-alive\n\n"
+            await asyncio.sleep(ServerConstants.SSE_KEEPALIVE_INTERVAL_SECONDS)
 
-            for client_id, client_data in list(self.clients.items()):
-                response = client_data.get("response")
-                request = client_data.get("request")
-
-                if not request or not request.transport or request.transport.is_closing():
-                    zombie_client_ids.append(client_id)
-                    zombie_responses[client_id] = response
+            async with self.lock:
+                if not self.clients:
                     continue
+                targets = list(self.clients.values())
 
-                try:
-                    await response.write(keepalive_payload)
-                except ConnectionResetError:
-                    zombie_client_ids.append(client_id)
-                    zombie_responses[client_id] = response
-                except Exception as exc:
-                    logger.warning(f"Keep-alive failed for {client_id}: {exc}")
-                    zombie_client_ids.append(client_id)
-                    zombie_responses[client_id] = response
+            keepalive_payload = b": keep-alive\n\n"
+            for client_data in targets:
+                queue = client_data.get("queue")
+                if queue:
+                    with contextlib.suppress(asyncio.QueueFull):
+                        queue.put_nowait(keepalive_payload)
 
-            for client_id in zombie_client_ids:
-                await self._remove_client(client_id, expected_response=zombie_responses.get(client_id))
+    async def add_client(self, client_id: str, data: dict):
+        """
+        手动添加客户端（用于特定内部逻辑或测试）
+        """
+        async with self.lock:
+            self.clients[client_id] = data
+            logger.info(f"Client {client_id} added manually to SSE.")

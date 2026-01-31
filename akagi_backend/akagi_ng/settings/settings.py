@@ -114,7 +114,7 @@ class Settings:
                 upstream=mitm_data.get("upstream", ""),
             ),
             server=ServerConfig(
-                host=server_data.get("host", "0.0.0.0"),
+                host=server_data.get("host", "127.0.0.1"),
                 port=server_data.get("port", 8765),
             ),
             ot=OTConfig(
@@ -197,7 +197,7 @@ def get_default_settings_dict() -> dict:
             "port": 6789,
             "upstream": "",
         },
-        "server": {"host": "0.0.0.0", "port": 8765},
+        "server": {"host": "127.0.0.1", "port": 8765},
         "ot": {"online": False, "server": "http://127.0.0.1:5000", "api_key": "<YOUR_API_KEY>"},
         "model_config": {
             "device": "auto",
@@ -277,7 +277,7 @@ def _update_settings(settings: Settings, data: dict):
     settings.mitm.upstream = mitm_data.get("upstream", "")
 
     server_data = data.get("server", {})
-    settings.server.host = server_data.get("host", "0.0.0.0")
+    settings.server.host = server_data.get("host", "127.0.0.1")
     settings.server.port = server_data.get("port", 8765)
 
     model_config_data = data.get("model_config", {})

@@ -37,7 +37,7 @@ export function useSSEConnection(url: string | null): UseSSEConnectionResult {
       }
 
       // 设置过渡状态，显示"重连中"而不是"已断开"
-      setError('reconnecting');
+      setError('online_service_reconnecting');
       retryCount++;
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = undefined;

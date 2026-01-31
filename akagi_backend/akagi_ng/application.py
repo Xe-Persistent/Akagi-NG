@@ -84,17 +84,27 @@ class AkagiApp:
 
         for msg in mjai_msgs:
             try:
-                # 1. Extract notifications
+                # 1. 从消息本身提取通知 (例如 system_event)
                 if n := NotificationHandler.from_message(msg):
                     batch_notifications.append(n)
                     if msg.get("type") == "system_event":
                         continue
 
-                # 2. Controller -> 3. Bot (order matters, see docstring)
+                # 2. Controller 响应消息
                 if controller and (resp := controller.react(msg)):
                     mjai_responses.append(resp)
+                    # 立即采集 Controller 产生的标志 (如模型加载)
+                    flags = getattr(controller, "notification_flags", {})
+                    if flags:
+                        batch_notifications.extend(NotificationHandler.from_flags(flags))
+
+                # 3. Bot 更新状态
                 if bot:
                     bot.react(msg)
+                    # 立即采集 Bot 产生的标志
+                    flags = getattr(bot, "notification_flags", {})
+                    if flags:
+                        batch_notifications.extend(NotificationHandler.from_flags(flags))
 
             except Exception:
                 logger.exception(f"Error processing mjai msg: {msg}")

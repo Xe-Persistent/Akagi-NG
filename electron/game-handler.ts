@@ -35,6 +35,12 @@ export class GameHandler {
       this.webContents.debugger.on('detach', (event, reason) => {
         console.warn('[GameHandler] Debugger detached:', reason);
         this.attached = false;
+        this.sendToBackend({
+          source: 'electron',
+          type: 'debugger_detached',
+          reason: reason,
+          time: Date.now() / 1000,
+        });
       });
 
       this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));

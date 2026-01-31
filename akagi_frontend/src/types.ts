@@ -106,7 +106,7 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export type SSEErrorCode =
   | 'max_retries_exceeded'
-  | 'reconnecting'
+  | 'online_service_reconnecting'
   | 'config_error'
   | 'service_disconnected';
 

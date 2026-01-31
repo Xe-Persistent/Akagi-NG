@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import threading
 from abc import ABC, abstractmethod
 
 from akagi_ng.electron_client.logger import logger
@@ -10,16 +11,24 @@ class BaseElectronClient(ABC):
     def __init__(self):
         self.message_queue: queue.Queue[dict] = queue.Queue()
         self.running = False
+        self._active_connections = 0
+        self._lock = threading.Lock()
 
     def start(self):
-        self.running = True
-        if hasattr(self, "bridge") and self.bridge:
-            self.bridge.reset()
-        logger.info(f"{self.__class__.__name__} started (waiting for input via API)")
+        with self._lock:
+            self.running = True
+            self._active_connections = 0
+            if hasattr(self, "bridge") and self.bridge:
+                self.bridge.reset()
+            logger.info(f"{self.__class__.__name__} started (waiting for input via API)")
 
     def stop(self):
-        self.running = False
-        logger.info(f"{self.__class__.__name__} stopped")
+        with self._lock:
+            self.running = True  # Wait, wait, this should be False
+            # Bug in original code? No, I'm editing.
+            self.running = False
+            self._active_connections = 0
+            logger.info(f"{self.__class__.__name__} stopped")
 
     def push_message(self, message: dict):
         """
@@ -29,15 +38,44 @@ class BaseElectronClient(ABC):
         if not self.running:
             return
 
-        msg_type = message.get("type")
-
-        # Handle common system events
-        if msg_type in ("websocket_created", "websocket_closed"):
-            logger.debug(f"[Electron] {msg_type}: {message.get('url', message.get('requestId'))}")
+        # Handle global debugger detachment
+        if message.get("type") == "debugger_detached":
+            self._handle_debugger_detached(message)
             return
 
-        # Delegate to specialized handlers
+        # Delegate all messages including websocket lifecycle to specialized handlers
         self.handle_message(message)
+
+    def _handle_debugger_detached(self, message: dict):
+        """
+        Handle the event when the Electron debugger detaches (e.g. window closed).
+        This forces reset of connection counts and sends disconnect notifications.
+        """
+        with self._lock:
+            if self._active_connections > 0:
+                logger.info(
+                    f"[{self.__class__.__name__}] Debugger detached, forcing disconnect. "
+                    f"(Active: {self._active_connections})"
+                )
+                self._active_connections = 0
+
+                from akagi_ng.core import NotificationCode
+
+                # Determine if we should send GAME_DISCONNECTED
+                # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message,
+                # so we verify and suppress the disconnection error.
+                game_ended = False
+                if hasattr(self, "bridge") and self.bridge:
+                    game_ended = getattr(self.bridge, "game_ended", False)
+
+                if not game_ended:
+                    self.message_queue.put({"type": "system_event", "code": NotificationCode.GAME_DISCONNECTED})
+                else:
+                    logger.info(
+                        f"[{self.__class__.__name__}] Debugger detached after game end, suppressing GAME_DISCONNECTED."
+                    )
+            else:
+                logger.debug(f"[{self.__class__.__name__}] Debugger detached, no active connections.")
 
     @abstractmethod
     def handle_message(self, message: dict):

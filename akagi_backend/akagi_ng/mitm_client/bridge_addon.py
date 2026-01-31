@@ -147,7 +147,9 @@ class BridgeAddon:
 
         # 只在所有连接都关闭时发送断线通知
         if all_connections_closed:
-            code = "return_lobby" if game_ended else "game_disconnected"
+            from akagi_ng.core import NotificationCode
+
+            code = NotificationCode.RETURN_LOBBY if game_ended else NotificationCode.GAME_DISCONNECTED
             self.mjai_messages.put({"type": "system_event", "code": code})
             logger.info(f"[MITM] All connections closed, sending {code}")
 

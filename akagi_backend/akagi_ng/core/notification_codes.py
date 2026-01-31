@@ -10,7 +10,7 @@ class NotificationCode:
     # ============================================================
     # 服务状态通知
     # ============================================================
-    RECONNECTING = "reconnecting"
+    RECONNECTING = "online_service_reconnecting"
     """在线服务连接中断,正在重连"""
 
     SERVICE_RESTORED = "online_service_restored"
@@ -42,6 +42,18 @@ class NotificationCode:
 
     GAME_SYNCING = "game_syncing"
     """正在同步对局数据"""
+
+    GAME_DISCONNECTED = "game_disconnected"
+    """对局断开连接"""
+
+    RETURN_LOBBY = "return_lobby"
+    """返回大厅"""
+
+    MAJSOUL_PROTO_UPDATED = "majsoul_proto_updated"
+    """雀魂协议文件更新成功"""
+
+    MAJSOUL_PROTO_UPDATE_FAILED = "majsoul_proto_update_failed"
+    """雀魂协议文件更新失败"""
 
     # ============================================================
     # 数据处理错误

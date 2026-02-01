@@ -99,10 +99,7 @@ a = Analysis(
     hiddenimports=hiddenimports,
     excludes=[
         "pytest", "pytest-asyncio", "pytest-cov", "ruff", "pyinstaller",
-        "setuptools", "pip", "pkg_resources",
-        "tkinter", "tcl", "tk", "unittest", "unittest.mock",
-        "torch.distributions", "torch.testing",
-        "PIL", "matplotlib", "IPython", "cv2"
+        "setuptools", "pip", "pkg_resources"
     ],
     noarchive=False,
 )

@@ -8,8 +8,8 @@
     "url": "https://github.com/Xe-Persistent/Akagi-NG.git"
   },
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
-    "dev:mock": "concurrently \"npm run dev:frontend\" \"npm run dev:electron:mock\"",
+    "dev": "concurrently -k \"npm:dev:frontend\" \"npm:dev:electron\"",
+    "dev:mock": "concurrently -k \"npm:dev:frontend\" \"npm:dev:electron:mock\"",
     "dev:frontend": "cd ../akagi_frontend && npm run dev",
     "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.json && electron .",
     "dev:electron:mock": "wait-on http://localhost:5173 && tsc -p tsconfig.json && set AKAGI_MOCK_MODE=1&& electron .",

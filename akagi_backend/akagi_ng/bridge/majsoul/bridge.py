@@ -59,16 +59,51 @@ class MajsoulBridge(BaseBridge):
         return ret
 
     def _parse_sync_game(self, liqi_message: dict) -> list[MJAIEvent]:
-        """处理游戏同步消息"""
+        """处理游戏同步消息（重连后的同步）"""
         self.syncing = True
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
-        parsed_list: list[MJAIEvent] = [{"type": "system_event", "code": NotificationCode.GAME_SYNCING}]
+        parsed_list: list[MJAIEvent] = [self.make_system_event(code=NotificationCode.GAME_SYNCING)]
+
+        snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
+
+        for i, msg in enumerate(action_msgs):
+            parsed = self.parse_liqi(msg)
+            if parsed:
+                # 只有最后一个动作不打 sync 标签，以便触发一次真实推荐展示
+                is_last_msg = i == len(action_msgs) - 1
+                for event in parsed:
+                    if not is_last_msg:
+                        event["sync"] = True
+                parsed_list.extend(parsed)
+
+        has_start_kyoku = any(evt.get("type") == "start_kyoku" for evt in parsed_list)
+
+        if not has_start_kyoku and snapshot_msg:
+            logger.info("start_kyoku missing (ActionNewRound missing or failed), recovering from snapshot.")
+            start_kyoku_and_tsumo = self._handle_sync_game_snapshot(snapshot_msg)
+            if start_kyoku_and_tsumo:
+                # snapshot 恢复的事件全部打上 sync 标签，除非后面没有任何 action_msgs
+                should_sync_snapshot = len(action_msgs) > 0
+                for event in start_kyoku_and_tsumo:
+                    if should_sync_snapshot:
+                        event["sync"] = True
+                parsed_list[1:1] = start_kyoku_and_tsumo
+
+        self.syncing = False
+        return parsed_list if len(parsed_list) >= 1 else []
+
+    def _parse_enter_game(self, liqi_message: dict) -> list[MJAIEvent]:
+        """处理进入对局消息（首次连接，不显示同步提示）"""
+        self.syncing = True
+        sync_game_msgs = self._parse_sync_game_raw(liqi_message)
+        parsed_list: list[MJAIEvent] = []  # 不插入 GAME_SYNCING 通知
 
         snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
         for msg in action_msgs:
             parsed = self.parse_liqi(msg)
             if parsed:
+                # 首次进入，所有事件都标记为 sync，避免产生无意义的推荐
                 for event in parsed:
                     event["sync"] = True
                 parsed_list.extend(parsed)
@@ -81,7 +116,7 @@ class MajsoulBridge(BaseBridge):
             if start_kyoku_and_tsumo:
                 for event in start_kyoku_and_tsumo:
                     event["sync"] = True
-                parsed_list[1:1] = start_kyoku_and_tsumo
+                parsed_list[0:0] = start_kyoku_and_tsumo  # 插入到开头
 
         self.syncing = False
         return parsed_list if len(parsed_list) >= 1 else []
@@ -606,9 +641,13 @@ class MajsoulBridge(BaseBridge):
 
         result: list[MJAIEvent] = []
 
-        # 游戏同步
-        if method in [".lq.FastTest.syncGame", ".lq.FastTest.enterGame"] and msg_type == MsgType.Res:
+        # 游戏同步（重连）
+        if method == ".lq.FastTest.syncGame" and msg_type == MsgType.Res:
             result = self._parse_sync_game(liqi_message)
+
+        # 进入对局（首次连接）
+        elif method == ".lq.FastTest.enterGame" and msg_type == MsgType.Res:
+            result = self._parse_enter_game(liqi_message)
 
         # 准备完成
         elif method == ".lq.FastTest.fetchGamePlayerState" and msg_type == MsgType.Res:

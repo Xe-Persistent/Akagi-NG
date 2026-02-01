@@ -101,6 +101,11 @@ class EndKyokuEvent(MJAIEvent):
     type: Literal["end_kyoku"]
 
 
+class RyukyokuEvent(MJAIEvent):
+    type: Literal["ryukyoku"]
+    scores: list[int]
+
+
 class EndGameEvent(MJAIEvent):
     type: Literal["end_game"]
 

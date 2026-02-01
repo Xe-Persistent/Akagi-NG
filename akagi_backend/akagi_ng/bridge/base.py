@@ -14,6 +14,7 @@ from akagi_ng.bridge.types import (
     ReachEvent,
     StartGameEvent,
     StartKyokuEvent,
+    SystemEvent,
     TsumoEvent,
 )
 
@@ -140,3 +141,10 @@ class BaseBridge:
     def make_end_game(self) -> EndGameEvent:
         """构建 end_game（游戏结束）消息"""
         return {"type": "end_game"}
+
+    def make_system_event(self, code: str, msg: str | None = None) -> SystemEvent:
+        """构建 system_event（系统消息）"""
+        event: SystemEvent = {"type": "system_event", "code": code}
+        if msg is not None:
+            event["msg"] = msg
+        return event

@@ -455,23 +455,16 @@ class AmatsukiBridge(BaseBridge):
             ret.append(self.temp_reach_accepted)
             self.temp_reach_accepted = None
 
-        type_map = {
-            AmatsukiAction.CHII: "chi",
-            AmatsukiAction.PON: "pon",
-            AmatsukiAction.MINKAN: "daiminkan",
-        }
-
-        if type_str := type_map.get(action):
-            ret.append(
-                {
-                    "type": type_str,
-                    "actor": actor,
-                    "target": target,
-                    "pai": pai,
-                    "consumed": consumed,
-                }
-            )
-            return ret
+        match action:
+            case AmatsukiAction.CHII:
+                ret.append(self.make_chi(actor, target, pai, consumed))
+            case AmatsukiAction.PON:
+                ret.append(self.make_pon(actor, target, pai, consumed))
+            case AmatsukiAction.MINKAN:
+                ret.append(self.make_daiminkan(actor, target, pai, consumed))
+            case _:
+                return None
+        return ret
 
         return None
 

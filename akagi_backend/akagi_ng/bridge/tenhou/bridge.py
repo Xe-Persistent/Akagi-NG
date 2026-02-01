@@ -12,7 +12,7 @@ from akagi_ng.bridge.tenhou.utils.converter import (
 from akagi_ng.bridge.tenhou.utils.decoder import Meld, parse_sc_tag
 from akagi_ng.bridge.tenhou.utils.judrdy import isrh
 from akagi_ng.bridge.tenhou.utils.state import State
-from akagi_ng.bridge.types import MJAIEvent
+from akagi_ng.bridge.types import MJAIEvent, RyukyokuEvent
 from akagi_ng.core.constants import MahjongConstants
 
 
@@ -241,16 +241,25 @@ class TenhouBridge(BaseBridge):
 
         meld = Meld.parse_meld(m)
         num_players = MahjongConstants.SEATS_4P
-        target = (actor - 1) % num_players if meld.meld_type == Meld.CHI else (actor + meld.target) % num_players
+        mjai_messages: list[MJAIEvent] = []
 
-        mjai_messages: list[MJAIEvent] = [
-            {"type": meld.meld_type, "actor": actor, "target": target, "pai": meld.pai, "consumed": meld.consumed}  # type: ignore
-        ]
-
-        if meld.meld_type in [Meld.KAKAN, Meld.ANKAN]:
-            del mjai_messages[0]["target"]
-        if meld.meld_type == Meld.ANKAN:
-            del mjai_messages[0]["pai"]
+        match meld.meld_type:
+            case Meld.CHI:
+                target = (actor - 1) % num_players
+                mjai_messages.append(self.make_chi(actor, target, meld.pai, meld.consumed))
+            case Meld.PON:
+                target = (actor + meld.target) % num_players
+                mjai_messages.append(self.make_pon(actor, target, meld.pai, meld.consumed))
+            case Meld.DAIMINKAN:
+                target = (actor + meld.target) % num_players
+                mjai_messages.append(self.make_daiminkan(actor, target, meld.pai, meld.consumed))
+            case Meld.KAKAN:
+                mjai_messages.append(self.make_kakan(actor, meld.pai, meld.consumed))
+            case Meld.ANKAN:
+                mjai_messages.append(self.make_ankan(actor, meld.consumed))
+            case _:
+                logger.warning(f"Unknown meld type: {meld.meld_type}")
+                return []
 
         if actor == self.state.seat:
             self._update_hand_for_meld(meld)
@@ -321,7 +330,8 @@ class TenhouBridge(BaseBridge):
         scores = [0] * 4
         for i in range(min(len(raw_scores), 4)):
             scores[self.rel_to_abs(i)] = raw_scores[i]
-        return [{"type": "ryukyoku", "scores": scores}, {"type": "end_kyoku"}]
+        ryukyoku_event: RyukyokuEvent = {"type": "ryukyoku", "scores": scores}
+        return [ryukyoku_event, self.make_end_kyoku()]
 
     def _convert_end_game(self) -> list[MJAIEvent] | None:
         self.state.game_active = False

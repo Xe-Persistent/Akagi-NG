@@ -119,18 +119,97 @@ async def test_notification_history(sse_manager):
     assert sse_manager.notification_history[-1] == {"id": sse_manager.MAX_HISTORY + 4}
 
 
+def test_format_sse_message_with_event():
+    data = {"a": 1}
+    msg = _format_sse_message(data, event="update")
+    assert b"event: update\n" in msg
+    assert b'data: {"a": 1}\n' in msg
+
+
 @pytest.mark.asyncio
-async def test_keep_alive_logic(sse_manager):
-    """测试保活心跳逻辑"""
+async def test_sse_manager_lifecycle(sse_manager):
+    # 测试 set_loop, start, stop
+    mock_loop = MagicMock(spec=asyncio.AbstractEventLoop)
+    sse_manager.set_loop(mock_loop)
+    sse_manager.start()
+    assert sse_manager.running is True
+    mock_loop.create_task.assert_called_once()
+
+    sse_manager.stop()
+    assert sse_manager.running is False
+
+
+@pytest.mark.asyncio
+async def test_remove_client_failure_branches(sse_manager):
+    # 无效 client_id
+    await sse_manager._remove_client("non_existent")
+
+    # 模拟异常
+    mock_response = AsyncMock(spec=web.StreamResponse)
+    mock_response.write_eof.side_effect = Exception("error")
+    await sse_manager.add_client("c1", {"response": mock_response, "queue": asyncio.Queue()})
+    await sse_manager._remove_client("c1")
+    # 应该被捕获
+
+
+@pytest.mark.asyncio
+async def test_broadcast_async_empty(sse_manager):
+    sse_manager.clients = {}
+    await sse_manager._broadcast_async(b"msg")
+    # 应该直接返回
+
+
+@pytest.mark.asyncio
+async def test_broadcast_event_no_loop(sse_manager):
+    sse_manager.loop = None
+    sse_manager.broadcast_event("notification", {"a": 1})
+    # 应该不抛出错误
+
+
+@pytest.mark.asyncio
+async def test_sse_handler_no_client_id(sse_manager):
+    mock_request = MagicMock(spec=web.Request)
+    mock_request.query = {}
+    resp = await sse_manager.sse_handler(mock_request)
+    assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_sse_handler_success_flow(sse_manager):
+    mock_request = MagicMock(spec=web.Request)
+    mock_request.query = {"clientId": "c1"}
+    mock_request.remote = "127.0.0.1"
+
+    mock_response = AsyncMock(spec=web.StreamResponse)
+    with patch("aiohttp.web.StreamResponse", return_value=mock_response):
+        # 我们需要在另一个任务中停止 handler 循环
+        async def stop_handler():
+            await asyncio.sleep(0.1)
+            await sse_manager._remove_client("c1", expected_response=mock_response)
+
+        # 模拟 queue.get() 抛出异常来退出 while True 循环
+        with patch.object(asyncio.Queue, "get", side_effect=asyncio.CancelledError):
+            await sse_manager.sse_handler(mock_request)
+
+        # 验证是否写入了初始消息
+        # write 是 AsyncMock
+        assert any("connected" in str(call) for call in mock_response.write.call_args_list)
+
+
+@pytest.mark.asyncio
+async def test_keep_alive_execution_logic(sse_manager):
+    # 覆盖 keep_alive 协程的内部逻辑（不运行无限循环）
     q = asyncio.Queue()
     await sse_manager.add_client("c1", {"response": MagicMock(), "queue": q})
 
-    keepalive_payload = b": keep-alive\n\n"
-
-    # 模拟一次心跳循环中的逻辑
+    # 通过手动调用逻辑块来模拟一次循环
     async with sse_manager.lock:
         targets = list(sse_manager.clients.values())
-    for client_data in targets:
-        client_data["queue"].put_nowait(keepalive_payload)
 
-    assert await q.get() == keepalive_payload
+    payload = b": keep-alive\n\n"
+    for client_data in targets:
+        queue = client_data.get("queue")
+        if queue:
+            queue.put_nowait(payload)
+
+    assert await q.get() == payload

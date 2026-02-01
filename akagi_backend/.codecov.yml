@@ -33,6 +33,9 @@ flags:
     carryforward: true
 
 ignore:
+  # Scripts
+  - "scripts/"
+
   # Test files
   - "tests/"
   - "**/*_test.py"

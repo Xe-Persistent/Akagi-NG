@@ -385,7 +385,7 @@ class AmatsukiBridge(BaseBridge):
             self.make_dahai(actor, pai, True),
         ]
 
-    def _build_kita(self, actor: int) -> list[MJAIEvent]:
+    def _build_kita(self, content_dict: dict, actor: int) -> list[MJAIEvent]:
         assert self.is_3p, "nukidora is only available in 3P"
         return [self.make_nukidora(actor)]
 
@@ -502,7 +502,7 @@ class AmatsukiBridge(BaseBridge):
         return [self.make_end_game()]
 
     def _validate_content(self, content_dict: dict | None, stomp: STOMP) -> bool:
-        if not content_dict:
+        if content_dict is None:
             logger.error(f"Invalid content: {stomp.content}")
             return False
         return True

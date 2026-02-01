@@ -24,7 +24,7 @@ class MortalBot:
         self.notification_flags = {}  # 系统状态通知标志
         self._pending_notifications = {}  # 暂存的通知标志（如模型加载事件）
 
-        from akagi_ng.mjai_bot.engine import load_model
+        from akagi_ng.mjai_bot.engine.factory import load_bot_and_engine
         from akagi_ng.mjai_bot.mortal.logger import logger
 
         # 根据游戏模式动态加载库
@@ -32,13 +32,12 @@ class MortalBot:
             from akagi_ng.core.lib_loader import libriichi3p
 
             self.libriichi = libriichi3p
-            self.model_loader = lambda seat: load_model(seat, is_3p=True)
         else:
             from akagi_ng.core.lib_loader import libriichi
 
             self.libriichi = libriichi
-            self.model_loader = lambda seat: load_model(seat, is_3p=False)
 
+        self.model_loader = load_bot_and_engine
         self.logger = logger
 
     def _process_events(self, events: list[dict]) -> tuple[str | None, bool]:
@@ -75,29 +74,30 @@ class MortalBot:
                 self._handle_end_game()
                 continue
 
-            # 处理同步/回放标志
+            # 处理同步/回放模式。启用同步模式会使引擎进入快进状态，跳过神经网络推理。
             is_sync = e.get("sync", False)
-            if is_sync and hasattr(self.engine, "start_replaying"):
-                self.engine.start_replaying()
+            if is_sync:
+                self.engine.set_sync_mode(True)
 
             return_action = self.model.react(e_json)
 
-            if is_sync and hasattr(self.engine, "stop_replaying"):
-                self.engine.stop_replaying()
+            if is_sync:
+                self.engine.set_sync_mode(False)
 
         return return_action, is_game_start_batch
 
     def _handle_start_game(self, e: dict):
         """处理游戏开始事件，初始化模型和引擎"""
         self.player_id = e["id"]
-        self.model, self.engine = self.model_loader(self.player_id)
+        self.model, self.engine = self.model_loader(self.player_id, self.is_3p)
         self.history = []
         self.history_json = []
         self.game_start_event = e
 
         # 检测加载的模型类型并设置通知
-        delegate = getattr(self.engine, "delegate", self.engine)
-        engine_type = getattr(delegate, "engine_type", "unknown")
+        # EngineProvider 会在元数据中包含真实的引擎类型
+        meta = self.engine.get_additional_meta()
+        engine_type = meta.get("engine_type", "unknown")
 
         if engine_type == "akagiot":
             self._pending_notifications["model_loaded_online"] = True
@@ -225,21 +225,18 @@ class MortalBot:
 
     def _run_riichi_lookahead(self) -> dict[str, object]:
         """
-        使用 ReplayEngine 运行立直前瞻模拟。
+        运行立直前瞻模拟。
         返回模拟元数据，失败时返回 None。
         """
         try:
-            from akagi_ng.mjai_bot.engine import ReplayEngine
+            # 获取一个新的、独立的模拟环境
+            # 这里重用 model_loader 确保模拟环境与当前环境配置一致
+            sim_bot, sim_engine = self.model_loader(self.player_id, self.is_3p)
 
-            # 使用 ReplayEngine 进行模拟
-            sim_engine = ReplayEngine(self.engine, [None] * len(self.history))
-            self.logger.debug("Riichi Lookahead: Using ReplayEngine for simulation.")
+            self.logger.debug("Riichi Lookahead: Starting simulation with fresh environment.")
 
-            # 创建模拟 Bot
-            sim_bot = self.libriichi.mjai.Bot(sim_engine, self.player_id)
-
-            # 回放历史事件 (使用缓存的 JSON 字符串以提升性能)
-            self.logger.debug(f"Riichi Lookahead: Replaying {len(self.history_json)} events.")
+            # 开启同步快进模式以加速历史回放
+            sim_engine.set_sync_mode(True)
 
             # 三麻需要先回放 game_start 事件以初始化模式
             if self.is_3p and self.game_start_event:
@@ -248,12 +245,12 @@ class MortalBot:
             for h_json in self.history_json:
                 sim_bot.react(h_json)
 
-            # 停止回放模式，让引擎处理前瞻
-            sim_engine.stop_replaying()
+            # 停止快进模式，准备对立直动作进行正式推理
+            sim_engine.set_sync_mode(False)
 
             # 应用立直事件
             reach_event = {"type": "reach", "actor": self.player_id}
-            self.logger.debug("Riichi Lookahead: Applying reach event.")
+            self.logger.debug("Riichi Lookahead: Applying reach event simulation.")
             sim_resp = sim_bot.react(json.dumps(reach_event, separators=(",", ":")))
 
             # 从响应中提取模拟元数据
@@ -270,7 +267,7 @@ class MortalBot:
 
                 sim_recs = meta_to_recommend(sim_meta, is_3p=self.is_3p)
                 all_candidates = ", ".join([f"{action}({conf:.3f})" for action, conf in sim_recs])
-                self.logger.info(f"Riichi Lookahead: Success. Candidates: {all_candidates}")
+                self.logger.info(f"Riichi Lookahead: Simulation success. Candidates: {all_candidates}")
             else:
                 self.logger.warning("Riichi Lookahead: Simulation meta missing q_values or mask_bits.")
 
@@ -281,5 +278,4 @@ class MortalBot:
             import traceback
 
             self.logger.error(traceback.format_exc())
-            # 返回错误标志
             return {"error": True}

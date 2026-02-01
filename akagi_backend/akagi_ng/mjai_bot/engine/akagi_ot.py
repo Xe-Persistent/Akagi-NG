@@ -33,6 +33,26 @@ class AkagiOTClient:
         self._failure_threshold = 3
         self._just_restored = False
 
+        # 启动背景连接预热
+        self._pre_warm_connection()
+
+    def _pre_warm_connection(self):
+        """发送一个轻量级的 OPTIONS 请求以预热 TCP/TLS 连接。"""
+        try:
+            import threading
+
+            def _warm():
+                try:
+                    # 使用 OPTIONS 或 HEAD 以最小化开销
+                    self.session.options(self.url, timeout=2.0)
+                    logger.info(f"AkagiOT: Connection pre-warmed for {self.url}")
+                except Exception:
+                    pass
+
+            threading.Thread(target=_warm, daemon=True).start()
+        except Exception as e:
+            logger.warning(f"AkagiOT: Pre-warm failed (non-critical): {e}")
+
     def predict(self, is_3p: bool, obs: list, masks: list) -> dict:
         # 熔断器检查
         if self._circuit_open:
@@ -88,28 +108,21 @@ class AkagiOTClient:
 
 
 class AkagiOTEngine(BaseEngine):
-    def __init__(self, is_3p: bool, url: str, api_key: str, fallback_engine: BaseEngine = None):
+    def __init__(self, is_3p: bool, url: str, api_key: str):
         super().__init__(is_3p=is_3p, version=4, name="AkagiOT", is_oracle=False)
         self.client = AkagiOTClient(url, api_key)
 
         self.is_online = True
         self.engine_type = "akagiot"
-        self.last_inference_result = {}
-        self.fallback_engine = fallback_engine
 
-        if self.fallback_engine:
-            logger.info(f"AkagiOT: Fallback engine configured: {self.fallback_engine.name}")
-
-    def get_notification_flags(self) -> dict:
+    def get_notification_flags(self) -> dict[str, object]:
         """返回 AkagiOT 引擎的通知标志。"""
         flags = {}
         if self.client._circuit_open:
             flags["circuit_open"] = True
-            flags["fallback_used"] = True
         if self.client._just_restored:
             flags["circuit_restored"] = True
             self.client._just_restored = False
-        # fallback_used 标志由 MortalBot 在检测到 fallback 时设置
         return flags
 
     @property
@@ -123,40 +136,34 @@ class AkagiOTEngine(BaseEngine):
     def react_batch(
         self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
-        try:
-            list_obs = [o.tolist() for o in obs]
-            list_masks = [m.tolist() for m in masks]
+        """
+        执行在线推理。发生的异常（如连通性问题、超时、熔断）
+        将抛回给 EngineProvider 进行回退处理。
+        """
+        # 鲁棒性：确保输入为 numpy 数组
+        obs = np.asanyarray(obs)
+        masks = np.asanyarray(masks)
 
-            r_json = self.client.predict(self.is_3p, list_obs, list_masks)
+        # 如果处于显式同步模式，执行极速快进（跳过网络请求）
+        if self.is_sync_mode:
+            batch_size = obs.shape[0]
+            # 找到每一行第一个为 True 的索引
+            actions = [int(np.where(m)[0][0]) for m in masks]
+            # 同步模式下不进行预测，返回零 Q 值
+            q_values = [[0.0] * masks.shape[1] for _ in range(batch_size)]
+            is_greedy = [True] * batch_size
+            return actions, q_values, masks.tolist(), is_greedy
 
-            self.last_inference_result = {
-                "actions": r_json["actions"],
-                "q_out": r_json["q_out"],
-                "masks": r_json["masks"],
-                "is_greedy": r_json["is_greedy"],
-            }
+        list_obs = [o.tolist() for o in obs]
+        list_masks = [m.tolist() for m in masks]
 
-            return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]
+        r_json = self.client.predict(self.is_3p, list_obs, list_masks)
 
-        except Exception as e:
-            if self.fallback_engine:
-                logger.warning(f"AkagiOT inference failed: {e}. Switching to Fallback Engine.")
-                try:
-                    # 委托给回退引擎
-                    res = self.fallback_engine.react_batch(obs, masks, invisible_obs)
+        self.last_inference_result = {
+            "actions": r_json["actions"],
+            "q_out": r_json["q_out"],
+            "masks": r_json["masks"],
+            "is_greedy": r_json["is_greedy"],
+        }
 
-                    # 用回退数据更新 last_inference_result
-                    self.last_inference_result = {
-                        "actions": res[0],
-                        "q_out": res[1],
-                        "masks": res[2],
-                        "is_greedy": res[3],
-                    }
-                    return res
-                except Exception as fallback_err:
-                    logger.error(f"Fallback engine also failed: {fallback_err}")
-                    raise RuntimeError(f"AkagiOT and Fallback both failed: {e}") from e
-            else:
-                # 回退策略由上游 Bot 类处理
-                logger.warning(f"AkagiOT inference failed, no fallback configured: {e}")
-                raise RuntimeError(f"AkagiOT failed: {e}") from e
+        return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]

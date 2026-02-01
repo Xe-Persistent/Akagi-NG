@@ -41,13 +41,18 @@ class MortalEngine(BaseEngine):
     def warmup(self):
         """执行一次 dummy 推理以预热 CUDA/CPU 内核，消除首个真实请求的卡顿。"""
         try:
+            # 动态检测模型输入维度
+            # Brain.encoder.net[0] 是第一个 Conv1d 层
+            in_channels = self.brain.encoder.net[0].in_channels
+            action_space = self.dqn.action_space
+
             # 构造最小规模的有效观测
             # 观测维由 Brain.encoder 决定，通常是 (B, C, 34)
-            obs = np.zeros((1, 93, 34), dtype=np.float32)
-            masks = np.ones((1, 54), dtype=bool)
-            invisible_obs = np.zeros((1, 93, 34), dtype=np.float32)
+            obs = np.zeros((1, in_channels, 34), dtype=np.float32)
+            masks = np.ones((1, action_space), dtype=bool)
+            invisible_obs = np.zeros((1, in_channels, 34), dtype=np.float32)
 
-            logger.debug(f"MortalEngine ({self.name}): Warming up engine...")
+            logger.debug(f"MortalEngine ({self.name}): Warming up engine with shape (1, {in_channels}, 34)...")
             self.react_batch(obs, masks, invisible_obs)
             logger.info(f"MortalEngine ({self.name}): Warmup completed.")
         except Exception as e:
@@ -56,6 +61,27 @@ class MortalEngine(BaseEngine):
     def react_batch(
         self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
+        # 确保输入为 numpy 数组
+        obs = np.asanyarray(obs)
+        masks = np.asanyarray(masks)
+
+        # 如果处于显式同步模式，执行极速快进（跳过神经网络）
+        if self.is_sync_mode:
+            batch_size = obs.shape[0]
+            # np.argmax 返回第一个 True 的索引，符合最低合法动作原则
+            fast_actions = np.argmax(masks, axis=1).tolist()
+            q_out = [[0.0] * masks.shape[1] for _ in range(batch_size)]
+            clean_masks = masks.tolist()
+            is_greedy = [True] * batch_size
+
+            self.last_inference_result = {
+                "actions": fast_actions,
+                "q_out": q_out,
+                "masks": clean_masks,
+                "is_greedy": is_greedy,
+            }
+            return fast_actions, q_out, clean_masks, is_greedy
+
         try:
             with (
                 torch.autocast(self.device.type, enabled=self.enable_amp),

@@ -38,7 +38,7 @@ class TestMortalBotDecisionLogic(unittest.TestCase):
     def setUp(self):
         """每个测试前初始化"""
         # Mock engine loader
-        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.load_model")
+        self.loader_patcher = patch("akagi_ng.mjai_bot.engine.factory.load_bot_and_engine")
         self.mock_loader = self.loader_patcher.start()
 
         # Mock Bot 返回合理的推荐数据
@@ -273,9 +273,9 @@ class TestMortalBotDecisionLogic(unittest.TestCase):
 
         # 验证 engine metadata 存在
         meta = resp_json.get("meta", {})
-        # get_additional_meta 返回的数据应该在 meta 中
-        if hasattr(bot.engine, "get_additional_meta"):
-            self.assertIn("engine_meta", meta)
+        # get_additional_meta 返回的数据应该被合并到 meta 中
+        # 新架构中 EngineProvider 至少会返回 engine_type
+        self.assertTrue("engine_type" in meta or "engine_meta" in meta)
 
 
 if __name__ == "__main__":

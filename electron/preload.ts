@@ -13,6 +13,7 @@ const VALID_INVOKE_CHANNELS = [
   'is-window-maximized',
   'check-resource-status',
   'get-app-version',
+  'wait-for-backend',
 ] as const;
 
 const VALID_ON_CHANNELS = [
@@ -21,6 +22,7 @@ const VALID_ON_CHANNELS = [
   'exit-animation-start',
   'majsoul_proto_updated',
   'majsoul_proto_update_failed',
+  'backend-ready',
 ] as const;
 
 contextBridge.exposeInMainWorld('electron', {

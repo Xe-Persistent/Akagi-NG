@@ -12,8 +12,14 @@ export class BackendManager {
   private readonly HOST = '127.0.0.1';
   private readonly PORT = 8765; // Default port used by backend
   private validator: ResourceValidator;
+  private isReadyState: boolean = false;
+  private readyPromise: Promise<void>;
+  private resolveReady!: () => void;
 
   constructor() {
+    this.readyPromise = new Promise((resolve) => {
+      this.resolveReady = resolve;
+    });
     // In dev, root is ../../ from dist/main
     // In prod, root is process.resourcesPath or app.getAppPath()
     const projectRoot = !app.isPackaged
@@ -119,16 +125,31 @@ export class BackendManager {
     const binaryName = process.platform === 'win32' ? 'akagi-ng.exe' : 'akagi-ng';
     const binaryPath = path.join(path.join(process.resourcesPath, '..'), 'bin', binaryName);
 
-    console.log(`Backend Binary: ${binaryPath}`);
+    try {
+      if (!fs.existsSync(binaryPath)) {
+        throw new Error(`Executable not found at ${binaryPath}`);
+      }
 
-    this.pyProcess = spawn(binaryPath, [], {
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: '1',
-      },
-    });
+      this.pyProcess = spawn(binaryPath, [], {
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1',
+          AKAGI_GUI_MODE: '1',
+        },
+      });
 
-    this.setupListeners();
+      this.pyProcess.on('error', (err) => {
+        const msg = `Failed to start backend process: ${err.message}`;
+        console.error(`[BackendManager] ${msg}`);
+        dialog.showErrorBox('Backend Error', msg);
+      });
+
+      this.setupListeners();
+    } catch (e) {
+      const msg = `Backend initialization failed: ${e instanceof Error ? e.message : String(e)}`;
+      console.error(`[BackendManager] ${msg}`);
+      dialog.showErrorBox('Startup Error', msg);
+    }
   }
 
   private setupListeners() {
@@ -148,9 +169,30 @@ export class BackendManager {
     });
   }
 
+  public markReady() {
+    if (!this.isReadyState) {
+      this.isReadyState = true;
+      this.resolveReady();
+      console.log('[BackendManager] Backend is marked as READY.');
+    }
+  }
+
+  public isReady(): boolean {
+    return this.isReadyState;
+  }
+
+  public async waitForReady(timeoutMs: number = 20000): Promise<boolean> {
+    if (this.isReadyState) return true;
+
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), timeoutMs);
+    });
+
+    return Promise.race([this.readyPromise.then(() => true), timeoutPromise]);
+  }
+
   public stop() {
     if (this.pyProcess) {
-      console.log('Stopping backend process...');
       this.pyProcess.kill();
       this.pyProcess = null;
     }

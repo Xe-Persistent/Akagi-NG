@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, nativeTheme, screen } from 'electron';
 import path from 'path';
 
 import { GameHandler } from './game-handler';
@@ -39,11 +39,17 @@ export class WindowManager {
       frame: false,
       titleBarStyle: 'hiddenInset',
       autoHideMenuBar: true,
+      backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
+      show: false, // Don't show until styles are ready
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
       },
+    });
+
+    this.dashboardWindow.once('ready-to-show', () => {
+      this.dashboardWindow?.show();
     });
 
     const devUrl = 'http://localhost:5173'; // Vite dev server
@@ -58,7 +64,9 @@ export class WindowManager {
       this.dashboardWindow.webContents.openDevTools();
     } else {
       const indexPath = path.join(__dirname, '../renderer/index.html');
-      await this.dashboardWindow.loadFile(indexPath);
+      await this.dashboardWindow.loadFile(indexPath).catch((err) => {
+        console.error(`[WindowManager] Failed to load index file: ${err.message}`);
+      });
     }
 
     this.dashboardWindow.on('closed', () => {
@@ -194,6 +202,7 @@ export class WindowManager {
       minHeight: 720,
       maximizable: true,
       autoHideMenuBar: true,
+      backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

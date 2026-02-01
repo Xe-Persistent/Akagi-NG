@@ -83,4 +83,9 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
   ipcMain.handle('check-resource-status', async () => {
     return backendManager.getResourceStatus();
   });
+
+  // Wait for backend to be ready (port 8765 bound)
+  ipcMain.handle('wait-for-backend', async (_event, timeoutMs?: number) => {
+    return await backendManager.waitForReady(timeoutMs);
+  });
 }

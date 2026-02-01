@@ -25,31 +25,36 @@ export default function App() {
   }
 
   const settingsPromise = useMemo(() => {
-    const fetchSettings = fetchSettingsApi(apiBase).catch((err) => {
-      console.warn('Failed to fetch settings, using defaults:', err);
-      return {
-        log_level: 'INFO',
-        locale: 'zh-CN',
-        game_url: '',
-        platform: 'majsoul',
-        mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
-        server: { host: '127.0.0.1', port: 8765 },
-        ot: { online: false, server: '', api_key: '' },
-        model_config: {
-          device: 'auto',
-          temperature: 0.3,
-          enable_amp: false,
-          enable_quick_eval: false,
-          rule_based_agari_guard: true,
-        },
-      } as Settings;
-    });
+    const fetchSettings = (async () => {
+      if (window.electron) {
+        await window.electron.invoke('wait-for-backend');
+      }
+      return fetchSettingsApi(apiBase).catch((err) => {
+        console.warn('Failed to fetch settings, using defaults:', err);
+        return {
+          log_level: 'INFO',
+          locale: 'zh-CN',
+          game_url: '',
+          platform: 'majsoul',
+          mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
+          server: { host: '127.0.0.1', port: 8765 },
+          ot: { online: false, server: '', api_key: '' },
+          model_config: {
+            device: 'auto',
+            temperature: 0.3,
+            enable_amp: false,
+            enable_quick_eval: false,
+            rule_based_agari_guard: true,
+          },
+        } as Settings;
+      });
+    })();
 
     if (isHud) {
       return fetchSettings;
     }
 
-    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 2400));
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1600));
     return Promise.all([fetchSettings, minDelay]).then(([settings]) => settings as Settings);
   }, [apiBase, isHud]);
 

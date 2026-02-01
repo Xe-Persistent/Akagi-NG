@@ -24,33 +24,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Split large libraries into separate chunks
           if (id.includes('node_modules')) {
-            // React core libraries
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            // Router
-            if (id.includes('react-router-dom')) {
-              return 'router-vendor';
-            }
-            // i18n
-            if (id.includes('i18next') || id.includes('react-i18next')) {
-              return 'i18n-vendor';
-            }
-            // Toast notifications
-            if (id.includes('react-toastify')) {
-              return 'toast-vendor';
-            }
-            // UI components (Radix)
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            // Lucide icons
-            if (id.includes('lucide-react')) {
-              return 'icons-vendor';
-            }
-            // Remaining vendors
             return 'vendor';
           }
         },

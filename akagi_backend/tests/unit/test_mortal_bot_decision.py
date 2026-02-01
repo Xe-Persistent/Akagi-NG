@@ -1,17 +1,25 @@
 import json
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from akagi_ng.mjai_bot.mortal.bot import Mortal3pBot, MortalBot
 
-# 检查 libriichi 是否可用
-try:
-    from akagi_ng.core.lib_loader import libriichi  # noqa: F401
 
-    HAS_LIBRIICHI = True
-except ImportError:
-    HAS_LIBRIICHI = False
+@pytest.fixture(autouse=True)
+def mock_lib_loader_module():
+    """彻底 Mock 掉 lib_loader 模块，防止加载真实二进制库"""
+    mock_module = MagicMock()
+    mock_module.libriichi = MagicMock()
+    # Mock Bot class
+    mock_module.libriichi.mjai.Bot = MagicMock
+
+    mock_module.libriichi3p = MagicMock()
+    mock_module.libriichi3p.mjai.Bot = MagicMock
+
+    with patch.dict(sys.modules, {"akagi_ng.core.lib_loader": mock_module}):
+        yield mock_module
 
 
 @pytest.fixture
@@ -42,7 +50,6 @@ def mock_engine_setup():
         yield mock_loader, mock_bot_instance, mock_engine
 
 
-@pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available")
 def test_event_processing_flow(mock_engine_setup) -> None:
     """验证基本的事件处理流程。"""
     bot = MortalBot()
@@ -54,13 +61,12 @@ def test_event_processing_flow(mock_engine_setup) -> None:
     assert data["meta"]["game_start"] is True
 
     # 包含第二个事件会触发推理
-    _, mock_bot_instance, _ = mock_engine_setup
+    _, _, _ = mock_engine_setup
     resp = bot.react(json.dumps([{"type": "tsumo", "actor": 0, "pai": "1m"}]))
     data = json.loads(resp)
     assert data["type"] == "dahai"
 
 
-@pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available")
 def test_meta_data_format_3p(mock_engine_setup) -> None:
     """验证三麻模式下的数据格式。"""
     bot = Mortal3pBot()

@@ -1,9 +1,21 @@
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from akagi_ng.mjai_bot.engine.factory import _ENGINE_CACHE, LazyLocalEngine, load_bot_and_engine
+
+
+@pytest.fixture(autouse=True)
+def mock_lib_loader_module():
+    """彻底 Mock 掉 lib_loader 模块，防止加载真实二进制库"""
+    mock_module = MagicMock()
+    mock_module.libriichi = MagicMock()
+    mock_module.libriichi3p = MagicMock()
+
+    with patch.dict(sys.modules, {"akagi_ng.core.lib_loader": mock_module}):
+        yield mock_module
 
 
 @pytest.fixture(autouse=True)
@@ -59,14 +71,13 @@ def test_lazy_local_engine_delegation(mock_consts) -> None:
     assert mock_real.get_additional_meta.called
 
 
-def test_load_bot_and_engine_4p() -> None:
+def test_load_bot_and_engine_4p(mock_lib_loader_module) -> None:
     """测试加载 4 人麻将引擎和机器人。"""
-    with (
-        patch("akagi_ng.core.lib_loader.libriichi") as mock_lib,
-        patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings,
-    ):
+    with patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings:
         mock_settings.ot.online = False
-        mock_lib.mjai.Bot = MagicMock()
+
+        # Setup mock
+        mock_lib_loader_module.libriichi.mjai.Bot = MagicMock()
 
         bot, engine = load_bot_and_engine(seat=0, is_3p=False)
 
@@ -76,14 +87,12 @@ def test_load_bot_and_engine_4p() -> None:
         assert len(_ENGINE_CACHE) == 1
 
 
-def test_load_bot_and_engine_3p() -> None:
+def test_load_bot_and_engine_3p(mock_lib_loader_module) -> None:
     """测试加载 3 人麻将引擎和机器人。"""
-    with (
-        patch("akagi_ng.core.lib_loader.libriichi3p") as mock_lib,
-        patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings,
-    ):
+    with patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings:
         mock_settings.ot.online = False
-        mock_lib.mjai.Bot = MagicMock()
+
+        mock_lib_loader_module.libriichi3p.mjai.Bot = MagicMock()
 
         bot, engine = load_bot_and_engine(seat=1, is_3p=True)
 
@@ -91,16 +100,17 @@ def test_load_bot_and_engine_3p() -> None:
         assert engine.is_3p is True
 
 
-def test_load_bot_and_engine_online() -> None:
+def test_load_bot_and_engine_online(mock_lib_loader_module) -> None:
     """测试加载包含在线引擎的 Provider。"""
     with (
-        patch("akagi_ng.core.lib_loader.libriichi") as mock_lib,
         patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings,
         patch("akagi_ng.mjai_bot.engine.factory.AkagiOTEngine") as mock_ot,
     ):
         mock_settings.ot.online = True
         mock_settings.ot.server = "http://localhost"
         mock_settings.ot.api_key = "key"
+
+        mock_lib_loader_module.libriichi.mjai.Bot = MagicMock()
 
         bot, engine = load_bot_and_engine(seat=0, is_3p=False)
 

@@ -1,8 +1,26 @@
 import json
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from akagi_ng.mjai_bot.mortal.base import MortalBot
+
+
+@pytest.fixture(autouse=True, scope="function")
+def mock_lib_loader_module():
+    """彻底 Mock 掉 lib_loader 模块，防止加载真实二进制库"""
+    mock_module = MagicMock()
+    mock_module.libriichi = MagicMock()
+    # Mock Bot class
+    mock_module.libriichi.mjai.Bot = MagicMock
+
+    mock_module.libriichi3p = MagicMock()
+    mock_module.libriichi3p.mjai.Bot = MagicMock
+
+    with patch.dict(sys.modules, {"akagi_ng.core.lib_loader": mock_module}):
+        yield mock_module
 
 
 class TestRiichiLookahead(unittest.TestCase):

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType
+import contextlib
 
 
 @pytest.fixture
@@ -80,10 +81,8 @@ def test_liqi_proto_full_parse_flow(proto) -> None:
 def test_liqi_proto_dispatch_logic():
     parser = LiqiProto()
     with patch("akagi_ng.bridge.majsoul.liqi.from_protobuf", return_value=[".lq.ActionNewRound", b"data"]):
-        try:
+        with contextlib.suppress(Exception):
             parser._parse_notify([".lq.ActionNewRound", b"data"])
-        except Exception:
-            pass
 
 
 def test_liqi_proto_invalid_structure():

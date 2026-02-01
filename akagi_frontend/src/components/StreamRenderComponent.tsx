@@ -26,7 +26,7 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
       <div
         id='render-source'
         className={cn('flex items-center justify-center bg-transparent', 'text-zinc-800')}
-        style={{ width: 1280, height: 720 }}
+        style={{ width: 'var(--stream-width)', height: 'var(--stream-height)' }}
       >
         <div className='h-12 w-12 animate-pulse rounded-full bg-current opacity-10' />
       </div>
@@ -40,15 +40,14 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
   return (
     <div
       id='render-source'
-      className={cn(
-        'relative flex flex-col items-center justify-center bg-transparent p-4 transition-all duration-300',
-      )}
-      style={{ width: 1280, height: 720 }}
+      className='relative flex flex-col items-center justify-center bg-transparent p-4'
+      style={{ width: 'var(--stream-width)', height: 'var(--stream-height)' }}
     >
       <div className='flex w-full flex-col gap-4'>
-        {filteredRecommendations.slice(0, 3).map((rec, index) => (
-          <StreamRecommendation key={index + rec.action} {...rec} />
-        ))}
+        {filteredRecommendations.slice(0, 3).map((rec, index) => {
+          const key = `${rec.action}-${rec.tile || ''}-${rec.consumed?.join(',') || ''}-${index}`;
+          return <StreamRecommendation key={key} {...rec} />;
+        })}
       </div>
     </div>
   );

@@ -47,7 +47,12 @@ const Recommendation: FC<Recommendation> = ({
   const shouldShowConsumed = consumed && SHOW_CONSUMED_ACTIONS.has(action);
 
   return (
-    <div className='group relative mx-auto w-full'>
+    <div
+      className={cn(
+        'group will-change-transform-opacity relative mx-auto w-full',
+        'animate-in fade-in slide-in-from-bottom-1 duration-300',
+      )}
+    >
       {/* 1. Background Glow Effect */}
       <div className={cn('background-glow', effectiveConfig.gradient)} />
 
@@ -70,7 +75,6 @@ const Recommendation: FC<Recommendation> = ({
               trackingClass,
               effectiveConfig.gradient,
             )}
-            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
           >
             {displayLabel}
           </h2>

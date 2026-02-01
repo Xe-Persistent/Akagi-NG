@@ -15,20 +15,29 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = ({
   stroke = 8,
   fontSize = 'text-5xl',
 }) => {
-  const [currentPercentage, setCurrentPercentage] = React.useState(0);
+  const [currentPercentage, setCurrentPercentage] = React.useState(percentage);
   const valueAnimationRef = React.useRef<number | undefined>(undefined);
   const sprintAnimationRef = React.useRef<number | undefined>(undefined);
   const startTimeRef = React.useRef<number | undefined>(undefined);
-  const startValueRef = React.useRef(0);
+  const startValueRef = React.useRef(percentage);
   const targetValueRef = React.useRef(percentage);
+  const isFirstRenderRef = React.useRef(true);
 
-  // 追踪最新的 currentPercentage 以避免在 effect 依赖中包含它
   const currentPercentageRef = React.useRef(currentPercentage);
   React.useLayoutEffect(() => {
     currentPercentageRef.current = currentPercentage;
   }, [currentPercentage]);
 
   React.useEffect(() => {
+    // 首次渲染时跳过动画，直接设置目标值
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      setCurrentPercentage(percentage);
+      startValueRef.current = percentage;
+      targetValueRef.current = percentage;
+      return;
+    }
+
     // 目标变化时重置动画
     startValueRef.current = currentPercentageRef.current;
     targetValueRef.current = percentage;

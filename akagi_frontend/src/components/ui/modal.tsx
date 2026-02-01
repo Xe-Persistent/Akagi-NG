@@ -39,7 +39,7 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className 
 
   return (
     <div
-      className='animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/0 p-4 backdrop-blur-none duration-200'
+      className='fixed inset-0 z-50 flex items-center justify-center p-4'
       role='button'
       tabIndex={-1}
       onClick={(e) => {
@@ -53,15 +53,11 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className 
         }
       }}
     >
-      <div
-        role='dialog'
-        aria-modal='true'
-        tabIndex={-1}
-        className={cn(
-          'animate-in zoom-in-95 relative flex max-h-[90vh] w-full flex-col rounded-xl border border-zinc-200 bg-white/80 shadow-lg backdrop-blur-xl duration-200 dark:border-white/10 dark:bg-zinc-900/40',
-          className,
-        )}
-      >
+      {/* 背景遮罩层 */}
+      <div className='modal-backdrop' />
+
+      {/* 对话框内容 */}
+      <div role='dialog' aria-modal='true' tabIndex={-1} className={cn('modal-content', className)}>
         {children}
       </div>
     </div>

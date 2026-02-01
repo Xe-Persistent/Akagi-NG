@@ -75,7 +75,7 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
             height: PIP_WINDOW_HEIGHT,
             transformOrigin: 'center center',
           }}
-          className='shrink-0 transition-transform duration-100 ease-linear'
+          className='shrink-0'
         >
           {isHudActive && !isHudPage ? (
             <div className='stream-player-overlay'>

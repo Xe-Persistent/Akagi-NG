@@ -15,7 +15,7 @@ export const MahjongTile: FC<MahjongTileProps> = ({ tile, className, isGhost, is
   return (
     <div
       className={cn(
-        'mahjong-tile-container',
+        'mahjong-tile-container will-change-transform',
         isGhost ? 'opacity-50 grayscale' : 'hover:-translate-y-1',
         className,
       )}

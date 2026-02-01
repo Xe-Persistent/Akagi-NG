@@ -54,7 +54,7 @@
   }
 
   .mahjong-tile-face {
-    @apply relative z-10 h-full w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700;
+    @apply relative z-10 h-full w-full overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-sm dark:border-zinc-600;
   }
 
   .mahjong-tile-3d {
@@ -67,11 +67,12 @@
 
   /* Components: StreamRecommendation */
   .glass-card {
-    @apply relative flex h-45 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 p-4 pr-10 shadow-xl backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/75;
+    @apply relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 p-4 pr-10 shadow-xl backdrop-blur-xl transition-opacity duration-300 dark:border-white/5 dark:bg-zinc-950/75;
+    will-change: transform, opacity;
   }
 
   .vertical-divider {
-    @apply h-24 w-px bg-zinc-950/10 dark:bg-white/10;
+    @apply h-24 w-px bg-zinc-300 dark:bg-zinc-700;
   }
 
   .background-glow {
@@ -80,6 +81,7 @@
 
   .action-text-gradient {
     @apply bg-linear-to-br bg-clip-text font-black text-transparent drop-shadow-sm filter;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
   /* Components: StatusBar */
@@ -87,16 +89,16 @@
     @apply w-full rounded-lg border p-3 text-center text-sm;
   }
   .status-error {
-    @apply border-rose-100 bg-rose-50 text-rose-600 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400;
+    @apply border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400;
   }
   .status-warning {
-    @apply border-amber-100 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200;
+    @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200;
   }
   .status-success {
-    @apply border-emerald-100 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-200;
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-200;
   }
   .status-info {
-    @apply border-blue-100 bg-blue-50 text-blue-900 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200;
+    @apply border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200;
   }
 
   /* Components: StreamPlayer */
@@ -116,6 +118,16 @@
     @apply border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500;
   }
 
+  /* Components: Modal */
+  .modal-backdrop {
+    @apply animate-in fade-in absolute inset-0 bg-black/50 backdrop-blur-sm duration-200;
+    will-change: opacity, backdrop-filter;
+  }
+
+  .modal-content {
+    @apply animate-in zoom-in-95 relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl border border-zinc-300 bg-white/80 shadow-2xl backdrop-blur-xl duration-200 dark:border-white/15 dark:bg-zinc-900/80;
+    will-change: transform, opacity, filter;
+  }
   /* Components: Settings */
   .settings-section-title {
     @apply border-border border-b pb-2 text-lg font-semibold;
@@ -126,17 +138,34 @@
     @apply flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100;
   }
   .footer-divider {
-    @apply h-3 w-px bg-zinc-500/20; /* Keep generic name in case used elsewhere, but specific to footer usage */
+    @apply h-3 w-px bg-zinc-300 dark:bg-zinc-700;
   }
 
   /* Components: Logo Glow */
   .logo-glow-effect {
     @apply absolute -inset-4 rounded-full bg-rose-500/20 blur-xl dark:bg-rose-500/10;
   }
+
+  /* Performance Hints */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-transform-opacity {
+    will-change: transform, opacity;
+  }
+
+  .will-change-filter {
+    will-change: opacity, backdrop-filter, filter;
+  }
 }
 
 @layer base {
   :root {
+    /* Stream Render Dimensions */
+    --stream-width: 1280px;
+    --stream-height: 720px;
+
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -153,9 +182,9 @@
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --border: 240 5.9% 82%;
+    --input: 240 5.9% 82%;
+    --ring: 340 75% 55%; /* 玫瑰色系 */
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
@@ -184,7 +213,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --ring: 280 65% 60%; /* 紫色系 */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;

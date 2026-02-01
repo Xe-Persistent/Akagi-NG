@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import queue
 import signal
 import threading
@@ -35,14 +34,12 @@ class AkagiApp:
         settings = loaded_settings
         configure_logging(settings.log_level)
 
-        # Start DataServer
         host, port = settings.server.host, settings.server.port
         self.ds = DataServer(host=host, external_port=port)
 
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        # Load MJAI Bot components
         mjai_bot, mjai_controller = None, None
         try:
             importlib.import_module("akagi_ng.core.lib_loader")
@@ -71,7 +68,6 @@ class AkagiApp:
         if app.settings.mitm.enabled and app.mitm_client:
             app.mitm_client.start()
 
-        # Always start Electron client if available, so we can listen to API inputs
         if app.electron_client:
             app.electron_client.start()
 
@@ -79,49 +75,96 @@ class AkagiApp:
         logger.info("Akagi backend loop started.")
 
     def _setup_signals(self):
-        signal.signal(signal.SIGINT, lambda *_: self.stop())
-        with contextlib.suppress(Exception):
-            signal.signal(signal.SIGTERM, lambda *_: self.stop())
+        """设置信号处理器以关闭程序"""
+
+        def signal_handler(signum: int, _frame: object) -> None:
+            sig_name = signal.Signals(signum).name
+            logger.info(f"Received signal {sig_name} ({signum}), initiating shutdown...")
+            self.stop()
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
 
     def stop(self):
         self._stop_event.set()
+
+    def _handle_system_shutdown(self, msg: dict) -> bool:
+        """处理系统关闭消息
+
+        Returns:
+            True 如果是关闭消息并已处理 否则False
+        """
+        if msg.get("type") == "system_shutdown":
+            logger.info(f"Received shutdown signal from {msg.get('source', 'unknown')}")
+            self.stop()
+            return True
+        return False
+
+    def _handle_system_event(self, msg: dict, batch_notifications: list[dict]) -> bool:
+        """处理系统事件消息
+
+        Returns:
+            True 如果是系统事件且应跳过后续处理 否则False
+        """
+        if n := NotificationHandler.from_message(msg):
+            batch_notifications.append(n)
+            if msg.get("type") == "system_event":
+                return True
+        return False
+
+    def _collect_controller_response(
+        self, msg: dict, controller: Controller | None, mjai_responses: list[dict], batch_notifications: list[dict]
+    ) -> None:
+        """收集 Controller 的响应和通知"""
+        if not controller:
+            return
+
+        if resp := controller.react(msg):
+            mjai_responses.append(resp)
+            # 立即采集 Controller 产生的标志 (如模型加载)
+            flags = getattr(controller, "notification_flags", {})
+            if flags:
+                batch_notifications.extend(NotificationHandler.from_flags(flags))
+
+    def _update_bot_state(self, msg: dict, bot: StateTrackerBot | None, batch_notifications: list[dict]) -> None:
+        """更新 Bot 状态并收集通知"""
+        if not bot:
+            return
+
+        bot.react(msg)
+        # 立即采集 Bot 产生的标志
+        flags = getattr(bot, "notification_flags", {})
+        if flags:
+            batch_notifications.extend(NotificationHandler.from_flags(flags))
 
     def _process_message_batch(
         self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
     ) -> tuple[list[dict], list[dict]]:
         """
-        Process a batch of MJAI messages.
+        处理一批 MJAI 消息
 
-        CRITICAL: Controller reacts BEFORE Bot updates state.
-        Controller decides actions based on current state; if Bot updated first,
-        Controller would act on "future" state instead of responding to current event.
+        注意: Controller 必须在 Bot 更新状态之前响应
+        Controller 基于当前状态做决策，如果 Bot 先更新状态
+        Controller 将基于"未来"状态而非当前事件做出响应
         """
         mjai_responses: list[dict] = []
         batch_notifications: list[dict] = []
 
         for msg in mjai_msgs:
             try:
+                # 0. 处理系统关闭消息
+                if self._handle_system_shutdown(msg):
+                    continue
+
                 # 1. 从消息本身提取通知 (例如 system_event)
-                if n := NotificationHandler.from_message(msg):
-                    batch_notifications.append(n)
-                    if msg.get("type") == "system_event":
-                        continue
+                if self._handle_system_event(msg, batch_notifications):
+                    continue
 
                 # 2. Controller 响应消息
-                if controller and (resp := controller.react(msg)):
-                    mjai_responses.append(resp)
-                    # 立即采集 Controller 产生的标志 (如模型加载)
-                    flags = getattr(controller, "notification_flags", {})
-                    if flags:
-                        batch_notifications.extend(NotificationHandler.from_flags(flags))
+                self._collect_controller_response(msg, controller, mjai_responses, batch_notifications)
 
                 # 3. Bot 更新状态
-                if bot:
-                    bot.react(msg)
-                    # 立即采集 Bot 产生的标志
-                    flags = getattr(bot, "notification_flags", {})
-                    if flags:
-                        batch_notifications.extend(NotificationHandler.from_flags(flags))
+                self._update_bot_state(msg, bot, batch_notifications)
 
             except (ValueError, KeyError, TypeError) as e:
                 logger.error(f"Invalid MJAI message format: {msg}, error: {e}")
@@ -132,10 +175,10 @@ class AkagiApp:
 
     def _get_next_message(self, timeout: float = 0.1) -> dict | None:
         """
-        Get the next message from the event queue (blocking with timeout).
-        Returns None if timeout expires or queue is empty.
+        从事件队列获取下一条消息(阻塞、100ms超时)
+        如果超时或队列为空则返回 None
 
-        This is the event-driven INPUT phase replacing polling.
+        这是事件驱动的 INPUT 阶段
         """
         try:
             return self.message_queue.get(block=True, timeout=timeout)
@@ -146,12 +189,12 @@ class AkagiApp:
         self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
     ) -> dict:
         """
-        Process the batch of MJAI messages.
-        This is the PROCESS phase of the Reactor pattern.
+        处理 MJAI 消息批次
+        这是 Reactor 模式的 PROCESS 阶段
 
-        Returns a result dict containing:
-            - mjai_responses: List of responses from controller
-            - notifications: List of notifications to send
+        Returns:
+            mjai_responses: Controller 的响应列表
+            notifications: 要发送的通知列表
         """
         mjai_responses, batch_notifications = self._process_message_batch(mjai_msgs, bot, controller)
 
@@ -161,10 +204,10 @@ class AkagiApp:
             "is_sync": any(msg.get("sync", False) for msg in mjai_msgs),
         }
 
-    def _emit_outputs(self, result: dict, bot: StateTrackerBot | None, controller: Controller | None):
+    def _emit_outputs(self, result: dict, bot: StateTrackerBot | None):
         """
-        Send processed results to the DataServer.
-        This is the OUTPUT phase of the Reactor pattern.
+        将处理结果发送到 DataServer
+        这是 Reactor 模式的 OUTPUT 阶段
         """
         mjai_responses = result["mjai_responses"]
         batch_notifications = result["batch_notifications"]
@@ -177,18 +220,7 @@ class AkagiApp:
         # 2. Notifications: 从各种来源收集通知
         all_notifications = batch_notifications.copy()
 
-        # 2.1 收集 Notification Flags
-        # 优先检查 Controller (MortalBot 所在的组件)
-        if controller:
-            ctrl_flags = getattr(controller, "notification_flags", {})
-            all_notifications.extend(NotificationHandler.from_flags(ctrl_flags))
-
-        # 同时也检查 Bot (StateTrackerBot)
-        if bot:
-            bot_flags = getattr(bot, "notification_flags", {})
-            all_notifications.extend(NotificationHandler.from_flags(bot_flags))
-
-        # 2.2 检查响应中的错误
+        # 3. 检查响应中的错误
         if error_notification := NotificationHandler.from_error_response(last_response):
             all_notifications.append(error_notification)
 
@@ -231,7 +263,7 @@ class AkagiApp:
                     result = self._process_events(mjai_msgs, bot, controller)
 
                     # 阶段 3：OUTPUT - 分发结果
-                    self._emit_outputs(result, bot, controller)
+                    self._emit_outputs(result, bot)
 
                 except Exception as e:
                     logger.exception(f"Critical error in main loop dispatch: {e}")
@@ -243,14 +275,35 @@ class AkagiApp:
         return 0
 
     def cleanup(self):
+        """清理资源并记录详细的关闭日志"""
         logger.info("Stopping Akagi-NG...")
         app = get_app_context()
-        with contextlib.suppress(Exception):
-            if app.mitm_client:
+
+        # 停止 MITM 客户端
+        if app.mitm_client:
+            try:
+                logger.info("Stopping MITM client...")
                 app.mitm_client.stop()
-        with contextlib.suppress(Exception):
-            if app.electron_client:
+                logger.info("MITM client stopped successfully.")
+            except Exception as e:
+                logger.error(f"Error stopping MITM client: {e}")
+
+        # 停止 Electron 客户端
+        if app.electron_client:
+            try:
+                logger.info("Stopping Electron client...")
                 app.electron_client.stop()
-        with contextlib.suppress(Exception):
-            self.ds.stop()
-        logger.info("Akagi-NG stopped.")
+                logger.info("Electron client stopped successfully.")
+            except Exception as e:
+                logger.error(f"Error stopping Electron client: {e}")
+
+        # 停止 DataServer
+        if self.ds:
+            try:
+                logger.info("Stopping DataServer...")
+                self.ds.stop()
+                logger.info("DataServer stopped successfully.")
+            except Exception as e:
+                logger.error(f"Error stopping DataServer: {e}")
+
+        logger.info("Akagi-NG stopped successfully.")

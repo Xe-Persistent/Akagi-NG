@@ -132,8 +132,41 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
         return _json_response({"ok": False, "error": str(e)}, status=500)
 
 
+async def shutdown_handler(_request: web.Request) -> web.Response:
+    """触发后端优雅关闭
+
+    通过消息队列发送关闭信号,由主循环处理,避免直接耦合 AkagiApp
+    """
+    logger.info("Received shutdown request from API")
+
+    try:
+        from akagi_ng.core import get_app_context
+
+        app = get_app_context()
+
+        # 通过消息队列发送关闭信号,解耦 API 和 AkagiApp
+        if app.electron_client and hasattr(app.electron_client, "message_queue"):
+            shutdown_message = {
+                "type": "system_shutdown",
+                "source": "api",
+            }
+            app.electron_client.message_queue.put(shutdown_message)
+            logger.info("Shutdown signal sent to message queue")
+            return _json_response({"ok": True, "message": "Shutdown initiated"})
+
+        logger.warning("Message queue not available")
+        return _json_response({"ok": False, "error": "Message queue not available"}, status=503)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        logger.error(f"Shutdown handler error: {e}")
+        return _json_response({"ok": False, "error": str(e)}, status=500)
+
+
 def setup_routes(app: web.Application):
     app.router.add_get("/api/settings", get_settings_handler)
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
     app.router.add_post("/api/ingest", ingest_mjai_handler)
+    app.router.add_post("/api/shutdown", shutdown_handler)

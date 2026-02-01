@@ -20,8 +20,6 @@ export class BackendManager {
     this.readyPromise = new Promise((resolve) => {
       this.resolveReady = resolve;
     });
-    // In dev, root is ../../ from dist/main
-    // In prod, root is process.resourcesPath or app.getAppPath()
     const projectRoot = !app.isPackaged
       ? path.resolve(__dirname, '../../')
       : path.join(process.resourcesPath, '..');
@@ -52,9 +50,7 @@ export class BackendManager {
   private startDevBackend() {
     console.log('Starting backend in DEV mode...');
 
-    // Path resolution
-    // __dirname is .../dist/main
-    const projectRoot = path.resolve(__dirname, '../../'); // .../dist/main/../../ -> project root
+    const projectRoot = path.resolve(__dirname, '../../');
     const backendRoot = path.join(projectRoot, 'akagi_backend');
     const venvDir = path.join(backendRoot, '.venv');
 
@@ -72,7 +68,6 @@ export class BackendManager {
       return;
     }
 
-    // Run module: python -m akagi_ng
     const env = {
       ...process.env,
       PYTHONUNBUFFERED: '1',
@@ -101,7 +96,6 @@ export class BackendManager {
       return;
     }
 
-    // Use npx tsx to run the mock script
     const shell = process.platform === 'win32';
     this.pyProcess = spawn('npx', ['tsx', 'mock.ts'], {
       cwd: frontendRoot,
@@ -156,11 +150,11 @@ export class BackendManager {
     if (!this.pyProcess) return;
 
     this.pyProcess.stdout?.on('data', (data) => {
-      console.log(`[Backend]: ${data.toString().trim()}`);
+      console.log(`${data.toString().trim()}`);
     });
 
     this.pyProcess.stderr?.on('data', (data) => {
-      console.error(`[Backend ERROR]: ${data.toString().trim()}`);
+      console.error(`[Backend Error]: ${data.toString().trim()}`);
     });
 
     this.pyProcess.on('close', (code) => {
@@ -177,10 +171,6 @@ export class BackendManager {
     }
   }
 
-  public isReady(): boolean {
-    return this.isReadyState;
-  }
-
   public async waitForReady(timeoutMs: number = 20000): Promise<boolean> {
     if (this.isReadyState) return true;
 
@@ -191,10 +181,31 @@ export class BackendManager {
     return Promise.race([this.readyPromise.then(() => true), timeoutPromise]);
   }
 
-  public stop() {
-    if (this.pyProcess) {
-      this.pyProcess.kill();
-      this.pyProcess = null;
+  public async stop() {
+    if (!this.pyProcess) {
+      return;
     }
+
+    try {
+      await fetch(`http://${this.HOST}:${this.PORT}/api/shutdown`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(1000),
+      });
+    } catch {
+      // 忽略错误,后端可能已经在关闭中
+    }
+
+    // 等待进程退出,最多 3 秒
+    const timeout = setTimeout(() => {
+      if (this.pyProcess && !this.pyProcess.killed) {
+        console.warn('[BackendManager] Backend did not exit, forcing termination...');
+        this.pyProcess.kill('SIGKILL');
+      }
+    }, 3000);
+
+    this.pyProcess.once('exit', () => {
+      clearTimeout(timeout);
+      this.pyProcess = null;
+    });
   }
 }

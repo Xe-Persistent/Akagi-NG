@@ -184,7 +184,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 82%;
     --input: 240 5.9% 82%;
-    --ring: 340 75% 55%; /* 玫瑰色系 */
+    --ring: 340 85% 75%;
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
@@ -213,7 +213,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 280 65% 60%; /* 紫色系 */
+    --ring: 280 65% 60%;
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;

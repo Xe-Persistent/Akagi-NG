@@ -37,7 +37,7 @@ export const ConsumedDisplay: FC<ConsumedDisplayProps> = ({ action, consumed, ti
   }
 
   return (
-    <div className='flex items-center gap-6 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4 dark:border-zinc-700/50 dark:bg-zinc-800/50'>
+    <div className='flex items-center gap-6 rounded-xl border border-white/30 bg-white/20 px-5 py-4 shadow-sm dark:border-white/10 dark:bg-black/20'>
       {/* The tile called (Last Kawa or kan identifier) */}
       <div className='relative'>
         <MahjongTile tile={tile ?? '?'} />

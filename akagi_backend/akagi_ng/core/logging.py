@@ -34,7 +34,6 @@ def configure_logging(level: str = "INFO"):
         log_file,
         level=level,
         format=LOG_FORMAT,
-        enqueue=True,
     )
 
     # 仅在 GUI 模式下输出到 stdout (供 Electron 捕获)
@@ -45,7 +44,6 @@ def configure_logging(level: str = "INFO"):
             sys.stdout,
             level=level,
             format=LOG_FORMAT,
-            enqueue=True,
         )
 
 

@@ -13,7 +13,6 @@
     "dev:frontend": "cd ../akagi_frontend && npm run dev",
     "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.json && electron .",
     "dev:electron:mock": "wait-on http://localhost:5173 && tsc -p tsconfig.json && set AKAGI_MOCK_MODE=1&& electron .",
-    "syncdeps": "npm install",
     "clean": "tsx scripts/clean.ts",
     "sync-version": "tsx scripts/sync_version.ts",
     "prepare-release": "tsx scripts/prepare_release.ts",

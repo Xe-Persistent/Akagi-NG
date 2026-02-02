@@ -47,7 +47,7 @@ const Recommendation: FC<Recommendation> = ({
     <div
       className={cn(
         'group will-change-transform-opacity relative mx-auto w-full',
-        'animate-in fade-in slide-in-from-bottom-1 duration-300',
+        'animate-in fade-in slide-in-from-bottom-4 ease-premium duration-500',
       )}
     >
       {/* 1. Background Glow Effect */}

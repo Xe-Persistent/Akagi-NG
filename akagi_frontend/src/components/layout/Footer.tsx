@@ -37,7 +37,7 @@ export const Footer: FC = memo(() => {
             <span>AGPLv3</span>
           </a>
           <div className='footer-divider' />
-          <span className='text-[10px] opacity-30'>
+          <span className='text-[0.625rem] opacity-30'>
             © {new Date().getFullYear()} Akagi-NG contributors.
           </span>
         </div>

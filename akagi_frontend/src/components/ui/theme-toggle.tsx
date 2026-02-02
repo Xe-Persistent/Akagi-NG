@@ -1,6 +1,8 @@
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { type FC, memo } from 'react';
 
+import { cn } from '@/lib/utils';
+
 type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeOption {
@@ -33,22 +35,45 @@ interface ThemeToggleProps {
 }
 
 export const ThemeToggle: FC<ThemeToggleProps> = memo(({ theme, setTheme }) => {
+  const activeIndex = THEME_OPTIONS.findIndex((opt) => opt.value === theme);
+  const activeOption = THEME_OPTIONS[activeIndex];
+
   return (
-    <div className='no-drag flex items-center rounded-full border border-zinc-500/20 bg-transparent p-1 dark:border-zinc-400/20'>
-      {THEME_OPTIONS.map(({ value, icon: Icon, activeColor }) => (
-        <button
-          key={value}
-          onClick={() => setTheme(value)}
-          className={`no-drag rounded-full p-1.5 transition-all ${
-            theme === value
-              ? activeColor
-              : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-          }`}
-          aria-label={`Switch to ${value} theme`}
-        >
-          <Icon className='h-4 w-4' />
-        </button>
-      ))}
+    <div className='no-drag relative inline-flex h-full items-center gap-0 rounded-full border border-zinc-500/20 bg-transparent p-0.5 dark:border-zinc-400/20'>
+      {/* 动画圆形滑块背景 - 弹性比例模式 */}
+      <div
+        className={cn(
+          'ease-premium absolute top-0.5 bottom-0.5 left-0.5 aspect-square rounded-full transition-all duration-500',
+          activeOption.activeColor,
+        )}
+        style={{
+          transform: `translateX(${activeIndex * 100}%)`,
+        }}
+      />
+
+      {THEME_OPTIONS.map(({ value, icon: Icon, activeColor }) => {
+        const isActive = theme === value;
+        return (
+          <button
+            key={value}
+            type='button'
+            onClick={() => setTheme(value)}
+            className={cn(
+              'no-drag relative z-10 flex aspect-square h-full flex-none items-center justify-center rounded-full text-sm transition-colors focus-visible:outline-none',
+              !isActive &&
+                'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100',
+            )}
+            aria-label={`Switch to ${value} theme`}
+          >
+            <Icon
+              className={cn(
+                'h-[55%] w-[55%] transition-colors',
+                isActive ? activeColor.split(' ').find((c) => c.startsWith('text-')) : '',
+              )}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 });

@@ -1,6 +1,6 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import type { FC } from 'react';
-import { Suspense, use, useMemo, useState } from 'react';
+import { memo, Suspense, use, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ interface SettingsFormProps {
   settingsPromise: Promise<Settings>;
 }
 
-const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
+const SettingsForm = memo(({ apiBase, settingsPromise }: SettingsFormProps) => {
   const initialSettings = use(settingsPromise);
   const { t } = useTranslation();
 
@@ -49,7 +49,7 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
           </div>
         )}
 
-        <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+        <div className='settings-grid'>
           <GeneralSection
             settings={settings}
             updateSetting={updateSetting}
@@ -81,18 +81,21 @@ const SettingsForm = ({ apiBase, settingsPromise }: SettingsFormProps) => {
       />
     </>
   );
-};
+});
 
-const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
+SettingsForm.displayName = 'SettingsForm';
+
+const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose, apiBase }) => {
   const { t } = useTranslation();
-  const settingsPromise = useMemo(() => {
-    if (open) {
-      return fetchSettingsApi(apiBase);
-    }
-    return null;
-  }, [open, apiBase]);
 
-  if (!open) return null;
+  const [activePromise, setActivePromise] = useState<Promise<Settings> | null>(null);
+  const [prevKey, setPrevKey] = useState<string>('');
+  const currentKey = `${open}-${apiBase}`;
+
+  if (open && prevKey !== currentKey) {
+    setPrevKey(currentKey);
+    setActivePromise(fetchSettingsApi(apiBase));
+  }
 
   return (
     <Modal open={open} onOpenChange={onClose} className='max-h-[90vh] max-w-4xl'>
@@ -105,7 +108,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
       <ModalContent>
         <ErrorBoundary
           fallback={() => (
-            <div className='flex flex-col items-center justify-center p-8 text-center'>
+            <div className='settings-error-state'>
               <AlertTriangle className='text-destructive mb-4 h-10 w-10' />
               <h3 className='text-destructive mb-2 text-lg font-semibold'>
                 {t('common.connection_failed')}
@@ -118,20 +121,20 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ open, onClose, apiBase }) => {
         >
           <Suspense
             fallback={
-              <div className='text-muted-foreground flex flex-col items-center justify-center space-y-4 p-12'>
+              <div className='settings-loading-state'>
                 <Loader2 className='h-8 w-8 animate-spin' />
                 <p>{t('settings.loading')}</p>
               </div>
             }
           >
-            {settingsPromise && (
-              <SettingsForm apiBase={apiBase} settingsPromise={settingsPromise} />
-            )}
+            {activePromise && <SettingsForm apiBase={apiBase} settingsPromise={activePromise} />}
           </Suspense>
         </ErrorBoundary>
       </ModalContent>
     </Modal>
   );
-};
+});
+
+SettingsPanel.displayName = 'SettingsPanel';
 
 export default SettingsPanel;

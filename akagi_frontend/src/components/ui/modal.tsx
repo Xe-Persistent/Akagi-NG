@@ -14,18 +14,14 @@ interface ModalProps {
 }
 
 export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className }) => {
-  // 模态框打开时禁止页面滚动 + Escape 键监听
+  // 监听 Escape 键
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
-
       const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          onOpenChange(false);
-        }
+        if (e.key === 'Escape') onOpenChange(false);
       };
       document.addEventListener('keydown', handleEscape);
-
       return () => {
         document.body.style.overflow = 'unset';
         document.removeEventListener('keydown', handleEscape);
@@ -35,29 +31,27 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, children, className 
     }
   }, [open, onOpenChange]);
 
-  if (!open) return null;
-
   return (
     <div
-      className='fixed inset-0 z-50 flex items-center justify-center p-4'
-      role='button'
-      tabIndex={-1}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onOpenChange(false);
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onOpenChange(false);
-        }
-      }}
+      className={cn(
+        'fixed inset-0 z-50 flex items-center justify-center p-4 select-none',
+        open ? 'visible' : 'pointer-events-none invisible',
+      )}
     >
       {/* 背景遮罩层 */}
-      <div className='modal-backdrop' />
+      <div
+        className={cn('modal-backdrop', open ? 'is-open' : 'is-closed')}
+        onClick={() => onOpenChange(false)}
+        aria-hidden='true'
+      />
 
       {/* 对话框内容 */}
-      <div role='dialog' aria-modal='true' tabIndex={-1} className={cn('modal-content', className)}>
+      <div
+        role='dialog'
+        aria-modal='true'
+        tabIndex={-1}
+        className={cn('modal-content', className, open ? 'is-open' : 'is-closed')}
+      >
         {children}
       </div>
     </div>

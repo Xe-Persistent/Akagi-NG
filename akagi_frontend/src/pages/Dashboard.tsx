@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToastContainer } from 'react-toastify';
 
@@ -38,17 +38,20 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     isLanguageInitialized.current = true;
   }
 
-  const handleLocaleChange = async (newLocale: string) => {
-    await i18n.changeLanguage(newLocale);
-    try {
-      const currentSettings = await fetchSettingsApi(apiBase);
-      const newSettings = { ...currentSettings, locale: newLocale };
-      await saveSettingsApi(apiBase, newSettings);
-    } catch (e) {
-      console.error('Failed to save locale:', e);
-      notify.error(`${i18n.t('common.error')}: ${(e as Error).message}`);
-    }
-  };
+  const handleLocaleChange = useCallback(
+    async (newLocale: string) => {
+      await i18n.changeLanguage(newLocale);
+      try {
+        const currentSettings = await fetchSettingsApi(apiBase);
+        const newSettings = { ...currentSettings, locale: newLocale };
+        await saveSettingsApi(apiBase, newSettings);
+      } catch (e) {
+        console.error('Failed to save locale:', e);
+        notify.error(`${i18n.t('common.error')}: ${(e as Error).message}`);
+      }
+    },
+    [apiBase, i18n],
+  );
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
@@ -97,7 +100,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     }
   }, [resourceStatus, t]);
 
-  const handleLaunchGame = async () => {
+  const handleLaunchGame = useCallback(async () => {
     setIsLaunching(true);
     try {
       // Re-fetch settings to ensure we have the latest configuration before launching
@@ -115,20 +118,30 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     } finally {
       setIsLaunching(false);
     }
-  };
+  }, [apiBase, initialSettings, t]);
 
-  const handleShutdownClick = () => {
+  const handleShutdownClick = useCallback(() => {
     setShowShutdownConfirm(true);
-  };
+  }, []);
 
-  const performShutdown = async () => {
+  const performShutdown = useCallback(async () => {
     try {
       await window.electron.invoke('request-shutdown');
     } catch (e) {
       console.error('Failed to shutdown:', e);
       notify.error(`${t('common.error')}: ${(e as Error).message}`);
     }
-  };
+  }, [t]);
+
+  const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  const handleToggleHud = useCallback(
+    (show: boolean) => {
+      window.electron.invoke('toggle-hud', show);
+      context.setIsHudActive(show);
+    },
+    [context],
+  );
 
   return (
     <div className='relative flex h-screen flex-col overflow-hidden text-zinc-900 dark:text-zinc-50'>
@@ -148,14 +161,11 @@ function Dashboard({ settingsPromise }: DashboardProps) {
         <Header
           isLaunching={isLaunching}
           onLaunch={handleLaunchGame}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={handleOpenSettings}
           locale={i18n.language}
           onLocaleChange={handleLocaleChange}
           onShutdown={handleShutdownClick}
-          onToggleHud={(show) => {
-            window.electron.invoke('toggle-hud', show);
-            context.setIsHudActive(show);
-          }}
+          onToggleHud={handleToggleHud}
           isHudActive={context.isHudActive}
         />
         <main className='mx-auto flex w-full grow flex-col items-center justify-center overflow-hidden px-4 py-4 sm:px-6'>
@@ -167,7 +177,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
         <Footer />
       </div>
 
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} apiBase={apiBase} />
+      <SettingsPanel open={settingsOpen} onClose={handleCloseSettings} apiBase={apiBase} />
 
       <ConfirmationDialog
         open={showShutdownConfirm}

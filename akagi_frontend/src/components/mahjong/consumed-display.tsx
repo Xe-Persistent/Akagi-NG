@@ -1,6 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import type { FC } from 'react';
-import { useMemo } from 'react';
+import { type FC, memo, useMemo } from 'react';
 
 import { sortTiles } from '@/lib/mahjong';
 
@@ -12,7 +11,7 @@ interface ConsumedDisplayProps {
   tile?: string;
 }
 
-export const ConsumedDisplay: FC<ConsumedDisplayProps> = ({ action, consumed, tile }) => {
+export const ConsumedDisplay: FC<ConsumedDisplayProps> = memo(({ action, consumed, tile }) => {
   const isNaki = action === 'chi' || action === 'pon' || action === 'kan';
 
   // 暗杠检测：action === 'kan 且 4 张牌
@@ -57,4 +56,6 @@ export const ConsumedDisplay: FC<ConsumedDisplayProps> = ({ action, consumed, ti
       </div>
     </div>
   );
-};
+});
+
+ConsumedDisplay.displayName = 'ConsumedDisplay';

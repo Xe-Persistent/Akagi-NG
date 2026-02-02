@@ -45,12 +45,14 @@
   --color-action-kita: #f472b6;
   --color-action-skip: #a1a1aa;
   --color-action-discard: #71717a;
+
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer components {
   /* Mahjong Tile */
   .mahjong-tile-container {
-    @apply relative flex h-28 w-20 flex-col items-center justify-start transition-transform duration-200;
+    @apply ease-premium relative flex h-28 w-20 flex-col items-center justify-start transition-transform duration-500;
   }
 
   .mahjong-tile-face {
@@ -67,7 +69,7 @@
 
   /* Components: StreamRecommendation */
   .glass-card {
-    @apply relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 p-4 pr-10 shadow-xl backdrop-blur-xl transition-opacity duration-300 dark:border-white/5 dark:bg-zinc-950/75;
+    @apply ease-premium relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 pr-10 shadow-xl backdrop-blur-xl transition-all duration-500 dark:border-white/5 dark:bg-zinc-950/75;
     will-change: transform, opacity;
   }
 
@@ -107,7 +109,7 @@
   }
 
   .stream-player-overlay {
-    @apply flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-white/20 bg-white/5 p-8 text-center backdrop-blur-md dark:border-white/10 dark:bg-black/20;
+    @apply ease-premium flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-white/20 bg-white/5 p-8 text-center backdrop-blur-md transition-all duration-500 dark:border-white/10 dark:bg-black/20;
   }
 
   /* Components: Alerts (SettingsPanel) */
@@ -120,17 +122,46 @@
 
   /* Components: Modal */
   .modal-backdrop {
-    @apply animate-in fade-in absolute inset-0 bg-black/50 backdrop-blur-sm duration-200;
+    @apply absolute inset-0 bg-black/40 transition-all duration-300 ease-out;
     will-change: opacity, backdrop-filter;
   }
 
-  .modal-content {
-    @apply animate-in zoom-in-95 relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl border border-zinc-300 bg-white/80 shadow-2xl backdrop-blur-xl duration-200 dark:border-white/15 dark:bg-zinc-900/80;
-    will-change: transform, opacity, filter;
+  .modal-backdrop.is-open {
+    @apply opacity-100 backdrop-blur-sm;
   }
+
+  .modal-backdrop.is-closed {
+    @apply opacity-0 backdrop-blur-none;
+  }
+
+  .modal-content {
+    @apply ease-premium relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl border border-zinc-300 bg-white shadow-2xl transition-all duration-500 dark:border-white/15 dark:bg-zinc-900;
+    will-change: transform, opacity;
+  }
+
+  .modal-content.is-open {
+    @apply translate-y-0 scale-100 opacity-100;
+  }
+
+  .modal-content.is-closed {
+    @apply translate-y-12 scale-[0.96] opacity-0;
+  }
+
   /* Components: Settings */
+  .settings-grid {
+    @apply grid grid-cols-1 gap-6 md:grid-cols-2;
+  }
+
   .settings-section-title {
     @apply border-border border-b pb-2 text-lg font-semibold;
+  }
+
+  .settings-error-state {
+    @apply flex flex-col items-center justify-center p-8 text-center;
+  }
+
+  .settings-loading-state {
+    @apply text-muted-foreground flex flex-col items-center justify-center space-y-4 p-12;
   }
 
   /* Components: Footer */
@@ -162,10 +193,6 @@
 
 @layer base {
   :root {
-    /* Stream Render Dimensions */
-    --stream-width: 1280px;
-    --stream-height: 720px;
-
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -235,24 +262,24 @@
   }
 
   body {
-    @apply text-foreground bg-zinc-100 antialiased dark:bg-zinc-900;
+    @apply text-foreground overflow-hidden bg-zinc-100 antialiased dark:bg-zinc-900;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
     background-image:
-      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.2) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.2) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.2) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.2) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.2) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.2) 0, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.2) 0, transparent 50%);
     background-attachment: fixed;
   }
 
   .dark body {
     background-image:
-      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.3) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.3) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.3) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.3) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgb(236 72 153 / 0.3) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(139 92 246 / 0.3) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgb(59 130 246 / 0.3) 0, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(16 185 129 / 0.3) 0, transparent 50%);
   }
 
   /* HUD Transparency Overrides */

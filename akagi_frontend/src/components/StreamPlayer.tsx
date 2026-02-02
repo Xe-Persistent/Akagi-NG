@@ -1,5 +1,5 @@
 import { Monitor } from 'lucide-react';
-import { type FC, use, useLayoutEffect, useRef, useState } from 'react';
+import { type FC, memo, use, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
@@ -9,8 +9,35 @@ import type { StreamPlayerProps } from '@/types';
 
 import StreamRenderComponent from './StreamRenderComponent';
 
-const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
+/**
+ * HUD 激活时的覆盖层组件
+ * 使用 memo 优化,因为其内容相对静态
+ */
+const HudOverlay = memo(() => {
   const { t } = useTranslation();
+  return (
+    <div className='stream-player-overlay'>
+      <div className='flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-pink-500/20 to-violet-500/20 dark:from-pink-500/10 dark:to-violet-500/10'>
+        <Monitor className='h-10 w-10 text-pink-500 dark:text-pink-400' />
+      </div>
+      <div className='space-y-2'>
+        <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-100'>
+          {t('app.hud_active')}
+        </h3>
+        <p className='text-sm text-zinc-500 dark:text-zinc-400'>{t('app.hud_desc')}</p>
+      </div>
+    </div>
+  );
+});
+
+HudOverlay.displayName = 'HudOverlay';
+
+/**
+ * 视频流播放器组件
+ * 注意：由于直接订阅了 GameContext，该组件本身无法通过 React.memo 有效优化，
+ * 因此我们将内部静态部分拆分为子组件进行 memo 化。
+ */
+const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
   const context = use(GameContext);
   if (!context) throw new Error('GameContext not found');
   const { data, isHudActive } = context;
@@ -77,21 +104,7 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
           }}
           className='shrink-0'
         >
-          {isHudActive && !isHudPage ? (
-            <div className='stream-player-overlay'>
-              <div className='flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-pink-500/20 to-violet-500/20 dark:from-pink-500/10 dark:to-violet-500/10'>
-                <Monitor className='h-10 w-10 text-pink-500 dark:text-pink-400' />
-              </div>
-              <div className='space-y-2'>
-                <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-100'>
-                  {t('app.hud_active')}
-                </h3>
-                <p className='text-sm text-zinc-500 dark:text-zinc-400'>{t('app.hud_desc')}</p>
-              </div>
-            </div>
-          ) : (
-            <StreamRenderComponent data={data} />
-          )}
+          {isHudActive && !isHudPage ? <HudOverlay /> : <StreamRenderComponent data={data} />}
         </div>
       </div>
     </div>

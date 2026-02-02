@@ -1,4 +1,4 @@
-import { type FC, useMemo } from 'react';
+import { type FC, memo, useMemo } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { FullRecommendationData } from '@/types';
@@ -9,7 +9,7 @@ interface StreamRenderComponentProps {
   data: FullRecommendationData | null;
 }
 
-const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
+const StreamRenderComponent: FC<StreamRenderComponentProps> = memo(({ data }) => {
   const recommendations = useMemo(() => data?.recommendations || [], [data]);
   const is_riichi = data?.is_riichi || false;
 
@@ -25,8 +25,10 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
     return (
       <div
         id='render-source'
-        className={cn('flex items-center justify-center bg-transparent', 'text-zinc-800')}
-        style={{ width: 'var(--stream-width)', height: 'var(--stream-height)' }}
+        className={cn(
+          'flex h-full w-full items-center justify-center bg-transparent',
+          'text-zinc-800',
+        )}
       >
         <div className='h-12 w-12 animate-pulse rounded-full bg-current opacity-10' />
       </div>
@@ -40,8 +42,7 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
   return (
     <div
       id='render-source'
-      className='relative flex flex-col items-center justify-center bg-transparent p-4'
-      style={{ width: 'var(--stream-width)', height: 'var(--stream-height)' }}
+      className='relative flex h-full w-full flex-col items-center justify-center bg-transparent p-4'
     >
       <div className='flex w-full flex-col gap-4'>
         {filteredRecommendations.slice(0, 3).map((rec, index) => {
@@ -51,6 +52,8 @@ const StreamRenderComponent: FC<StreamRenderComponentProps> = ({ data }) => {
       </div>
     </div>
   );
-};
+});
+
+StreamRenderComponent.displayName = 'StreamRenderComponent';
 
 export default StreamRenderComponent;

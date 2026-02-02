@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import { GameContext } from '@/contexts/GameContext';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
@@ -11,20 +11,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const { statusMessage, statusType } = useStatusNotification(notifications, error);
   const [isHudActive, setIsHudActive] = useState(window.location.hash === '#/hud');
 
-  return (
-    <GameContext.Provider
-      value={{
-        data,
-        notifications,
-        isConnected,
-        error,
-        statusMessage,
-        statusType,
-        isHudActive,
-        setIsHudActive,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
+  const value = useMemo(
+    () => ({
+      data,
+      notifications,
+      isConnected,
+      error,
+      statusMessage,
+      statusType,
+      isHudActive,
+      setIsHudActive,
+    }),
+    [data, notifications, isConnected, error, statusMessage, statusType, isHudActive],
   );
+
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

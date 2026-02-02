@@ -3,7 +3,7 @@ import { type FC, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { FullRecommendationData } from '@/types';
 
-import StreamRecommendation from './StreamRecommendation.tsx';
+import StreamRecommendation from './StreamRecommendation';
 
 interface StreamRenderComponentProps {
   data: FullRecommendationData | null;

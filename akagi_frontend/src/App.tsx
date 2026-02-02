@@ -11,7 +11,6 @@ import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
 import type { Settings } from '@/types';
 
-// Lazy load pages for code splitting
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Hud = lazy(() => import('@/pages/HUD'));
 
@@ -26,9 +25,7 @@ export default function App() {
 
   const settingsPromise = useMemo(() => {
     const fetchSettings = (async () => {
-      if (window.electron) {
-        await window.electron.invoke('wait-for-backend');
-      }
+      await window.electron.invoke('wait-for-backend');
       return fetchSettingsApi(apiBase).catch((err) => {
         console.warn('Failed to fetch settings, using defaults:', err);
         return {
@@ -61,11 +58,9 @@ export default function App() {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    if (!window.electron) return;
-    const unsub = window.electron.on('exit-animation-start', () => {
+    return window.electron.on('exit-animation-start', () => {
       setIsExiting(true);
     });
-    return unsub;
   }, []);
 
   return (

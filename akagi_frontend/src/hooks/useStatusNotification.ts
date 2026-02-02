@@ -46,7 +46,7 @@ export function useStatusNotification(
     }
     return list;
   }, [notifications, connectionError]);
-  // 确定状态栏显示内容 (Derived State)
+  // 确定状态栏显示内容
   const { statusMessage, statusType, activeStatusCode } = useMemo(() => {
     // 过滤出候选状态
     const statusCandidates = allNotifications
@@ -97,9 +97,9 @@ export function useStatusNotification(
     };
   }, [allNotifications, hiddenCodes, t]);
 
-  // 处理 Toast (Side Effects)
+  // 处理 Toast
   useEffect(() => {
-    // 1. Identify active toasts
+    // 1. 识别活动的通知
     const currentToastIds = new Set<string>();
 
     allNotifications.forEach((note) => {
@@ -126,7 +126,7 @@ export function useStatusNotification(
       }
     });
 
-    // 2. Dismiss removed toasts
+    // 2. 关闭需要移除的通知
     activeToastIds.current.forEach((toastId) => {
       if (currentToastIds.has(toastId)) return;
       const config = getStatusConfig(toastId);

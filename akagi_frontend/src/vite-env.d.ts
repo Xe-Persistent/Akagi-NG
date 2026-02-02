@@ -1,19 +1,13 @@
 /// <reference types="vite/client" />
 
-// Document Picture-in-Picture API
-declare global {
-  interface Window {
-    documentPictureInPicture?: {
-      requestWindow(options: { width: number; height: number }): Promise<Window>;
-      window: Window | null;
-      onenter: ((this: EventTarget, ev: Event) => void) | null;
-    };
-    electron?: {
-      invoke(channel: string, data?: unknown): Promise<unknown>;
-      on(channel: string, func: (...args: unknown[]) => void): () => void;
-      send(channel: string, data?: unknown): void;
-    };
-  }
-}
+// ===== 自定义全局变量 (由 vite.config.ts 注入) =====
+declare const __AKAGI_VERSION__: string;
 
-export {};
+// ===== 资源类型扩展 =====
+
+// .svg
+declare module '*.svg' {
+  import type { FC, SVGProps } from 'react';
+  const content: FC<SVGProps<SVGSVGElement>>;
+  export default content;
+}

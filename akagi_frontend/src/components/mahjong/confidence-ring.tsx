@@ -1,4 +1,4 @@
-import React, { type FC } from 'react';
+import { type FC, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface ConfidenceRingProps {
   percentage: number;
@@ -15,24 +15,23 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = ({
   stroke = 8,
   fontSize = 'text-5xl',
 }) => {
-  const [currentPercentage, setCurrentPercentage] = React.useState(percentage);
-  const valueAnimationRef = React.useRef<number | undefined>(undefined);
-  const sprintAnimationRef = React.useRef<number | undefined>(undefined);
-  const startTimeRef = React.useRef<number | undefined>(undefined);
-  const startValueRef = React.useRef(percentage);
-  const targetValueRef = React.useRef(percentage);
-  const isFirstRenderRef = React.useRef(true);
+  const [currentPercentage, setCurrentPercentage] = useState(percentage);
+  const valueAnimationRef = useRef<number | undefined>(undefined);
+  const sprintAnimationRef = useRef<number | undefined>(undefined);
+  const startTimeRef = useRef<number | undefined>(undefined);
+  const startValueRef = useRef(percentage);
+  const targetValueRef = useRef(percentage);
+  const isFirstRenderRef = useRef(true);
 
-  const currentPercentageRef = React.useRef(currentPercentage);
-  React.useLayoutEffect(() => {
+  const currentPercentageRef = useRef(currentPercentage);
+  useLayoutEffect(() => {
     currentPercentageRef.current = currentPercentage;
   }, [currentPercentage]);
 
-  React.useEffect(() => {
-    // 首次渲染时跳过动画，直接设置目标值
+  useEffect(() => {
+    // 首次渲染时跳过动画
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
-      setCurrentPercentage(percentage);
       startValueRef.current = percentage;
       targetValueRef.current = percentage;
       return;
@@ -73,8 +72,8 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = ({
   }, [percentage]);
 
   // 光束效果动画循环
-  const [sprintPhase, setSprintPhase] = React.useState(0);
-  React.useEffect(() => {
+  const [sprintPhase, setSprintPhase] = useState(0);
+  useEffect(() => {
     const duration = 1500; // 每次循环 1.5 秒
 
     const loop = (time: number) => {

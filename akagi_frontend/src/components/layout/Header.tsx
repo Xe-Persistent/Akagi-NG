@@ -42,16 +42,13 @@ export const Header: FC<HeaderProps> = ({
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron) {
-      const unsub = window.electron.on('window-state-changed', (maximized) => {
-        setIsMaximized(maximized as boolean);
-      });
-      // Initial check
-      window.electron.invoke('is-window-maximized').then((maximized) => {
-        setIsMaximized(maximized as boolean);
-      });
-      return unsub;
-    }
+    const unsub = window.electron.on('window-state-changed', (maximized) => {
+      setIsMaximized(maximized as boolean);
+    });
+    window.electron.invoke('is-window-maximized').then((maximized) => {
+      setIsMaximized(maximized as boolean);
+    });
+    return unsub;
   }, []);
 
   return (
@@ -114,8 +111,8 @@ export const Header: FC<HeaderProps> = ({
             <SettingsIcon className='h-5 w-5' />
           </Button>
 
-          {/* HUD Toggle Button (Electron only) */}
-          {window.electron && onToggleHud && (
+          {/* HUD Toggle Button */}
+          {onToggleHud && (
             <Button
               variant='ghost'
               size='icon'
@@ -131,33 +128,28 @@ export const Header: FC<HeaderProps> = ({
             </Button>
           )}
 
-          {/* Minimize Button */}
-          {window.electron && (
-            <Button
-              variant='ghost'
-              size='icon'
-              onClick={() => window.electron?.invoke('minimize-window')}
-              className='no-drag text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-            >
-              <Minus className='h-5 w-5' />
-            </Button>
-          )}
+          {/* Window Controls */}
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => window.electron.invoke('minimize-window')}
+            className='no-drag text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+          >
+            <Minus className='h-5 w-5' />
+          </Button>
 
-          {/* Maximize Button */}
-          {window.electron && (
-            <Button
-              variant='ghost'
-              size='icon'
-              onClick={() => window.electron?.invoke('maximize-window')}
-              className='no-drag text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
-            >
-              {isMaximized ? (
-                <Copy className='h-3 w-3 scale-x-[-1] -rotate-90' />
-              ) : (
-                <Square className='h-3.5 w-3.5' />
-              )}
-            </Button>
-          )}
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => window.electron.invoke('maximize-window')}
+            className='no-drag text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+          >
+            {isMaximized ? (
+              <Copy className='h-3 w-3 scale-x-[-1] -rotate-90' />
+            ) : (
+              <Square className='h-3.5 w-3.5' />
+            )}
+          </Button>
 
           {/* Shutdown Button */}
           {onShutdown && (

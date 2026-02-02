@@ -6,10 +6,7 @@ import { ConsumedDisplay } from '@/components/mahjong/consumed-display';
 import { MahjongTile } from '@/components/mahjong/mahjong-tile';
 import { ACTION_CONFIG, SHOW_CONSUMED_ACTIONS } from '@/config/actionConfig';
 import { cn } from '@/lib/utils';
-// --- 类型定义 ---
 import type { Recommendation } from '@/types';
-
-// --- 主组件 ---
 
 const Recommendation: FC<Recommendation> = ({
   action,

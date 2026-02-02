@@ -7,7 +7,7 @@ import { GameContext } from '@/contexts/GameContext';
 import { cn } from '@/lib/utils';
 import type { StreamPlayerProps } from '@/types';
 
-import StreamRenderComponent from './StreamRenderComponent.tsx';
+import StreamRenderComponent from './StreamRenderComponent';
 
 const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
   const { t } = useTranslation();

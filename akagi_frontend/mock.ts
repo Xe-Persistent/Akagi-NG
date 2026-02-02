@@ -1,6 +1,6 @@
 import http from 'node:http';
 
-import type { FullRecommendationData, Settings } from './src/types.ts';
+import type { FullRecommendationData, Settings } from '@/types';
 
 // Visual Verification Mock Server for Recommendations
 console.log('Starting server in MOCK mode (SSE) for Recommendation Visual Test.');

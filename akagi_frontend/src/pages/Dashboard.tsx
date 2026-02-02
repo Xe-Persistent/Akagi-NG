@@ -67,23 +67,19 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     }, 1200);
 
     // Check optional/critical resources
-    if (window.electron) {
-      window.electron.invoke('check-resource-status').then((status) => {
-        setResourceStatus(status as ResourceStatus);
-      });
+    window.electron.invoke('check-resource-status').then((status) => {
+      setResourceStatus(status as ResourceStatus);
+    });
 
-      // Listen for HUD visibility changes from Electron (e.g. window closed/hidden)
-      const unsubHud = window.electron.on('hud-visibility-changed', (visible) => {
-        context.setIsHudActive(visible as boolean);
-      });
+    // Listen for HUD visibility changes from Electron (e.g. window closed/hidden)
+    const unsubHud = window.electron.on('hud-visibility-changed', (visible) => {
+      context.setIsHudActive(visible as boolean);
+    });
 
-      return () => {
-        clearTimeout(timer);
-        if (unsubHud) unsubHud();
-      };
-    }
-
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (unsubHud) unsubHud();
+    };
   }, [context]);
 
   // Resource status notifications
@@ -102,7 +98,6 @@ function Dashboard({ settingsPromise }: DashboardProps) {
   }, [resourceStatus, t]);
 
   const handleLaunchGame = async () => {
-    if (!window.electron) return;
     setIsLaunching(true);
     try {
       // Re-fetch settings to ensure we have the latest configuration before launching
@@ -128,9 +123,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
 
   const performShutdown = async () => {
     try {
-      if (window.electron) {
-        await window.electron.invoke('request-shutdown');
-      }
+      await window.electron.invoke('request-shutdown');
     } catch (e) {
       console.error('Failed to shutdown:', e);
       notify.error(`${t('common.error')}: ${(e as Error).message}`);
@@ -160,7 +153,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
           onLocaleChange={handleLocaleChange}
           onShutdown={handleShutdownClick}
           onToggleHud={(show) => {
-            window.electron?.invoke('toggle-hud', show);
+            window.electron.invoke('toggle-hud', show);
             context.setIsHudActive(show);
           }}
           isHudActive={context.isHudActive}

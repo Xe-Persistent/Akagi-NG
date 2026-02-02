@@ -15,7 +15,7 @@ export const Footer: FC = memo(() => {
             href='https://github.com/Xe-Persistent/Akagi-NG'
             onClick={(e) => {
               e.preventDefault();
-              window.electron?.invoke('open-external', 'https://github.com/Xe-Persistent/Akagi-NG');
+              window.electron.invoke('open-external', 'https://github.com/Xe-Persistent/Akagi-NG');
             }}
             className='footer-link'
           >
@@ -26,7 +26,7 @@ export const Footer: FC = memo(() => {
             href='https://github.com/Xe-Persistent/Akagi-NG/blob/master/LICENSE'
             onClick={(e) => {
               e.preventDefault();
-              window.electron?.invoke(
+              window.electron.invoke(
                 'open-external',
                 'https://github.com/Xe-Persistent/Akagi-NG/blob/master/LICENSE',
               );

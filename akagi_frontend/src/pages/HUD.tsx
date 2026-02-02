@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 function Hud() {
   const handleClose = () => {
-    window.electron?.invoke('toggle-hud', false);
+    window.electron.invoke('toggle-hud', false);
   };
 
   return (

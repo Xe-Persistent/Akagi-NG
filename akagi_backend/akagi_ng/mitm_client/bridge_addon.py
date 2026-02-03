@@ -55,10 +55,7 @@ class BridgeAddon:
         configured_platform = local_settings.platform
         detected_platform = self._get_platform_for_flow(flow)
 
-        target_platform = None
-
-        if configured_platform in (Platform.AUTO, detected_platform):
-            target_platform = detected_platform
+        target_platform = configured_platform if configured_platform != Platform.AUTO else detected_platform
 
         if not target_platform:
             return
@@ -84,6 +81,42 @@ class BridgeAddon:
             self.last_activity[flow.id] = time.time()
             # 更新连接计数并发送通知
             self._on_connection_established()
+
+    def request(self, flow: mitmproxy.http.HTTPFlow):
+        """处理 HTTP 请求"""
+        # 如果是已知 WebSocket 流的 HTTP 握手或后续请求
+        if flow.id in self.bridges:
+            bridge = self.bridges[flow.id]
+            if hasattr(bridge, "request"):
+                bridge.request(flow)
+            return
+
+        # 否则尝试根据配置或 URL 探测平台
+        configured_platform = local_settings.platform
+        target_platform = configured_platform
+        if target_platform == Platform.AUTO:
+            target_platform = self._get_platform_for_flow(flow)
+
+        if target_platform == Platform.AMATSUKI:
+            # 天月平台特殊处理：即便没有 WebSocket 流也需要拦截心跳
+            # 这里临时创建一个 Bridge 实例来处理（或者可以使用静态方法，但为了统一接口采用实例）
+            AmatsukiBridge().request(flow)
+
+    def response(self, flow: mitmproxy.http.HTTPFlow):
+        """处理 HTTP 响应"""
+        if flow.id in self.bridges:
+            bridge = self.bridges[flow.id]
+            if hasattr(bridge, "response"):
+                bridge.response(flow)
+            return
+
+        configured_platform = local_settings.platform
+        target_platform = configured_platform
+        if target_platform == Platform.AUTO:
+            target_platform = self._get_platform_for_flow(flow)
+
+        if target_platform == Platform.AMATSUKI:
+            AmatsukiBridge().response(flow)
 
     def _is_target_platform(self, flow: mitmproxy.http.HTTPFlow, platform: Platform) -> bool:
         url = flow.request.url.lower()

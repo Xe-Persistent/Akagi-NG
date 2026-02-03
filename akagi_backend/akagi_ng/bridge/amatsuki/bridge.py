@@ -2,6 +2,8 @@ import json
 from enum import Enum
 from typing import Self
 
+import mitmproxy.http
+
 from akagi_ng.bridge.amatsuki.consts import (
     BAKAZE_TO_MJAI_PAI,
     ID_TO_MJAI_PAI,
@@ -141,6 +143,31 @@ class AmatsukiBridge(BaseBridge):
             (AmatsukiTopic.RYUKYOKU_ACTION_PREFIX, self._handle_ryukyoku_action),
             (AmatsukiTopic.GAME_END_PREFIX, self._handle_game_end),
         ]
+
+    def request(self, flow: mitmproxy.http.HTTPFlow):
+        if flow.request.pretty_url == "https://lobby.amatsukimahjong.com/game/game_heart":
+            logger.info("[MITM] Amatsuki heartbeat request intercepted")
+            flow.response = mitmproxy.http.Response.make(
+                200, b'{"status":0,"errorCode":0}', {"Content-Type": "application/json"}
+            )
+
+    def response(self, flow: mitmproxy.http.HTTPFlow):
+        if flow.request.pretty_url == "https://lobby.amatsukimahjong.com/game/game_heart":
+            http_ok = 200
+            if flow.response.status_code != http_ok:
+                flow.response.status_code = http_ok
+                flow.response.content = b'{"status":0,"errorCode":0}'
+                logger.info("[MITM] Amatsuki heartbeat response patched (status)")
+            try:
+                res_json: dict = flow.response.json()
+                if res_json.get("status") != 0 or res_json.get("errorCode") != 0:
+                    flow.response.status_code = http_ok
+                    flow.response.content = b'{"status":0,"errorCode":0}'
+                    logger.info("[MITM] Amatsuki heartbeat response patched (data)")
+            except Exception:
+                flow.response.status_code = http_ok
+                flow.response.content = b'{"status":0,"errorCode":0}'
+                logger.info("[MITM] Amatsuki heartbeat response patched (parse error)")
 
     def reset(self):
         self.valid_flow = False

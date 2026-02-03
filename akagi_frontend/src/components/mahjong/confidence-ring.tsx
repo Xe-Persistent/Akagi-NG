@@ -1,5 +1,7 @@
 import { type FC, memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { cn } from '@/lib/utils';
+
 interface ConfidenceRingProps {
   percentage: number;
   color: string;
@@ -179,7 +181,7 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = memo(
         )}
 
         <div className='absolute inset-0 flex flex-col items-center justify-center'>
-          <span className={`${fontSize} font-mono font-bold text-zinc-700 dark:text-zinc-200`}>
+          <span className={cn(fontSize, 'font-mono font-bold text-zinc-700 dark:text-zinc-200')}>
             {(currentPercentage * 100).toFixed(0)}
             <span className='text-[0.6em]'>%</span>
           </span>

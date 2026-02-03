@@ -87,7 +87,12 @@ const HeaderContent: FC<HeaderContentProps> = memo(
           {/* Logo & Title */}
           <div className='no-drag flex items-center gap-3'>
             <div
-              className={`h-2.5 w-2.5 rounded-full shadow-sm transition-colors duration-500 ${isConnected ? 'bg-emerald-500 shadow-emerald-500/50' : 'animate-pulse bg-rose-500 shadow-rose-500/50'}`}
+              className={cn(
+                'h-2.5 w-2.5 rounded-full shadow-sm transition-colors duration-500',
+                isConnected
+                  ? 'bg-emerald-500 shadow-emerald-500/50'
+                  : 'animate-pulse bg-rose-500 shadow-rose-500/50',
+              )}
             />
             <h1 className='bg-linear-to-r from-pink-600 to-violet-600 bg-clip-text text-xl font-bold text-transparent dark:from-pink-400 dark:to-violet-400'>
               {t('app.title')}

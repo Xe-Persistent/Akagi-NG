@@ -58,8 +58,8 @@ const Recommendation: FC<Recommendation> = ({
         {/* Decoration: Left Strip */}
         <div
           className={cn(
-            'absolute top-0 bottom-0 left-0 w-2',
-            `bg-linear-to-b ${effectiveConfig.gradient}`,
+            'absolute top-0 bottom-0 left-0 w-2 bg-linear-to-b',
+            effectiveConfig.gradient,
           )}
         />
 

@@ -113,6 +113,42 @@ def test_process_message_batch_error_handling(app) -> None:
     assert notifications == []
 
 
+def test_emit_outputs_standard(app) -> None:
+    """测试标准输出发射路径。"""
+    app.ds = MagicMock()
+    result = {
+        "mjai_responses": [{"action": "dahai", "meta": {}}],
+        "batch_notifications": [{"code": "TEST"}],
+        "is_sync": False,
+    }
+    mock_bot = MagicMock()
+
+    with patch("akagi_ng.application.build_dataserver_payload", return_value={"rec": True}):
+        app._emit_outputs(result, mock_bot)
+
+        # 应该发送通知和推荐
+        assert app.ds.send_notifications.called
+        assert app.ds.send_recommendations.called
+
+
+def test_emit_outputs_sync_masking(app) -> None:
+    """测试同步期间屏蔽推荐。"""
+    app.ds = MagicMock()
+    result = {
+        "mjai_responses": [{"action": "sync", "meta": {}}],
+        "batch_notifications": [{"code": "SYNCING"}],
+        "is_sync": True,
+    }
+    mock_bot = MagicMock()
+
+    with patch("akagi_ng.application.build_dataserver_payload", return_value={"rec": True}):
+        app._emit_outputs(result, mock_bot)
+
+        # 应该发送通知，但不发送推荐
+        assert app.ds.send_notifications.called
+        assert not app.ds.send_recommendations.called
+
+
 # 为测试添加辅助方法
 def get_stop_event(self):
     return self._stop_event

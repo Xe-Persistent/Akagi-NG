@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -124,6 +125,27 @@ def test_format_sse_message_with_event():
     msg = _format_sse_message(data, event="update")
     assert b"event: update\n" in msg
     assert b'data: {"a": 1}\n' in msg
+
+
+@pytest.mark.asyncio
+async def test_keep_alive_logic(sse_manager):
+    queue1 = asyncio.Queue()
+    queue2 = asyncio.Queue()
+    sse_manager.clients = {"c1": {"queue": queue1}, "c2": {"queue": queue2}}
+
+    # We want to test one iteration of keep_alive
+    # Patch sleep to return immediately or raise to exit
+    with (
+        patch("asyncio.sleep", side_effect=[None, asyncio.CancelledError()]),
+        contextlib.suppress(asyncio.CancelledError),
+    ):
+        await sse_manager.keep_alive()
+
+    assert queue1.get_nowait() == b": keep-alive\n\n"
+    assert queue2.get_nowait() == b": keep-alive\n\n"
+
+    sse_manager.stop()
+    assert sse_manager.running is False
 
 
 @pytest.mark.asyncio

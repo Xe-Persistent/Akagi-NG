@@ -1,6 +1,9 @@
+import importlib
 import json
 import sys
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 # Mock mjai and its submodules before any imports
@@ -36,12 +39,7 @@ mock_mjai_mlibriichi_state = MagicMock()
 mock_mjai_mlibriichi_tools = MagicMock()
 mock_numpy = MagicMock()
 
-import importlib
-
-import pytest
-
-import akagi_ng.mjai_bot.bot
-
+# Inject mocks into sys.modules
 sys.modules["mjai"] = mock_mjai
 sys.modules["mjai.bot"] = mock_mjai_bot
 sys.modules["mjai.bot.tools"] = mock_mjai_bot_tools
@@ -49,6 +47,8 @@ sys.modules["mjai.mlibriichi"] = mock_mjai_mlibriichi
 sys.modules["mjai.mlibriichi.state"] = mock_mjai_mlibriichi_state
 sys.modules["mjai.mlibriichi.tools"] = mock_mjai_mlibriichi_tools
 sys.modules["numpy"] = mock_numpy
+
+import akagi_ng.mjai_bot.bot
 
 importlib.reload(akagi_ng.mjai_bot.bot)
 from akagi_ng.mjai_bot.bot import StateTrackerBot

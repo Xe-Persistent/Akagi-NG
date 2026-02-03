@@ -72,9 +72,21 @@ def test_bridge_addon_filtering(addon):
     mock_flow.id = "test_flow_id"
     mock_flow.request.url = "wss://random-site.com/socket"
     with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
-        mock_settings.platform = Platform.MAJSOUL
+        mock_settings.platform = Platform.AUTO
         addon.websocket_start(mock_flow)
         assert "test_flow_id" not in addon.activated_flows
+
+
+def test_bridge_addon_manual_force(addon):
+    mock_flow = MagicMock()
+    mock_flow.id = "test_flow_id"
+    mock_flow.request.url = "wss://random-site.com/socket"
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = Platform.MAJSOUL
+        addon.websocket_start(mock_flow)
+        # In manual mode, we force activation even on unrecognized domains
+        assert "test_flow_id" in addon.activated_flows
+        assert isinstance(addon.bridges.get("test_flow_id"), MajsoulBridge)
 
 
 def test_bridge_addon_auto_detect(addon):
@@ -103,7 +115,8 @@ def test_bridge_addon_websocket_lifecycle(addon, shared_queue) -> None:
     flow.id = "flow1"
     flow.request.url = "http://tenhou.net/3/"
 
-    with patch("akagi_ng.settings.local_settings.platform", Platform.AUTO):
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = Platform.AUTO
         addon.websocket_start(flow)
         assert flow.id in addon.activated_flows
         conn_msg = shared_queue.get(timeout=1)
@@ -121,6 +134,43 @@ def test_bridge_addon_websocket_lifecycle(addon, shared_queue) -> None:
 
     addon.websocket_end(flow)
     assert flow.id not in addon.activated_flows
+
+
+def test_bridge_addon_http_hooks_dispatch(addon) -> None:
+    flow = MagicMock()
+    flow.id = "flow1"
+
+    # Create a mock bridge with request/response methods
+    mock_bridge = MagicMock()
+    addon.bridges[flow.id] = mock_bridge
+
+    # Test request delegation
+    addon.request(flow)
+    mock_bridge.request.assert_called_once_with(flow)
+
+    # Test response delegation
+    addon.response(flow)
+    mock_bridge.response.assert_called_once_with(flow)
+
+
+def test_bridge_addon_amatsuki_heartbeat_patch(addon) -> None:
+    flow = MagicMock()
+    flow.id = "heartbeat_flow"
+    flow.request.url = "http://amatsukimj.jp/api/heartbeat"
+
+    with (
+        patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings,
+        patch("akagi_ng.mitm_client.bridge_addon.AmatsukiBridge") as mock_bridge_class,
+    ):
+        mock_settings.platform = Platform.AMATSUKI
+
+        # Test request patching
+        addon.request(flow)
+        mock_bridge_class.return_value.request.assert_called_once_with(flow)
+
+        # Test response patching
+        addon.response(flow)
+        mock_bridge_class.return_value.response.assert_called_once_with(flow)
 
 
 def test_bridge_addon_cleanup(addon) -> None:

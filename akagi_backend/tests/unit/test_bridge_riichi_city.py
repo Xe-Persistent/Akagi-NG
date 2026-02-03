@@ -245,6 +245,37 @@ def test_handle_room_end(bridge) -> None:
     assert bridge.game_status.seat == -1
 
 
+def test_handle_rc_action_unknown_case(bridge):
+    msgs = []
+    bridge._handle_rc_action({"action": 999}, msgs)
+    assert msgs == []
+
+
+def test_handle_gang_bao_brc_logic(bridge):
+    from akagi_ng.bridge.riichi_city.bridge import GameStatus, RCMessage
+
+    # 0x22 in CARD2MJAI is '2m'
+    msg = RCMessage(1, "S2C_GangBao_Brc", {"data": {"cards": [0x22]}})
+    bridge.game_status = GameStatus()
+    bridge._handle_gang_bao_brc(msg)
+    assert "2m" in bridge.game_status.dora_markers
+
+
+def test_handle_room_end_logic(bridge):
+    bridge.game_status.seat = 1
+    msgs = bridge._handle_room_end()
+    assert msgs[0]["type"] == "end_game"
+    assert bridge.game_status.seat == -1  # reset
+
+
+def test_handle_rc_action_kakan_success(bridge):
+    mjai = []
+    bridge.game_status.player_list = [100, 200, 300, 400]
+    bridge._handle_rc_action({"action": RCAction.KAKAN, "user_id": 100, "card": 4}, mjai)
+    assert mjai[0]["type"] == "kakan"
+    assert mjai[0]["actor"] == 0
+
+
 def test_handle_rc_action_types(bridge) -> None:
     mjai = []
     bridge._handle_rc_action({"action": RCAction.ANKAN, "user_id": 100, "card": 0}, mjai)

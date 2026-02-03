@@ -38,7 +38,7 @@ ignore:
 
   # Test files
   - "tests/"
-  - "**/*_test.py"
+  - "**/*test.py"
   - "**/test_*.py"
 
   # Init files (usually empty or just imports)

@@ -112,7 +112,7 @@ def test_load_bot_and_engine_online(mock_lib_loader_module) -> None:
 
         mock_lib_loader_module.libriichi.mjai.Bot = MagicMock()
 
-        bot, engine = load_bot_and_engine(seat=0, is_3p=False)
+        _, engine = load_bot_and_engine(seat=0, is_3p=False)
 
         # 应该创建了 AkagiOTEngine
         mock_ot.assert_called_once()

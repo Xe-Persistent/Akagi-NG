@@ -31,6 +31,15 @@ def test_convert_tsumo(bridge):
         assert result[0]["pai"] == "5z"
 
 
+def test_convert_tsumo_high_index(bridge):
+    """Test _convert_tsumo with high tile index (U...)"""
+    message = {"tag": "U132"}
+    with patch("akagi_ng.bridge.tenhou.bridge.tenhou_to_mjai_one") as mock_conv:
+        mock_conv.return_value = "5z"
+        result = bridge._convert_tsumo(message)
+        assert result[0]["actor"] == 1
+
+
 def test_convert_dahai_tsumogiri(bridge):
     """Test _convert_dahai (D...) Tsumogiri"""
     message = {"tag": "D132"}
@@ -184,6 +193,26 @@ def test_meld_parse_kakan():
     assert meld.meld_type == Meld.KAKAN
     assert meld.pai == "3p"
     assert meld.exposed == [44]
+
+
+def test_convert_helo_reinit_active_game(tenhou_bridge) -> None:
+    tenhou_bridge.state.game_active = True
+    msgs = tenhou_bridge._convert_helo({"tag": "HELO"})
+    assert msgs is not None
+    assert msgs[0]["type"] == "end_game"
+    assert tenhou_bridge.state.game_active is False
+
+
+def test_convert_rejoin(tenhou_bridge) -> None:
+    msgs = tenhou_bridge._convert_rejoin({"tag": "REJOIN"})
+    assert msgs is None
+
+
+def test_convert_un_empty_names(tenhou_bridge) -> None:
+    # 2 names -> 2P? Unrealistic but tests the count logic
+    msg = {"tag": "UN", "n0": "P1", "n1": "P2", "n2": "", "n3": ""}
+    tenhou_bridge._convert_un(msg)
+    assert tenhou_bridge.state.is_3p is False  # len([P1, P2]) == 2 != 3
 
 
 def test_meld_parse_daiminkan_ankan():

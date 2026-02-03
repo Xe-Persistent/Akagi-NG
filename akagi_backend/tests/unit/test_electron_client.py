@@ -1,8 +1,10 @@
 import base64
+import contextlib
 import queue
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 import pytest
+
 from akagi_ng.core import NotificationCode
 from akagi_ng.core.constants import Platform
 from akagi_ng.electron_client import (
@@ -10,7 +12,6 @@ from akagi_ng.electron_client import (
     TenhouElectronClient,
     create_electron_client,
 )
-import contextlib
 
 # ==========================================================
 # Factory Tests

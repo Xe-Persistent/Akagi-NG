@@ -482,6 +482,17 @@ class TestMajsoulBridge(unittest.TestCase):
         result = self.bridge.parse_liqi(None)
         self.assertIsNone(result)
 
+    def test_dispatch_message_unhandled_method(self):
+        # Create a mock liqi message with an unhandled method
+        msg = {"method": "non_existent_method", "type": 1, "data": {}}
+        res = self.bridge.parse_liqi(msg)
+        self.assertEqual(res, [])
+
+    def test_parse_liqi_unhandled_wrapper(self):
+        # Invalid wrapper (missing data)
+        msg = {"method": "authGame", "type": 1}  # missing data
+        self.assertEqual(self.bridge.parse_liqi(msg), [])
+
     def test_parse_liqi_returns_empty_for_unknown_method(self):
         """测试未知方法返回空列表"""
         liqi_message = {

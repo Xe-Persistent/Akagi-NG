@@ -77,7 +77,7 @@ async def test_save_settings_success(cli):
 async def test_reset_settings(cli):
     with (
         patch("akagi_ng.dataserver.api.get_default_settings_dict", return_value={"default": True}),
-        patch("akagi_ng.dataserver.api.local_settings") as mock_settings,
+        patch("akagi_ng.dataserver.api.local_settings"),
     ):
         resp = await cli.post("/api/settings/reset")
         assert resp.status == 200

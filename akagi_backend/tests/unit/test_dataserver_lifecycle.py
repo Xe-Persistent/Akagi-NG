@@ -67,7 +67,7 @@ def test_dataserver_run_logic(ds):
             patch("aiohttp.web.Application"),
             patch("akagi_ng.dataserver.dataserver.SSEManager"),
             patch("aiohttp.web.AppRunner") as mock_runner_class,
-            patch("aiohttp.web.TCPSite") as mock_site_class,
+            patch("aiohttp.web.TCPSite"),
         ):
             mock_runner = mock_runner_class.return_value
             # 让 run_until_complete 立即结束以模拟 stop_event

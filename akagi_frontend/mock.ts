@@ -17,9 +17,9 @@ const corsHeaders: Record<string, string> = {
 const port = 8765;
 const hostname = '127.0.0.1';
 
-// In-memory settings storage
-let mockSettings: Settings = {
-  log_level: 'TRACE',
+// Default settings for reset
+const defaultSettings: Settings = {
+  log_level: 'INFO',
   locale: 'zh-CN',
   game_url: 'https://game.maj-soul.com/1/',
   platform: 'majsoul',
@@ -47,6 +47,9 @@ let mockSettings: Settings = {
   },
 };
 
+// In-memory settings storage
+let mockSettings: Settings = { ...defaultSettings };
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
@@ -58,40 +61,61 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const jsonResponse = (data: unknown, status = 200) => {
+    res.writeHead(status, { ...corsHeaders, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  };
+
   // Handle Settings API
   if (url.pathname === '/api/settings') {
     if (req.method === 'GET') {
-      res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(mockSettings));
-      return;
+      return jsonResponse({ ok: true, data: mockSettings });
     }
 
     if (req.method === 'POST') {
       let body = '';
-      req.on('data', (chunk) => {
-        body += chunk.toString();
-      });
+      req.on('data', (chunk) => (body += chunk.toString()));
       req.on('end', () => {
         try {
           const newSettings = JSON.parse(body);
           mockSettings = { ...mockSettings, ...newSettings };
           console.log('Updated mock settings:', mockSettings);
-          res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, data: mockSettings }));
+          jsonResponse({ ok: true, data: mockSettings, restartRequired: false });
         } catch {
-          res.writeHead(400, corsHeaders);
-          res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+          jsonResponse({ ok: false, error: 'Invalid JSON' }, 400);
         }
       });
       return;
     }
   }
 
+  // Handle Settings Reset API
+  if (url.pathname === '/api/settings/reset' && req.method === 'POST') {
+    mockSettings = { ...defaultSettings };
+    console.log('Reset mock settings to default');
+    return jsonResponse({ ok: true, data: mockSettings, restartRequired: true });
+  }
+
+  // Handle Ingest API (Mocked MJAI payload ingestion)
+  if (url.pathname === '/api/ingest' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk.toString()));
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        console.log('[INGEST] Received MJAI payload:', payload.type);
+        return jsonResponse({ ok: true });
+      } catch {
+        return jsonResponse({ ok: false, error: 'Invalid JSON' }, 400);
+      }
+    });
+    return;
+  }
+
   // Handle Shutdown API
   if (url.pathname === '/api/shutdown' && req.method === 'POST') {
     console.log('[SHUTDOWN] Received shutdown request, exiting mock server...');
-    res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, message: 'Mock server shutting down' }));
+    jsonResponse({ ok: true, message: 'Shutdown initiated' });
 
     // Exit after a short delay to ensure the response is sent
     setTimeout(() => {
@@ -111,24 +135,24 @@ const server = http.createServer((req, res) => {
       Connection: 'keep-alive',
     });
 
-    const sendData = () => {
-      const mockData = generateMockData(connectionStateCounter);
-      connectionStateCounter++;
-      // 匹配后端格式: event: recommendations
-      res.write(`event: recommendations\n`);
-      res.write(`data: ${JSON.stringify(mockData)}\n\n`);
+    const sendData = (event: string, data: unknown) => {
+      res.write(`event: ${event}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
     // initial comment + first payload
     res.write(': connected\n\n');
-    sendData();
+    sendData('recommendations', generateMockData(connectionStateCounter));
+    connectionStateCounter++;
 
     const keepAliveInterval = setInterval(() => {
       res.write(': keep-alive\n\n');
     }, KEEPALIVE_INTERVAL_MS);
 
     const dataInterval = setInterval(() => {
-      sendData();
+      sendData('recommendations', generateMockData(connectionStateCounter));
+
+      connectionStateCounter++;
     }, STREAM_INTERVAL_MS);
 
     const cleanup = () => {

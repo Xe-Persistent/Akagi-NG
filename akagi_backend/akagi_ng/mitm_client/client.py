@@ -82,7 +82,6 @@ class MitmClient:
         if not self.running:
             return
 
-        logger.info("Stopping MITM client...")
         if self._master:
             self._master.shutdown()
 

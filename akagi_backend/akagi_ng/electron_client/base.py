@@ -20,13 +20,13 @@ class BaseElectronClient(ABC):
             self._active_connections = 0
             if hasattr(self, "bridge") and self.bridge:
                 self.bridge.reset()
-            logger.info(f"{self.__class__.__name__} started (waiting for input via API)")
+            logger.info(f"{self.__class__.__name__} started.")
 
     def stop(self):
         with self._lock:
             self.running = False
             self._active_connections = 0
-            logger.info(f"{self.__class__.__name__} stopped")
+            logger.info(f"{self.__class__.__name__} stopped.")
 
     def push_message(self, message: dict):
         """
@@ -52,7 +52,7 @@ class BaseElectronClient(ABC):
         with self._lock:
             if self._active_connections > 0:
                 logger.info(
-                    f"[{self.__class__.__name__}] Debugger detached, forcing disconnect. "
+                    f"[{self.__class__.__name__}] Debugger detached, forcing disconnect."
                     f"(Active: {self._active_connections})"
                 )
                 self._active_connections = 0

@@ -16,6 +16,10 @@ export class BackendManager {
   private readyPromise: Promise<void>;
   private resolveReady!: () => void;
 
+  public isRunning(): boolean {
+    return !!this.pyProcess && !this.pyProcess.killed;
+  }
+
   constructor() {
     this.readyPromise = new Promise((resolve) => {
       this.resolveReady = resolve;
@@ -182,7 +186,7 @@ export class BackendManager {
   }
 
   public async stop() {
-    if (!this.pyProcess || this.pyProcess.killed) return;
+    if (!this.isRunning()) return;
 
     try {
       await fetch(`http://${this.HOST}:${this.PORT}/api/shutdown`, {
@@ -190,21 +194,21 @@ export class BackendManager {
         signal: AbortSignal.timeout(1000),
       });
     } catch {
-      /* 忽略错误，后端可能正在关闭 */
+      // Ignore error, process might already be closing
     }
 
     await new Promise<void>((resolve) => {
-      if (!this.pyProcess) return resolve();
+      if (!this.isRunning()) return resolve();
 
       const timeout = setTimeout(() => {
-        if (this.pyProcess && !this.pyProcess.killed) {
-          console.warn('[BackendManager] Shutdown timed out, forcing SIGKILL');
-          this.pyProcess.kill('SIGKILL');
+        if (this.isRunning()) {
+          console.warn('[BackendManager] Shutdown timeout, forcing exit');
+          this.pyProcess?.kill('SIGKILL');
         }
         resolve();
-      }, 3000);
+      }, 5000);
 
-      this.pyProcess.once('close', () => {
+      this.pyProcess?.once('close', () => {
         clearTimeout(timeout);
         resolve();
       });

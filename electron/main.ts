@@ -57,17 +57,27 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  backendManager.stop();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('before-quit', () => {
-  windowManager.setQuitting(true);
-});
+let isQuitting = false;
 
-app.on('will-quit', () => {
-  backendManager.stop();
-  process.exit(0);
+app.on('before-quit', async (event) => {
+  windowManager.setQuitting(true);
+  if (isQuitting) return;
+
+  if (backendManager.isRunning()) {
+    event.preventDefault();
+    isQuitting = true;
+
+    try {
+      await backendManager.stop();
+    } catch (err) {
+      console.error('[Main] Error during shutdown:', err);
+    } finally {
+      app.quit();
+    }
+  }
 });

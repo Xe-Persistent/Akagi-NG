@@ -46,14 +46,13 @@ class DataServer(threading.Thread):
 
     def stop(self):
         if self.running and self.loop and self.loop.is_running():
-            logger.info("Stopping DataServer...")
             self.loop.call_soon_threadsafe(self.loop.stop)
             logger.info("DataServer stop signal sent.")
         self.running = False
         if self.sse_manager:
             self.sse_manager.stop()
         if self.is_alive():
-            self.join(timeout=5.0)
+            self.join(timeout=2.0)
 
     def run(self):
         self.loop = asyncio.new_event_loop()

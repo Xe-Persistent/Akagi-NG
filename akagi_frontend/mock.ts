@@ -87,6 +87,19 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // Handle Shutdown API
+  if (url.pathname === '/api/shutdown' && req.method === 'POST') {
+    console.log('[SHUTDOWN] Received shutdown request, exiting mock server...');
+    res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, message: 'Mock server shutting down' }));
+
+    // Exit after a short delay to ensure the response is sent
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
+    return;
+  }
+
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/sse')) {
     console.log('SSE client connected');
     let connectionStateCounter = 0;

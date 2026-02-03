@@ -95,7 +95,7 @@ class AkagiApp:
             True 如果是关闭消息并已处理 否则False
         """
         if msg.get("type") == "system_shutdown":
-            logger.info(f"Received shutdown signal from {msg.get('source', 'unknown')}")
+            logger.info(f"Received shutdown signal from {msg.get('source', 'unknown')}.")
             self.stop()
             return True
         return False
@@ -284,7 +284,6 @@ class AkagiApp:
             try:
                 logger.info("Stopping MITM client...")
                 app.mitm_client.stop()
-                logger.info("MITM client stopped successfully.")
             except Exception as e:
                 logger.error(f"Error stopping MITM client: {e}")
 
@@ -293,7 +292,6 @@ class AkagiApp:
             try:
                 logger.info("Stopping Electron client...")
                 app.electron_client.stop()
-                logger.info("Electron client stopped successfully.")
             except Exception as e:
                 logger.error(f"Error stopping Electron client: {e}")
 
@@ -302,7 +300,6 @@ class AkagiApp:
             try:
                 logger.info("Stopping DataServer...")
                 self.ds.stop()
-                logger.info("DataServer stopped successfully.")
             except Exception as e:
                 logger.error(f"Error stopping DataServer: {e}")
 

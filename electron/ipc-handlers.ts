@@ -28,9 +28,6 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
     // Wait for animation (1.5 seconds)
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Force stop backend before quit if needed (though will-quit also handles it)
-    backendManager.stop();
-
     app.quit();
     return true;
   });

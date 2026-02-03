@@ -137,7 +137,7 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
 
     通过消息队列发送关闭信号,由主循环处理,避免直接耦合 AkagiApp
     """
-    logger.info("Received shutdown request from API")
+    logger.info("Received shutdown request from api.")
 
     try:
         from akagi_ng.core import get_app_context
@@ -151,7 +151,7 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
                 "source": "api",
             }
             app.electron_client.message_queue.put(shutdown_message)
-            logger.info("Shutdown signal sent to message queue")
+            logger.info("Shutdown signal sent to message queue.")
             return _json_response({"ok": True, "message": "Shutdown initiated"})
 
         logger.warning("Message queue not available")

@@ -45,7 +45,7 @@ def test_tenhou_bridge_full_flow(tenhou_bridge, integration_controller):
     res = integration_controller.react(events[0])
     # 如果环境中有模型，可能会加载成功；否则会失败
     # 我们这里主要检查流程是否走通
-    assert "error" not in res or res["error"]["code"] != "BOT_RUNTIME_ERROR"
+    assert "error" not in res or res["error"] != "BOT_RUNTIME_ERROR"
 
     # 4. T 消息 (tsumo)
     # Tenhou JSON logs wrap tags in JSON objects

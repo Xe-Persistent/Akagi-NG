@@ -33,20 +33,14 @@ flags:
     carryforward: true
 
 ignore:
-  # Scripts
   - "scripts/"
-
-  # Test files
   - "tests/"
-  - "**/*test.py"
-  - "**/test_*.py"
-
-  # Init files (usually empty or just imports)
   - "**/__init__.py"
-
-  # Environment files
+  - "**/__main__.py"
   - ".venv/"
   - "*.egg-info/"
+  - "build/"
+  - "dist/"
 
 github_checks:
   annotations: true

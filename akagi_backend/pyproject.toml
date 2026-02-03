@@ -122,6 +122,8 @@ branch = true
 source = ["akagi_ng"]
 omit = [
     "tests/*",
+    "**/__init__.py",
+    "**/__main__.py",
 ]
 
 [tool.coverage.report]

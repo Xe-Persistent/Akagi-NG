@@ -67,6 +67,12 @@ def mock_mortal_engine(monkeypatch):
 
     monkeypatch.setattr("akagi_ng.mjai_bot.engine.factory.load_bot_and_engine", mock_loader)
 
+    # Mock libriichi to prevent ImportError in CI environments without binary files
+    mock_lib = MagicMock()
+    import sys
+    sys.modules["libriichi"] = mock_lib
+    sys.modules["libriichi3p"] = mock_lib
+
 
 @pytest.fixture
 def integration_settings():

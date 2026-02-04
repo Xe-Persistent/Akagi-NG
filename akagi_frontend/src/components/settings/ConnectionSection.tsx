@@ -42,7 +42,7 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(({ settings, u
 
       {settings.mitm.enabled && (
         <div className='mt-6 space-y-4'>
-          <h4 className='text-sm font-semibold tracking-wider text-zinc-500 uppercase'>
+          <h4 className='text-sm font-semibold tracking-wider text-zinc-500'>
             {t('settings.connection.mitm.title')}
           </h4>
 

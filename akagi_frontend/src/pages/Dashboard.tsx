@@ -93,13 +93,13 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     if (!resourceStatus.lib) {
       notify.error(t('status_messages.lib_missing'), { toastId: 'lib_missing', autoClose: false });
     }
-    if (!resourceStatus.models) {
+    if (!resourceStatus.models && !initialSettings.ot.online) {
       notify.warn(t('status_messages.models_missing'), {
         toastId: 'models_missing',
         autoClose: false,
       });
     }
-  }, [resourceStatus, t]);
+  }, [resourceStatus, t, initialSettings.ot.online]);
 
   const handleLaunchGame = useCallback(async () => {
     setIsLaunching(true);

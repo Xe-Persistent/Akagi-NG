@@ -1,6 +1,6 @@
 {
   "name": "akagi-ng-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Akagi-NG Electron Desktop App",
   "main": "../dist/main/main.js",
   "repository": {
@@ -31,7 +31,7 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "devtools-protocol": "^0.0.1577676",
-    "electron": "39.4.0",
+    "electron": "40.1.0",
     "electron-builder": "^26.7.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",

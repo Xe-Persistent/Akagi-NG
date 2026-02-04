@@ -113,10 +113,7 @@ Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不�
 
 ## 演示视频
 
-<video controls muted playsinline width="720">
-  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo.mp4" type="video/mp4; codecs=av01">
-  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo.h264.mp4" type="video/mp4">
-</video>
+https://github.com/user-attachments/assets/701a3dcf-1574-46af-9594-082605c4e158
 
 ---
 

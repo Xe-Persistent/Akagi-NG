@@ -113,10 +113,7 @@ Please fully understand and assume the relevant risks before use.
 
 ## Demo
 
-<video controls muted playsinline width="720">
-  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.mp4" type="video/mp4; codecs=av01">
-  <source src="https://cdn.jsdelivr.net/gh/Xe-Persistent/CDN-source/video/akagi_ng_demo_en.h264.mp4" type="video/mp4">
-</video>
+https://github.com/user-attachments/assets/b15d1f76-3009-448d-9648-0d2ffd4f3b7e
 
 ---
 

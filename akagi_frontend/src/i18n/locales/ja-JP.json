@@ -90,8 +90,8 @@
     "settings_desc": "アプリケーション設定パネル",
     "hud_active": "HUDモードが有効です",
     "hud_desc": "AIの打牌推奨が専用のHUDウィンドウに表示されます",
-    "shutdown_confirm_title": "終了しますか？",
-    "shutdown_confirm_desc": "本当にAkagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
+    "shutdown_confirm_title": "Akagi NGを終了しますか？",
+    "shutdown_confirm_desc": "Akagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
     "stopped_title": "アプリケーションは終了しました",
     "stopped_desc": "Akagi NGをご利用いただきありがとうございました。"
   },
@@ -105,7 +105,7 @@
     "ryukyoku": "流局",
     "nukidora": "北抜き",
     "none": "スキップ",
-    "discard": "切る"
+    "discard": "切"
   },
   "status_messages": {
     "client_connected": "ゲームに接続しました。",

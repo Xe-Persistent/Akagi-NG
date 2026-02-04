@@ -28,7 +28,7 @@ It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), ai
 
 Core Philosophy of Akagi-NG:
 
-- **Modern Architecture**: Rebuilt based on Python 3.12 and React/Vite
+- **Modern Architecture**: Rebuilt based on Electron-native architecture, Python 3.12 and React/Vite
 - **Decoupled Design**: Complete separation of core logic, user interface, configuration management, and AI models
 - **High-Performance Inference**: Integrated `libriichi` for blazing fast Mortal model inference capabilities
 - **Long-term Maintainability**: Optimized code structure for continuous iteration
@@ -65,9 +65,9 @@ Please fully understand and assume the relevant risks before use.
 - 🧠 **Core Functions**
   - Real-time hand analysis and AI discard recommendations
   - Riichi Lookahead - Intelligent recommendation for the best discard after reaching
-  - Complete Fuuro support (Chi/Pon/Ankan/Kakan/Daiminkan)
-  - Modern Web Overlay UI
-  - Multi-language support (Simplified Chinese / Traditional Chinese / Japanese / English)
+  - Comprehensive Fuuro Support - Clear action prompts for Chi, Pon, and all Kan variants
+  - Modern Glassmorphism HUD - Smooth and unobtrusive floating window experience
+  - Multi-language support - Simplified Chinese / Traditional Chinese / Japanese / English
 
 > [!NOTE]
 > **Riichi Lookahead** is a core feature in Akagi-NG, designed to solve the question: "When AI suggests Riichi, which tile should I discard?"
@@ -129,57 +129,62 @@ Please go to the [Releases](../../releases) page to download the latest version 
 ### 2. Deploy Resources
 
 Akagi-NG requires external model files and dependency libraries to run.
-Please ensure that the directory structure where `akagi-ng.exe` is located is complete (must contain the following folders):
+Please check the directory structure where `Akagi-NG.exe` is located.
 
 ```plain
-akagi-ng/
-  ├── akagi-ng.exe
-  ├── config/          # Configuration directory
-  ├── lib/             # libriichi local extension libraries (.pyd)
+Akagi-NG/
+  ├── Akagi-NG.exe     # Main Application (Electron Desktop)
+  ├── assets/          # Platform-specific UI assets
+  ├── bin/             # Backend core executable directory
+  ├── config/          # Configuration directory (settings.json)
+  ├── lib/             # libriichi local extension libraries (.pyd/.so)
   │     ├── libriichi.pyd
   │     └── libriichi3p.pyd
-  └── models/          # Mortal model weight files (.pth)
-        ├── mortal.pth
-        └── mortal3p.pth
+  ├── locales/         # Localization resource files
+  ├── logs/            # Runtime log directory
+  ├── models/          # AI model weight files (.pth)
+  │     ├── mortal.pth
+  │     └── mortal3p.pth
+  ├── resources/       # Electron core resources (app.asar)
+  ├── LICENSE.txt      # Open source license
+  ├── README.txt       # Quick start plain text guide
+  └── ...              # Other runtime files (.dll, .pak, etc.)
 ```
 
 ### 3. Run & Exit
 
-When running `akagi-ng.exe` for the first time, it starts in Browser (Playwright) mode by default, launching an dedicated browser window to enter Mahjong Soul and load the UI interface.
+When running `Akagi-NG.exe` for the first time, the integrated dashboard will appear. You can start the game directly from the dashboard to launch a dedicated browser window. Click the monitor icon in the top right of the dashboard to open the HUD overlay.
 
-When running Akagi-NG in Proxy mode, it will launch a system browser window to enter the UI interface, but will not automatically open the Mahjong Soul page.
+To exit the program, click the red power icon in the dashboard.
 
-To exit the program, directly close the `akagi-ng.exe` web page, or click the red power icon in the top right of the page.
-
-> [!CAUTION]
-> When running Akagi-NG in proxy mode, closing the browser window **WILL NOT** automatically terminate the background program.
+> [!TIP]
+> **HUD (Heads-Up Display)** is a new feature in Akagi-NG, providing a sleek, translucent overlay directly on your game window without manual window sticking.
 
 ### 4. Configuration
 
-All configurations for Akagi-NG are located in the `config/settings.json` file. You can click the gear icon in the top right of the page to enter the settings panel to modify them, or use a text editor to modify this file to adjust program behavior.
+All configurations for Akagi-NG are located in the `config/settings.json` file. You can click the gear icon in the top right of the dashboard to enter the settings panel to modify them, or use a text editor to modify this file to adjust program behavior.
 
-### 5. Browser (Playwright) Mode
+### 5. Desktop Mode (Recommended)
 
-This is the **default working mode** of Akagi-NG and also the most recommended mode.
+This is the **default working mode** of Akagi-NG.
 
-In this mode, Akagi-NG will launch an independent, clean Chromium browser window (based on Playwright technology).
+In this mode, Akagi-NG leverages its Electron core to manage a specialized Chromium instance for the game.
 
-- **Advantages**:
-  - **No Configuration Required**: No need to install certificates, no need to set system proxies, works out of the box.
-  - **Environment Isolation**: Completely isolated from your daily used browser, no interference.
-  - **Safe and Stable**: Receives data directly from the game server, high stability.
+- **Key Features**:
+  - **Zero Config**: No certificates or proxy settings needed.
+  - **Environment Isolation**: Completely isolated from your daily used browser.
+  - **Safe and Stable**: Receives data from the game server directly.
 
 - **Usage**:
-  1. Ensure `browser.enabled` is `true` in `config/settings.json` (default is true).
-  2. Double-click to run `akagi-ng.exe`.
-  3. The program will automatically open a browser window. Please log in to your Mahjong Soul account in this window and start the game.
+  1. Run `Akagi-NG.exe`.
+  2. Click "Launch Game" in the dashboard.
 
 ### 6. MITM Mode
 
 Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. This allows you to play using any browser or on a mobile device (with proxy configured).
 
 1. **Enable Configuration**:
-   Add or modify the `mitm` field in `config/settings.json`:
+   Switch on "External Proxy" in the configuration panel or modify the `mitm` field in `config/settings.json`:
 
    ```json
    "mitm": {
@@ -194,7 +199,7 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. Th
 
 3. **Install Certificate**:
 
-   > Note: If you use Scheme B (Clash splitting), you may not be able to open mitm.it. **Method 2** is recommended.
+   > Note: If you use Scheme B (Clash splitting), you may be unable to open `mitm.it`. **Method 2** is recommended.
    - **Method 1: Online Installation (Recommended for Scheme A Users)**
      - Start Akagi-NG.
      - Visit [http://mitm.it](http://mitm.it).
@@ -318,40 +323,32 @@ This scheme is suitable for **PC/Steam Client** players. Since the client cannot
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
-cd Akagi-NG
 
-# Create and activate virtual environment
-python -m venv .venv
-.venv\Scripts\activate
-
-# Install development dependencies
+# Install python backend dependencies (Python 3.12+)
+cd ./akagi_backend
 pip install -e .
-python -m playwright install
 ```
 
-### 2. Compile Frontend Resources
+### 2. Debug Run
+
+To run in development mode:
 
 ```bash
-cd akagi_frontend
+cd ./electron
 npm install
+npm run dev
+```
+
+### 3. Build Toolchain
+
+We use a unified TypeScript-driven build chain located in the `electron` directory.
+
+```bash
+cd ./electron
 npm run build
 ```
 
-### 3. Debug Run
-
-```bash
-python -m akagi_ng
-```
-
-### 4. Package for Release
-
-Build standalone ZIP release package (containing executable):
-
-```bash
-python scripts/build_release.py
-```
-
-Build artifacts will be generated in the `dist/` directory.
+The build artifacts will be generated in `dist/release`.
 
 ---
 

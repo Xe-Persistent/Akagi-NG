@@ -28,7 +28,7 @@
 
 Akagi-NG 的核心理念：
 
-- **现代化架构**：基于 Python 3.12 与 React/Vite 重写
+- **现代化架构**：基于 Electron 原生桌面架构，使用 Python 3.12 与 React/Vite 重写
 - **解耦合设计**：核心逻辑、用户界面、配置管理与 AI 模型彻底分离
 - **高性能推理**：集成 `libriichi` 获取极速的 Mortal 模型推理能力
 - **长期可维护性**：优化的代码结构便于持续迭代
@@ -39,7 +39,7 @@ Akagi-NG 的核心理念：
 
 本项目**仅供教育及研究使用**。
 
-在网络游戏中使用第三方辅助工具可能违反游戏的服务条款。  
+在网络游戏中使用第三方辅助工具可能违反游戏的服务条款。
 Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不限于**账号被封禁或冻结**。
 
 请您在使用前充分了解并自行承担相关风险。
@@ -64,13 +64,13 @@ Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不�
 
 - 🧠 **核心功能**
   - 实时手牌分析与 AI 何切推荐
-  - 立直模拟推演 (Riichi Lookahead) - 智能推荐最佳立直舍牌
-  - 完整的副露支持 (吃/碰/暗杠/加杠/大明杠)
-  - 现代化的 Web 浮窗/叠加层 UI
-  - 多语言支持 (简体中文 / 繁體中文 / 日本語 / English)
+  - 立直模拟推演 - 智能推荐最佳立直舍牌
+  - 完整的副露支持 - 吃/碰/大明杠/暗杠/加杠操作提示一目了然
+  - 全新毛玻璃 HUD 界面 - 丝滑且无感的悬浮窗体验
+  - 多语言支持 - 简体中文 / 繁體中文 / 日本語 / English
 
 > [!NOTE]
-> **Riichi Lookahead（立直模拟推演）** 是 Akagi-NG 中的一项核心功能，旨在解决“当 AI 建议立直时，我应该切哪张牌？”的问题。
+> **Riichi Lookahead（立直模拟推演）** 是 Akagi-NG 的一项核心功能，旨在解决“当 AI 建议立直时，我应该切哪张牌？”的问题。
 >
 > <details>
 > <summary><b>点击查看立直模拟推演的详细逻辑</b></summary>
@@ -128,58 +128,66 @@ Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不�
 
 ### 2. 部署资源
 
-Akagi-NG 需要外部模型文件和依赖库才能运行。  
-请确保 `akagi-ng.exe` 所在目录结构完整（需包含以下文件夹）：
+Akagi-NG 需要外部模型文件和依赖库才能运行。
+请确保 `Akagi-NG.exe` 所在目录结构完整：
 
 ```plain
-akagi-ng/
-  ├── akagi-ng.exe
-  ├── config/          # 配置文件目录
-  ├── lib/             # libriichi 本地扩展库 (.pyd)
+Akagi-NG/
+  ├── Akagi-NG.exe     # 主程序 (Electron 桌面端)
+  ├── assets/          # 各平台相关的界面资源
+  ├── bin/             # 后端核心程序所在的目录
+  ├── config/          # 配置文件目录 (settings.json)
+  ├── lib/             # libriichi 本地扩展库 (.pyd/.so)
   │     ├── libriichi.pyd
   │     └── libriichi3p.pyd
-  └── models/          # Mortal 模型权重文件 (.pth)
-        ├── mortal.pth
-        └── mortal3p.pth
+  ├── locales/         # 多语言支持资源
+  ├── logs/            # 运行日志目录
+  ├── models/          # AI 模型权重文件 (.pth)
+  │     ├── mortal.pth
+  │     └── mortal3p.pth
+  ├── resources/       # 应用程序核心资源 (app.asar)
+  ├── LICENSE.txt      # 开源许可协议
+  ├── README.txt       # 极简使用说明
+  └── ...              # 其他必要的运行时支持文件 (.dll, .pak 等)
+
 ```
 
 ### 3. 启动与退出
 
-第一次运行 `akagi-ng.exe`时，程序默认以浏览器 (Playwright) 模式启动，将启动一个独立的浏览器窗口进入雀魂，并加载辅助 UI 界面。
+双击运行 `Akagi-NG.exe` 后，程序将展示集成化的 Dashboard 面板。您可以直接点击 Dashboard 中的“开始游戏”启动游戏浏览器窗口。
 
-以代理模式运行 Akagi-NG 时，程序将启动一个系统浏览器窗口进入 UI 界面，不会自动打开雀魂页面。
+点击 Dashboard 右上角的显示器图标即可开启 HUD 界面。
 
-如需退出程序，请直接关闭 `akagi-ng.exe` 的网页，或者点击界面右上角的红色电源图标。
+如需退出程序，请点击 Dashboard 右上角的红色电源图标。
 
-> [!CAUTION]
-> 请注意，以代理模式运行Akagi-NG时，关闭浏览器窗口**不会**自动退出后台程序。
+> [!TIP]
+> **HUD (Heads-Up Display)** 是 Akagi-NG 的一项核心特性。它能够将辅助信息直接以半透明形式覆盖在游戏画面上，无需手动置顶窗口。
 
 ### 4. 配置
 
-Akagi-NG 的所有配置均位于 `config/settings.json` 文件中。您可以点击页面右上角的齿轮图标进入设置面板来修改，也可以使用文本编辑器修改此文件来调整程序行为。
+Akagi-NG 的所有配置均位于 `config/settings.json` 文件中。您可以点击 Dashboard 右上角的齿轮图标进入设置面板来修改，也可以使用文本编辑器修改此文件来调整程序行为。
 
-### 5. 浏览器 (Playwright) 模式
+### 5. 桌面原生模式 (推荐)
 
-这是 Akagi-NG 的**默认工作模式**，也是最推荐的模式。
+这是 Akagi-NG的**默认工作模式**。
 
-在此模式下，Akagi-NG 会启动一个独立的、纯净的 Chromium 浏览器窗口（基于 Playwright 技术）。
+在此模式下，Akagi-NG 利用 Electron 核心管理一个专用的 Chromium 实例来运行游戏。
 
-- **优点**：
-  - **无需配置**：不需要安装证书，不需要设置系统代理，开箱即用。
+- **核心优势**：
+  - **免配置**：无需证书或代理设置，一键启动。
   - **环境隔离**：与您日常使用的浏览器完全隔离，互不干扰。
   - **安全稳定**：直接从游戏服务器接收数据，稳定性高。
 
 - **使用方法**：
-  1. 确保 `config/settings.json` 中 `browser.enabled` 为 `true`（默认即为 true）。
-  2. 双击运行 `akagi-ng.exe`。
-  3. 程序会自动打开一个浏览器窗口，请在此窗口中登录雀魂账号并开始游戏。
+  1. 运行 `Akagi-NG.exe`。
+  2. 在 Dashboard 中点击“启动游戏”。
 
 ### 6. MITM 模式
 
 Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许您使用任意浏览器或移动设备上（配合代理）进行对局。
 
 1. **启用配置**:
-   在 `config/settings.json` 中添加或修改 `mitm` 字段：
+   在设置面板中启用“外部代理”或在 `config/settings.json` 中手动修改 `mitm` 字段：
 
    ```json
    "mitm": {
@@ -194,7 +202,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
 3. **安装证书**:
 
-   > 注意：如果您使用了方案 B (Clash 分流)，可能无法打开 mitm.it。推荐使用**方法二**。
+   > 注意：如果您使用了方案 B (Clash 分流)，可能无法打开 `mitm.it`。推荐使用**方法二**。
    - **方法一：在线安装 (推荐方案 A 用户)**
      - 启动 Akagi-NG。
      - 访问 [http://mitm.it](http://mitm.it)。
@@ -290,7 +298,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
    ```
 
 3. **添加分流规则 (Rules)**:
-   将雀魂相关域名强制指向上面定义节点。请注意规则顺序，建议放在靠前位置。
+   将雀魂相关域名强制指向上面定义的代理节点。请注意规则顺序，建议将规则放在靠前位置。
 
    ```yaml
    rules:
@@ -318,40 +326,32 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
-cd Akagi-NG
 
-# 创建并激活虚拟环境
-python -m venv .venv
-.venv\Scripts\activate
-
-# 安装开发依赖
+# 安装后端依赖 (Python 3.12+)
+cd ./akagi_backend
 pip install -e .
-python -m playwright install
 ```
 
-### 2. 编译前端资源
+### 2. 开发环境运行
+
+在开发环境下启动桌面端：
 
 ```bash
-cd akagi_frontend
+cd ./electron
 npm install
+npm run dev
+```
+
+### 3. 调用构建链
+
+v1.0.0 采用了统一的 TypeScript 驱动构建链，位于 `electron` 目录。
+
+```bash
+cd ./electron
 npm run build
 ```
 
-### 3. 调试运行
-
-```bash
-python -m akagi_ng
-```
-
-### 4. 封装发布包
-
-构建独立的 ZIP 发布包（包含可执行文件）：
-
-```bash
-python scripts/build_release.py
-```
-
-构建产物将生成于 `dist/` 目录下。
+构建产物将生成于 `dist/release` 目录下。
 
 ---
 

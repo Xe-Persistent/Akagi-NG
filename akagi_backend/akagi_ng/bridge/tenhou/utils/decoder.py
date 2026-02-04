@@ -1,18 +1,24 @@
 # http://tenhou.net/img/tehai.js
 # http://tenhou.net/img/mentsu136.txt
+from enum import StrEnum
+
 from akagi_ng.bridge.tenhou.utils.converter import tenhou_to_mjai
 
 
-class Meld:
+class MeldType(StrEnum):
     CHI = "chi"
     PON = "pon"
     KAKAN = "kakan"
     DAIMINKAN = "daiminkan"
     ANKAN = "ankan"
 
-    def __init__(self, target: int, meld_type: str, tiles: list[int], unused: int | None = None, r: int | None = None):
+
+class Meld:
+    def __init__(
+        self, target: int, meld_type: MeldType, tiles: list[int], unused: int | None = None, r: int | None = None
+    ):
         self.target: int = target
-        self.meld_type: str = meld_type
+        self.meld_type: MeldType = meld_type
         self.tiles: list[int] = tiles
         self.unused: int | None = unused
         self.r: int | None = r
@@ -23,15 +29,15 @@ class Meld:
 
     @property
     def consumed(self) -> list[str]:
-        if self.meld_type == self.ANKAN:
+        if self.meld_type == MeldType.ANKAN:
             return tenhou_to_mjai(self.tiles)
         return tenhou_to_mjai(self.tiles[1:])
 
     @property
     def exposed(self) -> list[int]:
-        if self.meld_type == self.ANKAN:
+        if self.meld_type == MeldType.ANKAN:
             return self.tiles
-        if self.meld_type == self.KAKAN:
+        if self.meld_type == MeldType.KAKAN:
             return self.tiles[0:1]
         return self.tiles[1:]
 
@@ -62,7 +68,7 @@ class Meld:
             t + 4 * 2 + ((m >> 7) & 0x3),
         ]
         h[0], h[r] = h[r], h[0]
-        return Meld(m & 3, Meld.CHI, h, r=r)
+        return Meld(m & 3, MeldType.CHI, h, r=r)
 
     @staticmethod
     def parse_pon(m: int) -> "Meld":
@@ -73,7 +79,7 @@ class Meld:
         h = [t, t + 1, t + 2, t + 3]
         unused = h.pop(unused)
         h[0], h[r] = h[r], h[0]
-        return Meld(m & 3, Meld.PON, h, unused=unused)
+        return Meld(m & 3, MeldType.PON, h, unused=unused)
 
     @staticmethod
     def parse_kakan(m: int) -> "Meld":
@@ -85,7 +91,7 @@ class Meld:
         added = h.pop(added)
         h[0], h[r] = h[r], h[0]
         h = [added, *h]
-        return Meld(m & 3, Meld.KAKAN, h)
+        return Meld(m & 3, MeldType.KAKAN, h)
 
     @staticmethod
     def parse_daiminkan_ankan(m: int) -> "Meld":
@@ -97,8 +103,8 @@ class Meld:
         h[0], h[r] = h[r], h[0]
 
         if target == 0:
-            return Meld(target, Meld.ANKAN, h)
-        return Meld(target, Meld.DAIMINKAN, h)
+            return Meld(target, MeldType.ANKAN, h)
+        return Meld(target, MeldType.DAIMINKAN, h)
 
 
 def parse_sc_tag(message: dict[str, str]) -> list[int]:

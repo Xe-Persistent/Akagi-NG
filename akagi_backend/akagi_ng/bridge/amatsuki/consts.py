@@ -1,4 +1,7 @@
-class AmatsukiTopic:
+from enum import StrEnum
+
+
+class AmatsukiTopic(StrEnum):
     JOIN_DESK_CALLBACK = "/user/topic/callback/joinDesk"
     ROUND_START_PREFIX = "/user/topic/desk/roundStart/"
     SYNC_DORA_PREFIX = "/topic/desk/syncDora/"
@@ -10,7 +13,7 @@ class AmatsukiTopic:
     GAME_END_PREFIX = "/user/topic/desk/gameEnd/"
 
 
-class AmatsukiAction:
+class AmatsukiAction(StrEnum):
     # Tehai Actions
     KIRI = "KIRI"
     ANKAN = "ANNKAN"

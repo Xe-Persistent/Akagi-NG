@@ -9,7 +9,7 @@ from akagi_ng.bridge.tenhou.utils.converter import (
     tenhou_to_mjai_one,
     to_34_array,
 )
-from akagi_ng.bridge.tenhou.utils.decoder import Meld, parse_sc_tag
+from akagi_ng.bridge.tenhou.utils.decoder import Meld, MeldType, parse_sc_tag
 from akagi_ng.bridge.tenhou.utils.judrdy import isrh
 from akagi_ng.bridge.tenhou.utils.state import State
 from akagi_ng.bridge.types import MJAIEvent, RyukyokuEvent
@@ -244,18 +244,18 @@ class TenhouBridge(BaseBridge):
         mjai_messages: list[MJAIEvent] = []
 
         match meld.meld_type:
-            case Meld.CHI:
+            case MeldType.CHI:
                 target = (actor - 1) % num_players
                 mjai_messages.append(self.make_chi(actor, target, meld.pai, meld.consumed))
-            case Meld.PON:
+            case MeldType.PON:
                 target = (actor + meld.target) % num_players
                 mjai_messages.append(self.make_pon(actor, target, meld.pai, meld.consumed))
-            case Meld.DAIMINKAN:
+            case MeldType.DAIMINKAN:
                 target = (actor + meld.target) % num_players
                 mjai_messages.append(self.make_daiminkan(actor, target, meld.pai, meld.consumed))
-            case Meld.KAKAN:
+            case MeldType.KAKAN:
                 mjai_messages.append(self.make_kakan(actor, meld.pai, meld.consumed))
-            case Meld.ANKAN:
+            case MeldType.ANKAN:
                 mjai_messages.append(self.make_ankan(actor, meld.consumed))
             case _:
                 logger.warning(f"Unknown meld type: {meld.meld_type}")

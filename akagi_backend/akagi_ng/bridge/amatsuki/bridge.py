@@ -1,5 +1,5 @@
 import json
-from enum import Enum
+from enum import StrEnum
 from typing import Self
 
 import mitmproxy.http
@@ -16,7 +16,7 @@ from akagi_ng.bridge.types import MJAIEvent
 from akagi_ng.core.constants import MahjongConstants
 
 
-class STOMPFrame(Enum):
+class STOMPFrame(StrEnum):
     CONNECT = "CONNECT"
     CONNECTED = "CONNECTED"
     SEND = "SEND"

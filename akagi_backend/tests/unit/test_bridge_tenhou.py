@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.bridge.tenhou.utils.decoder import Meld, parse_owari_tag, parse_sc_tag
+from akagi_ng.bridge.tenhou.utils.decoder import Meld, MeldType, parse_owari_tag, parse_sc_tag
 
 
 @pytest.fixture
@@ -62,10 +62,6 @@ def test_convert_meld_pon(bridge):
     mock_meld.consumed = ["5z", "5z"]
 
     with patch("akagi_ng.bridge.tenhou.bridge.Meld") as MockMeldClass:
-        MockMeldClass.PON = "pon"
-        MockMeldClass.CHI = "chi"
-        MockMeldClass.ANKAN = "ankan"
-        MockMeldClass.KAKAN = "kakan"
         MockMeldClass.parse_meld.return_value = mock_meld
         result = bridge._convert_meld(message)
         assert len(result) == 1
@@ -170,7 +166,7 @@ def test_meld_parse_chi():
     # t_orig = 12, r = 0
     m = (12 << 10) | 4 | 3
     meld = Meld.parse_meld(m)
-    assert meld.meld_type == Meld.CHI
+    assert meld.meld_type == MeldType.CHI
     assert meld.target == 3
     assert meld.pai in ["5m", "5mr"]
     assert any(p in meld.consumed for p in ["5m", "6m", "7m"])
@@ -181,7 +177,7 @@ def test_meld_parse_pon():
     # 为了得到 1p (36), t_orig 需要是 27 (27//3*4=36)
     m = (27 << 9) | 8 | 1
     meld = Meld.parse_meld(m)
-    assert meld.meld_type == Meld.PON
+    assert meld.meld_type == MeldType.PON
     assert meld.target == 1
     assert meld.pai == "1p"
 
@@ -190,7 +186,7 @@ def test_meld_parse_kakan():
     # 为了得到 3p (44), t_orig 需要是 33 (33//3*4=44)
     m = (33 << 9) | 16 | 2
     meld = Meld.parse_meld(m)
-    assert meld.meld_type == Meld.KAKAN
+    assert meld.meld_type == MeldType.KAKAN
     assert meld.pai == "3p"
     assert meld.exposed == [44]
 
@@ -219,14 +215,14 @@ def test_meld_parse_daiminkan_ankan():
     # Daiminkan: target != 0, hai0 = 16 (5m)
     m = (16 << 8) | 1
     meld = Meld.parse_meld(m)
-    assert meld.meld_type == Meld.DAIMINKAN
+    assert meld.meld_type == MeldType.DAIMINKAN
     assert meld.target == 1
     assert meld.tiles == [16, 17, 18, 19]
 
     # Ankan: target = 0, hai0 = 20 (6m)
     m = (20 << 8) | 0
     meld = Meld.parse_meld(m)
-    assert meld.meld_type == Meld.ANKAN
+    assert meld.meld_type == MeldType.ANKAN
     assert meld.target == 0
     assert meld.tiles == [20, 21, 22, 23]
     assert meld.consumed == ["6m", "6m", "6m", "6m"]

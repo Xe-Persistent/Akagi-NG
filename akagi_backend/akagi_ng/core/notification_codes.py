@@ -3,8 +3,10 @@
 集中管理所有通知代码,避免在代码中使用硬编码字符串。
 """
 
+from enum import StrEnum
 
-class NotificationCode:
+
+class NotificationCode(StrEnum):
     """通知代码常量类。"""
 
     # ============================================================

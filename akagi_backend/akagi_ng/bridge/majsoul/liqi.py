@@ -2,7 +2,7 @@ import base64
 import json
 import struct
 import time
-from enum import Enum
+from enum import IntEnum
 
 from google.protobuf import descriptor_pb2 as _descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
@@ -14,7 +14,7 @@ from akagi_ng.bridge.majsoul.consts import LiqiProtocolConstants
 from akagi_ng.core.paths import get_assets_dir
 
 
-class MsgType(Enum):
+class MsgType(IntEnum):
     Notify = 1
     Req = 2
     Res = 3

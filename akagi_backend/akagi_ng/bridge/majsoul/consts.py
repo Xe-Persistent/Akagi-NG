@@ -1,7 +1,9 @@
 """雀魂协议常量定义"""
 
+from enum import IntEnum
 
-class OperationChiPengGang:
+
+class OperationChiPengGang(IntEnum):
     """吃碰杠操作类型"""
 
     Chi = 0
@@ -9,7 +11,7 @@ class OperationChiPengGang:
     Gang = 2
 
 
-class OperationAnGangAddGang:
+class OperationAnGangAddGang(IntEnum):
     """暗杠/加杠操作类型"""
 
     AnGang = 3

@@ -14,14 +14,3 @@ class TenhouConstants:
     PEI_INDEX = 30
     BIT_MASK_M = 0x3F
     BIT_NUKIDORA = 0x20
-
-    # N 类型值
-    TYPE_PON = 1
-    TYPE_DAIMINKAN = 2
-    TYPE_CHI = 3
-    TYPE_ANKAN = 4
-    TYPE_KAKAN = 5
-    TYPE_RON = 6
-    TYPE_TSUMO = 7
-    TYPE_RYUKYOKU = 9
-    TYPE_NUKIDORA = 10

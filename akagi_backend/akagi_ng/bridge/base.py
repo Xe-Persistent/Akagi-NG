@@ -17,6 +17,7 @@ from akagi_ng.bridge.types import (
     SystemEvent,
     TsumoEvent,
 )
+from akagi_ng.core.notification_codes import NotificationCode
 
 
 class BaseBridge:
@@ -142,7 +143,7 @@ class BaseBridge:
         """构建 end_game（游戏结束）消息"""
         return {"type": "end_game"}
 
-    def make_system_event(self, code: str, msg: str | None = None) -> SystemEvent:
+    def make_system_event(self, code: str | NotificationCode, msg: str | None = None) -> SystemEvent:
         """构建 system_event（系统消息）"""
         event: SystemEvent = {"type": "system_event", "code": code}
         if msg is not None:

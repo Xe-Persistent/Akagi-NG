@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 CARD2MJAI = {
     0x00: "?",  # 0x00
     0x01: "1p",
@@ -42,7 +44,7 @@ CARD2MJAI = {
 MJAI2CARD = {v: k for k, v in CARD2MJAI.items()}
 
 
-class RCAction:
+class RCAction(IntEnum):
     CHI_LOW = 2
     CHI_MID = 3
     CHI_HIGH = 4

@@ -122,7 +122,7 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = memo(
             stroke='currentColor'
             strokeWidth={stroke}
             fill='transparent'
-            className='text-zinc-300/40 dark:text-zinc-800'
+            className='text-zinc-300 dark:text-zinc-800'
           />
 
           {/* Main Progress Ring (Static/Smooth) */}
@@ -155,8 +155,7 @@ export const ConfidenceRing: FC<ConfidenceRingProps> = memo(
             strokeLinecap='round'
             style={{
               filter: `drop-shadow(0 0 4px ${color})`,
-              opacity: opacity * 0.6, // 与底层彩色圆环混合
-              mixBlendMode: 'overlay', // TODO：更简单的混合
+              opacity: opacity * 0.4,
             }}
           />
         </svg>

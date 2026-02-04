@@ -69,8 +69,10 @@
 
   /* Components: StreamRecommendation */
   .glass-card {
-    @apply ease-premium relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 pr-10 shadow-xl backdrop-blur-xl transition-all duration-500 dark:border-white/5 dark:bg-zinc-950/75;
+    @apply ease-premium relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 pr-8 pl-4 transition-all duration-500 dark:border-white/5 dark:bg-zinc-950/75;
     will-change: transform, opacity;
+    isolation: isolate;
+    transform: translateZ(0);
   }
 
   .vertical-divider {
@@ -109,7 +111,7 @@
   }
 
   .stream-player-overlay {
-    @apply ease-premium flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border border-white/20 bg-white/5 p-8 text-center backdrop-blur-md transition-all duration-500 dark:border-white/10 dark:bg-black/20;
+    @apply ease-premium flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center transition-all duration-500;
   }
 
   /* Components: Alerts (SettingsPanel) */

@@ -131,10 +131,14 @@ export class WindowManager {
     const y = this.lastHudPosition?.y ?? 100;
 
     this.hudWindow = new BrowserWindow({
-      width: 640,
-      height: 360,
       x,
       y,
+      width: 640,
+      height: 360,
+      minWidth: 320,
+      minHeight: 180,
+      maxWidth: 1280,
+      maxHeight: 720,
       frame: false,
       transparent: true,
       backgroundColor: '#00000000',

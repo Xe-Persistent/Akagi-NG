@@ -95,4 +95,13 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
     });
     return true;
   });
+
+  // Set window bounds (x, y, width, height)
+  ipcMain.handle('set-window-bounds', (_event, bounds: Partial<Electron.Rectangle>) => {
+    const win = BrowserWindow.fromWebContents(_event.sender);
+    if (win && !win.isDestroyed()) {
+      win.setBounds(bounds);
+    }
+    return true;
+  });
 }

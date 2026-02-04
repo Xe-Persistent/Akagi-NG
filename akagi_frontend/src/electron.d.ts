@@ -17,6 +17,12 @@ interface InvokeChannelParams {
   'get-app-version': void;
   'wait-for-backend': number | undefined;
   'update-locale': string;
+  'set-window-bounds': {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  };
 }
 
 // ===== Invoke 通道返回值类型 =====
@@ -35,6 +41,7 @@ interface InvokeChannelReturns {
   'get-app-version': string;
   'wait-for-backend': boolean;
   'update-locale': boolean;
+  'set-window-bounds': boolean;
 }
 
 // ===== On 通道事件参数类型 =====

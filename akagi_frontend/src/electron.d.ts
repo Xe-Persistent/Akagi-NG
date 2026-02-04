@@ -16,6 +16,7 @@ interface InvokeChannelParams {
   'check-resource-status': void;
   'get-app-version': void;
   'wait-for-backend': number | undefined;
+  'update-locale': string;
 }
 
 // ===== Invoke 通道返回值类型 =====
@@ -33,6 +34,7 @@ interface InvokeChannelReturns {
   };
   'get-app-version': string;
   'wait-for-backend': boolean;
+  'update-locale': boolean;
 }
 
 // ===== On 通道事件参数类型 =====
@@ -43,6 +45,7 @@ interface OnChannelParams {
   majsoul_proto_updated: [];
   majsoul_proto_update_failed: [error: string];
   'backend-ready': [];
+  'locale-changed': [locale: string];
 }
 
 // ===== 类型安全的 Electron API =====

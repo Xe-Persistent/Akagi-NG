@@ -14,6 +14,7 @@ const VALID_INVOKE_CHANNELS = [
   'check-resource-status',
   'get-app-version',
   'wait-for-backend',
+  'update-locale',
 ] as const;
 
 const VALID_ON_CHANNELS = [
@@ -23,6 +24,7 @@ const VALID_ON_CHANNELS = [
   'majsoul_proto_updated',
   'majsoul_proto_update_failed',
   'backend-ready',
+  'locale-changed',
 ] as const;
 
 contextBridge.exposeInMainWorld('electron', {

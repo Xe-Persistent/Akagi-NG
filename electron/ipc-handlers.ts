@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 
 import type { BackendManager } from './backend-manager';
 import type { WindowManager } from './window-manager';
@@ -84,5 +84,15 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
   // Wait for backend to be ready (port 8765 bound)
   ipcMain.handle('wait-for-backend', async (_event, timeoutMs?: number) => {
     return await backendManager.waitForReady(timeoutMs);
+  });
+
+  // Sync locale across windows
+  ipcMain.handle('update-locale', (_event, locale: string) => {
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('locale-changed', locale);
+      }
+    });
+    return true;
   });
 }

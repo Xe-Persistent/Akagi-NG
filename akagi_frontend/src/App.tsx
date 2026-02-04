@@ -9,6 +9,7 @@ import { LaunchScreen } from '@/components/LaunchScreen';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
+import i18n from '@/i18n/i18n';
 import type { Settings } from '@/types';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -58,9 +59,20 @@ export default function App() {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    return window.electron.on('exit-animation-start', () => {
+    const unsubExit = window.electron.on('exit-animation-start', () => {
       setIsExiting(true);
     });
+
+    const unsubLocale = window.electron.on('locale-changed', (newLocale) => {
+      if (i18n.language !== newLocale) {
+        i18n.changeLanguage(newLocale);
+      }
+    });
+
+    return () => {
+      unsubExit();
+      unsubLocale();
+    };
   }, []);
 
   return (

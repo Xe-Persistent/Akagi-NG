@@ -41,6 +41,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
   const handleLocaleChange = useCallback(
     async (newLocale: string) => {
       await i18n.changeLanguage(newLocale);
+      window.electron.invoke('update-locale', newLocale);
       try {
         const currentSettings = await fetchSettingsApi(apiBase);
         const newSettings = { ...currentSettings, locale: newLocale };

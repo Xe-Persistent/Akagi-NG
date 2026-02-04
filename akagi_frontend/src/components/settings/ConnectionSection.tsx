@@ -24,7 +24,7 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(({ settings, u
 
       <SettingsItem label={t('settings.connection.mode')}>
         <CapsuleSwitch
-          className='w-64'
+          className='w-fit max-w-full'
           checked={settings.mitm.enabled}
           onCheckedChange={(val) => {
             updateSetting(['mitm', 'enabled'], val);

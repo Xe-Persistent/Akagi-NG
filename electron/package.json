@@ -1,6 +1,6 @@
 {
   "name": "akagi-ng-desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Akagi-NG Electron Desktop App",
   "main": "../dist/main/main.js",
   "repository": {

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import { Input } from '@/components/ui/input';
 import { SettingsItem } from '@/components/ui/settings-item';
+import { StatusBar } from '@/components/ui/status-bar';
 import type { Paths, PathValue, Settings } from '@/types';
 
 interface ConnectionSectionProps {
@@ -35,9 +36,7 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(({ settings, u
       </SettingsItem>
 
       {['riichi_city', 'amatsuki'].includes(settings.platform) && !settings.mitm.enabled && (
-        <div className='flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'>
-          {t('settings.connection.mitm_required_notice')}
-        </div>
+        <StatusBar variant='warning'>{t('settings.connection.mitm_required_notice')}</StatusBar>
       )}
 
       {settings.mitm.enabled && (

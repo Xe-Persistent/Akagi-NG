@@ -90,7 +90,7 @@
 
   /* Components: StatusBar */
   .status-bar {
-    @apply w-full rounded-lg border p-3 text-center text-sm;
+    @apply w-full rounded-lg border p-3 text-sm;
   }
   .status-error {
     @apply border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-400;

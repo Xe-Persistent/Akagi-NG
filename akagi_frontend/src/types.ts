@@ -30,7 +30,6 @@ export interface HeaderProps {
 export interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
-  apiBase: string;
 }
 
 export interface StreamPlayerProps {

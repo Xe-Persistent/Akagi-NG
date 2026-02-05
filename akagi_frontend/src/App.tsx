@@ -1,19 +1,38 @@
 import 'react-toastify/dist/ReactToastify.css';
 
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, use, useEffect, useMemo, useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 
 import { ExitOverlay } from '@/components/ExitOverlay';
 import { GameProvider } from '@/components/GameProvider';
 import { LaunchScreen } from '@/components/LaunchScreen';
+import { SettingsProvider } from '@/components/SettingsProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { APP_STARTUP_MIN_DELAY_MS } from '@/config/constants';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
-import i18n from '@/i18n/i18n';
 import type { Settings } from '@/types';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Hud = lazy(() => import('@/pages/HUD'));
+
+function AppContent({ settingsPromise }: { settingsPromise: Promise<Settings> }) {
+  const initialSettings = use(settingsPromise);
+  const { apiBase } = useConnectionConfig();
+
+  return (
+    <SettingsProvider apiBase={apiBase} initialSettings={initialSettings}>
+      <GameProvider>
+        <HashRouter>
+          <Routes>
+            <Route path='/' element={<Dashboard settingsPromise={settingsPromise} />} />
+            <Route path='/hud' element={<Hud />} />
+          </Routes>
+        </HashRouter>
+      </GameProvider>
+    </SettingsProvider>
+  );
+}
 
 export default function App() {
   const { apiBase } = useConnectionConfig();
@@ -35,7 +54,10 @@ export default function App() {
           game_url: '',
           platform: 'majsoul',
           mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
-          server: { host: '127.0.0.1', port: 8765 },
+          server: {
+            host: apiBase.split('://')[1]?.split(':')[0] || '127.0.0.1',
+            port: parseInt(apiBase.split(':')[2]) || 8765,
+          },
           ot: { online: false, server: '', api_key: '' },
           model_config: {
             device: 'auto',
@@ -52,7 +74,7 @@ export default function App() {
       return fetchSettings;
     }
 
-    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1600));
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, APP_STARTUP_MIN_DELAY_MS));
     return Promise.all([fetchSettings, minDelay]).then(([settings]) => settings as Settings);
   }, [apiBase, isHud]);
 
@@ -63,16 +85,7 @@ export default function App() {
       setIsExiting(true);
     });
 
-    const unsubLocale = window.electron.on('locale-changed', (newLocale) => {
-      if (i18n.language !== newLocale) {
-        i18n.changeLanguage(newLocale);
-      }
-    });
-
-    return () => {
-      unsubExit();
-      unsubLocale();
-    };
+    return () => unsubExit();
   }, []);
 
   return (
@@ -80,17 +93,7 @@ export default function App() {
       fallback={isHud ? <div className='h-screen w-screen bg-transparent' /> : <LaunchScreen />}
     >
       <ThemeProvider>
-        <GameProvider>
-          <HashRouter>
-            <Routes>
-              {/* Default Dashboard Route */}
-              <Route path='/' element={<Dashboard settingsPromise={settingsPromise} />} />
-
-              {/* HUD Route for Overlay Mode */}
-              <Route path='/hud' element={<Hud />} />
-            </Routes>
-          </HashRouter>
-        </GameProvider>
+        <AppContent settingsPromise={settingsPromise} />
         {isExiting && <ExitOverlay />}
       </ThemeProvider>
     </Suspense>

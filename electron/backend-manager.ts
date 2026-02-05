@@ -4,17 +4,59 @@ import { app, dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
+import { BACKEND_SHUTDOWN_API_TIMEOUT_MS, BACKEND_SHUTDOWN_TIMEOUT_MS } from './constants';
 import type { ResourceStatus } from './resource-validator';
 import { ResourceValidator } from './resource-validator';
+import { getAssetPath, getProjectRoot } from './utils';
 
 export class BackendManager {
   private pyProcess: ChildProcess | null = null;
-  private readonly HOST = '127.0.0.1';
-  private readonly PORT = 8765; // Default port used by backend
   private validator: ResourceValidator;
   private isReadyState: boolean = false;
   private readyPromise: Promise<void>;
   private resolveReady!: () => void;
+
+  public getBackendConfig(): { host: string; port: number } {
+    const defaultHost = '127.0.0.1';
+    const defaultPort = 8765;
+
+    try {
+      const settingsPath = getAssetPath('config', 'settings.json');
+
+      if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        return {
+          host: settings?.server?.host || defaultHost,
+          port: settings?.server?.port || defaultPort,
+        };
+      }
+    } catch (err) {
+      console.warn('[BackendManager] Failed to read settings.json for backend config:', err);
+    }
+
+    return { host: defaultHost, port: defaultPort };
+  }
+
+  public getMitmConfig(): { host: string; port: number } {
+    const defaultHost = '127.0.0.1';
+    const defaultPort = 6789;
+
+    try {
+      const settingsPath = getAssetPath('config', 'settings.json');
+
+      if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        return {
+          host: settings?.mitm?.host || defaultHost,
+          port: settings?.mitm?.port || defaultPort,
+        };
+      }
+    } catch (err) {
+      console.warn('[BackendManager] Failed to read settings.json for mitm config:', err);
+    }
+
+    return { host: defaultHost, port: defaultPort };
+  }
 
   public isRunning(): boolean {
     return !!this.pyProcess && !this.pyProcess.killed;
@@ -24,10 +66,7 @@ export class BackendManager {
     this.readyPromise = new Promise((resolve) => {
       this.resolveReady = resolve;
     });
-    const projectRoot = !app.isPackaged
-      ? path.resolve(__dirname, '../../')
-      : path.join(process.resourcesPath, '..');
-    this.validator = new ResourceValidator(projectRoot);
+    this.validator = new ResourceValidator(getProjectRoot());
   }
 
   public getResourceStatus(): ResourceStatus {
@@ -54,7 +93,7 @@ export class BackendManager {
   private startDevBackend() {
     console.log('Starting backend in DEV mode...');
 
-    const projectRoot = path.resolve(__dirname, '../../');
+    const projectRoot = getProjectRoot();
     const backendRoot = path.join(projectRoot, 'akagi_backend');
     const venvDir = path.join(backendRoot, '.venv');
 
@@ -91,7 +130,7 @@ export class BackendManager {
   private startMockBackend() {
     console.log('Starting backend in MOCK mode...');
 
-    const projectRoot = path.resolve(__dirname, '../../');
+    const projectRoot = getProjectRoot();
     const frontendRoot = path.join(projectRoot, 'akagi_frontend');
     const mockScript = path.join(frontendRoot, 'mock.ts');
 
@@ -121,7 +160,7 @@ export class BackendManager {
     console.log('Starting backend in PROD mode...');
 
     const binaryName = process.platform === 'win32' ? 'akagi-ng.exe' : 'akagi-ng';
-    const binaryPath = path.join(path.join(process.resourcesPath, '..'), 'bin', binaryName);
+    const binaryPath = getAssetPath('bin', binaryName);
 
     try {
       if (!fs.existsSync(binaryPath)) {
@@ -189,9 +228,10 @@ export class BackendManager {
     if (!this.isRunning()) return;
 
     try {
-      await fetch(`http://${this.HOST}:${this.PORT}/api/shutdown`, {
+      const { host, port } = this.getBackendConfig();
+      await fetch(`http://${host}:${port}/api/shutdown`, {
         method: 'POST',
-        signal: AbortSignal.timeout(1000),
+        signal: AbortSignal.timeout(BACKEND_SHUTDOWN_API_TIMEOUT_MS),
       });
     } catch {
       // Ignore error, process might already be closing
@@ -206,7 +246,7 @@ export class BackendManager {
           this.pyProcess?.kill('SIGKILL');
         }
         resolve();
-      }, 5000);
+      }, BACKEND_SHUTDOWN_TIMEOUT_MS);
 
       this.pyProcess?.once('close', () => {
         clearTimeout(timeout);

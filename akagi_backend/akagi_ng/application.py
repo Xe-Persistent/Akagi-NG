@@ -174,7 +174,7 @@ class AkagiApp:
 
         return mjai_responses, batch_notifications
 
-    def _get_next_message(self, timeout: float = 0.1) -> dict | None:
+    def _get_next_message(self, timeout: float = ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS) -> dict | None:
         """
         从事件队列获取下一条消息(阻塞、100ms超时)
         如果超时或队列为空则返回 None
@@ -251,7 +251,7 @@ class AkagiApp:
         try:
             while not self._stop_event.is_set():
                 # 阶段 1：INPUT - 从事件队列获取消息（阻塞模式，替代轮询）
-                msg = self._get_next_message(timeout=0.1)
+                msg = self._get_next_message(timeout=ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS)
                 if not msg:
                     # Timeout, check stop event and continue
                     continue

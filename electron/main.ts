@@ -1,11 +1,16 @@
 import { app, BrowserWindow, dialog } from 'electron';
 
 import { BackendManager } from './backend-manager';
+import {
+  BACKEND_STARTUP_CHECK_INTERVAL_MS,
+  BACKEND_STARTUP_CHECK_RETRIES,
+  BACKEND_STARTUP_CHECK_TIMEOUT_MS,
+} from './constants';
 import { registerIpcHandlers } from './ipc-handlers';
 import { WindowManager } from './window-manager';
 
-const windowManager = new WindowManager();
 const backendManager = new BackendManager();
+const windowManager = new WindowManager(backendManager);
 
 process.on('uncaughtException', (error) => {
   console.error('[Main] Uncaught Exception:', error);
@@ -28,13 +33,14 @@ app.whenReady().then(async () => {
 
   // 4. Try to detect backend readiness (informative only, don't block the UI further)
   try {
-    for (let i = 0; i < 20; i++) {
+    const { host, port } = backendManager.getBackendConfig();
+    for (let i = 0; i < BACKEND_STARTUP_CHECK_RETRIES; i++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000); // 1s timeout per check
-        await fetch('http://127.0.0.1:8765', { signal: controller.signal });
+        const timeoutId = setTimeout(() => controller.abort(), BACKEND_STARTUP_CHECK_TIMEOUT_MS);
+        await fetch(`http://${host}:${port}`, { signal: controller.signal });
         clearTimeout(timeoutId);
-        console.log('[Main] Backend port is ready.');
+        console.log(`[Main] Backend port ${port} is ready.`);
         backendManager.markReady();
         // Notify any windows that might be waiting
         BrowserWindow.getAllWindows().forEach((win) => {
@@ -42,7 +48,7 @@ app.whenReady().then(async () => {
         });
         break;
       } catch {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, BACKEND_STARTUP_CHECK_INTERVAL_MS));
       }
     }
   } catch (err) {

@@ -1,6 +1,21 @@
 import { app, BrowserWindow, nativeTheme, screen } from 'electron';
 import path from 'path';
 
+import type { BackendManager } from './backend-manager';
+import {
+  DASHBOARD_WINDOW_HEIGHT,
+  DASHBOARD_WINDOW_WIDTH,
+  DEV_HUD_URL,
+  DEV_SERVER_URL,
+  GAME_WINDOW_HEIGHT,
+  GAME_WINDOW_WIDTH,
+  HUD_MAX_HEIGHT,
+  HUD_MAX_WIDTH,
+  HUD_MIN_HEIGHT,
+  HUD_MIN_WIDTH,
+  HUD_WINDOW_HEIGHT,
+  HUD_WINDOW_WIDTH,
+} from './constants';
 import { GameHandler } from './game-handler';
 
 export class WindowManager {
@@ -11,7 +26,7 @@ export class WindowManager {
   private lastHudPosition: { x: number; y: number } | null = null;
   private isQuitting: boolean = false;
 
-  constructor() {}
+  constructor(private backendManager: BackendManager) {}
 
   public setQuitting(quitting: boolean) {
     this.isQuitting = quitting;
@@ -32,10 +47,10 @@ export class WindowManager {
     }
 
     this.dashboardWindow = new BrowserWindow({
-      width: 1280,
-      height: 800,
-      minWidth: 1280,
-      minHeight: 800,
+      width: DASHBOARD_WINDOW_WIDTH,
+      height: DASHBOARD_WINDOW_HEIGHT,
+      minWidth: DASHBOARD_WINDOW_WIDTH,
+      minHeight: DASHBOARD_WINDOW_HEIGHT,
       frame: false,
       titleBarStyle: 'hiddenInset',
       autoHideMenuBar: true,
@@ -52,7 +67,7 @@ export class WindowManager {
       this.dashboardWindow?.show();
     });
 
-    const devUrl = 'http://localhost:5173'; // Vite dev server
+    const devUrl = DEV_SERVER_URL; // Vite dev server
     // In production we would load a file
 
     const isDev = !app.isPackaged;
@@ -127,18 +142,18 @@ export class WindowManager {
     const { width } = screen.getPrimaryDisplay().workAreaSize;
 
     // Use saved position or default
-    const x = this.lastHudPosition?.x ?? width - 660;
+    const x = this.lastHudPosition?.x ?? width - (HUD_WINDOW_WIDTH + 20);
     const y = this.lastHudPosition?.y ?? 100;
 
     this.hudWindow = new BrowserWindow({
       x,
       y,
-      width: 640,
-      height: 360,
-      minWidth: 320,
-      minHeight: 180,
-      maxWidth: 1280,
-      maxHeight: 720,
+      width: HUD_WINDOW_WIDTH,
+      height: HUD_WINDOW_HEIGHT,
+      minWidth: HUD_MIN_WIDTH,
+      minHeight: HUD_MIN_HEIGHT,
+      maxWidth: HUD_MAX_WIDTH,
+      maxHeight: HUD_MAX_HEIGHT,
       frame: false,
       transparent: true,
       backgroundColor: '#00000000',
@@ -161,7 +176,7 @@ export class WindowManager {
 
     const isDev = !app.isPackaged;
     const loadPromise = isDev
-      ? this.hudWindow.loadURL('http://localhost:5173/#/hud')
+      ? this.hudWindow.loadURL(DEV_HUD_URL)
       : this.hudWindow.loadFile(path.join(__dirname, '../renderer/index.html'), { hash: '/hud' });
 
     await loadPromise.catch((err) => console.error('[WindowManager] Failed to load HUD:', err));
@@ -188,7 +203,7 @@ export class WindowManager {
     useMitm?: boolean;
     platform?: string;
   }): Promise<void> {
-    const { url, useMitm, platform } = options;
+    const { url, useMitm } = options;
 
     if (this.gameWindow) {
       if (!this.gameWindow.isDestroyed()) {
@@ -200,10 +215,10 @@ export class WindowManager {
     }
 
     this.gameWindow = new BrowserWindow({
-      width: 1280,
-      height: 720,
-      minWidth: 1280,
-      minHeight: 720,
+      width: GAME_WINDOW_WIDTH,
+      height: GAME_WINDOW_HEIGHT,
+      minWidth: GAME_WINDOW_WIDTH,
+      minHeight: GAME_WINDOW_HEIGHT,
       maximizable: true,
       autoHideMenuBar: true,
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
@@ -212,6 +227,26 @@ export class WindowManager {
         contextIsolation: true,
       },
     });
+
+    if (useMitm) {
+      const mitm = this.backendManager.getMitmConfig();
+      const proxyRules = `http://${mitm.host}:${mitm.port}`;
+      console.log(`[WindowManager] Setting game window proxy to: ${proxyRules}`);
+      await this.gameWindow.webContents.session.setProxy({
+        proxyRules: proxyRules,
+        proxyBypassRules: '127.0.0.1,localhost',
+      });
+    } else {
+      // If NOT using MITM, attach GameHandler (Debugger API) for local interception
+      try {
+        const backend = this.backendManager.getBackendConfig();
+        const apiBase = `http://${backend.host}:${backend.port}`;
+        this.gameHandler = new GameHandler(this.gameWindow.webContents, apiBase);
+        await this.gameHandler.attach();
+      } catch (e) {
+        console.error('[WindowManager] Failed to attach GameHandler:', e);
+      }
+    }
 
     // Handle F11 for fullscreen toggle
     this.gameWindow.webContents.on('before-input-event', (event, input) => {
@@ -222,18 +257,10 @@ export class WindowManager {
       }
     });
 
-    let targetUrl = url;
-    if (!targetUrl) {
-      if (platform === 'tenhou') {
-        targetUrl = 'https://tenhou.net/3/';
-      } else {
-        // Default to Majsoul for backward compatibility or auto
-        targetUrl = 'https://game.maj-soul.com/1/';
-      }
-    }
+    // Fallback to a default URL only if absolutely necessary, but usually the frontend should provide this.
+    const targetUrl = url || 'https://game.maj-soul.com/1/';
 
     // Sanitize User Agent to remove Electron fingerprint
-    // This dynamically uses the Chrome version bundled with Electron, so it auto-updates!
     const defaultUA = this.gameWindow.webContents.session.getUserAgent();
     // Remove "akagi-ng-desktop/1.0.0" and "Electron/x.y.z"
     const cleanUA = defaultUA
@@ -262,23 +289,6 @@ export class WindowManager {
         }
         this.gameWindow = null;
         throw err;
-      }
-    }
-
-    // If NOT using MITM, attach GameHandler (Debugger API) for local interception
-    if (!useMitm) {
-      try {
-        if (
-          this.gameWindow &&
-          !this.gameWindow.isDestroyed() &&
-          this.gameWindow.webContents &&
-          !this.gameWindow.webContents.isDestroyed()
-        ) {
-          this.gameHandler = new GameHandler(this.gameWindow.webContents);
-          await this.gameHandler.attach();
-        }
-      } catch (e) {
-        console.error('Failed to attach GameHandler:', e);
       }
     }
 

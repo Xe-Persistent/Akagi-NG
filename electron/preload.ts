@@ -16,6 +16,7 @@ const VALID_INVOKE_CHANNELS = [
   'wait-for-backend',
   'update-locale',
   'set-window-bounds',
+  'get-backend-config',
 ] as const;
 
 const VALID_ON_CHANNELS = [

@@ -5,7 +5,7 @@ import type { WindowManager } from './window-manager';
 
 export function registerIpcHandlers(windowManager: WindowManager, backendManager: BackendManager) {
   // Toggle HUD Window
-  ipcMain.handle('toggle-hud', async (event, show: boolean) => {
+  ipcMain.handle('toggle-hud', async (_event, show: boolean) => {
     await windowManager.toggleHudWindow(show);
     return true;
   });
@@ -103,5 +103,10 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
       win.setBounds(bounds);
     }
     return true;
+  });
+
+  // Get backend host and port from settings
+  ipcMain.handle('get-backend-config', () => {
+    return backendManager.getBackendConfig();
   });
 }

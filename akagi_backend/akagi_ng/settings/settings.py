@@ -76,14 +76,15 @@ class Settings:
 
     def _validate_game_url(self):
         """验证并修正 game_url"""
-        if (
-            not self.game_url
-            or (self.platform == Platform.TENHOU and "maj-soul.com" in self.game_url)
-            or (self.platform == Platform.MAJSOUL and "tenhou.net" in self.game_url)
-        ):
-            self.game_url = (
-                "https://tenhou.net/3/" if self.platform == Platform.TENHOU else "https://game.maj-soul.com/1/"
-            )
+        from akagi_ng.core.constants import DEFAULT_GAME_URLS
+
+        # 如果没有 URL 或者 URL 与平台不匹配（例如在 Tenhou 平台却用 Majsoul 的 URL）
+        is_mismatch = (self.platform == Platform.TENHOU and "maj-soul.com" in self.game_url) or (
+            self.platform == Platform.MAJSOUL and "tenhou.net" in self.game_url
+        )
+
+        if not self.game_url or is_mismatch:
+            self.game_url = DEFAULT_GAME_URLS.get(self.platform, DEFAULT_GAME_URLS[Platform.MAJSOUL])
 
     def save(self):
         """保存设置到 settings.json 文件"""

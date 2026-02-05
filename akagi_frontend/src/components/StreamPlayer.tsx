@@ -2,7 +2,7 @@ import { Monitor } from 'lucide-react';
 import { type FC, memo, use, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { PIP_WINDOW_HEIGHT, PIP_WINDOW_WIDTH } from '@/config/constants';
+import { STREAM_PLAYER_HEIGHT, STREAM_PLAYER_WIDTH } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
 import { cn } from '@/lib/utils';
 import type { StreamPlayerProps } from '@/types';
@@ -46,22 +46,22 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [containerSize, setContainerSize] = useState({
-    width: PIP_WINDOW_WIDTH,
-    height: PIP_WINDOW_HEIGHT,
+    width: STREAM_PLAYER_WIDTH,
+    height: STREAM_PLAYER_HEIGHT,
   });
 
   useLayoutEffect(() => {
     const updateScale = () => {
       if (wrapperRef.current) {
         const { width, height } = wrapperRef.current.getBoundingClientRect();
-        const scaleW = width / PIP_WINDOW_WIDTH;
-        const scaleH = height / PIP_WINDOW_HEIGHT;
+        const scaleW = width / STREAM_PLAYER_WIDTH;
+        const scaleH = height / STREAM_PLAYER_HEIGHT;
         const newScale = Math.min(scaleW, scaleH);
 
         setScale(newScale);
         setContainerSize({
-          width: PIP_WINDOW_WIDTH * newScale,
-          height: PIP_WINDOW_HEIGHT * newScale,
+          width: STREAM_PLAYER_WIDTH * newScale,
+          height: STREAM_PLAYER_HEIGHT * newScale,
         });
       }
     };
@@ -98,8 +98,8 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
         <div
           style={{
             transform: `scale(${scale})`,
-            width: PIP_WINDOW_WIDTH,
-            height: PIP_WINDOW_HEIGHT,
+            width: STREAM_PLAYER_WIDTH,
+            height: STREAM_PLAYER_HEIGHT,
             transformOrigin: 'center center',
           }}
           className='shrink-0'

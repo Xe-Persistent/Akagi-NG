@@ -87,7 +87,7 @@ class SSEManager:
         await response.prepare(request)
 
         # 为每个客户端创建消息队列，使用常量定义的上限
-        queue = asyncio.Queue(maxsize=ServerConstants.SSE_CLIENT_QUEUE_MAXSIZE)
+        queue = asyncio.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
 
         async with self.lock:
             if client_id in self.clients:

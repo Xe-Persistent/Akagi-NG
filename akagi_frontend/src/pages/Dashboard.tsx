@@ -8,10 +8,10 @@ import { Header } from '@/components/layout/Header';
 import SettingsPanel from '@/components/SettingsPanel';
 import StreamPlayer from '@/components/StreamPlayer';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { TOAST_DURATION_DEFAULT } from '@/config/constants';
+import { APP_SPLASH_DELAY_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
-import { fetchSettingsApi, saveSettingsApi } from '@/hooks/useSettings';
+import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
@@ -30,10 +30,12 @@ function Dashboard({ settingsPromise }: DashboardProps) {
   const context = use(GameContext);
   if (!context) throw new Error('GameContext not found');
 
+  const { settings, updateSetting } = useSettings();
+
   const isLanguageInitialized = useRef(false);
   if (!isLanguageInitialized.current) {
-    if (initialSettings.locale && initialSettings.locale !== i18n.language) {
-      i18n.changeLanguage(initialSettings.locale);
+    if (settings && settings.locale && settings.locale !== i18n.language) {
+      i18n.changeLanguage(settings.locale);
     }
     isLanguageInitialized.current = true;
   }
@@ -42,16 +44,9 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     async (newLocale: string) => {
       await i18n.changeLanguage(newLocale);
       window.electron.invoke('update-locale', newLocale);
-      try {
-        const currentSettings = await fetchSettingsApi(apiBase);
-        const newSettings = { ...currentSettings, locale: newLocale };
-        await saveSettingsApi(apiBase, newSettings);
-      } catch (e) {
-        console.error('Failed to save locale:', e);
-        notify.error(`${i18n.t('common.error')}: ${(e as Error).message}`);
-      }
+      updateSetting(['locale'], newLocale as string);
     },
-    [apiBase, i18n],
+    [i18n, updateSetting],
   );
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -68,7 +63,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     setIsMounted(true);
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 1200);
+    }, APP_SPLASH_DELAY_MS);
 
     // Check optional/critical resources
     window.electron.invoke('check-resource-status').then((status) => {
@@ -178,7 +173,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
         <Footer />
       </div>
 
-      <SettingsPanel open={settingsOpen} onClose={handleCloseSettings} apiBase={apiBase} />
+      <SettingsPanel open={settingsOpen} onClose={handleCloseSettings} />
 
       <ConfirmationDialog
         open={showShutdownConfirm}

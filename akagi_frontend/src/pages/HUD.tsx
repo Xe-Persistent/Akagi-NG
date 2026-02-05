@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import StreamPlayer from '@/components/StreamPlayer';
 import { Button } from '@/components/ui/button';
+import { HUD_MAX_WIDTH, HUD_MIN_WIDTH } from '@/config/constants';
 
 export default function Hud() {
   const [resizing, setResizing] = useState(false);
@@ -26,7 +27,7 @@ export default function Hud() {
 
     const handlePointerMove = (e: PointerEvent) => {
       const deltaX = e.screenX - startPos.current.x;
-      const width = Math.min(1280, Math.max(320, startPos.current.w + deltaX));
+      const width = Math.min(HUD_MAX_WIDTH, Math.max(HUD_MIN_WIDTH, startPos.current.w + deltaX));
       const height = Math.round((width * 9) / 16);
       window.electron.invoke('set-window-bounds', { width, height });
     };

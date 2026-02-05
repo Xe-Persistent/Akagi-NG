@@ -23,6 +23,7 @@ interface InvokeChannelParams {
     width?: number;
     height?: number;
   };
+  'get-backend-config': void;
 }
 
 // ===== Invoke 通道返回值类型 =====
@@ -42,6 +43,10 @@ interface InvokeChannelReturns {
   'wait-for-backend': boolean;
   'update-locale': boolean;
   'set-window-bounds': boolean;
+  'get-backend-config': {
+    host: string;
+    port: number;
+  };
 }
 
 // ===== On 通道事件参数类型 =====

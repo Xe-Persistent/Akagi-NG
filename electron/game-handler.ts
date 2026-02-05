@@ -3,9 +3,14 @@ import type { WebContents } from 'electron';
 
 export class GameHandler {
   private attached = false;
-  private readonly BACKEND_API = 'http://127.0.0.1:8765/api/ingest';
+  private readonly BACKEND_API: string;
 
-  constructor(private webContents: WebContents) {}
+  constructor(
+    private webContents: WebContents,
+    apiBase: string,
+  ) {
+    this.BACKEND_API = `${apiBase}/api/ingest`;
+  }
 
   public async attach() {
     if (this.attached) return;
@@ -32,7 +37,7 @@ export class GameHandler {
       this.webContents.debugger.attach('1.3');
       this.attached = true;
 
-      this.webContents.debugger.on('detach', (event, reason) => {
+      this.webContents.debugger.on('detach', (_event, reason) => {
         console.warn('[GameHandler] Debugger detached:', reason);
         this.attached = false;
         this.sendToBackend({
@@ -58,7 +63,7 @@ export class GameHandler {
     }
   }
 
-  private async handleDebuggerMessage(event: unknown, method: string, params: unknown) {
+  private async handleDebuggerMessage(_event: unknown, method: string, params: unknown) {
     if (method === 'Network.webSocketCreated') {
       const p = params as Protocol.Network.WebSocketCreatedEvent;
       this.sendToBackend({

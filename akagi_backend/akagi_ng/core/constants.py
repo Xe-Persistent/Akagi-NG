@@ -11,6 +11,14 @@ class Platform(StrEnum):
     AMATSUKI = "amatsuki"
 
 
+DEFAULT_GAME_URLS = {
+    Platform.MAJSOUL: "https://game.maj-soul.com/1/",
+    Platform.TENHOU: "https://tenhou.net/3/",
+    Platform.RIICHI_CITY: "https://riichi.city/",
+    Platform.AMATSUKI: "https://amatsuki-mj.jp/",
+}
+
+
 class MahjongConstants:
     """麻将游戏常量"""
 
@@ -45,7 +53,6 @@ class ServerConstants:
     # SSE相关
     SSE_MAX_NOTIFICATION_HISTORY = 10  # 最大通知历史记录数
     SSE_KEEPALIVE_INTERVAL_SECONDS = 10  # SSE 保活间隔(秒)
-    SSE_CLIENT_QUEUE_MAXSIZE = 1000  # 客户端消息队列最大大小
-
-    # MITM相关
-    MITM_MESSAGE_QUEUE_MAXSIZE = 1000  # MITM消息队列最大大小
+    MESSAGE_QUEUE_MAXSIZE = 1000  # 核心/客户端消息队列最大大小
+    SHUTDOWN_JOIN_TIMEOUT_SECONDS = 2.0  # 线程退出等待时间
+    MAIN_LOOP_POLL_TIMEOUT_SECONDS = 0.1  # 主循环轮询超时时间

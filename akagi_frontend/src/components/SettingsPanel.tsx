@@ -1,6 +1,6 @@
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import type { FC } from 'react';
-import { memo, Suspense, use, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,9 @@ import {
   ModalHeader,
   ModalTitle,
 } from '@/components/ui/modal';
-import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
-import type { Settings, SettingsPanelProps } from '@/types';
+import { StatusBar } from '@/components/ui/status-bar';
+import { useSettings } from '@/hooks/useSettings';
+import type { SettingsPanelProps } from '@/types';
 
 import { ConnectionSection } from './settings/ConnectionSection';
 import { DangerZoneSection } from './settings/DangerZoneSection';
@@ -23,79 +24,27 @@ import { GeneralSection } from './settings/GeneralSection';
 import { OnlineModelSection } from './settings/OnlineModelSection';
 import { ServiceSection } from './settings/ServiceSection';
 
-interface SettingsFormProps {
-  apiBase: string;
-  settingsPromise: Promise<Settings>;
-}
-
-const SettingsForm = memo(({ apiBase, settingsPromise }: SettingsFormProps) => {
-  const initialSettings = use(settingsPromise);
+const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose }) => {
   const { t } = useTranslation();
-
-  const { settings, restartRequired, updateSetting, updateSettingsBatch, restoreDefaults } =
-    useSettings(apiBase, initialSettings);
+  const {
+    settings,
+    restartRequired,
+    updateSetting,
+    updateSettingsBatch,
+    restoreDefaults,
+    refreshSettings,
+  } = useSettings();
 
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
 
+  // Refresh from backend every time panel opens to ensure consistency
+  useEffect(() => {
+    if (open) {
+      refreshSettings();
+    }
+  }, [open, refreshSettings]);
+
   if (!settings) return null;
-
-  return (
-    <>
-      <div className='space-y-8'>
-        {restartRequired && (
-          <div className='alert-box alert-warning'>
-            <AlertTriangle className='h-4 w-4' />
-            {t('settings.restart_required')}
-          </div>
-        )}
-
-        <div className='settings-grid'>
-          <GeneralSection
-            settings={settings}
-            updateSetting={updateSetting}
-            updateSettingsBatch={updateSettingsBatch}
-          />
-          <ConnectionSection settings={settings} updateSetting={updateSetting} />
-        </div>
-
-        <ServiceSection settings={settings} updateSetting={updateSetting} />
-
-        <OnlineModelSection settings={settings} updateSetting={updateSetting} />
-
-        <DangerZoneSection
-          settings={settings}
-          updateSetting={updateSetting}
-          busy={false}
-          onRestoreDefaults={() => setIsRestoreDialogOpen(true)}
-        />
-      </div>
-
-      <ConfirmationDialog
-        open={isRestoreDialogOpen}
-        onOpenChange={setIsRestoreDialogOpen}
-        title={t('settings.restore_confirm_title')}
-        description={t('settings.restore_confirm_desc')}
-        onConfirm={restoreDefaults}
-        variant='destructive'
-        confirmText={t('settings.restore')}
-      />
-    </>
-  );
-});
-
-SettingsForm.displayName = 'SettingsForm';
-
-const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose, apiBase }) => {
-  const { t } = useTranslation();
-
-  const [activePromise, setActivePromise] = useState<Promise<Settings> | null>(null);
-  const [prevKey, setPrevKey] = useState<string>('');
-  const currentKey = `${open}-${apiBase}`;
-
-  if (open && prevKey !== currentKey) {
-    setPrevKey(currentKey);
-    setActivePromise(fetchSettingsApi(apiBase));
-  }
 
   return (
     <Modal open={open} onOpenChange={onClose} className='max-h-[90vh] max-w-4xl'>
@@ -119,17 +68,48 @@ const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose, apiBase }) 
             </div>
           )}
         >
-          <Suspense
-            fallback={
-              <div className='settings-loading-state'>
-                <Loader2 className='h-8 w-8 animate-spin' />
-                <p>{t('settings.loading')}</p>
-              </div>
-            }
-          >
-            {activePromise && <SettingsForm apiBase={apiBase} settingsPromise={activePromise} />}
-          </Suspense>
+          <div className='space-y-8'>
+            {restartRequired && (
+              <StatusBar
+                variant='warning'
+                className='items-center justify-center text-center'
+                icon={AlertTriangle}
+              >
+                {t('settings.restart_required')}
+              </StatusBar>
+            )}
+
+            <div className='settings-grid'>
+              <GeneralSection
+                settings={settings}
+                updateSetting={updateSetting}
+                updateSettingsBatch={updateSettingsBatch}
+              />
+              <ConnectionSection settings={settings} updateSetting={updateSetting} />
+            </div>
+
+            <ServiceSection settings={settings} updateSetting={updateSetting} />
+
+            <OnlineModelSection settings={settings} updateSetting={updateSetting} />
+
+            <DangerZoneSection
+              settings={settings}
+              updateSetting={updateSetting}
+              busy={false}
+              onRestoreDefaults={() => setIsRestoreDialogOpen(true)}
+            />
+          </div>
         </ErrorBoundary>
+
+        <ConfirmationDialog
+          open={isRestoreDialogOpen}
+          onOpenChange={setIsRestoreDialogOpen}
+          title={t('settings.restore_confirm_title')}
+          description={t('settings.restore_confirm_desc')}
+          onConfirm={restoreDefaults}
+          variant='destructive'
+          confirmText={t('settings.restore')}
+        />
       </ModalContent>
     </Modal>
   );

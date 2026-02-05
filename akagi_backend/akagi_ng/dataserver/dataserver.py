@@ -11,11 +11,11 @@ from akagi_ng.settings import local_settings
 
 
 class DataServer(threading.Thread):
-    def __init__(self, host: str | None = None, external_port: int = 8765):
+    def __init__(self, host: str | None = None, external_port: int | None = None):
         super().__init__()
-        self.host = host if host else local_settings.server.host
+        self.host = host if host is not None else local_settings.server.host
         self.daemon = True
-        self.external_port = external_port if external_port else local_settings.server.port
+        self.external_port = external_port if external_port is not None else local_settings.server.port
         self.sse_manager = SSEManager()
         self.loop = None
         self.runner = None

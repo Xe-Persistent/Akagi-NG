@@ -65,10 +65,16 @@ def test_load_local_mortal_engine_success() -> None:
         patch("pathlib.Path.exists", return_value=True),
         patch("torch.load", return_value=fake_state),
         # Patch models used inside load_local_mortal_engine
-        patch("akagi_ng.mjai_bot.engine.mortal.Brain"),
-        patch("akagi_ng.mjai_bot.engine.mortal.DQN"),
+        patch("akagi_ng.mjai_bot.engine.mortal.Brain") as mock_brain_class,
+        patch("akagi_ng.mjai_bot.engine.mortal.DQN") as mock_dqn_class,
         patch("akagi_ng.mjai_bot.engine.mortal.MortalEngine.warmup"),
     ):
+        mock_brain = mock_brain_class.return_value
+        mock_brain.eval.return_value = mock_brain
+        mock_dqn = mock_dqn_class.return_value
+        mock_dqn.eval.return_value = mock_dqn
+        mock_brain.load_state_dict.return_value = ([], [])
+        mock_dqn.load_state_dict.return_value = ([], [])
         engine = load_local_mortal_engine(model_path, consts)
         assert engine is not None
         assert engine.version == 4

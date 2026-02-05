@@ -45,18 +45,15 @@ class TestShutdownAPI(AioHTTPTestCase):
         from queue import Queue
         from unittest.mock import Mock
 
-        # 创建一个 mock electron_client,带有 message_queue
-        mock_electron_client = Mock()
         mock_queue = Queue()
-        mock_electron_client.message_queue = mock_queue
-
         mock_settings = Mock()
         app_context = AppContext(
             settings=mock_settings,
             controller=None,
             bot=None,
             mitm_client=None,
-            electron_client=mock_electron_client,
+            electron_client=Mock(),
+            shared_queue=mock_queue,
         )
         set_app_context(app_context)
 

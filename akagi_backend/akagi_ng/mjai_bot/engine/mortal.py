@@ -173,8 +173,20 @@ def load_local_mortal_engine(
 
         dqn = DQN(action_space=consts.ACTION_SPACE, version=control_version).eval()
 
-        mortal.load_state_dict(state["mortal"])
-        dqn.load_state_dict(state["current_dqn"])
+        missing_keys, unexpected_keys = mortal.load_state_dict(state["mortal"], strict=False)
+        if missing_keys or unexpected_keys:
+            logger.info(
+                "Mortal model loaded with non-strict mode. "
+                f"Missing: {len(missing_keys)}, Unexpected: {len(unexpected_keys)}"
+            )
+            if unexpected_keys:
+                logger.debug(f"Unexpected keys: {unexpected_keys}")
+
+        dqn_missing, dqn_unexpected = dqn.load_state_dict(state["current_dqn"], strict=False)
+        if dqn_missing or dqn_unexpected:
+            logger.debug(
+                f"DQN loaded with non-strict mode. Missing: {len(dqn_missing)}, Unexpected: {len(dqn_unexpected)}"
+            )
 
         engine = MortalEngine(
             mortal,
@@ -185,9 +197,9 @@ def load_local_mortal_engine(
             is_3p=is_3p,
         )
         engine.warmup()
-        logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded.")
+        logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded successfully.")
         return engine
 
     except Exception as e:
-        logger.warning(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
+        logger.error(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
         return None

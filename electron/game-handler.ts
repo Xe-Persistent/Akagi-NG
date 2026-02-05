@@ -13,46 +13,77 @@ export class GameHandler {
   }
 
   public async attach() {
-    if (this.attached) return;
+    if (this.attached || this.webContents.isDestroyed()) return;
 
     try {
-      // Auto re-attach when page reloads
+      // 1. Listen for process issues
+      this.webContents.on('render-process-gone', (_event, details) => {
+        console.error(
+          `[GameHandler] Renderer process gone: ${details.reason} (${details.exitCode})`,
+        );
+        this.attached = false;
+      });
+
+      this.webContents.on('did-start-navigation', (_event, url, isInPlace, isMainFrame) => {
+        if (isMainFrame && !isInPlace) {
+          console.info(`[GameHandler] Main frame navigating to: ${url}`);
+        }
+      });
+
+      // 2. Auto re-attach when page reloads or navigates
       this.webContents.on('did-finish-load', async () => {
-        if (!this.attached) {
-          // Wait a bit just in case
+        if (!this.attached && !this.webContents.isDestroyed()) {
           setTimeout(() => this.tryAttach(), 500);
         }
       });
 
+      // 3. Initial attachment
       await this.tryAttach();
     } catch (err) {
-      console.error('[GameHandler] Failed to attach debugger:', err);
+      console.error('[GameHandler] Setup failed:', err);
     }
   }
 
   private async tryAttach() {
-    if (this.attached) return;
+    if (this.attached || this.webContents.isDestroyed()) return;
 
     try {
+      if (this.webContents.debugger.isAttached()) {
+        this.attached = true;
+        return;
+      }
+
       this.webContents.debugger.attach('1.3');
       this.attached = true;
 
       this.webContents.debugger.on('detach', (_event, reason) => {
         console.warn('[GameHandler] Debugger detached:', reason);
         this.attached = false;
-        this.sendToBackend({
-          source: 'electron',
-          type: 'debugger_detached',
-          reason: reason,
-          time: Date.now() / 1000,
-        });
+
+        // If it was a target-closed (e.g. process swap), we don't send to backend yet,
+        // just let did-finish-load or other events trigger re-attach.
+        if (reason !== 'target_closed') {
+          this.sendToBackend({
+            source: 'electron',
+            type: 'debugger_detached',
+            reason: reason,
+            time: Date.now() / 1000,
+          });
+        }
       });
 
       this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));
 
-      await this.webContents.debugger.sendCommand('Network.enable');
+      // Wrap command in try-catch to avoid crashing if target closes mid-flight
+      try {
+        await this.webContents.debugger.sendCommand('Network.enable');
+      } catch (cmdErr) {
+        console.warn('[GameHandler] Could not enable Network:', cmdErr);
+      }
     } catch (e) {
-      console.error('[GameHandler] Attach failed', e);
+      const error = e as Error;
+      console.error('[GameHandler] Attach failed:', error.message);
+      this.attached = false;
     }
   }
 
@@ -135,14 +166,17 @@ export class GameHandler {
       try {
         // Use fetch instead of CDP getResponseBody to avoid "No resource with given identifier" errors
         const res = await fetch(response.url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        this.sendToBackend({
-          source: 'electron',
-          type: 'liqi_definition',
-          data: text, // Send raw text (or JSON string)
-          url: response.url,
-        });
+        if (res.ok) {
+          const text = await res.text();
+          this.sendToBackend({
+            source: 'electron',
+            type: 'liqi_definition',
+            data: text, // Send raw text (or JSON string)
+            url: response.url,
+          });
+        } else {
+          console.error(`[GameHandler] Failed to fetch liqi.json: HTTP ${res.status}`);
+        }
       } catch (e) {
         console.error('[GameHandler] Failed to fetch liqi.json manually:', e);
       }

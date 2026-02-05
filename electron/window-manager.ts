@@ -228,6 +228,32 @@ export class WindowManager {
       },
     });
 
+    // Handle F11 for fullscreen toggle
+    this.gameWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key === 'F11') {
+        const isFullScreen = this.gameWindow?.isFullScreen();
+        this.gameWindow?.setFullScreen(!isFullScreen);
+        event.preventDefault();
+      }
+    });
+
+    // Frontend should always provide a valid URL.
+    const targetUrl = url;
+    if (!targetUrl) {
+      console.warn('[WindowManager] No URL provided for Game Window!');
+      return;
+    }
+
+    // Sanitize User Agent to remove Electron fingerprint
+    const defaultUA = this.gameWindow.webContents.session.getUserAgent();
+    // Remove "akagi-ng-desktop/1.0.0" and "Electron/x.y.z"
+    const cleanUA = defaultUA
+      .replace(/akagi-ng-desktop\/\S+\s/g, '')
+      .replace(/Electron\/\S+\s/g, '');
+
+    this.gameWindow.webContents.setUserAgent(cleanUA);
+
+    // Set up proxy if using MITM
     if (useMitm) {
       const mitm = this.backendManager.getMitmConfig();
       const proxyRules = `http://${mitm.host}:${mitm.port}`;
@@ -238,36 +264,23 @@ export class WindowManager {
       });
     } else {
       // If NOT using MITM, attach GameHandler (Debugger API) for local interception
+      // MUST attach before loading URL to capture early WebSocket traffic and avoid crash
       try {
-        const backend = this.backendManager.getBackendConfig();
-        const apiBase = `http://${backend.host}:${backend.port}`;
-        this.gameHandler = new GameHandler(this.gameWindow.webContents, apiBase);
-        await this.gameHandler.attach();
+        if (
+          this.gameWindow &&
+          !this.gameWindow.isDestroyed() &&
+          this.gameWindow.webContents &&
+          !this.gameWindow.webContents.isDestroyed()
+        ) {
+          const backend = this.backendManager.getBackendConfig();
+          const apiBase = `http://${backend.host}:${backend.port}`;
+          this.gameHandler = new GameHandler(this.gameWindow.webContents, apiBase);
+          this.gameHandler.attach(); // Do not await, let it happen in parallel with loadURL
+        }
       } catch (e) {
-        console.error('[WindowManager] Failed to attach GameHandler:', e);
+        console.error('Failed to attach GameHandler:', e);
       }
     }
-
-    // Handle F11 for fullscreen toggle
-    this.gameWindow.webContents.on('before-input-event', (event, input) => {
-      if (input.type === 'keyDown' && input.key === 'F11') {
-        const isFullScreen = this.gameWindow?.isFullScreen();
-        this.gameWindow?.setFullScreen(!isFullScreen);
-        event.preventDefault();
-      }
-    });
-
-    // Fallback to a default URL only if absolutely necessary, but usually the frontend should provide this.
-    const targetUrl = url || 'https://game.maj-soul.com/1/';
-
-    // Sanitize User Agent to remove Electron fingerprint
-    const defaultUA = this.gameWindow.webContents.session.getUserAgent();
-    // Remove "akagi-ng-desktop/1.0.0" and "Electron/x.y.z"
-    const cleanUA = defaultUA
-      .replace(/akagi-ng-desktop\/\S+\s/g, '')
-      .replace(/Electron\/\S+\s/g, '');
-
-    this.gameWindow.webContents.setUserAgent(cleanUA);
 
     try {
       await this.gameWindow.loadURL(targetUrl);

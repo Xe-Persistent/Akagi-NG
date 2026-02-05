@@ -162,11 +162,14 @@ export class BackendManager {
     const binaryName = process.platform === 'win32' ? 'akagi-ng.exe' : 'akagi-ng';
     const binaryPath = getAssetPath('bin', binaryName);
 
-    try {
-      if (!fs.existsSync(binaryPath)) {
-        throw new Error(`Executable not found at ${binaryPath}`);
-      }
+    if (!fs.existsSync(binaryPath)) {
+      const msg = `Executable not found at ${binaryPath}`;
+      console.error(`[BackendManager] ${msg}`);
+      dialog.showErrorBox('Startup Error', msg);
+      return;
+    }
 
+    try {
       this.pyProcess = spawn(binaryPath, [], {
         env: {
           ...process.env,

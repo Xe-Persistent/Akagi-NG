@@ -133,9 +133,9 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
 
 
 async def shutdown_handler(_request: web.Request) -> web.Response:
-    """触发后端优雅关闭
+    """触发后端关闭
 
-    通过消息队列发送关闭信号,由主循环处理,避免直接耦合 AkagiApp
+    通过共享消息队列发送关闭信号，由主循环统一处理。
     """
     logger.info("Received shutdown request from api.")
 
@@ -144,18 +144,18 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
 
         app = get_app_context()
 
-        # 通过消息队列发送关闭信号,解耦 API 和 AkagiApp
-        if app.electron_client and hasattr(app.electron_client, "message_queue"):
+        if hasattr(app, "shared_queue") and app.shared_queue:
             shutdown_message = {
                 "type": "system_shutdown",
                 "source": "api",
             }
-            app.electron_client.message_queue.put(shutdown_message)
+            app.shared_queue.put(shutdown_message)
             logger.info("Shutdown signal sent to message queue.")
             return _json_response({"ok": True, "message": "Shutdown initiated"})
 
-        logger.warning("Message queue not available")
+        logger.warning("Message queue not available, shutdown failed")
         return _json_response({"ok": False, "error": "Message queue not available"}, status=503)
+
     except Exception as e:
         import traceback
 

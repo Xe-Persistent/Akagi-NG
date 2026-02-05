@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import queue
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,7 @@ class AppContext:
     bot: StateTrackerBot | None
     mitm_client: MitmClient | None
     electron_client: ElectronClient | None = None
+    shared_queue: queue.Queue[dict] | None = None
 
 
 # Global variable for application context (shared across threads)

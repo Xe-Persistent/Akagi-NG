@@ -6,6 +6,7 @@ import threading
 from mitmproxy import options
 from mitmproxy.tools.dump import DumpMaster
 
+from akagi_ng.core.constants import ServerConstants
 from akagi_ng.mitm_client.bridge_addon import BridgeAddon
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.settings import local_settings
@@ -18,7 +19,7 @@ class MitmClient:
         self._master: DumpMaster | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self.addon: BridgeAddon | None = None
-        self.shared_queue = shared_queue  # For event-driven mode
+        self.shared_queue = shared_queue
 
     async def _start_proxy(self, host: str, port: int, upstream: str = ""):
         """
@@ -86,7 +87,7 @@ class MitmClient:
             self._master.shutdown()
 
         if self._thread:
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=ServerConstants.SHUTDOWN_JOIN_TIMEOUT_SECONDS)
 
         self.running = False
         logger.info("MITM client stopped.")

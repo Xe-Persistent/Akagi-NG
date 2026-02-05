@@ -21,7 +21,7 @@ class AkagiApp:
         self._stop_event = threading.Event()
         self.ds: DataServer | None = None
         self.frontend_url = ""
-        self.message_queue: queue.Queue[dict] = queue.Queue(maxsize=ServerConstants.MITM_MESSAGE_QUEUE_MAXSIZE)
+        self.message_queue: queue.Queue[dict] = queue.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
 
     def initialize(self):
         import importlib
@@ -56,6 +56,7 @@ class AkagiApp:
             bot=mjai_bot,
             mitm_client=MitmClient(shared_queue=self.message_queue),
             electron_client=create_electron_client(settings.platform, shared_queue=self.message_queue),
+            shared_queue=self.message_queue,
         )
 
         set_app_context(app_context)

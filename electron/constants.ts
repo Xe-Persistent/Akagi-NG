@@ -5,6 +5,8 @@
 // 窗口默认尺寸
 export const DASHBOARD_WINDOW_WIDTH = 1280;
 export const DASHBOARD_WINDOW_HEIGHT = 800;
+export const DASHBOARD_WINDOW_MIN_WIDTH = 800;
+export const DASHBOARD_WINDOW_MIN_HEIGHT = 500;
 
 export const GAME_WINDOW_WIDTH = 1280;
 export const GAME_WINDOW_HEIGHT = 720;

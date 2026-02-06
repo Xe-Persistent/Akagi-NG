@@ -4,6 +4,8 @@ import path from 'path';
 import type { BackendManager } from './backend-manager';
 import {
   DASHBOARD_WINDOW_HEIGHT,
+  DASHBOARD_WINDOW_MIN_HEIGHT,
+  DASHBOARD_WINDOW_MIN_WIDTH,
   DASHBOARD_WINDOW_WIDTH,
   DEV_HUD_URL,
   DEV_SERVER_URL,
@@ -49,8 +51,8 @@ export class WindowManager {
     this.dashboardWindow = new BrowserWindow({
       width: DASHBOARD_WINDOW_WIDTH,
       height: DASHBOARD_WINDOW_HEIGHT,
-      minWidth: DASHBOARD_WINDOW_WIDTH,
-      minHeight: DASHBOARD_WINDOW_HEIGHT,
+      minWidth: DASHBOARD_WINDOW_MIN_WIDTH,
+      minHeight: DASHBOARD_WINDOW_MIN_HEIGHT,
       frame: false,
       titleBarStyle: 'hiddenInset',
       autoHideMenuBar: true,
@@ -217,8 +219,6 @@ export class WindowManager {
     this.gameWindow = new BrowserWindow({
       width: GAME_WINDOW_WIDTH,
       height: GAME_WINDOW_HEIGHT,
-      minWidth: GAME_WINDOW_WIDTH,
-      minHeight: GAME_WINDOW_HEIGHT,
       maximizable: true,
       autoHideMenuBar: true,
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',

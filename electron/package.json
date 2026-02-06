@@ -1,5 +1,6 @@
 {
   "name": "akagi-ng-desktop",
+  "private": true,
   "version": "1.0.2",
   "description": "Akagi-NG Electron Desktop App",
   "main": "../dist/main/main.js",
@@ -16,11 +17,10 @@
     "clean": "tsx scripts/clean.ts",
     "sync-version": "tsx scripts/sync_version.ts",
     "prepare-release": "tsx scripts/prepare_release.ts",
-    "build": "npm run clean && npm run sync-version && npm run build:frontend && npm run build:backend && npm run build:electron && npm run prepare-release && electron-builder",
+    "build": "npm run clean && npm run sync-version && npm run build:frontend && npm run build:backend && npm run build:electron && npm run prepare-release && electron-builder --publish never",
     "build:frontend": "cd ../akagi_frontend && npm run build",
     "build:backend": "tsx scripts/build_backend.ts",
     "build:electron": "tsc -p tsconfig.json",
-    "postinstall": "cd ../akagi_frontend && npm install",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write ."

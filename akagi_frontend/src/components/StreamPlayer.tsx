@@ -48,10 +48,11 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [containerSize, setContainerSize] = useState({
-    width: STREAM_PLAYER_WIDTH,
-    height: STREAM_PLAYER_HEIGHT,
-  });
+
+  const containerSize = {
+    width: STREAM_PLAYER_WIDTH * scale,
+    height: STREAM_PLAYER_HEIGHT * scale,
+  };
 
   useLayoutEffect(() => {
     const updateScale = () => {
@@ -62,10 +63,6 @@ const StreamPlayer: FC<StreamPlayerProps> = ({ className }) => {
         const newScale = Math.min(scaleW, scaleH);
 
         setScale(newScale);
-        setContainerSize({
-          width: STREAM_PLAYER_WIDTH * newScale,
-          height: STREAM_PLAYER_HEIGHT * newScale,
-        });
       }
     };
 

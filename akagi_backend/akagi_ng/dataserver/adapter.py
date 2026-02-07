@@ -227,6 +227,13 @@ def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTracker
         # 2. 如果适用，附加立直前瞻信息
         _attach_riichi_lookahead(recommendations, meta, bot)
 
+        # 3. 如果已立直，过滤掉无需显示的推荐（只保留和牌、暗杠、流局等）
+        if getattr(bot, "self_riichi_accepted", False):
+            # 立直后只显示: 暗杠(kan), 自摸(tsumo), 荣和(ron), 流局(ryukyoku), 拔北(nukidora)
+            # 注意: 这里的 'kan' 包含了暗杠候选
+            allow_actions = {"kan", "tsumo", "ron", "ryukyoku", "nukidora"}
+            recommendations = [rec for rec in recommendations if rec["action"] in allow_actions]
+
         if recommendations:
             logger.debug(f"Recommendations: {recommendations}")
 

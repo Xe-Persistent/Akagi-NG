@@ -51,7 +51,7 @@ class AkagiOTClient:
 
             threading.Thread(target=_warm, daemon=True).start()
         except Exception as e:
-            logger.warning(f"AkagiOT: Pre-warm failed (non-critical): {e}")
+            logger.warning(f"AkagiOT: Pre-warm failed: {e}")
 
     def predict(self, is_3p: bool, obs: list, masks: list) -> dict:
         # 熔断器检查
@@ -125,9 +125,8 @@ class AkagiOTEngine(BaseEngine):
             self.client._just_restored = False
         return flags
 
-    @property
-    def enable_quick_eval(self) -> bool:
-        return False
+    def get_additional_meta(self) -> dict[str, object]:
+        return {"circuit_open": self.client._circuit_open}
 
     @property
     def enable_rule_based_agari_guard(self) -> bool:

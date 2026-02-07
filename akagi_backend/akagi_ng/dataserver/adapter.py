@@ -239,7 +239,9 @@ def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTracker
 
         return {
             "recommendations": recommendations,
-            "is_riichi": getattr(bot, "self_riichi_accepted", False) if bot else False,
+            "engine_type": meta.get("engine_type"),
+            "is_fallback": meta.get("is_fallback"),
+            "circuit_open": meta.get("circuit_open"),
         }
 
     except Exception as e:

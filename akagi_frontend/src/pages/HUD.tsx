@@ -1,61 +1,63 @@
 import { X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent } from 'react';
+import { useRef } from 'react';
 
 import StreamPlayer from '@/components/StreamPlayer';
 import { Button } from '@/components/ui/button';
+import { ModelStatusIndicator } from '@/components/ui/model-status-indicator';
 import { HUD_MAX_WIDTH, HUD_MIN_WIDTH } from '@/config/constants';
 
 export default function Hud() {
-  const [resizing, setResizing] = useState(false);
-  const startPos = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const startPos = useRef<{ x: number; w: number; active: boolean }>({
+    x: 0,
+    w: 0,
+    active: false,
+  });
 
-  const handleResizeStart = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: PointerEvent) => {
     e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setResizing(true);
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+
     startPos.current = {
       x: e.screenX,
-      y: e.screenY,
       w: window.innerWidth,
-      h: window.innerHeight,
+      active: true,
     };
     document.body.style.cursor = 'nwse-resize';
   };
 
-  useEffect(() => {
-    if (!resizing) return;
+  const handlePointerMove = (e: PointerEvent) => {
+    if (!startPos.current.active) return;
 
-    const handlePointerMove = (e: PointerEvent) => {
-      const deltaX = e.screenX - startPos.current.x;
-      const width = Math.min(HUD_MAX_WIDTH, Math.max(HUD_MIN_WIDTH, startPos.current.w + deltaX));
-      const height = Math.round((width * 9) / 16);
-      window.electron.invoke('set-window-bounds', { width, height });
-    };
+    // Calculate new size
+    const deltaX = e.screenX - startPos.current.x;
+    const width = Math.min(HUD_MAX_WIDTH, Math.max(HUD_MIN_WIDTH, startPos.current.w + deltaX));
+    // Enforce 16:9 aspect ratio
+    const height = Math.round((width * 9) / 16);
 
-    const handlePointerUp = (e: PointerEvent) => {
-      setResizing(false);
-      document.body.style.cursor = '';
-      try {
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        // Ignore
-      }
-    };
+    window.electron.invoke('set-window-bounds', { width, height });
+  };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [resizing]);
+  const handlePointerUp = (e: PointerEvent) => {
+    if (!startPos.current.active) return;
+
+    startPos.current.active = false;
+    document.body.style.cursor = '';
+
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+  };
 
   return (
     <div className='draggable group relative flex h-screen w-full items-center justify-center overflow-hidden bg-transparent'>
       <StreamPlayer className='h-full w-full' />
 
-      {/* Resize Overlay */}
-      {resizing && <div className='no-drag fixed inset-0 z-50 cursor-nwse-resize bg-transparent' />}
+      {/* Model Status Indicator */}
+      <ModelStatusIndicator className='top-3 left-3' />
 
       {/* Close Button */}
       <div className='no-drag absolute top-2 right-2 z-60 opacity-40 transition-opacity hover:opacity-100'>
@@ -75,7 +77,10 @@ export default function Hud() {
           variant='ghost'
           size='icon'
           className='h-6 w-6 cursor-nwse-resize rounded-full bg-transparent text-white hover:bg-white/20 dark:text-zinc-200 dark:hover:bg-zinc-800/50'
-          onPointerDown={handleResizeStart}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp} // Safety fallback
         >
           <svg
             width='12'

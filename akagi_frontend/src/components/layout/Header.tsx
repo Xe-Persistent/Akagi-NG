@@ -14,6 +14,7 @@ import { type ComponentProps, memo, use, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
+import { ModelStatusIndicator } from '@/components/ui/model-status-indicator';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SUPPORTED_LOCALES } from '@/config/locales';
@@ -93,14 +94,13 @@ const HeaderContent: FC<HeaderProps> = memo(
         <div className='flex h-16 w-full items-center justify-between px-4 sm:px-6'>
           {/* Logo & Title */}
           <div className='no-drag flex items-center gap-3'>
-            <div
-              className={cn(
-                'h-2.5 w-2.5 rounded-full shadow-sm transition-colors duration-500',
-                isConnected
-                  ? 'bg-emerald-500 shadow-emerald-500/50'
-                  : 'animate-pulse bg-rose-500 shadow-rose-500/50',
-              )}
-            />
+            {/* Status Indicator */}
+            <div className='relative flex h-2.5 w-2.5 items-center justify-center'>
+              <ModelStatusIndicator
+                isConnected={isConnected}
+                className='static inset-auto top-auto left-auto m-0 transform-none animate-none'
+              />
+            </div>
             <h1 className='bg-linear-to-r from-pink-600 to-violet-600 bg-clip-text text-xl font-bold text-transparent dark:from-pink-400 dark:to-violet-400'>
               {t('app.title')}
             </h1>

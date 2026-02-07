@@ -170,6 +170,9 @@ export class WindowManager {
       },
     });
 
+    // Enforce 16:9 aspect ratio natively
+    this.hudWindow.setAspectRatio(16 / 9);
+
     // Wait for ready-to-show but DO NOT show immediately
     // Just mark it as ready internally if needed, or rely on show() later
     this.hudWindow.once('ready-to-show', () => {

@@ -36,7 +36,7 @@ export const ConnectionSection: FC<ConnectionSectionProps> = memo(({ settings, u
       </SettingsItem>
 
       {['riichi_city', 'amatsuki'].includes(settings.platform) && !settings.mitm.enabled && (
-        <StatusBar variant='warning'>{t('settings.connection.mitm_required_notice')}</StatusBar>
+        <StatusBar variant='info'>{t('settings.connection.mitm_required_notice')}</StatusBar>
       )}
 
       {settings.mitm.enabled && (

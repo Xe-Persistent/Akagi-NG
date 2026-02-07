@@ -1,7 +1,7 @@
 import type { Id, ToastOptions, UpdateOptions } from 'react-toastify';
 import { toast } from 'react-toastify';
 
-import { TOAST_DURATION_DEFAULT } from '../config/constants';
+import { TOAST_DURATION_DEFAULT } from '@/config/constants';
 
 const defaultOptions: ToastOptions = {
   position: 'top-right',

@@ -2,10 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
-import type { NotificationItem } from '@/types';
-
-import { TOAST_DURATION_DEFAULT } from '../config/constants';
-import { getStatusConfig } from '../config/statusConfig';
+import { TOAST_DURATION_DEFAULT } from '@/config/constants';
+import { getStatusConfig } from '@/config/statusConfig';
 import {
   STATUS_DOMAIN,
   STATUS_LEVEL,
@@ -13,7 +11,8 @@ import {
   STATUS_PLACEMENT,
   type StatusDomain,
   type StatusLevel,
-} from '../config/statusConstants';
+} from '@/config/statusConstants';
+import type { NotificationItem } from '@/types';
 
 const DOMAIN_PRIORITY: Record<StatusDomain, number> = {
   [STATUS_DOMAIN.CONNECTION]: 0,

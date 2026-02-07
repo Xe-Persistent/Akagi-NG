@@ -17,9 +17,13 @@ def mock_mortal_components():
     brain.encoder.net = [MagicMock()]
     brain.encoder.net[0].in_channels = 200
 
-    # Defaults for _react_batch
     brain.return_value = torch.zeros((1, 1024))
     dqn.return_value = torch.zeros((1, 46))
+
+    brain.to.return_value = brain
+    brain.eval.return_value = brain
+    dqn.to.return_value = dqn
+    dqn.eval.return_value = dqn
 
     return brain, dqn
 
@@ -30,6 +34,10 @@ def test_mortal_engine_warmup(mock_mortal_components) -> None:
     with patch.object(engine, "react_batch") as mock_react:
         engine.warmup()
         assert mock_react.called
+        args, _ = mock_react.call_args
+        assert len(args) == 3
+        assert args[2] is not None
+        assert args[2].shape == (1, 200, 34)
 
 
 def test_mortal_engine_react_batch_sync(mock_mortal_components) -> None:
@@ -202,7 +210,7 @@ def test_mortal_engine_warmup_warning_log(mock_mortal_components) -> None:
         patch("akagi_ng.mjai_bot.engine.mortal.logger.warning") as mock_warn,
     ):
         engine.warmup()
-        mock_warn.assert_called_with("MortalEngine warmup failed (non-critical): Warmup crash")
+        mock_warn.assert_called_with("MortalEngine warmup failed: Warmup crash")
 
 
 def test_mortal_engine_react_batch_list_input(mock_mortal_components) -> None:

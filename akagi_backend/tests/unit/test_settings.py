@@ -42,13 +42,10 @@ class TestSettingsDataclasses(unittest.TestCase):
 
     def test_model_config_creation(self):
         config = ModelConfig(
-            device="cuda",
             temperature=0.7,
-            enable_amp=True,
-            enable_quick_eval=False,
             rule_based_agari_guard=True,
         )
-        self.assertEqual(config.device, "cuda")
+        self.assertEqual(config.temperature, 0.7)
 
 
 class TestSettingsClass(unittest.TestCase):
@@ -64,10 +61,7 @@ class TestSettingsClass(unittest.TestCase):
             server=ServerConfig(host="127.0.0.1", port=8765),
             ot=OTConfig(online=False),
             model_config=ModelConfig(
-                device="cpu",
                 temperature=1.0,
-                enable_amp=False,
-                enable_quick_eval=True,
                 rule_based_agari_guard=True,
             ),
         )
@@ -92,11 +86,10 @@ class TestSettingsClass(unittest.TestCase):
             "server": {"host": "localhost", "port": 9000},
             "ot": {"online": True, "server": "https://api.test.com", "api_key": "abc123"},
             "model_config": {
-                "device": "cuda",
                 "temperature": 0.5,
-                "enable_amp": True,
-                "enable_quick_eval": False,
                 "rule_based_agari_guard": False,
+                "model_4p": "mortal.pth",
+                "model_3p": "mortal3p.pth",
             },
         }
         settings = Settings.from_dict(data)

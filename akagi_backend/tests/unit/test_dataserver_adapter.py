@@ -264,7 +264,9 @@ def test_build_dataserver_payload_comprehensive(mock_bot):
     assert build_dataserver_payload({}, None) is None
     assert build_dataserver_payload({}, mock_bot) is None  # no meta
 
-    mjai_res = {"meta": {"q_values": [], "mask_bits": []}}
+    mjai_res = {
+        "meta": {"q_values": [], "mask_bits": [], "engine_type": "test", "is_fallback": False, "circuit_open": False}
+    }
     mock_bot.self_riichi_accepted = True
 
     # Success with logging
@@ -273,13 +275,31 @@ def test_build_dataserver_payload_comprehensive(mock_bot):
         patch("akagi_ng.dataserver.adapter.logger.debug") as mock_debug,
     ):
         payload = build_dataserver_payload(mjai_res, mock_bot)
-        assert payload["is_riichi"] is True
-        mock_debug.assert_called()
+        assert "is_riichi" not in payload
+        # Flattened meta check
+        assert "engine_type" in payload
+        assert "is_fallback" in payload
+        assert "circuit_open" in payload
+        # Ensure we didn't just copy the whole meta dict under a key
+        assert "meta" not in payload
+
+        # Riichi filtering test: action 'da' is not in allowed list, so it should be filtered out
+        assert payload["recommendations"] == []
+        mock_debug.assert_not_called()
 
     # Empty recs path
     with patch("akagi_ng.dataserver.adapter._process_standard_recommendations", return_value=[]):
         payload = build_dataserver_payload(mjai_res, mock_bot)
         assert payload["recommendations"] == []
+
+    # Test allowed action in Riichi
+    with patch(
+        "akagi_ng.dataserver.adapter._process_standard_recommendations",
+        return_value=[{"action": "tsumo"}, {"action": "discard"}],
+    ):
+        payload = build_dataserver_payload(mjai_res, mock_bot)
+        assert len(payload["recommendations"]) == 1
+        assert payload["recommendations"][0]["action"] == "tsumo"
 
     # Exception path
     with patch("akagi_ng.dataserver.adapter._process_standard_recommendations", side_effect=RuntimeError("crash")):
@@ -297,6 +317,8 @@ def test_build_dataserver_payload_with_valid_meta(mock_bot):
     }
     mock_bot.is_3p = False
     mock_bot.last_kawa_tile = "1m"
+    # Essential: Explicitly set False to prevent MagicMock truthiness from triggering Riichi filter
+    mock_bot.self_riichi_accepted = False
 
     with patch("akagi_ng.dataserver.adapter.meta_to_recommend") as mock_m2r:
         mock_m2r.return_value = [("1m", 0.9)]

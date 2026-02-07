@@ -21,7 +21,6 @@ def test_settings_lifecycle():
     assert settings.log_level == "INFO"
     # browser 字段已移除，改为 platform 和 game_url
     assert settings.mitm.enabled is False
-    assert settings.model_config.device == "auto"
 
     # 2. 测试部分更新 - 更新日志级别和服务器端口
     update_data = {
@@ -32,10 +31,7 @@ def test_settings_lifecycle():
         "server": {"host": "127.0.0.1", "port": 9999},
         "ot": {"online": False, "server": "", "api_key": ""},
         "model_config": {
-            "device": "cuda",
             "temperature": 0.5,
-            "enable_amp": True,
-            "enable_quick_eval": True,
             "rule_based_agari_guard": False,
         },
     }
@@ -47,9 +43,7 @@ def test_settings_lifecycle():
     assert settings.server.port == 9999
     assert settings.server.host == "127.0.0.1"
     assert settings.game_url == "https://game.maj-soul.com/1/"
-    assert settings.model_config.device == "cuda"
     assert settings.model_config.temperature == 0.5
-    assert settings.model_config.enable_amp is True
     assert settings.model_config.rule_based_agari_guard is False
 
     # 3. 测试转换回字典

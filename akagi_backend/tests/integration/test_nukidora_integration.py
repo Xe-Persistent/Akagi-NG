@@ -18,8 +18,8 @@ def mock_engine():
             self.name = "MockEngine"
             self.is_oracle = False
             self.version = 1
-            self.enable_rule_based_agari_guard = False
-            self.enable_quick_eval = False
+            self.enable_rule_based_agari_guard = True
+            self.enable_quick_eval = True
 
         def react_batch(self, obs, masks, invisible_obs):
             return [0], [0], [0], [0]

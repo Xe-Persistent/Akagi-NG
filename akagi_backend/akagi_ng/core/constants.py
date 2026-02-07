@@ -44,7 +44,10 @@ class MahjongConstants:
 class ModelConstants:
     """模型相关常量"""
 
-    MODEL_VERSION_4 = 4  # Mortal模型版本4
+    MODEL_VERSION_1 = 1
+    MODEL_VERSION_2 = 2
+    MODEL_VERSION_3 = 3
+    MODEL_VERSION_4 = 4
 
 
 class ServerConstants:

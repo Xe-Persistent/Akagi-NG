@@ -24,17 +24,6 @@
       "game_url": "Game URL",
       "game_url_desc": "Only supports Majsoul and Tenhou. Use Proxy mode for other platforms."
     },
-    "online_model": {
-      "title": "Online Model",
-      "online": "Online Model",
-      "server_url": "Server URL",
-      "api_key": "API Key"
-    },
-    "server": {
-      "title": "Service",
-      "host": "Service Address",
-      "port": "Port"
-    },
     "connection": {
       "title": "Game Connection",
       "mode": "Connection Mode",
@@ -48,21 +37,25 @@
         "upstream": "Upstream Proxy (Optional)"
       }
     },
+    "server": {
+      "title": "Service",
+      "host": "Service Address",
+      "port": "Port"
+    },
     "model_config": {
-      "device": "Device",
-      "device_desc": "Choose the device used by the model. Auto selects a suitable available device.",
+      "title": "AI Model",
+      "mode_selection": "Model Select",
+      "online_mode": "Online Model",
+      "server_url": "Server URL",
+      "api_key": "API Key",
+      "local_mode": "Local Model",
+      "model_4p": "4-Player Model",
+      "model_3p": "3-Player Model",
       "temperature": "Temperature",
-      "temperature_desc": "Controls the randomness of the model output. Higher values produce more random results.",
-      "amp": "Enable AMP",
-      "amp_desc": "Enable automatic mixed precision to improve performance.",
+      "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make probabilities closer.",
       "agari_guard": "Rule-driven Agari Guard",
       "agari_guard_desc": "Prevent missing winning hands due to recognition errors.",
-      "enable_quick_eval": "Quick Evaluation",
-      "enable_quick_eval_desc": "Skip some calculations to improve response speed."
-    },
-    "danger_zone": {
-      "title": "Danger Zone",
-      "desc": "Modifying these settings may affect the application's performance or behavior. Proceed with caution."
+      "no_models_found": "No local models found"
     },
     "saved_success": "Settings updated.",
     "status_saved": "All changes saved.",

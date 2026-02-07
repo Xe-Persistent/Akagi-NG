@@ -26,16 +26,16 @@ class BaseEngine:
         self.last_inference_result: InferenceResult | None = None
 
     @property
-    def enable_amp(self) -> bool:
-        return local_settings.model_config.enable_amp
-
-    @property
     def enable_rule_based_agari_guard(self) -> bool:
         return local_settings.model_config.rule_based_agari_guard
 
     @property
+    def enable_amp(self) -> bool:
+        return False
+
+    @property
     def enable_quick_eval(self) -> bool:
-        return local_settings.model_config.enable_quick_eval
+        return True
 
     def set_sync_mode(self, enabled: bool):
         """

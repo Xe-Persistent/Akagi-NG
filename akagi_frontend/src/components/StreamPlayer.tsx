@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { STREAM_PLAYER_HEIGHT, STREAM_PLAYER_WIDTH } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
 import { cn } from '@/lib/utils';
-import type { StreamPlayerProps } from '@/types';
 
 import StreamRenderComponent from './StreamRenderComponent';
+
+interface StreamPlayerProps {
+  className?: string;
+}
 
 /**
  * HUD 激活时的覆盖层组件

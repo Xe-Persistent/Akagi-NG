@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
 import type { FC } from 'react';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,13 +16,16 @@ import {
 } from '@/components/ui/modal';
 import { StatusBar } from '@/components/ui/status-bar';
 import { useSettings } from '@/hooks/useSettings';
-import type { SettingsPanelProps } from '@/types';
 
 import { ConnectionSection } from './settings/ConnectionSection';
-import { DangerZoneSection } from './settings/DangerZoneSection';
 import { GeneralSection } from './settings/GeneralSection';
-import { OnlineModelSection } from './settings/OnlineModelSection';
+import { ModelConfigSection } from './settings/ModelConfigSection';
 import { ServiceSection } from './settings/ServiceSection';
+
+interface SettingsPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
 
 const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose }) => {
   const { t } = useTranslation();
@@ -90,14 +93,19 @@ const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose }) => {
 
             <ServiceSection settings={settings} updateSetting={updateSetting} />
 
-            <OnlineModelSection settings={settings} updateSetting={updateSetting} />
+            <ModelConfigSection settings={settings} updateSetting={updateSetting} />
 
-            <DangerZoneSection
-              settings={settings}
-              updateSetting={updateSetting}
-              busy={false}
-              onRestoreDefaults={() => setIsRestoreDialogOpen(true)}
-            />
+            <div className='flex justify-end border-t border-white/5 pt-6'>
+              <Button
+                variant='destructive'
+                size='sm'
+                onClick={() => setIsRestoreDialogOpen(true)}
+                className='w-full sm:w-auto'
+              >
+                <RotateCcw className='mr-2 h-4 w-4' />
+                {t('settings.restore')}
+              </Button>
+            </div>
           </div>
         </ErrorBoundary>
 

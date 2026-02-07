@@ -3,8 +3,9 @@ from types import ModuleType
 
 import numpy as np
 import torch
-from torch.distributions import Categorical
+from torch.distributions import Categorical, Normal
 
+from akagi_ng.core.constants import ModelConstants
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
@@ -56,7 +57,7 @@ class MortalEngine(BaseEngine):
             self.react_batch(obs, masks, invisible_obs)
             logger.info(f"MortalEngine ({self.name}): Warmup completed.")
         except Exception as e:
-            logger.warning(f"MortalEngine warmup failed (non-critical): {e}")
+            logger.warning(f"MortalEngine warmup failed: {e}")
 
     def react_batch(
         self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
@@ -84,24 +85,31 @@ class MortalEngine(BaseEngine):
 
         try:
             with (
-                torch.autocast(self.device.type, enabled=self.enable_amp),
+                torch.autocast(self.device.type, enabled=False),
                 torch.inference_mode(),
             ):
-                return self._react_batch(obs, masks)
+                return self._react_batch(obs, masks, invisible_obs)
         except Exception as ex:
             raise RuntimeError(f"Error during inference: {ex}") from ex
 
     def _react_batch(
-        self, obs: np.ndarray, masks: np.ndarray
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
-        obs = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
-        masks = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
-        batch_size = obs.shape[0]
+        obs_t = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
+        masks_t = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
+        inv_obs_t = (
+            torch.as_tensor(np.stack(invisible_obs, axis=0), device=self.device) if invisible_obs is not None else None
+        )
+        batch_size = obs_t.shape[0]
         q_out = None
         match self.version:
-            case 3 | 4:
-                phi = self.brain(obs)
-                q_out = self.dqn(phi, masks)
+            case ModelConstants.MODEL_VERSION_1:
+                mu, logsig = self.brain(obs_t, inv_obs_t)
+                latent = Normal(mu, logsig.exp() + 1e-6).sample() if self.stochastic_latent else mu
+                q_out = self.dqn(latent, masks_t)
+            case ModelConstants.MODEL_VERSION_2 | ModelConstants.MODEL_VERSION_3 | ModelConstants.MODEL_VERSION_4:
+                phi = self.brain(obs_t)
+                q_out = self.dqn(phi, masks_t)
             case _:
                 raise ValueError(f"Unsupported Mortal version: {self.version}")
 
@@ -109,7 +117,7 @@ class MortalEngine(BaseEngine):
             is_greedy = (
                 torch.full((batch_size,), 1 - self.boltzmann_epsilon, device=self.device).bernoulli().to(torch.bool)
             )
-            logits = (q_out / self.boltzmann_temp).masked_fill(~masks, -torch.inf)
+            logits = (q_out / self.boltzmann_temp).masked_fill(~masks_t, -torch.inf)
             sampled = _sample_top_p(logits, self.top_p)
             actions = torch.where(is_greedy, q_out.argmax(-1), sampled)
         else:
@@ -118,7 +126,7 @@ class MortalEngine(BaseEngine):
 
         result_actions = actions.tolist()
         result_q_out = q_out.tolist()
-        result_masks = masks.tolist()
+        result_masks = masks_t.tolist()
         result_is_greedy = is_greedy.tolist()
 
         self.last_inference_result = {
@@ -161,39 +169,43 @@ def load_local_mortal_engine(
         state = torch.load(model_path, map_location=get_inference_device(), weights_only=False)
 
         # 提取配置版本
-        control_version = state["config"]["control"]["version"]
+        cfg = state["config"]
+        control_version = cfg["control"]["version"]
+        conv_channels = cfg["resnet"]["conv_channels"]
+        num_blocks = cfg["resnet"]["num_blocks"]
+
+        # 检测是否为 policy_net 模式 (CategoricalPolicy + GroupNorm)
+        is_policy_model = "policy_net" in state
+        norm_type = "GN" if is_policy_model else "BN"
+        dqn_key = "policy_net" if is_policy_model else "current_dqn"
+
+        from akagi_ng.mjai_bot.network import CategoricalPolicy
 
         mortal = Brain(
             obs_shape_func=consts.obs_shape,
             oracle_obs_shape_func=consts.oracle_obs_shape,
             version=control_version,
-            conv_channels=state["config"]["resnet"]["conv_channels"],
-            num_blocks=state["config"]["resnet"]["num_blocks"],
+            conv_channels=conv_channels,
+            num_blocks=num_blocks,
+            norm_type=norm_type,
         ).eval()
 
-        dqn = DQN(action_space=consts.ACTION_SPACE, version=control_version).eval()
+        if is_policy_model:
+            dqn = CategoricalPolicy(action_space=consts.ACTION_SPACE).eval()
+            engine_name = "policy"
+        else:
+            dqn = DQN(action_space=consts.ACTION_SPACE, version=control_version).eval()
+            engine_name = "mortal"
 
-        missing_keys, unexpected_keys = mortal.load_state_dict(state["mortal"], strict=False)
-        if missing_keys or unexpected_keys:
-            logger.info(
-                "Mortal model loaded with non-strict mode. "
-                f"Missing: {len(missing_keys)}, Unexpected: {len(unexpected_keys)}"
-            )
-            if unexpected_keys:
-                logger.debug(f"Unexpected keys: {unexpected_keys}")
-
-        dqn_missing, dqn_unexpected = dqn.load_state_dict(state["current_dqn"], strict=False)
-        if dqn_missing or dqn_unexpected:
-            logger.debug(
-                f"DQN loaded with non-strict mode. Missing: {len(dqn_missing)}, Unexpected: {len(dqn_unexpected)}"
-            )
+        mortal.load_state_dict(state["mortal"])
+        dqn.load_state_dict(state[dqn_key])
 
         engine = MortalEngine(
             mortal,
             dqn,
             is_oracle=False,
             version=control_version,
-            name="mortal",
+            name=engine_name,
             is_3p=is_3p,
         )
         engine.warmup()

@@ -39,10 +39,9 @@ const defaultSettings: Settings = {
     api_key: 'mock',
   },
   model_config: {
-    device: 'auto',
+    model_4p: 'mortal.pth',
+    model_3p: 'mortal3p.pth',
     temperature: 0.3,
-    enable_amp: false,
-    enable_quick_eval: false,
     rule_based_agari_guard: true,
   },
 };
@@ -122,6 +121,12 @@ const server = http.createServer((req, res) => {
       process.exit(0);
     }, 500);
     return;
+  }
+
+  // Handle Models API
+  if (url.pathname === '/api/models' && req.method === 'GET') {
+    const mockModels = ['mortal.pth', 'mortal3p.pth', 'custom_model.pth'];
+    return jsonResponse({ ok: true, data: mockModels });
   }
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/sse')) {
@@ -271,8 +276,17 @@ function generateMockData(counter: number): FullRecommendationData {
   // Cycle through scenarios
   const scenario = scenarios[counter % scenarios.length];
 
+  // Cycle through status states for visual verification
+  const statusStates = [
+    { engine_type: 'akagi-ot', is_fallback: false, circuit_open: false }, // Online (Green)
+    { engine_type: 'mortal', is_fallback: false, circuit_open: false }, // Local (Blue)
+    { engine_type: 'akagi-ot', is_fallback: true, circuit_open: false }, // Fallback (Yellow)
+    { engine_type: 'akagi-ot', is_fallback: false, circuit_open: true }, // Circuit Open (Red)
+  ];
+  const status = statusStates[counter % statusStates.length];
+
   return {
     recommendations: scenario.recommendations,
-    is_riichi: false,
+    ...status,
   };
 }

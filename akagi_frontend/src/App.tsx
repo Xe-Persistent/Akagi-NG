@@ -11,6 +11,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { APP_STARTUP_MIN_DELAY_MS } from '@/config/constants';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
+import { setBaseUrl } from '@/lib/api-client';
 import type { Settings } from '@/types';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -19,6 +20,8 @@ const Hud = lazy(() => import('@/pages/HUD'));
 function AppContent({ settingsPromise }: { settingsPromise: Promise<Settings> }) {
   const initialSettings = use(settingsPromise);
   const { apiBase } = useConnectionConfig();
+
+  setBaseUrl(apiBase);
 
   return (
     <SettingsProvider apiBase={apiBase} initialSettings={initialSettings}>
@@ -45,8 +48,9 @@ export default function App() {
 
   const settingsPromise = useMemo(() => {
     const fetchSettings = (async () => {
+      setBaseUrl(apiBase);
       await window.electron.invoke('wait-for-backend');
-      return fetchSettingsApi(apiBase).catch((err) => {
+      return fetchSettingsApi().catch((err) => {
         console.warn('Failed to fetch settings, using defaults:', err);
         return {
           log_level: 'INFO',
@@ -60,10 +64,7 @@ export default function App() {
           },
           ot: { online: false, server: '', api_key: '' },
           model_config: {
-            device: 'auto',
             temperature: 0.3,
-            enable_amp: false,
-            enable_quick_eval: false,
             rule_based_agari_guard: true,
           },
         } as Settings;

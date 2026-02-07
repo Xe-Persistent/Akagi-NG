@@ -48,11 +48,10 @@ class ServerConfig:
 
 @dataclass
 class ModelConfig:
-    device: str
     temperature: float
-    enable_amp: bool
-    enable_quick_eval: bool
     rule_based_agari_guard: bool
+    model_4p: str = "mortal.pth"
+    model_3p: str = "mortal3p.pth"
 
 
 @dataclass
@@ -124,10 +123,9 @@ class Settings:
                 api_key=ot_data.get("api_key", ""),
             ),
             model_config=ModelConfig(
-                device=model_config_data.get("device", "auto"),
+                model_4p=model_config_data.get("model_4p", "mortal.pth"),
+                model_3p=model_config_data.get("model_3p", "mortal3p.pth"),
                 temperature=model_config_data.get("temperature", 0.3),
-                enable_amp=model_config_data.get("enable_amp", False),
-                enable_quick_eval=model_config_data.get("enable_quick_eval", False),
                 rule_based_agari_guard=model_config_data.get("rule_based_agari_guard", True),
             ),
         )
@@ -201,10 +199,9 @@ def get_default_settings_dict() -> dict:
         "server": {"host": "127.0.0.1", "port": 8765},
         "ot": {"online": False, "server": "http://127.0.0.1:5000", "api_key": "<YOUR_API_KEY>"},
         "model_config": {
-            "device": "auto",
+            "model_4p": "mortal.pth",
+            "model_3p": "mortal3p.pth",
             "temperature": 0.3,
-            "enable_amp": False,
-            "enable_quick_eval": False,
             "rule_based_agari_guard": True,
         },
     }
@@ -282,10 +279,9 @@ def _update_settings(settings: Settings, data: dict):
     settings.server.port = server_data.get("port", 8765)
 
     model_config_data = data.get("model_config", {})
-    settings.model_config.device = model_config_data.get("device", "auto")
+    settings.model_config.model_4p = model_config_data.get("model_4p", "mortal.pth")
+    settings.model_config.model_3p = model_config_data.get("model_3p", "mortal3p.pth")
     settings.model_config.temperature = model_config_data.get("temperature", 0.3)
-    settings.model_config.enable_amp = model_config_data.get("enable_amp", False)
-    settings.model_config.enable_quick_eval = model_config_data.get("enable_quick_eval", False)
     settings.model_config.rule_based_agari_guard = model_config_data.get("rule_based_agari_guard", True)
 
     ot_data = data.get("ot", {})

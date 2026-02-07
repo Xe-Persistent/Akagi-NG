@@ -101,6 +101,17 @@ async def reset_settings_handler(_request: web.Request) -> web.Response:
     return _json_response({"ok": True, "data": default_settings, "restartRequired": True})
 
 
+async def get_models_handler(_request: web.Request) -> web.Response:
+    from akagi_ng.core.paths import get_models_dir
+
+    models_dir = get_models_dir()
+    if not models_dir.exists():
+        return _json_response({"ok": True, "data": []})
+
+    models = [f.name for f in models_dir.glob("*.pth") if f.is_file()]
+    return _json_response({"ok": True, "data": models})
+
+
 async def ingest_mjai_handler(request: web.Request) -> web.Response:
     """接收 Electron 发送的 MJAI 消息"""
     try:
@@ -168,5 +179,6 @@ def setup_routes(app: web.Application):
     app.router.add_get("/api/settings", get_settings_handler)
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
+    app.router.add_get("/api/models", get_models_handler)
     app.router.add_post("/api/ingest", ingest_mjai_handler)
     app.router.add_post("/api/shutdown", shutdown_handler)

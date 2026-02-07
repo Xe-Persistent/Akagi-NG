@@ -17,6 +17,7 @@ export interface SettingsContextType {
   ) => void;
   restoreDefaults: () => void;
   refreshSettings: () => Promise<void>;
+  availableModels: string[];
 }
 
 export const SettingsContext = createContext<SettingsContextType | null>(null);

@@ -11,10 +11,17 @@ export class ApiError extends Error {
   }
 }
 
+let baseUrl = '';
+
+export function setBaseUrl(url: string) {
+  baseUrl = url;
+}
+
 export async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
   let res: Response;
   try {
-    res = await fetch(url, options);
+    res = await fetch(fullUrl, options);
   } catch {
     throw new ApiError('connect_failed', 'Failed to connect to server');
   }

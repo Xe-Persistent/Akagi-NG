@@ -20,9 +20,16 @@ import { SUPPORTED_LOCALES } from '@/config/locales';
 import { GameContext } from '@/contexts/GameContext';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
-import type { HeaderProps } from '@/types';
 
-interface HeaderContentProps extends HeaderProps {
+interface HeaderProps {
+  isLaunching: boolean;
+  onLaunch: () => void;
+  onOpenSettings: () => void;
+  locale?: string;
+  onLocaleChange?: (locale: string) => void;
+  onShutdown?: () => void;
+  onToggleHud?: (show: boolean) => void;
+  isHudActive?: boolean;
   isConnected: boolean;
 }
 
@@ -55,7 +62,7 @@ const HeaderIconButton: FC<HeaderIconButtonProps> = ({
   </Button>
 );
 
-const HeaderContent: FC<HeaderContentProps> = memo(
+const HeaderContent: FC<HeaderProps> = memo(
   ({
     isLaunching,
     onLaunch,
@@ -188,7 +195,7 @@ const HeaderContent: FC<HeaderContentProps> = memo(
 
 HeaderContent.displayName = 'HeaderContent';
 
-export const Header: FC<HeaderProps> = (props) => {
+export const Header: FC<Omit<HeaderProps, 'isConnected'>> = (props) => {
   const gameContext = use(GameContext);
   if (!gameContext) throw new Error('GameContext not found');
   const { isConnected } = gameContext;

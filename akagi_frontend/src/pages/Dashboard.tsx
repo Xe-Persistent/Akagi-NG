@@ -10,7 +10,6 @@ import StreamPlayer from '@/components/StreamPlayer';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { APP_SPLASH_DELAY_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
-import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/lib/notify';
@@ -24,7 +23,6 @@ interface DashboardProps {
 function Dashboard({ settingsPromise }: DashboardProps) {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
-  const { apiBase } = useConnectionConfig();
   const initialSettings = use(settingsPromise);
 
   const context = use(GameContext);
@@ -100,7 +98,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     setIsLaunching(true);
     try {
       // Re-fetch settings to ensure we have the latest configuration before launching
-      const currentSettings = await fetchSettingsApi(apiBase).catch(() => initialSettings);
+      const currentSettings = await fetchSettingsApi().catch(() => initialSettings);
 
       // Pass the configured URL, MITM status and platform to Electron
       await window.electron.invoke('start-game', {
@@ -114,7 +112,7 @@ function Dashboard({ settingsPromise }: DashboardProps) {
     } finally {
       setIsLaunching(false);
     }
-  }, [apiBase, initialSettings, t]);
+  }, [initialSettings, t]);
 
   const handleShutdownClick = useCallback(() => {
     setShowShutdownConfirm(true);

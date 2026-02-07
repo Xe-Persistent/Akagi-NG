@@ -69,11 +69,11 @@ def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
     if is_3p:
         from akagi_ng.core.lib_loader import libriichi3p as libriichi
 
-        model_filename = "mortal3p.pth"
+        model_filename = local_settings.model_config.model_3p
     else:
         from akagi_ng.core.lib_loader import libriichi
 
-        model_filename = "mortal.pth"
+        model_filename = local_settings.model_config.model_4p
 
     consts = libriichi.consts
     model_path = get_models_dir() / model_filename

@@ -1,12 +1,16 @@
-import { type ReactNode, useCallback, useEffect, useReducer, useRef } from 'react';
+import { type ReactNode, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { SettingsContext } from '@/contexts/SettingsContext';
+import {
+  fetchModelsApi,
+  fetchSettingsApi,
+  resetSettingsApi,
+  saveSettingsApi,
+} from '@/hooks/useSettings';
 import i18n from '@/i18n/i18n';
 import { notify } from '@/lib/notify';
 import type { Paths, PathValue, Settings } from '@/types';
-
-import { fetchSettingsApi, resetSettingsApi, saveSettingsApi } from '../hooks/useSettings';
 
 // --- Types & Reducer ---
 
@@ -140,6 +144,7 @@ export function SettingsProvider({ children, apiBase, initialSettings }: Setting
 
   const { settings, saveStatus, restartRequired, lastUpdatedBy, updateId, saveDebounceMode } =
     state;
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
 
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const toastId = useRef<string | number | null>(null);
@@ -171,7 +176,7 @@ export function SettingsProvider({ children, apiBase, initialSettings }: Setting
       }
 
       try {
-        const result = await saveSettingsApi(apiBase, settings);
+        const result = await saveSettingsApi(settings);
         if (result.restartRequired) dispatch({ type: 'SET_RESTART_REQUIRED' });
 
         dispatch({ type: 'SET_SAVE_STATUS', status: 'saved' });
@@ -241,26 +246,32 @@ export function SettingsProvider({ children, apiBase, initialSettings }: Setting
     return () => unsub();
   }, []);
 
+  // 5. Initial Model Fetch
+  useEffect(() => {
+    fetchModelsApi().then(setAvailableModels).catch(console.error);
+  }, []);
+
   // --- Public API ---
 
   const refreshSettings = useCallback(async () => {
     try {
-      const data = await fetchSettingsApi(apiBase);
+      const [data, models] = await Promise.all([fetchSettingsApi(), fetchModelsApi()]);
       dispatch({ type: 'INIT_SYNC', payload: data });
+      setAvailableModels(models);
     } catch (e) {
-      console.error('Failed to refresh settings:', e);
+      console.error('Failed to refresh settings or models:', e);
     }
-  }, [apiBase]);
+  }, []);
 
   const restoreDefaults = useCallback(async () => {
     try {
-      const data = await resetSettingsApi(apiBase);
+      const data = await resetSettingsApi();
       dispatch({ type: 'RESTORE_SUCCESS', payload: data });
       notify.success(i18n.t('settings.restored_success'));
     } catch (e) {
       console.error('Restore Defaults error:', e);
     }
-  }, [apiBase]);
+  }, []);
 
   const updateSetting = useCallback(
     <P extends Paths<Settings>>(
@@ -290,6 +301,7 @@ export function SettingsProvider({ children, apiBase, initialSettings }: Setting
         updateSettingsBatch,
         restoreDefaults,
         refreshSettings,
+        availableModels,
       }}
     >
       {children}

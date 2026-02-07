@@ -117,26 +117,20 @@
       "type": "object",
       "description": "AI model configuration.",
       "properties": {
-        "device": {
+        "model_4p": {
           "type": "string",
-          "enum": ["cpu", "cuda", "auto"],
-          "default": "auto",
-          "description": "Computing device selection."
+          "default": "mortal.pth",
+          "description": "Selected model for 4-player mahjong."
+        },
+        "model_3p": {
+          "type": "string",
+          "default": "mortal3p.pth",
+          "description": "Selected model for 3-player mahjong."
         },
         "temperature": {
           "type": "number",
           "default": 0.3,
           "description": "Softmax temperature for model confidence normalization."
-        },
-        "enable_amp": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable automatic mixed precision for inference."
-        },
-        "enable_quick_eval": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable quick evaluation for the model."
         },
         "rule_based_agari_guard": {
           "type": "boolean",
@@ -145,10 +139,9 @@
         }
       },
       "required": [
-        "device",
+        "model_4p",
+        "model_3p",
         "temperature",
-        "enable_amp",
-        "enable_quick_eval",
         "rule_based_agari_guard"
       ],
       "additionalProperties": false

@@ -24,17 +24,6 @@
       "game_url": "ゲームURL",
       "game_url_desc": "雀魂・天鳳のみ対応しています。その他のプラットフォームは「プロキシ」モードを使用してください。"
     },
-    "online_model": {
-      "title": "オンラインモデル",
-      "online": "オンラインモデル",
-      "server_url": "サーバーURL",
-      "api_key": "APIキー"
-    },
-    "server": {
-      "title": "サービス",
-      "host": "サービスアドレス",
-      "port": "ポート"
-    },
     "connection": {
       "title": "ゲーム接続",
       "mode": "接続モード",
@@ -48,21 +37,25 @@
         "upstream": "上流プロキシ (任意)"
       }
     },
+    "server": {
+      "title": "サービス",
+      "host": "サービスアドレス",
+      "port": "ポート"
+    },
     "model_config": {
-      "device": "デバイス",
-      "device_desc": "モデルに使用するデバイスを選択します。Autoは利用可能なデバイスから適切なものを自動で選択します。",
+      "title": "AI モデル設定",
+      "mode_selection": "モデル選択",
+      "online_mode": "オンラインモデル",
+      "server_url": "サーバーURL",
+      "api_key": "APIキー",
+      "local_mode": "ローカルモデル",
+      "model_4p": "四人打ちモデル",
+      "model_3p": "三人打ちモデル",
       "temperature": "温度パラメータ",
-      "temperature_desc": "モデル出力のランダム性を制御します。値が高いほど結果はランダムになります。",
-      "amp": "AMPを有効化",
-      "amp_desc": "自動混合精度を有効にしてパフォーマンスを向上させます。",
+      "temperature_desc": "推奨事項間の信頼度の差を調整します。温度が低いほどトップの選択肢が明確になり、温度が高いほど各選択肢の確率が近くなります。",
       "agari_guard": "ルール駆動の和了ガード",
       "agari_guard_desc": "認識ミスによる和了逃しを防止します。",
-      "enable_quick_eval": "高速評価",
-      "enable_quick_eval_desc": "一部の計算をスキップして応答速度を向上させます。"
-    },
-    "danger_zone": {
-      "title": "危険設定エリア",
-      "desc": "これらの設定を変更すると、アプリのパフォーマンスや動作に影響する可能性があります。ご注意ください。"
+      "no_models_found": "ローカルモデルが見つかりません"
     },
     "saved_success": "設定が更新されました。",
     "status_saved": "保存済み",

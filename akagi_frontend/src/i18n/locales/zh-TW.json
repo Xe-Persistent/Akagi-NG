@@ -24,17 +24,6 @@
       "game_url": "遊戲位址",
       "game_url_desc": "僅支援雀魂、天鳳。其他平台請使用「外部代理」模式"
     },
-    "online_model": {
-      "title": "線上模型",
-      "online": "線上模型",
-      "server_url": "伺服器位址",
-      "api_key": "API 金鑰"
-    },
-    "server": {
-      "title": "服務",
-      "host": "服務位址",
-      "port": "連接埠"
-    },
     "connection": {
       "title": "遊戲連線",
       "mode": "連線模式",
@@ -48,21 +37,25 @@
         "upstream": "上游代理 (可選)"
       }
     },
+    "server": {
+      "title": "服務",
+      "host": "服務位址",
+      "port": "連接埠"
+    },
     "model_config": {
-      "device": "裝置",
-      "device_desc": "選擇模型使用的裝置，Auto會自動選擇可用的合適裝置",
+      "title": "AI 模型",
+      "mode_selection": "模型選擇",
+      "online_mode": "線上模型",
+      "server_url": "伺服器位址",
+      "api_key": "API 金鑰",
+      "local_mode": "本地模型",
+      "model_4p": "四麻模型",
+      "model_3p": "三麻模型",
       "temperature": "溫度參數",
-      "temperature_desc": "控制模型輸出的隨機性，數值越高，結果越隨機",
-      "amp": "啟用 AMP（混合精度）",
-      "amp_desc": "啟用自動混合精度以提升效能",
+      "temperature_desc": "調整各推薦選項之間的信心差距。較低的溫度會使最高概率的選項更加突出，較高的溫度會使各選項概率更接近",
       "agari_guard": "規則驅動的和牌保護",
       "agari_guard_desc": "防止因辨識錯誤而錯過和牌",
-      "enable_quick_eval": "快速評估",
-      "enable_quick_eval_desc": "跳過部分計算以提升回應速度"
-    },
-    "danger_zone": {
-      "title": "危險區域",
-      "desc": "修改以下設定可能會影響應用程式的效能或行為表現，請謹慎操作。"
+      "no_models_found": "未找到本地模型"
     },
     "saved_success": "設定已更新，請在頁面中確認",
     "status_saved": "所有變更已儲存",

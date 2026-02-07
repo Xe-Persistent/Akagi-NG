@@ -13,31 +13,13 @@ export interface Recommendation {
 
 export interface FullRecommendationData {
   recommendations: Recommendation[];
-  is_riichi?: boolean;
-}
-
-export interface HeaderProps {
-  isLaunching: boolean;
-  onLaunch: () => void;
-  onOpenSettings: () => void;
-  locale?: string;
-  onLocaleChange?: (locale: string) => void;
-  onShutdown?: () => void;
-  onToggleHud?: (show: boolean) => void;
-  isHudActive?: boolean;
-}
-
-export interface SettingsPanelProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export interface StreamPlayerProps {
-  className?: string;
+  engine_type?: string;
+  is_fallback?: boolean;
+  circuit_open?: boolean;
 }
 
 export interface NotificationItem {
-  level: string;
+  level?: string;
   code: string;
   msg?: string;
 }
@@ -69,10 +51,9 @@ export interface Settings {
     api_key: string;
   };
   model_config: {
-    device: string;
+    model_4p: string;
+    model_3p: string;
     temperature: number;
-    enable_amp: boolean;
-    enable_quick_eval: boolean;
     rule_based_agari_guard: boolean;
   };
 }

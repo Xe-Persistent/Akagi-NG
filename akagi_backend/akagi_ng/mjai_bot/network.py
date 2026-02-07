@@ -5,18 +5,15 @@ import torch
 from torch import Tensor, nn
 
 from akagi_ng.core.constants import ModelConstants
-from akagi_ng.settings import local_settings
+
+
+def orthogonal_init(layer: nn.Module, gain: float = 1.0) -> None:
+    nn.init.orthogonal_(layer.weight, gain=gain)
+    nn.init.constant_(layer.bias, 0)
 
 
 def get_inference_device() -> torch.device:
-    cfg_device = local_settings.model_config.device
-    if cfg_device == "cuda" and torch.cuda.is_available():
-        return torch.device("cuda")
-    if cfg_device == "cpu":
-        return torch.device("cpu")
-    if cfg_device == "auto":
-        return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    return torch.device("cpu")
+    return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 class ChannelAttention(nn.Module):
@@ -131,6 +128,7 @@ class Brain(nn.Module):
         num_blocks: int,
         is_oracle: bool = False,
         version: int = 1,
+        norm_type: str = "BN",
     ):
         super().__init__()
         self.is_oracle = is_oracle
@@ -145,8 +143,21 @@ class Brain(nn.Module):
         pre_actv = True
 
         match version:
-            case 3 | 4:
+            case ModelConstants.MODEL_VERSION_1:
+                actv_builder = partial(nn.ReLU, inplace=True)
+                pre_actv = False
+                self.latent_net = nn.Sequential(
+                    nn.Linear(1024, 512),
+                    nn.ReLU(inplace=True),
+                )
+                self.mu_head = nn.Linear(512, 512)
+                self.logsig_head = nn.Linear(512, 512)
+            case ModelConstants.MODEL_VERSION_2:
+                pass
+            case ModelConstants.MODEL_VERSION_3 | ModelConstants.MODEL_VERSION_4:
                 norm_builder = partial(nn.BatchNorm1d, conv_channels, momentum=0.01, eps=1e-3)
+                if norm_type == "GN":
+                    norm_builder = partial(nn.GroupNorm, num_channels=conv_channels, num_groups=32, eps=1e-3)
             case _:
                 raise ValueError(f"Unexpected version {self.version}")
 
@@ -167,7 +178,12 @@ class Brain(nn.Module):
         phi = self.encoder(obs)
 
         match self.version:
-            case 3 | 4:
+            case ModelConstants.MODEL_VERSION_1:
+                latent_out = self.latent_net(phi)
+                mu = self.mu_head(latent_out)
+                logsig = self.logsig_head(latent_out)
+                return mu, logsig
+            case ModelConstants.MODEL_VERSION_2 | ModelConstants.MODEL_VERSION_3 | ModelConstants.MODEL_VERSION_4:
                 return self.actv(phi)
             case _:
                 raise ValueError(f"Unexpected version {self.version}")
@@ -183,14 +199,32 @@ class AuxNet(nn.Module):
         return self.net(x).split(self.dims, dim=-1)
 
 
+class CategoricalPolicy(nn.Module):
+    def __init__(self, action_space: int):
+        super().__init__()
+        self.action_space = action_space
+        self.fc1 = nn.Linear(1024, 256)
+        self.fc2 = nn.Linear(256, action_space)
+        orthogonal_init(self.fc1)
+        orthogonal_init(self.fc2)
+
+    def forward(self, phi: Tensor, mask: Tensor) -> Tensor:
+        phi = torch.tanh(self.fc1(phi))
+        phi = self.fc2(phi).masked_fill(~mask, -torch.inf)
+        return torch.softmax(phi, dim=-1)
+
+
 class DQN(nn.Module):
     def __init__(self, action_space: int, *, version: int = 1):
         super().__init__()
         self.version = version
         self.action_space = action_space
         match version:
-            case 3:
-                hidden_size = 256
+            case ModelConstants.MODEL_VERSION_1:
+                self.v_head = nn.Linear(512, 1)
+                self.a_head = nn.Linear(512, action_space)
+            case ModelConstants.MODEL_VERSION_2 | ModelConstants.MODEL_VERSION_3:
+                hidden_size = 512 if version == ModelConstants.MODEL_VERSION_2 else 256
                 self.v_head = nn.Sequential(
                     nn.Linear(1024, hidden_size),
                     nn.Mish(inplace=True),
@@ -201,7 +235,7 @@ class DQN(nn.Module):
                     nn.Mish(inplace=True),
                     nn.Linear(hidden_size, action_space),
                 )
-            case 4:
+            case ModelConstants.MODEL_VERSION_4:
                 self.net = nn.Linear(1024, 1 + action_space)
                 nn.init.constant_(self.net.bias, 0)
             case _:

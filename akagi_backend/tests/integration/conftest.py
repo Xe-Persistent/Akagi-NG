@@ -60,7 +60,6 @@ def mock_mortal_engine(monkeypatch):
     mock_engine = MagicMock()
     mock_engine.get_additional_meta.return_value = {"engine_type": "mortal_mock"}
     mock_engine.get_notification_flags.return_value = {}
-    mock_engine.set_sync_mode = MagicMock()
 
     def mock_loader(player_id, is_3p):
         return mock_model, mock_engine
@@ -70,6 +69,7 @@ def mock_mortal_engine(monkeypatch):
     # Mock libriichi to prevent ImportError in CI environments without binary files
     mock_lib = MagicMock()
     import sys
+
     sys.modules["libriichi"] = mock_lib
     sys.modules["libriichi3p"] = mock_lib
 

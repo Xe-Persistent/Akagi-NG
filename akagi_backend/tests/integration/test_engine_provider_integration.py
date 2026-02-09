@@ -81,14 +81,20 @@ def test_provider_react_fallback(mock_engines):
 
     # Check meta
     meta = provider.get_additional_meta()
-    assert meta["engine_type"] == "local"
+    assert meta["engine_type"] == "online"
 
 
-def test_provider_sync_mode(mock_engines):
+def test_provider_options_passing(mock_engines):
     online, local = mock_engines
     provider = EngineProvider(online, local, is_3p=False)
 
-    provider.set_sync_mode(True)
+    obs = np.zeros((1, 200, 34))
+    masks = np.zeros((1, 46), dtype=bool)
 
-    online.set_sync_mode.assert_called_with(True)
-    local.set_sync_mode.assert_called_with(True)
+    # Mock online success
+    online.react_batch.return_value = ([0], [[1.0]], [[True]], [False])
+
+    options = {"is_sync": True}
+    provider.react_batch(obs, masks, obs, options=options)
+
+    online.react_batch.assert_called_with(obs, masks, obs, options=options)

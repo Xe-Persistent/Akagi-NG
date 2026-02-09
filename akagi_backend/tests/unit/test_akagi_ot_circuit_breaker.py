@@ -21,7 +21,9 @@ class MockFallbackEngine(BaseEngine):
         self.call_count: int = 0
         self.engine_type: str = "mortal"
 
-    def react_batch(self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray | None) -> InferenceResult:
+    def react_batch(
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray | None, options: dict | None = None
+    ) -> InferenceResult:
         self.call_count += 1
         batch_size = obs.shape[0]
         # 返回 54 维动作空间的全假响应

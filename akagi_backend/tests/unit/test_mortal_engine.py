@@ -43,11 +43,10 @@ def test_mortal_engine_warmup(mock_mortal_components) -> None:
 def test_mortal_engine_react_batch_sync(mock_mortal_components) -> None:
     brain, dqn = mock_mortal_components
     engine = MortalEngine(brain, dqn, version=4)
-    engine.set_sync_mode(True)
     obs = np.zeros((1, 200, 34))
     masks = np.zeros((1, 46), dtype=bool)
     masks[0, 5] = True
-    actions, _, _, is_greedy = engine.react_batch(obs, masks, obs)
+    actions, _, _, is_greedy = engine.react_batch(obs, masks, obs, options={"is_sync": True})
     assert actions == [5]
     assert is_greedy == [True]
 
@@ -217,8 +216,7 @@ def test_mortal_engine_react_batch_list_input(mock_mortal_components) -> None:
     """验证输入可以接受列表（虽然类型提示建议 np.ndarray，但代码用了 np.asanyarray）"""
     brain, dqn = mock_mortal_components
     engine = MortalEngine(brain, dqn, version=4)
-    engine.set_sync_mode(True)
     obs = [[[0.0] * 34] * 200]
     masks = [[True] * 46]
-    actions, _, _, _ = engine.react_batch(obs, masks, obs)
+    actions, _, _, _ = engine.react_batch(obs, masks, obs, options={"is_sync": True})
     assert len(actions) == 1

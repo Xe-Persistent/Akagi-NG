@@ -6,7 +6,7 @@ import torch
 from torch.distributions import Categorical, Normal
 
 from akagi_ng.core.constants import ModelConstants
-from akagi_ng.mjai_bot.engine.base import BaseEngine
+from akagi_ng.mjai_bot.engine.base import BaseEngine, get_current_options
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
 
@@ -60,28 +60,22 @@ class MortalEngine(BaseEngine):
             logger.warning(f"MortalEngine warmup failed: {e}")
 
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray,
+        options: dict | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         # 确保输入为 numpy 数组
         obs = np.asanyarray(obs)
         masks = np.asanyarray(masks)
 
-        # 如果处于显式同步模式，执行极速快进（跳过神经网络）
-        if self.is_sync_mode:
-            batch_size = obs.shape[0]
-            # np.argmax 返回第一个 True 的索引，符合最低合法动作原则
-            fast_actions = np.argmax(masks, axis=1).tolist()
-            q_out = [[0.0] * masks.shape[1] for _ in range(batch_size)]
-            clean_masks = masks.tolist()
-            is_greedy = [True] * batch_size
+        options = options or get_current_options()
+        is_sync = options.get("is_sync", False)
 
-            self.last_inference_result = {
-                "actions": fast_actions,
-                "q_out": q_out,
-                "masks": clean_masks,
-                "is_greedy": is_greedy,
-            }
-            return fast_actions, q_out, clean_masks, is_greedy
+        # 如果处于显式同步模式，执行极速快进（跳过神经网络）
+        if is_sync:
+            return self._sync_fast_forward(masks)
 
         try:
             with (

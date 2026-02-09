@@ -5,7 +5,7 @@ import time
 import numpy as np
 import requests
 
-from akagi_ng.mjai_bot.engine.base import BaseEngine
+from akagi_ng.mjai_bot.engine.base import BaseEngine, get_current_options
 from akagi_ng.mjai_bot.logger import logger
 
 
@@ -133,25 +133,26 @@ class AkagiOTEngine(BaseEngine):
         return False
 
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray,
+        options: dict | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         """
         执行在线推理。发生的异常（如连通性问题、超时、熔断）
         将抛回给 EngineProvider 进行回退处理。
         """
-        # 鲁棒性：确保输入为 numpy 数组
+        # 确保输入为 numpy 数组
         obs = np.asanyarray(obs)
         masks = np.asanyarray(masks)
 
+        options = options or get_current_options()
+        is_sync = options.get("is_sync", False)
+
         # 如果处于显式同步模式，执行极速快进（跳过网络请求）
-        if self.is_sync_mode:
-            batch_size = obs.shape[0]
-            # 找到每一行第一个为 True 的索引
-            actions = [int(np.where(m)[0][0]) for m in masks]
-            # 同步模式下不进行预测，返回零 Q 值
-            q_values = [[0.0] * masks.shape[1] for _ in range(batch_size)]
-            is_greedy = [True] * batch_size
-            return actions, q_values, masks.tolist(), is_greedy
+        if is_sync:
+            return self._sync_fast_forward(masks)
 
         list_obs = [o.tolist() for o in obs]
         list_masks = [m.tolist() for m in masks]

@@ -29,6 +29,7 @@ class NotificationHandler:
         "riichi_lookahead": NotificationCode.RIICHI_SIM_FAILED,
         "model_loaded_local": NotificationCode.MODEL_LOADED_LOCAL,
         "model_loaded_online": NotificationCode.MODEL_LOADED_ONLINE,
+        "no_engine_available": NotificationCode.NO_ENGINE_AVAILABLE,
     }
 
     # 3. 错误代码 → 通知代码的映射

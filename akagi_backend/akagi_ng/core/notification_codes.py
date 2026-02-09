@@ -78,5 +78,8 @@ class NotificationCode(StrEnum):
     BOT_RUNTIME_ERROR = "bot_runtime_error"
     """Bot 运行异常"""
 
+    NO_ENGINE_AVAILABLE = "no_engine_available"
+    """所有引擎不可用，推荐结果将不可靠"""
+
     STATE_TRACKER_ERROR = "state_tracker_error"
     """对局状态异常"""

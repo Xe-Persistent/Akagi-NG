@@ -93,19 +93,20 @@ class MajsoulBridge(BaseBridge):
         return parsed_list if len(parsed_list) >= 1 else []
 
     def _parse_enter_game(self, liqi_message: dict) -> list[MJAIEvent]:
-        """处理进入对局消息（首次连接，不显示同步提示）"""
-        self.syncing = True
+        """处理进入对局消息（首次连接，无需同步）
+
+        首次进入对局时，服务器只会发送当前局的开局信息（ActionNewRound），
+        不存在需要快进的历史事件，因此所有事件都直接触发推荐，无需 sync 标记。
+        """
+        self.syncing = False  # 首次进入，非同步模式
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
-        parsed_list: list[MJAIEvent] = []  # 不插入 GAME_SYNCING 通知
+        parsed_list: list[MJAIEvent] = []
 
         snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
         for msg in action_msgs:
             parsed = self.parse_liqi(msg)
             if parsed:
-                # 首次进入，所有事件都标记为 sync，避免产生无意义的推荐
-                for event in parsed:
-                    event["sync"] = True
                 parsed_list.extend(parsed)
 
         has_start_kyoku = any(evt.get("type") == "start_kyoku" for evt in parsed_list)
@@ -114,11 +115,8 @@ class MajsoulBridge(BaseBridge):
             logger.info("start_kyoku missing (ActionNewRound missing or failed), recovering from snapshot.")
             start_kyoku_and_tsumo = self._handle_sync_game_snapshot(snapshot_msg)
             if start_kyoku_and_tsumo:
-                for event in start_kyoku_and_tsumo:
-                    event["sync"] = True
                 parsed_list[0:0] = start_kyoku_and_tsumo  # 插入到开头
 
-        self.syncing = False
         return parsed_list if len(parsed_list) >= 1 else []
 
     def _parse_sync_game_raw(self, msg_dict: dict) -> list[dict]:

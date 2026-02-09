@@ -25,15 +25,12 @@ class EngineProvider(BaseEngine):
         self.active_engine = self.online_engine if self.online_engine else self.local_engine
         self.fallback_active = False
 
-    def set_sync_mode(self, enabled: bool):
-        """显式设置同步模式，并应用到所有受管引擎"""
-        super().set_sync_mode(enabled)
-        if self.online_engine:
-            self.online_engine.set_sync_mode(enabled)
-        self.local_engine.set_sync_mode(enabled)
-
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray,
+        options: dict | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         """
         核心调度逻辑：
@@ -45,7 +42,7 @@ class EngineProvider(BaseEngine):
         # 1. 尝试在线引擎 (如果配置了且没有处于熔断状态 - 熔断逻辑由 OTEngine 内部维护)
         if self.online_engine:
             try:
-                res = self.online_engine.react_batch(obs, masks, invisible_obs)
+                res = self.online_engine.react_batch(obs, masks, invisible_obs, options=options)
                 self.active_engine = self.online_engine
                 self.last_inference_result = self.online_engine.last_inference_result
                 return res
@@ -55,7 +52,7 @@ class EngineProvider(BaseEngine):
 
         # 2. 本地引擎作为最终保底
         self.active_engine = self.local_engine
-        res = self.local_engine.react_batch(obs, masks, invisible_obs)
+        res = self.local_engine.react_batch(obs, masks, invisible_obs, options=options)
         self.last_inference_result = self.local_engine.last_inference_result
         return res
 
@@ -69,16 +66,27 @@ class EngineProvider(BaseEngine):
         if self.fallback_active:
             flags["fallback_used"] = True
 
+        # 如果最终激活的是空引擎，说明全线崩溃
+        if self.active_engine and self.active_engine.engine_type == "null":
+            flags["no_engine_available"] = True
+
         return flags
 
     def get_additional_meta(self) -> dict[str, Any]:
         """聚合引擎元数据"""
-        meta = {}
         # 始终包含当前激活引擎的类型
-        meta["engine_type"] = self.active_engine.engine_type
-
+        # 使用在线引擎时，即使回退到本地，也报告在线引擎类型
+        primary_engine = self.online_engine if self.online_engine else self.local_engine
+        meta = {"engine_type": primary_engine.engine_type}
         if self.online_engine:
             meta.update(self.online_engine.get_additional_meta())
         meta.update(self.local_engine.get_additional_meta())
+
+        if self.fallback_active:
+            meta["fallback_used"] = True
+
+        # 同步注入空引擎状态
+        if self.active_engine and self.active_engine.engine_type == "null":
+            meta["no_engine_available"] = True
 
         return meta

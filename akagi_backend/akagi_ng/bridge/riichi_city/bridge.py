@@ -124,21 +124,123 @@ class RiichiCityBridge(BaseBridge):
         return None
 
     def _handle_enter_room(self, rc_msg: RCMessage) -> list[MJAIEvent] | None:
-        if (
-            self.game_status.classify_id is not None
-            and self.game_status.classify_id == rc_msg.msg_data["data"]["options"]["classify_id"]
-        ):
+        data = rc_msg.msg_data.get("data", {})
+        is_reconnect = data.get("is_reconnect", False)
+
+        if self.game_status.classify_id is not None and self.game_status.classify_id == data["options"]["classify_id"]:
             logger.warning(f"Already in room {self.game_status.classify_id}")
             return None
+
         self.game_status = GameStatus()
+        self.game_status.classify_id = data["options"]["classify_id"]
         self.game_status.game_start = True
-        players = rc_msg.msg_data["data"]["players"]
-        if rc_msg.msg_data["data"]["options"]["player_count"] == MahjongConstants.SEATS_3P:
+        players = data["players"]
+        if data["options"]["player_count"] == MahjongConstants.SEATS_3P:
             self.game_status.is_3p = True
         for idx, player in enumerate(players):
             self.game_status.player_list.append(player["user"]["user_id"])
             logger.info(f"Player {idx}: {player['user']['user_id']}")
+
+        if is_reconnect:
+            return self._handle_reconnect(data)
         return []
+
+    def _handle_reconnect(self, data: dict) -> list[MJAIEvent]:
+        """处理重连时的状态恢复，从快照生成 start_game 和 start_kyoku 事件。"""
+        mjai_msgs: list[MJAIEvent] = []
+        hand_status = data.get("hand_status", {})
+        players = data.get("players", [])
+
+        # 1. 初始化玩家列表和座位
+        self._init_reconnect_seat(data)
+
+        # 2. 生成 start_game
+        start_game = self.make_start_game(self.game_status.seat)
+        start_game["sync"] = True
+        mjai_msgs.append(start_game)
+
+        # 3. 解析局信息
+        bakaze, kyoku, honba, kyotaku, oya, dora_marker = self._parse_reconnect_kyoku_info(hand_status)
+
+        # 4. 获取分数和手牌 (需按座位旋转)
+        initial_dealer_pos = data.get("initial_dealer_pos", 0)
+        # 原始 players 列表是按绝对位置排序的 (0, 1, 2, 3)
+        # 我们需要根据 initial_dealer_pos 进行旋转，使其与 player_list (0=东, 1=南...) 对应
+        rotated_players = players[initial_dealer_pos:] + players[:initial_dealer_pos]
+
+        scores = [p.get("hand_chips", 25000) for p in rotated_players]
+        if self.game_status.is_3p:
+            scores.append(0)
+        tehais, my_tsumo = self._parse_reconnect_hand(rotated_players)
+
+        # 5. 生成 start_kyoku
+        start_kyoku = self.make_start_kyoku(
+            bakaze=bakaze,
+            kyoku=kyoku,
+            honba=honba,
+            kyotaku=kyotaku,
+            oya=oya,
+            dora_marker=dora_marker,
+            scores=scores,
+            tehais=tehais,
+            is_3p=self.game_status.is_3p,
+        )
+        start_kyoku["sync"] = True
+        mjai_msgs.append(start_kyoku)
+
+        # 6. 生成 tsumo（如果有摸牌）
+        if my_tsumo:
+            mjai_msgs.append(self.make_tsumo(self.game_status.seat, my_tsumo))
+
+        logger.info(f"Reconnection: Restored game state for seat {self.game_status.seat}")
+        return mjai_msgs
+
+    def _init_reconnect_seat(self, data: dict) -> None:
+        """初始化重连时的玩家列表和座位。"""
+        initial_dealer_pos = data.get("initial_dealer_pos", 0)
+        self.game_status.player_list = (
+            self.game_status.player_list[initial_dealer_pos:] + self.game_status.player_list[:initial_dealer_pos]
+        )
+        position_at = self.game_status.player_list.index(self.uid)
+        self.game_status.seat = position_at
+        self.game_status.shift = initial_dealer_pos
+        if self.game_status.is_3p:
+            self.game_status.player_list.append(-1)
+        self.game_status.game_start = False
+
+    def _parse_reconnect_kyoku_info(self, hand_status: dict) -> tuple[str, int, int, int, int, str]:
+        """解析重连时的局信息。"""
+        bakaze = CARD2MJAI.get(hand_status.get("quan_feng"), "E")
+        dealer_pos = hand_status.get("dealer_pos", 0)
+        seats = MahjongConstants.SEATS_3P if self.game_status.is_3p else MahjongConstants.SEATS_4P
+        oya = (dealer_pos - self.game_status.shift) % seats
+        kyoku = oya + 1
+        honba = hand_status.get("ben_chang_num", 0)
+        kyotaku = hand_status.get("li_zhi_bang_num", 0)
+        dora_marker = CARD2MJAI.get(hand_status.get("bao_pai_list", [0])[0], "?")
+        return bakaze, kyoku, honba, kyotaku, oya, dora_marker
+
+    def _parse_reconnect_hand(self, players: list[dict]) -> tuple[list[list[str]], str | None]:
+        """解析重连时的手牌信息。"""
+        tehais = [["?" for _ in range(MahjongConstants.TEHAI_SIZE)] for _ in range(MahjongConstants.SEATS_4P)]
+        my_hand_cards: list[str] = []
+        for p in players:
+            if p.get("user", {}).get("user_id") == self.uid:
+                raw_hand = p.get("hand_cards")
+                if raw_hand:
+                    my_hand_cards = [CARD2MJAI.get(c, "?") for c in raw_hand]
+                break
+
+        my_tsumo: str | None = None
+        if len(my_hand_cards) == MahjongConstants.TSUMO_TEHAI_SIZE:
+            my_tsumo = my_hand_cards[-1]
+            my_tehai = my_hand_cards[:-1]
+        else:
+            my_tehai = my_hand_cards
+
+        self.game_status.tehai = my_tehai
+        tehais[self.game_status.seat] = my_tehai
+        return tehais, my_tsumo
 
     def _handle_game_start(self, rc_msg: RCMessage) -> list[MJAIEvent] | None:
         mjai_msgs: list[MJAIEvent] = []
@@ -300,9 +402,7 @@ class RiichiCityBridge(BaseBridge):
             self.game_status.accept_reach = None
         for action in action_info:
             self._handle_rc_action(action, mjai_msgs)
-            if mjai_msgs:
-                return mjai_msgs
-        return None
+        return mjai_msgs if mjai_msgs else None
 
     def _handle_send_current_action(self, rc_msg: RCMessage) -> list[MJAIEvent] | None:
         mjai_msgs: list[MJAIEvent] = []
@@ -321,6 +421,6 @@ class RiichiCityBridge(BaseBridge):
         self.game_status.dora_markers.append(dora_marker)
         return None
 
-    def _handle_room_end(self) -> list[MJAIEvent] | None:
+    def _handle_room_end(self, rc_msg: RCMessage) -> list[MJAIEvent] | None:
         self.game_status = GameStatus()
         return [self.make_end_game()]

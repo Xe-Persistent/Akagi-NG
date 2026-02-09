@@ -65,7 +65,7 @@ class BaseBridge:
         dora_marker: str,
         scores: list[int],
         tehais: list[list[str]],
-        **kwargs: object,
+        is_3p: bool,
     ) -> StartKyokuEvent:
         """构建 start_kyoku（本局开始）消息"""
         msg: StartKyokuEvent = {
@@ -78,10 +78,8 @@ class BaseBridge:
             "oya": oya,
             "scores": scores,
             "tehais": tehais,
+            "is_3p": is_3p,
         }
-        # 支持额外字段（如 is_3p）
-        if kwargs:
-            msg.update(kwargs)  # type: ignore
         return msg
 
     def make_tsumo(self, actor: int, pai: str) -> TsumoEvent:

@@ -22,6 +22,7 @@ class StartKyokuEvent(MJAIEvent):
     oya: int
     scores: list[int]
     tehais: list[list[str]]
+    is_3p: bool
 
 
 class TsumoEvent(MJAIEvent):

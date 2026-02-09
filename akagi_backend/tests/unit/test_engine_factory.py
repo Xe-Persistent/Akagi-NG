@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 
 from akagi_ng.mjai_bot.engine.factory import _ENGINE_CACHE, LazyLocalEngine, load_bot_and_engine
@@ -69,6 +70,25 @@ def test_lazy_local_engine_delegation(mock_consts) -> None:
 
     engine.get_additional_meta()
     assert mock_real.get_additional_meta.called
+
+
+def test_lazy_local_engine_state_propagation(mock_consts) -> None:
+    """验证 LazyLocalEngine 是否正确传播 last_inference_result"""
+    engine = LazyLocalEngine(Path("mortal.pth"), mock_consts, is_3p=False)
+    mock_real = MagicMock()
+
+    # 模拟真实引擎的推理结果
+    expected_result = {"actions": [1], "q_out": [[0.1]], "masks": [[True]], "is_greedy": [True]}
+    mock_real.last_inference_result = expected_result
+    mock_real.react_batch.return_value = ([1], [[0.1]], [[True]], [True])
+
+    engine._real_engine = mock_real
+
+    # 执行推理
+    engine.react_batch(np.array([]), np.array([]), np.array([]))
+
+    # 验证 LazyLocalEngine 自身的 last_inference_result 是否被更新
+    assert engine.last_inference_result == expected_result
 
 
 def test_load_bot_and_engine_4p(mock_lib_loader_module) -> None:

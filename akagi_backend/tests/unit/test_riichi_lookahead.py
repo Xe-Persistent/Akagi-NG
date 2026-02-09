@@ -74,36 +74,64 @@ class TestRiichiLookahead(unittest.TestCase):
         self.assertEqual(self.bot.notification_flags["riichi_lookahead"], {"error": True})
         self.assertNotIn("riichi_lookahead", meta)
 
-    def test_run_riichi_lookahead_full_flow(self):
-        # 1. Setup simulation mocks
-        sim_bot = MagicMock()
-        sim_engine = MagicMock()
-        self.model_loader.return_value = (sim_bot, sim_engine)
+    def test_run_riichi_lookahead_simulation_success(self):
+        """Test _run_riichi_lookahead executes full simulation flow successfully."""
+        # 1. Setup Mock Bot and Engine returned by model_loader
+        mock_sim_bot = MagicMock()
+        mock_sim_engine = MagicMock()
 
-        self.bot.history_json = ['{"type":"discard","tile":"1m"}']
-        self.bot.game_start_event = {"type": "start_game", "id": 0}
+        # Simulate simulation result
+        expected_meta = {"q_values": [1.0], "mask_bits": 1}
+        # sim_bot.react returns JSON string
+        mock_sim_bot.react.side_effect = [
+            None,  # React to game_start (is_3p=True)
+            None,  # React to history event 1 (start_kyoku)
+            None,  # React to history event 2 (discard)
+            json.dumps({"meta": expected_meta}),  # React to REACH event
+        ]
+
+        self.bot.model_loader = MagicMock(return_value=(mock_sim_bot, mock_sim_engine))
+
+        # Setup Bot state
+        self.bot.player_id = 0
+        self.bot.engine = MagicMock()  # Required for LookaheadBot instantiation
         self.bot.is_3p = True
+        self.bot.game_start_event = {"type": "start_game"}
+        self.bot.history_json = ['{"type": "start_kyoku"}', '{"type": "discard"}']
 
-        # 2. Mock simulation response
-        sim_meta = {"q_values": [1.0], "mask_bits": 1}
-        sim_bot.react.return_value = json.dumps({"type": "none", "meta": sim_meta})
+        # 2. Run with patched LookaheadBot
+        with patch("akagi_ng.mjai_bot.mortal.base.LookaheadBot") as MockLookaheadBot:
+            mock_lookahead_instance = MockLookaheadBot.return_value
+            mock_lookahead_instance.simulate_reach.return_value = expected_meta
 
-        # 3. Run
+            result = self.bot._run_riichi_lookahead()
+
+            # 3. Verify
+            # Check LookaheadBot initialized with correct args
+            MockLookaheadBot.assert_called_once_with(self.bot.engine, self.bot.player_id, is_3p=self.bot.is_3p)
+
+            # Check simulate_reach called with correct args
+            mock_lookahead_instance.simulate_reach.assert_called_once()
+            args, _ = mock_lookahead_instance.simulate_reach.call_args
+            self.assertEqual(args[1], {"type": "reach", "actor": self.bot.player_id})
+
+        # Verify result
+        self.assertEqual(result, expected_meta)
+
+    def test_run_riichi_lookahead_simulation_failure(self):
+        """Test _run_riichi_lookahead handles simulation errors gracefully."""
+        # Setup Mock that returns garbage JSON
+        mock_sim_bot = MagicMock()
+        mock_sim_engine = MagicMock()
+        mock_sim_bot.react.return_value = "invalid json"
+
+        self.bot.model_loader = MagicMock(return_value=(mock_sim_bot, mock_sim_engine))
+
+        # Run
         result = self.bot._run_riichi_lookahead()
 
-        # 4. Verify
-        self.model_loader.assert_called_with(0, True)
-        sim_engine.set_sync_mode.assert_any_call(True)
-        sim_engine.set_sync_mode.assert_any_call(False)
-
-        # Check that it replayed history
-        sim_bot.react.assert_any_call('{"type":"start_game","id":0}')
-        sim_bot.react.assert_any_call('{"type":"discard","tile":"1m"}')
-
-        # Check that it ran reach simulation
-        sim_bot.react.assert_any_call('{"type":"reach","actor":0}')
-
-        self.assertEqual(result, sim_meta)
+        # Verify error handling
+        self.assertEqual(result, {"error": True})
 
 
 if __name__ == "__main__":

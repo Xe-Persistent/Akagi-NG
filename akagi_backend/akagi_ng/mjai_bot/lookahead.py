@@ -27,14 +27,22 @@ class LookaheadBot:
         self,
         history_events: list[dict],
         candidate_event: dict,
+        game_start_event: dict | None = None,
     ) -> InferenceResult | None:
         """
         在当前状态下模拟 Reach, 并返回 meta 数据(含 q_values/mask_bits)。
+
+        Args:
+            history_events: 当前局的历史事件（start_kyoku 之后的事件）
+            candidate_event: 候选的 reach 事件
+            game_start_event: 游戏开始事件，用于初始化 C++ Bot 状态
         """
         # 1. 重构状态 (Replay)
-        # 必须把 history_events 喂给底层的 cpp_bot 以恢复状态
-        # 注意: history_events 通常包含 start_kyoku, tsumo/dahai 等
-        all_events = history_events
+        # 必须先发送 start_game 事件初始化 C++ Bot，再重放历史事件
+        all_events: list[dict] = []
+        if game_start_event:
+            all_events.append(game_start_event)
+        all_events.extend(history_events)
 
         # Context: is_sync=True -> 告诉 Engine 不要推理, 只更新状态
         with engine_options({"is_sync": True}):

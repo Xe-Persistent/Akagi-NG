@@ -110,10 +110,12 @@ class TestRiichiLookahead(unittest.TestCase):
             # Check LookaheadBot initialized with correct args
             MockLookaheadBot.assert_called_once_with(self.bot.engine, self.bot.player_id, is_3p=self.bot.is_3p)
 
-            # Check simulate_reach called with correct args
+            # Check simulate_reach called with correct args including game_start_event
             mock_lookahead_instance.simulate_reach.assert_called_once()
-            args, _ = mock_lookahead_instance.simulate_reach.call_args
-            self.assertEqual(args[1], {"type": "reach", "actor": self.bot.player_id})
+            args, kwargs = mock_lookahead_instance.simulate_reach.call_args
+            self.assertEqual(args[0], self.bot.history)  # history_events
+            self.assertEqual(args[1], {"type": "reach", "actor": self.bot.player_id})  # candidate_event
+            self.assertEqual(kwargs.get("game_start_event"), self.bot.game_start_event)  # game_start_event
 
         # Verify result
         self.assertEqual(result, expected_meta)

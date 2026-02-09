@@ -261,6 +261,7 @@ class MortalBot:
             sim_meta = lookahead_bot.simulate_reach(
                 self.history,
                 reach_event,
+                game_start_event=self.game_start_event,
             )
 
             if not sim_meta:

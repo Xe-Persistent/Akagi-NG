@@ -1,7 +1,8 @@
 import json
 
 from akagi_ng.core import NotificationCode
-from akagi_ng.mjai_bot.engine import MortalEngine
+from akagi_ng.mjai_bot.engine.base import BaseEngine, engine_options
+from akagi_ng.mjai_bot.lookahead import LookaheadBot
 from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.mjai_bot.utils import make_error_response
 
@@ -11,7 +12,7 @@ class MortalBot:
     Mortal Bot 的封装类,负责处理事件并返回推荐动作。
     """
 
-    def __init__(self, engine: MortalEngine | None = None, is_3p: bool = False):
+    def __init__(self, engine: BaseEngine | None = None, is_3p: bool = False):
         self.engine = engine
         self.is_3p = is_3p
         self.player_id: int | None = None
@@ -49,8 +50,9 @@ class MortalBot:
         """
         return_action = None
         is_game_start_batch = False
+        batch_size = len(events)
 
-        for e in events:
+        for i, e in enumerate(events):
             e_type = e["type"]
             if e_type == "start_game":
                 self._handle_start_game(e)
@@ -74,15 +76,30 @@ class MortalBot:
                 self._handle_end_game()
                 continue
 
-            # 处理同步/回放模式。启用同步模式会使引擎进入快进状态，跳过神经网络推理。
+            # 处理同步/回放模式
+            # 默认为 True 如果事件标记了 sync
             is_sync = e.get("sync", False)
-            if is_sync:
-                self.engine.set_sync_mode(True)
 
-            return_action = self.model.react(e_json)
+            # 末帧强制推理逻辑 (Last-Frame Inference)
+            # 如果是批次中最后一个事件，且属于"需要回应"的事件，强制执行推理
+            is_last_event = i == batch_size - 1
+            if is_sync and is_last_event:
+                # 检查是否轮到自己操作
+                # actor = e.get("actor")  # Unused
+                e_type = e.get("type", "")
 
-            if is_sync:
-                self.engine.set_sync_mode(False)
+                # 简单的启发式判断：如果是自摸(tsumo)且actor是自己，或者打牌(dahai)且可能需要鸣牌(此时actor不是自己)
+                # 或者 reach (actor=self)
+                # 这里为了稳健，如果是最后一帧，我们尝试强制推理
+                # 注意：如果C++层认为不需要React，它会直接返回None/Empty，不仅节省了Python侧开销，
+                # 也意味着 engine.react_batch 不会被调用。
+                # 所以我们只需负责把 is_sync set to False，让 C++ 决定是否调用网络。
+                is_sync = False
+                self.logger.info(f"Last-Frame Inference triggered for event type: {e_type}")
+
+            # 使用 ContextVar 传递配置给 Engine (跨越 C++ 边界)
+            with engine_options({"is_sync": is_sync}):
+                return_action = self.model.react(e_json)
 
         return return_action, is_game_start_batch
 
@@ -229,37 +246,26 @@ class MortalBot:
         返回模拟元数据，失败时返回 None。
         """
         try:
-            # 获取一个新的、独立的模拟环境
-            # 这里重用 model_loader 确保模拟环境与当前环境配置一致
-            sim_bot, sim_engine = self.model_loader(self.player_id, self.is_3p)
-
-            self.logger.debug("Riichi Lookahead: Starting simulation with fresh environment.")
-
-            # 开启同步快进模式以加速历史回放
-            sim_engine.set_sync_mode(True)
-
-            # 三麻需要先回放 game_start 事件以初始化模式
-            if self.is_3p and self.game_start_event:
-                sim_bot.react(json.dumps(self.game_start_event, separators=(",", ":")))
-
-            for h_json in self.history_json:
-                sim_bot.react(h_json)
-
-            # 停止快进模式，准备对立直动作进行正式推理
-            sim_engine.set_sync_mode(False)
-
-            # 应用立直事件
-            reach_event = {"type": "reach", "actor": self.player_id}
-            self.logger.debug("Riichi Lookahead: Applying reach event simulation.")
-            sim_resp = sim_bot.react(json.dumps(reach_event, separators=(",", ":")))
-
-            # 从响应中提取模拟元数据
-            try:
-                sim_data = json.loads(sim_resp)
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Failed to parse simulation response: {e}")
+            if not self.engine or self.player_id is None:
                 return {"error": True}
-            sim_meta = sim_data.get("meta", {})
+
+            self.logger.debug("Riichi Lookahead: Starting simulation (using LookaheadBot).")
+
+            # 实例化 LookaheadBot，复用当前引擎（无状态）
+            lookahead_bot = LookaheadBot(self.engine, self.player_id, is_3p=self.is_3p)
+
+            # 构造 Reach 事件
+            reach_event = {"type": "reach", "actor": self.player_id}
+
+            # 运行模拟
+            sim_meta = lookahead_bot.simulate_reach(
+                self.history,
+                reach_event,
+            )
+
+            if not sim_meta:
+                self.logger.warning("Riichi Lookahead: Simulation returned no metadata.")
+                return {"error": True}
 
             # 记录成功 - 防御性检查: 确保 sim_meta 包含必需字段
             if "q_values" in sim_meta and "mask_bits" in sim_meta:

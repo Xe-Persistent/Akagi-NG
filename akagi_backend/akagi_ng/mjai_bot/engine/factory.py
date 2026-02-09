@@ -19,11 +19,32 @@ _ENGINE_CACHE: dict[tuple[Any, ...], BaseEngine] = {}
 _CACHE_LOCK = threading.Lock()
 
 
+class NullEngine(BaseEngine):
+    """
+    空引擎 - 在所有引擎都不可用时提供兜底。
+    返回第一个合法动作，并通过 notification_flags 告知前端引擎不可用。
+    """
+
+    def __init__(self, is_3p: bool):
+        super().__init__(is_3p=is_3p, version=4, name="NullEngine", is_oracle=False)
+        self.engine_type = "null"
+
+    def react_batch(
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray,
+        options: dict | None = None,
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
+        # 使用基类的 _sync_fast_forward 返回第一个合法动作
+        return self._sync_fast_forward(np.asanyarray(masks))
+
+
 class LazyLocalEngine(BaseEngine):
     """
     轻量级延迟加载引擎。
     仅在第一次调用 react_batch 时加载真实的本地模型。
-    不使用 __getattr__ 代理，而是通过显式委托实现。
+    如果加载失败，回退到 NullEngine 而非抛出异常。
     """
 
     def __init__(self, model_path: Path, consts: ModuleType, is_3p: bool):
@@ -32,36 +53,41 @@ class LazyLocalEngine(BaseEngine):
         self.consts = consts
         self.engine_type = "mortal"
         self._real_engine: BaseEngine | None = None
+        self._load_failed = False
 
     def _ensure_engine(self) -> BaseEngine:
-        if self._real_engine is None:
+        if self._real_engine is None and not self._load_failed:
             logger.info("LazyLocalEngine: Loading real model from disk...")
             self._real_engine = load_local_mortal_engine(self.model_path, self.consts, self.is_3p)
             if not self._real_engine:
-                raise RuntimeError(f"Failed to load local model at {self.model_path}")
-            # 同步模式应在加载后继承
-            self._real_engine.set_sync_mode(self.is_sync_mode)
+                logger.error(f"Failed to load local model at {self.model_path}. Using NullEngine as fallback.")
+                self._load_failed = True
+                self.engine_type = "null"  # 同步更新引擎类型，以便 Provider 判断
+                self._real_engine = NullEngine(self.is_3p)
+
         return self._real_engine
 
-    def set_sync_mode(self, enabled: bool):
-        super().set_sync_mode(enabled)
-        if self._real_engine:
-            self._real_engine.set_sync_mode(enabled)
-
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray,
+        options: dict | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
-        return self._ensure_engine().react_batch(obs, masks, invisible_obs)
-
-    def get_notification_flags(self) -> dict[str, Any]:
-        if self._real_engine is None:
-            return {}
-        return self._real_engine.get_notification_flags()
+        real_engine = self._ensure_engine()
+        res = real_engine.react_batch(obs, masks, invisible_obs, options=options)
+        self.last_inference_result = real_engine.last_inference_result
+        return res
 
     def get_additional_meta(self) -> dict[str, Any]:
         if self._real_engine is None:
             return {}
         return self._real_engine.get_additional_meta()
+
+    def get_notification_flags(self) -> dict[str, Any]:
+        if self._real_engine is None:
+            return {}
+        return self._real_engine.get_notification_flags()
 
 
 def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:

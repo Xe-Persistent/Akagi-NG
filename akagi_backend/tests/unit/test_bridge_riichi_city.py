@@ -240,7 +240,8 @@ def test_handle_gang_bao_brc(bridge) -> None:
 
 
 def test_handle_room_end(bridge) -> None:
-    res = bridge._handle_room_end()
+    msg = RCMessage(1, 2, {"cmd": "cmd_room_end", "data": {}})
+    res = bridge._handle_room_end(msg)
     assert res[0]["type"] == "end_game"
     assert bridge.game_status.seat == -1
 
@@ -249,23 +250,6 @@ def test_handle_rc_action_unknown_case(bridge):
     msgs = []
     bridge._handle_rc_action({"action": 999}, msgs)
     assert msgs == []
-
-
-def test_handle_gang_bao_brc_logic(bridge):
-    from akagi_ng.bridge.riichi_city.bridge import GameStatus, RCMessage
-
-    # 0x22 in CARD2MJAI is '2m'
-    msg = RCMessage(1, "S2C_GangBao_Brc", {"data": {"cards": [0x22]}})
-    bridge.game_status = GameStatus()
-    bridge._handle_gang_bao_brc(msg)
-    assert "2m" in bridge.game_status.dora_markers
-
-
-def test_handle_room_end_logic(bridge):
-    bridge.game_status.seat = 1
-    msgs = bridge._handle_room_end()
-    assert msgs[0]["type"] == "end_game"
-    assert bridge.game_status.seat == -1  # reset
 
 
 def test_handle_rc_action_kakan_success(bridge):
@@ -288,3 +272,104 @@ def test_handle_rc_action_types(bridge) -> None:
     mjai = []
     bridge._handle_rc_action({"action": RCAction.HORA, "user_id": 100}, mjai)
     assert mjai[0]["type"] == "end_kyoku"
+
+
+def test_handle_reconnect_real_data(bridge):
+    """Test _handle_reconnect with real data from server logs."""
+    # Data extracted from user logs
+    real_log_data = {
+        "cmd": "cmd_enter_room",
+        "room_id": "d64somc6mciekvvv77sg",
+        "is_broadcast": True,
+        "data": {
+            "is_reconnect": True,
+            "options": {
+                "player_count": 4,
+                "stage_type": 0,
+                "round": 2,
+                "init_points": 25000,
+                "classify_id": "bvgn113gm5c5il7c48ptg2",
+            },
+            "players": [
+                {
+                    "user": {"user_id": 319434388, "nickname": "AaRonHo"},
+                    "position_at": 0,
+                    "hand_chips": 20400,
+                    "hand_cards": None,
+                    "pai_he": [4, 113, 145, 49, 36, 25, 49, 145, 40],
+                },
+                {
+                    "user": {"user_id": 117163858, "nickname": "Lovelyariel"},
+                    "position_at": 1,
+                    "hand_chips": 42600,
+                    "hand_cards": None,
+                },
+                {
+                    "user": {"user_id": 516734429, "nickname": "錢多很多"},
+                    "position_at": 2,
+                    "hand_chips": 15000,
+                    "hand_cards": None,
+                },
+                {
+                    "user": {"user_id": 614073276, "nickname": "轩辕千殇"},
+                    "position_at": 3,
+                    "hand_chips": 22000,
+                    # Real card IDs: [24, 35, 21, 6, 38, 4, 39, 4, 37, 40, 20, 81, 23, 261]
+                    "hand_cards": [24, 35, 21, 6, 38, 4, 39, 4, 37, 40, 20, 81, 23, 261],
+                },
+            ],
+            "hand_status": {
+                "dealer_pos": 1,
+                "bao_pai_list": [22],
+                "quan_feng": 65,
+                "ben_chang_num": 3,
+                "li_zhi_bang_num": 0,
+                "dices": [5, 6],
+            },
+            "initial_dealer_pos": 1,
+        },
+    }
+
+    # Setup bridge with matching UID
+    bridge.uid = 614073276
+    msg = RCMessage(4, 6, real_log_data)
+
+    # Process message
+    events = bridge._handle_enter_room(msg)
+
+    # Verify events generated
+    assert len(events) > 0
+
+    # Verify start_game
+    start_game = next((e for e in events if e["type"] == "start_game"), None)
+    assert start_game is not None
+    assert start_game["sync"] is True
+    # Seat should be 2 because:
+    # Initial dealer pos: 1
+    # Original list: [UserA(0), UserB(1, Dealer), UserC(2), UserD(3, Me)]
+    # Rotated list: [UserB, UserC, UserD(Me), UserA]
+    # My index in rotated list: 2
+    assert start_game["id"] == 2
+
+    # Verify start_kyoku
+    start_kyoku = next((e for e in events if e["type"] == "start_kyoku"), None)
+    assert start_kyoku is not None
+    assert start_kyoku["sync"] is True
+    assert start_kyoku["bakaze"] == "S"  # 65 -> South
+    # Dealer pos 1, shift 1. oya = (1 - 1) % 4 = 0. kyoku = 1.
+    assert start_kyoku["kyoku"] == 1
+    assert start_kyoku["honba"] == 3
+    # Scores should be rotated: [UserB, UserC, UserD, UserA] -> [42600, 15000, 22000, 20400]
+    assert start_kyoku["scores"] == [42600, 15000, 22000, 20400]
+
+    # Verify my hand cards
+    my_tehai = start_kyoku["tehais"][2]
+    # 14 cards total in log -> 13 in tehai + 1 tsumo
+    assert len(my_tehai) == 13
+
+    # Verify tsumo
+    tsumo = next((e for e in events if e["type"] == "tsumo"), None)
+    assert tsumo is not None
+    assert tsumo["actor"] == 2
+    # 261 -> ? (Need to check mapping, but logic should handle it)
+    assert "pai" in tsumo

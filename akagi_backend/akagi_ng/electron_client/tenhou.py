@@ -18,14 +18,13 @@ class TenhouElectronClient(BaseElectronClient):
     WS_BINARY = 2
 
     def handle_message(self, message: dict):
-        msg_type = message.get("type")
-
-        if msg_type == "websocket_created":
-            self._handle_websocket_created(message)
-        elif msg_type == "websocket_closed":
-            self._handle_websocket_closed(message)
-        elif msg_type == "websocket":
-            self._handle_websocket_frame(message)
+        match message.get("type"):
+            case "websocket_created":
+                self._handle_websocket_created(message)
+            case "websocket_closed":
+                self._handle_websocket_closed(message)
+            case "websocket":
+                self._handle_websocket_frame(message)
 
     def _handle_websocket_created(self, message: dict):
         url = message.get("url", "")

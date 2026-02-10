@@ -26,7 +26,6 @@ class MajsoulBridge(BaseBridge):
         self.lastDiscard = None
         self.reach = False
         self.accept_reach = None
-        self.AllReady = False
         self.doras = []
         self.my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
         self.my_tsumohai = "?"
@@ -322,7 +321,6 @@ class MajsoulBridge(BaseBridge):
     def _handle_action_new_round(self, action_data: dict) -> list[MJAIEvent]:
         """处理ActionNewRound动作"""
         ret: list[MJAIEvent] = []
-        self.AllReady = False
 
         data = action_data["data"]
         bakaze = ["E", "S", "W", "N"][data["chang"]]
@@ -567,9 +565,28 @@ class MajsoulBridge(BaseBridge):
         action_data = liqi_message["data"]
         action_name = action_data["name"]
 
-        # 本局开始
-        if action_name == "ActionNewRound":
-            ret.extend(self._handle_action_new_round(action_data))
+        match action_name:
+            # 本局开始
+            case "ActionNewRound":
+                ret.extend(self._handle_action_new_round(action_data))
+            # 摸牌
+            case "ActionDealTile":
+                ret.extend(self._handle_action_deal_tile(action_data))
+            # 打牌
+            case "ActionDiscardTile":
+                ret.extend(self._handle_action_discard_tile(action_data))
+            # 吃碰杠
+            case "ActionChiPengGang":
+                ret.extend(self._handle_action_chi_peng_gang(action_data))
+            # 暗杠/加杠
+            case "ActionAnGangAddGang":
+                ret.extend(self._handle_action_an_gang_add_gang(action_data))
+            # 拔北
+            case "ActionBaBei":
+                ret.extend(self._handle_action_ba_bei(action_data))
+            # 本局结束
+            case "ActionHule" | "ActionNoTile" | "ActionLiuJu":
+                return [self.make_end_kyoku()]
 
         # 立直确认
         if self.accept_reach is not None:
@@ -578,30 +595,6 @@ class MajsoulBridge(BaseBridge):
 
         # 宝牌
         ret.extend(self._handle_dora_update(action_data))
-
-        # 摸牌
-        if action_name == "ActionDealTile":
-            ret.extend(self._handle_action_deal_tile(action_data))
-
-        # 打牌
-        elif action_name == "ActionDiscardTile":
-            ret.extend(self._handle_action_discard_tile(action_data))
-
-        # 吃碰杠
-        elif action_name == "ActionChiPengGang":
-            ret.extend(self._handle_action_chi_peng_gang(action_data))
-
-        # 暗杠/加杠
-        elif action_name == "ActionAnGangAddGang":
-            ret.extend(self._handle_action_an_gang_add_gang(action_data))
-
-        # 拔北
-        elif action_name == "ActionBaBei":
-            ret.extend(self._handle_action_ba_bei(action_data))
-
-        # 本局结束
-        elif action_name in ["ActionHule", "ActionNoTile", "ActionLiuJu"]:
-            return [self.make_end_kyoku()]
 
         return ret
 
@@ -639,28 +632,21 @@ class MajsoulBridge(BaseBridge):
 
         result: list[MJAIEvent] = []
 
-        # 游戏同步（重连）
-        if method == ".lq.FastTest.syncGame" and msg_type == MsgType.Res:
-            result = self._parse_sync_game(liqi_message)
-
-        # 进入对局（首次连接）
-        elif method == ".lq.FastTest.enterGame" and msg_type == MsgType.Res:
-            result = self._parse_enter_game(liqi_message)
-
-        # 准备完成
-        elif method == ".lq.FastTest.fetchGamePlayerState" and msg_type == MsgType.Res:
-            self.AllReady = True
-
-        # 游戏认证
-        elif method == ".lq.FastTest.authGame":
-            result = self._handle_auth_game(liqi_message, msg_type)
-
-        # 游戏动作
-        elif method == ".lq.ActionPrototype":
-            result = self._handle_action_prototype(liqi_message)
-
-        # 游戏结束
-        elif method in [".lq.NotifyGameEndResult", ".lq.NotifyGameTerminate"]:
-            result = self._handle_game_end(data)
+        match (method, msg_type):
+            # 游戏同步（重连）
+            case (".lq.FastTest.syncGame", MsgType.Res):
+                result = self._parse_sync_game(liqi_message)
+            # 进入对局（首次连接）
+            case (".lq.FastTest.enterGame", MsgType.Res):
+                result = self._parse_enter_game(liqi_message)
+            # 游戏认证
+            case (".lq.FastTest.authGame", m_type):
+                result = self._handle_auth_game(liqi_message, m_type)
+            # 游戏动作
+            case (".lq.ActionPrototype", _):
+                result = self._handle_action_prototype(liqi_message)
+            # 游戏结束
+            case (".lq.NotifyGameEndResult" | ".lq.NotifyGameTerminate", _):
+                result = self._handle_game_end(data)
 
         return result

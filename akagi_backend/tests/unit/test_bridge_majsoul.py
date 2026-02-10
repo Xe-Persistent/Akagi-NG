@@ -244,8 +244,8 @@ class TestMajsoulBridge(unittest.TestCase):
 
         result = self.bridge.parse_liqi(liqi_message)
 
-        # 应该有 reach 和 dahai 两个事件
-        self.assertEqual(len(result), 2)
+        # 应该有 reach, dahai 和 reach_accepted 三个事件
+        self.assertEqual(len(result), 3)
         self.assertEqual(result[0]["type"], "reach")
         self.assertEqual(result[0]["actor"], 0)
         self.assertEqual(result[1]["type"], "dahai")

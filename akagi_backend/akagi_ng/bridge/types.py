@@ -5,6 +5,7 @@ class MJAIEvent(TypedDict):
     """MJAI 协议事件基类"""
 
     type: str
+    sync: NotRequired[bool]
 
 
 class StartGameEvent(MJAIEvent):

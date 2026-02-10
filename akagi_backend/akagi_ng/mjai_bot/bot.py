@@ -37,43 +37,42 @@ class StateTrackerBot(Bot):
             if not event:
                 raise ValueError("Empty event")
 
-            if event["type"] == "start_game":
-                self.player_id = event["id"]
-                self.player_state = PlayerState(self.player_id)
-                self.is_3p = False
-                self.__discard_events = []
-                self.__call_events = []
-                self.__dora_indicators = []
-            # 使用 Bridge 传递的 is_3p 字段判断游戏是四麻还是三麻对局
-            if event["type"] == "start_kyoku":
-                self.is_3p = event.get("is_3p")
-            if event["type"] == "start_kyoku" or event["type"] == "dora":
-                self.__dora_indicators.append(event["dora_marker"])
-            if event["type"] == "dahai":
-                self.__discard_events.append(event)
-            if event["type"] in [
-                "chi",
-                "pon",
-                "daiminkan",
-                "kakan",
-                "ankan",
-            ]:
-                self.__call_events.append(event)
-            # 三麻兼容：mjai.mlibriichi 状态追踪库不支持 nukidora，转换为 dahai 事件
-            if event["type"] == "nukidora":
-                logger.debug(f"Event: {event}")
-                replace_event = {
-                    "type": "dahai",
-                    "actor": event["actor"],
-                    "pai": "N",
-                    "tsumogiri": self.last_self_tsumo == "N" and event["actor"] == self.player_id,
-                }
-                self.__discard_events.append(replace_event)
-                self.action_candidate = self.player_state.update(json.dumps(replace_event))
+            # 1. 追踪辅助状态 (Side Effects)
+            match event["type"]:
+                case "start_game":
+                    self.player_id = event["id"]
+                    self.player_state = PlayerState(self.player_id)
+                    self.is_3p = False
+                    self.__discard_events = []
+                    self.__call_events = []
+                    self.__dora_indicators = []
+                case "start_kyoku":
+                    self.is_3p = event.get("is_3p")
+                    self.__dora_indicators.append(event["dora_marker"])
+                case "dora":
+                    self.__dora_indicators.append(event["dora_marker"])
+                case "dahai":
+                    self.__discard_events.append(event)
+                case "chi" | "pon" | "daiminkan" | "kakan" | "ankan":
+                    self.__call_events.append(event)
 
-            else:
-                logger.debug(f"Event: {event}")
-                self.action_candidate = self.player_state.update(json.dumps(event))
+            # 2. 更新核心引擎状态 (State Update)
+            match event["type"]:
+                case "nukidora":
+                    # 三麻兼容：mjai.mlibriichi 状态追踪库不支持 nukidora，转换为 dahai 事件
+                    logger.debug(f"Event: {event}")
+                    replace_event = {
+                        "type": "dahai",
+                        "actor": event["actor"],
+                        "pai": "N",
+                        "tsumogiri": self.last_self_tsumo == "N" and event["actor"] == self.player_id,
+                    }
+                    self.__discard_events.append(replace_event)
+                    self.action_candidate = self.player_state.update(json.dumps(replace_event))
+                case _:
+                    # 默认处理
+                    logger.debug(f"Event: {event}")
+                    self.action_candidate = self.player_state.update(json.dumps(event))
 
             # 立直后自动摸切（除非可以和牌/暗杠）
             if self.self_riichi_accepted and not (self.can_agari or self.can_ankan) and self.can_discard:

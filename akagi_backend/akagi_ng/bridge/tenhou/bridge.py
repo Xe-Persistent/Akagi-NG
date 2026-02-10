@@ -32,10 +32,6 @@ class TenhouBridge(BaseBridge):
             "RYUUKYOKU": self._convert_ryukyoku,
             "N": self._dispatch_n,
         }
-        self.regex_handlers = [
-            (r"^[TUVW]\d*$", self._convert_tsumo),
-            (r"^[DEFGdefg]\d*$", self._convert_dahai),
-        ]
 
     def reset(self):
         self.state = State()
@@ -75,11 +71,13 @@ class TenhouBridge(BaseBridge):
         if handler := self.handlers.get(tag):
             return handler(message)
 
-        for pattern, handler in self.regex_handlers:
-            if re.match(pattern, tag):
-                return handler(message)
-
-        return None
+        match tag:
+            case _ if re.match(r"^[TUVW]\d*$", tag):
+                return self._convert_tsumo(message)
+            case _ if re.match(r"^[DEFGdefg]\d*$", tag):
+                return self._convert_dahai(message)
+            case _:
+                return None
 
     def _dispatch_reach(self, message: dict) -> list[MJAIEvent] | None:
         step = message.get("step")

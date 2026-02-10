@@ -88,23 +88,23 @@ class Controller:
                 return make_error_response(NotificationCode.NO_BOT_LOADED)
 
             result = None
+            match event["type"]:
+                # 三麻特殊事件
+                case "nukidora":
+                    if result := self._handle_nukidora_event():
+                        return result
 
-            # 三麻特殊事件检测：nukidora 只存在于三麻中
-            if event["type"] == "nukidora":
-                result = self._handle_nukidora_event()
-                if result:
-                    return result
+                # 游戏生命周期事件
+                case "start_game":
+                    result = self._handle_start_game_event(event)
+                case "start_kyoku":
+                    # 在 start_kyoku 时根据游戏模式加载或切换 Bot
+                    if result := self._handle_start_kyoku_event(event):
+                        return result
+                    result = None  # 重置为 None，继续处理
 
-            # start_game 事件
-            if event["type"] == "start_game":
-                result = self._handle_start_game_event(event)
-
-            # 在 start_kyoku 时根据游戏模式加载或切换 Bot
-            elif event["type"] == "start_kyoku":
-                result = self._handle_start_kyoku_event(event)
-                if result:
-                    return result
-                result = None  # 重置为 None，继续处理
+                case _:
+                    pass
 
             # 检查 pending_start_game_event 的一致性
             if result is None and self.pending_start_game_event and event["type"] != "start_kyoku":

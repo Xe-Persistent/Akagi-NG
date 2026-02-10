@@ -57,18 +57,19 @@ class STOMP:
             if ":" not in header:
                 continue
             key, value = header.split(":", 1)
-            if key == "destination":
-                self.destination = value
-            elif key == "content-length":
-                self.content_length = int(value)
-            elif key == "content-type":
-                self.content_type = value
-            elif key == "subscription":
-                self.subscription = value
-            elif key == "message-id":
-                self.message_id = value
-            else:
-                logger.debug(f"Unknown header: {key}")
+            match key:
+                case "destination":
+                    self.destination = value
+                case "content-length":
+                    self.content_length = int(value)
+                case "content-type":
+                    self.content_type = value
+                case "subscription":
+                    self.subscription = value
+                case "message-id":
+                    self.message_id = value
+                case _:
+                    logger.warning(f"Unknown header: {key}")
 
         # 解析内容
         self.content = content_lines[-1] if content_lines else ""
@@ -214,36 +215,38 @@ class AmatsukiBridge(BaseBridge):
             return
 
         required_keys = ["status", "errorCode", "gameType", "gameMode", "roomType", "currentPlayerCount", "maxCount"]
-        if any(key not in content_dict for key in required_keys):
-            logger.error(f"Invalid content: {stomp.content}")
-            return
-
-        # 验证 status 和 errorCode
-        if content_dict["status"] != 0:
-            logger.warning(f"status: {content_dict['status']}")
-            return
-        if content_dict["errorCode"] != 0:
-            logger.warning(f"errorCode: {content_dict['errorCode']}")
-            return
-
-        # 验证 gameType（必须是日麻）
-        if content_dict["gameType"] != 0:  # 0: Japanese Mahjong
+        if "gameType" in content_dict and content_dict["gameType"] != 0:
             logger.warning(f"Unsupported gameType: {content_dict['gameType']}")
             return
 
-        # 设置游戏模式
-        game_mode = content_dict["gameMode"]
-        if game_mode == 0:  # 0: 4P, 1: 3P
-            self.is_3p = False
-        elif game_mode == 1:
-            self.is_3p = True
-        else:
-            logger.warning(f"Unsupported gameMode: {game_mode}")
-            return
+        match content_dict:
+            # 必须字段检查及状态码校验
+            case {
+                "status": 0,
+                "errorCode": 0,
+                "gameType": 0,
+                "gameMode": mode,
+                "deskId": desk_id,
+            } if all(k in content_dict for k in required_keys):
+                match mode:
+                    case 0:
+                        self.is_3p = False
+                    case 1:
+                        self.is_3p = True
+                    case _:
+                        logger.warning(f"Unsupported gameMode: {mode}")
+                        return
 
-        # 设置有效流程和桌号
-        self.valid_flow = True
-        self.desk_id = content_dict["deskId"]
+                self.valid_flow = True
+                self.desk_id = desk_id
+
+            # 错误处理分支
+            case {"status": s} if s != 0:
+                logger.warning(f"status: {s}")
+            case {"errorCode": e} if e != 0:
+                logger.warning(f"errorCode: {e}")
+            case _:
+                logger.error(f"Invalid content or missing keys: {stomp.content}")
 
     def _parse_tehais(self, player_tiles: list[dict]) -> list[list[str]]:
         tehais = []

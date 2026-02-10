@@ -1,9 +1,11 @@
 import abc
 import contextlib
 from contextvars import ContextVar
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 import numpy as np
+
+EngineType = Literal["mortal", "akagiot", "unknown", "null"]
 
 
 class InferenceResult(TypedDict):
@@ -42,7 +44,7 @@ class BaseEngine(abc.ABC):
         self.is_oracle = is_oracle
 
         # 核心状态信息
-        self.engine_type = "unknown"
+        self.engine_type: EngineType = "unknown"
         self.is_online = False
         self.last_inference_result: InferenceResult | None = None
 

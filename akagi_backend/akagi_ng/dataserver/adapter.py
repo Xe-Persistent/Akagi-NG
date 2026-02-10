@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Literal
 
 from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.dataserver.logger import logger
@@ -6,9 +6,12 @@ from akagi_ng.mjai_bot import StateTrackerBot
 from akagi_ng.mjai_bot.utils import meta_to_recommend
 from akagi_ng.settings import local_settings
 
+ChiType = Literal["chi_low", "chi_mid", "chi_high"]
+FuuroAction = Literal["chi_low", "chi_mid", "chi_high", "pon", "kan"]
+
 
 def _handle_chi_fuuro(
-    bot: StateTrackerBot, last_kawa: str | None, chi_type: str | None = None
+    bot: StateTrackerBot, last_kawa: str | None, chi_type: ChiType | None = None
 ) -> list[dict[str, object]]:
     """处理吃的副露详情，支持根据位置（左、中、右）过滤"""
     if not last_kawa:
@@ -31,17 +34,18 @@ def _handle_chi_fuuro(
                 c2_val = decode_tile(consumed[1])[0]
                 all_vals = sorted([last_val, c1_val, c2_val])
 
-                if chi_type == "chi_low" and last_val != all_vals[0]:
-                    continue
-                if chi_type == "chi_mid" and last_val != all_vals[1]:
-                    continue
-                if chi_type == "chi_high" and last_val != all_vals[2]:
-                    continue
+                match chi_type:
+                    case "chi_low" if last_val != all_vals[0]:
+                        continue
+                    case "chi_mid" if last_val != all_vals[1]:
+                        continue
+                    case "chi_high" if last_val != all_vals[2]:
+                        continue
 
             results.append({"tile": last_kawa, "consumed": consumed})
 
-        # 回退:未找到候选且未指定 chi_type 但有 last_kawa
-        if not results and not chi_type:
+        # 回退:未找到候选且有 last_kawa
+        if not results:
             results.append({"tile": last_kawa, "consumed": []})
     except (AttributeError, Exception) as e:
         logger.warning(f"Error in chi fuuro: {e}")
@@ -96,7 +100,7 @@ def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
     return results
 
 
-def _get_fuuro_details(action: str, bot: StateTrackerBot) -> list[dict[str, object]]:
+def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[dict[str, object]]:
     """
     获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。
     使用 mjai.Bot 原生方法而非手动逻辑。
@@ -104,13 +108,13 @@ def _get_fuuro_details(action: str, bot: StateTrackerBot) -> list[dict[str, obje
     """
     last_kawa = getattr(bot, "last_kawa_tile", None)
 
-    if action in ["chi", "chi_low", "chi_mid", "chi_high"]:
-        chi_type = action if action.startswith("chi_") else None
-        return _handle_chi_fuuro(bot, last_kawa, chi_type=chi_type)
-    if action == "pon":
-        return _handle_pon_fuuro(bot, last_kawa)
-    if action == "kan":
-        return _handle_kan_fuuro(bot, last_kawa)
+    match action:
+        case "chi_low" | "chi_mid" | "chi_high":
+            return _handle_chi_fuuro(bot, last_kawa, chi_type=action)
+        case "pon":
+            return _handle_pon_fuuro(bot, last_kawa)
+        case "kan":
+            return _handle_kan_fuuro(bot, last_kawa)
 
     return []
 
@@ -227,11 +231,11 @@ def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTracker
         # 2. 如果适用，附加立直前瞻信息
         _attach_riichi_lookahead(recommendations, meta, bot)
 
-        # 3. 如果已立直，过滤掉无需显示的推荐（只保留和牌、暗杠、流局等）
+        # 3. 如果已立直，过滤掉无需显示的推荐（只保留暗杠、和牌、拔北）
         if getattr(bot, "self_riichi_accepted", False):
-            # 立直后只显示: 暗杠(kan), 自摸(tsumo), 荣和(ron), 流局(ryukyoku), 拔北(nukidora)
+            # 立直后只显示: 暗杠(kan), 自摸(tsumo), 荣和(ron), 拔北(nukidora)
             # 注意: 这里的 'kan' 包含了暗杠候选
-            allow_actions = {"kan", "tsumo", "ron", "ryukyoku", "nukidora"}
+            allow_actions = {"kan", "tsumo", "ron", "nukidora"}
             recommendations = [rec for rec in recommendations if rec["action"] in allow_actions]
 
         if recommendations:

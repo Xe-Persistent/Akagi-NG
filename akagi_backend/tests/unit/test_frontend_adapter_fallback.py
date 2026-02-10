@@ -31,7 +31,7 @@ class TestFrontendAdapterFallback(unittest.TestCase):
         mock_bot.find_chi_candidates.return_value = []
 
         # Test chi action (the actual action name used in implementation)
-        results = _get_fuuro_details("chi", mock_bot)
+        results = _get_fuuro_details("chi_low", mock_bot)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["tile"], "3m")
         self.assertEqual(results[0]["consumed"], [])

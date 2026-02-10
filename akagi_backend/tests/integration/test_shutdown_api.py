@@ -31,6 +31,7 @@ class TestShutdownAPI(AioHTTPTestCase):
             bot=None,
             mitm_client=None,
             electron_client=None,
+            shared_queue=None,
         )
         set_app_context(app_context)
 

@@ -1,5 +1,8 @@
+import sys
 import unittest
 from unittest.mock import mock_open, patch
+
+import pytest
 
 from akagi_ng.settings.settings import (
     SETTINGS_JSON_PATH,
@@ -164,6 +167,7 @@ class TestSettingsLifecycle(unittest.TestCase):
 class TestLocaleDetectionDetailed(unittest.TestCase):
     """详细测试系统区域语言检测逻辑"""
 
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
     def test_detect_locale_windows(self):
         with patch("ctypes.windll.kernel32") as mock_windll:
             # 简体中文

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/image/assets/akagi.png" width="50%">
+  <img src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/image/assets/akagi.png" width="50%" alt="Akagi Shigeru">
   <h1>Akagi-NG</h1>
 
   <p>
@@ -8,9 +8,23 @@
   </p>
 <p><i>「死ねば助かるのに……」— 赤木しげる</i></p>
 
-  <img src="https://img.shields.io/badge/python-3.12+-blue?logo=python">
-  <img src="https://img.shields.io/badge/platform-Windows-lightgrey">
-  <img src="https://img.shields.io/badge/license-AGPL--3.0-green">
+<p>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xe-Persistent/Akagi-NG/test.yml?branch=main&label=CI&logo=github" alt="CI Status"></a>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/releases"><img src="https://img.shields.io/github/v/release/Xe-Persistent/Akagi-NG?display_name=tag" alt="GitHub release"></a>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/stargazers"><img src="https://img.shields.io/github/stars/Xe-Persistent/Akagi-NG?style=social" alt="GitHub stars"></a>
+<br>
+<img src="https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white" alt="Electron">
+<img src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61DAFB" alt="React">
+<img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+<img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite">
+<img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
+<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
+<img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
+<br>
+<img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Platform">
+<img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="License">
+<a href="https://discord.gg/Z2wjXUK8bN"><img src="https://img.shields.io/discord/823053702206750730?logo=discord&label=Discord" alt="Discord"></a>
+<a href="https://codecov.io/gh/Xe-Persistent/Akagi-NG"><img src="https://img.shields.io/codecov/c/github/Xe-Persistent/Akagi-NG?logo=codecov" alt="Codecov"></a>
 </p>
 
 <p align="center">
@@ -35,14 +49,106 @@ Akagi-NG 的核心理念：
 
 ---
 
-## ⚠️ 免责声明
+## 核心架构
 
-本项目**仅供教育及研究使用**。
+下面这张图展示了 Akagi-NG 在 Electron 桌面 / MITM 两种模式下的整体数据流。
 
-在网络游戏中使用第三方辅助工具可能违反游戏的服务条款。
-Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不限于**账号被封禁或冻结**。
+**组件说明：**
 
-请您在使用前充分了解并自行承担相关风险。
+- **双模式拦截层**：提供两种游戏数据获取方式
+  - **桌面模式**：通过内置 Chromium 浏览器 + 资源钩子直接截获游戏通信，无需配置代理或证书
+  - **MITM 模式**：通过 mitmproxy 代理拦截外部浏览器/客户端流量，支持第三方设备
+
+- **Python 后端 (DataServer)**：数据处理中枢
+  - **协议桥接**：将雀魂协议转换为 MJAI 标准格式
+  - **状态跟踪 Bot**：维护完整的游戏状态机
+  - **AI 控制器**：管理 AI 模型和 Lookahead 前瞻算法，提供决策建议
+  - **SSE 事件流**：通过 Server-Sent Events 实时推送 AI 决策到前端
+
+- **Electron 前端**：用户界面和窗口管理
+  - **主进程**：负责后端进程管理和多窗口协调
+  - **控制面板**：提供配置管理和游戏启动入口
+  - **HUD 覆盖层**：透明叠加窗口，实时显示 AI 推荐信息
+
+- **游戏窗口**：最终的游戏呈现层
+  - 桌面模式下由 Electron 管理的 Chromium 实例
+  - MITM 模式下为用户自行打开的浏览器或游戏客户端
+
+**数据流概览：**
+
+1. 游戏服务器 → 拦截层：原始游戏数据通过 WebSocket 传输
+2. 拦截层 → Python 后端：转换为 MJAI 事件格式
+3. Python 后端处理：状态跟踪 + AI 决策计算
+4. Python 后端 → Electron：通过 SSE 推送决策结果
+5. HUD 覆盖层：在游戏窗口上叠加显示 AI 建议
+
+```mermaid
+graph TB
+    %% 游戏服务器
+    GS["游戏服务器<br/>"]
+
+    %% 双模式入口
+    subgraph Modes ["双模式拦截"]
+        direction LR
+        DesktopMode["桌面模式<br/>内置 Chromium + Hook"]
+        MitmMode["MITM 模式<br/>mitm-proxy"]
+    end
+
+    %% Python 后端核心
+    subgraph Backend ["Python 后端"]
+        direction TB
+        Bridge["协议桥接<br/>(MJAI Adapter)"]
+        Bot["状态跟踪 Bot<br/>(State Tracker)"]
+        Controller["AI 控制器<br/>(Mortal + Lookahead)"]
+        SSE["SSE 事件流<br/>(Real-time Push)"]
+
+        Bridge --> Bot
+        Bridge --> Controller
+        Bot --> SSE
+        Controller --> SSE
+    end
+
+    %% Electron 前端
+    subgraph Frontend ["Electron 前端"]
+        direction TB
+        MainProcess["主进程<br/>(Backend Manager + Window Manager)"]
+        Dashboard["控制面板<br/>(Dashboard)"]
+        HUD["HUD 覆盖层<br/>(Transparent Overlay)"]
+
+        MainProcess -- "窗口管理" --> Dashboard
+        MainProcess -- "窗口管理" --> HUD
+    end
+
+    %% 游戏窗口
+    GameWin["游戏窗口<br/>(Chromium Instance or Client)"]
+
+    %% 数据流
+    GS <-- "游戏数据" --> DesktopMode
+    GS <-- "游戏数据" --> MitmMode
+
+    DesktopMode -- "MJAI 事件" --> Bridge
+    MitmMode -- "MJAI 事件" --> Bridge
+
+    SSE -- "SSE 连接" --> Dashboard
+    SSE -- "AI 决策" --> HUD
+
+    Dashboard -- "IPC" --> MainProcess
+    MainProcess -- "窗口管理 (仅桌面模式)" --> GameWin
+    HUD -- "视觉叠加" --> GameWin
+
+    %% 样式
+    classDef serverStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef modeStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef backendStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef frontendStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef gameStyle fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+
+    class GS serverStyle
+    class DesktopMode,MitmMode modeStyle
+    class Bridge,Bot,Controller,SSE backendStyle
+    class MainProcess,Dashboard,HUD frontendStyle
+    class GameWin gameStyle
+```
 
 ---
 
@@ -99,7 +205,12 @@ Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不�
 >    - 在这个“宣布立直”的新状态下，我们向 AI 引擎发起一次**真实**的询问：“现在最佳切牌是什么？”
 >    - 引擎会根据局面分析，返回具体的切牌动作（例如 `打 6m`）。
 > 6. **结果展示**：前端 UI 接收到这个`6m`的信息，界面上会既会高亮显示立直和其他切牌推荐（比如`默听 (damaten)`），也会在立直推荐的子条目展示建议切出的那张`6m`。若立直切牌候选多于1种，子条目中会分别展示每张立直切牌和置信度。
+>
 > </details>
+
+## 演示视频
+
+https://github.com/user-attachments/assets/701a3dcf-1574-46af-9594-082605c4e158
 
 ## 运行截图
 
@@ -111,22 +222,29 @@ Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不�
 
 ![设置面板](./docs/screen_shots/settings_panel.png)
 
-## 演示视频
-
-https://github.com/user-attachments/assets/701a3dcf-1574-46af-9594-082605c4e158
-
 ---
+
+## ⚠️ 免责声明
+
+本项目**仅供教育及研究使用**。
+
+在网络游戏中使用第三方辅助工具可能违反游戏的服务条款。
+Akagi-NG 的作者及贡献者**不对任何使用后果负责**，包括但不限于**账号被封禁或冻结**。
+
+## 请您在使用前充分了解并自行承担相关风险。
 
 ## 安装与使用
 
-### 1. 下载程序
+### 1. 快速开始
 
-请前往 [Releases](../../releases) 页面下载最新版本的压缩包。
+1. **下载**: 前往 [Releases](../../releases) 下载最新版本的压缩包并解压。
+2. **部署**: 将 AI 模型权重文件 (`.pth`) 放入 `models/` 目录，二进制扩展 (`.pyd`/`.so`) 放入 `lib/` 目录。
+3. **运行**: 双击运行 `Akagi-NG.exe`。
+4. **对局**: 在 Dashboard 中点击“**启动游戏**”，点击右上角显示器图标开启 **HUD**。
 
-### 2. 部署资源
+### 2. 目录结构说明
 
-Akagi-NG 需要外部模型文件和依赖库才能运行。
-请确保 `Akagi-NG.exe` 所在目录结构完整：
+为了确保程序正常运行，请检查 `Akagi-NG.exe` 所在目录结构是否完整：
 
 ```plain
 Akagi-NG/
@@ -134,7 +252,7 @@ Akagi-NG/
   ├── assets/          # 各平台相关的界面资源
   ├── bin/             # 后端核心程序所在的目录
   ├── config/          # 配置文件目录 (settings.json)
-  ├── lib/             # libriichi 本地扩展库 (.pyd/.so)
+  ├── lib/             # libriichi 二进制扩展 (.pyd/.so)
   │     ├── libriichi.pyd
   │     └── libriichi3p.pyd
   ├── locales/         # 多语言支持资源
@@ -146,7 +264,6 @@ Akagi-NG/
   ├── LICENSE.txt      # 开源许可协议
   ├── README.txt       # 极简使用说明
   └── ...              # 其他必要的运行时支持文件 (.dll, .pak 等)
-
 ```
 
 ### 3. 启动与退出
@@ -164,7 +281,7 @@ Akagi-NG/
 
 Akagi-NG 的所有配置均位于 `config/settings.json` 文件中。您可以点击 Dashboard 右上角的齿轮图标进入设置面板来修改，也可以使用文本编辑器修改此文件来调整程序行为。
 
-### 5. 桌面原生模式 (推荐)
+### 5. 桌面模式 (推荐)
 
 这是 Akagi-NG的**默认工作模式**。
 
@@ -181,17 +298,13 @@ Akagi-NG 的所有配置均位于 `config/settings.json` 文件中。您可以�
 
 ### 6. MITM 模式
 
-Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许您使用任意浏览器或移动设备上（配合代理）进行对局。
+Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许您使用任意浏览器、游戏客户端或移动设备（配合代理）进行对局。
 
 1. **启用配置**:
    在设置面板中启用“外部代理”或在 `config/settings.json` 中手动修改 `mitm` 字段：
 
-   ```json
-   "mitm": {
-       "enabled": true,
-       "host": "127.0.0.1",
-       "port": 6789
-   }
+   ```yaml
+   "mitm": { "enabled": true, "host": "127.0.0.1", "port": 6789 }
    ```
 
 2. **设置代理**:
@@ -215,9 +328,20 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 > [!WARNING]
 > 务必将证书安装到“**受信任的根证书颁发机构**” (Trusted Root Certification Authorities)。
 
-### 7. 常见问题 (FAQ)
+### 7. 常见问题
+
+**Q: 第一次启动程序，界面卡在欢迎/加载界面怎么办？**
+**A:** 这种情况通常是由于 DataServer 默认端口 `8765` 被其他程序占用（冲突）导致的。
+**解决方法：**
+
+1. 打开 `config/settings.json`。
+2. 找到 `"server": { "port": 8765 }`，将 `8765` 修改为其他未占用的端口（如 `8888`）。
+3. 重启程序。
 
 **Q: 我正在使用 Clash/v2rayN 等代理软件 (TUN/系统代理模式)，如何配置？**
+
+<details>
+<summary><b>点击查看详细代理分流配置方案</b></summary>
 
 #### 配置方案 A: 浏览器网页版 (SwitchyOmega 代理)
 
@@ -299,6 +423,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
    ```yaml
    rules:
+     - PROCESS-NAME,akagi-ng.exe,DIRECT
      - PROCESS-NAME,雀魂麻將,🀄 雀魂麻将
      - PROCESS-NAME,Jantama_MahjongSoul.exe,🀄 雀魂麻将
      - DOMAIN-Keyword,maj-soul,🀄 雀魂麻将
@@ -308,47 +433,78 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
    保存并刷新 Clash 配置。现在启动雀魂客户端，流量路径为：
    `雀魂客户端 -> Clash (TUN) -> 匹配到 Rules -> 转发给 Akagi-NG (6789) -> 您的网络/上游代理`
 
+</details>
+
 ---
 
 ## 源码构建指南
 
-### 环境依赖
+### 环境要求
 
-- Python **3.12+**
-- Node.js & npm (用于编译前端)
-- Windows (推荐开发环境)
-- Git
+- **Python 3.12+**: 用于运行后端推理引擎。
+- **Node.js 24+ & npm**: 用于编译 Electron 桌面端和 React 前端。
+- **Git**: 用于克隆项目仓库。
+- **Windows**: 推荐的开发与构建平台。
 
-### 1. 克隆与初始化
+### 1. 项目初始化
+
+克隆仓库并进入目录：
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
+cd Akagi-NG
+```
 
-# 安装后端依赖 (Python 3.12+)
-cd ./akagi_backend
+#### 后端环境准备
+
+集成构建脚本依赖于 `akagi_backend` 目录下的虚拟环境：
+
+```bash
+cd akagi_backend
+python -m venv .venv
+# Windows
+.\.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
 pip install -e .
+cd ..
+```
+
+#### 前端与桌面端初始化
+
+```bash
+# 安装前端依赖
+cd akagi_frontend
+npm install
+
+# 安装 Electron 桌面端依赖
+cd ../electron
+npm install
 ```
 
 ### 2. 开发环境运行
 
-在开发环境下启动桌面端：
+在 `electron` 目录下执行启动命令：
 
 ```bash
-cd ./electron
-npm install
+cd electron
 npm run dev
 ```
 
-### 3. 调用构建链
+### 3. 生产环境构建
 
-v1.0.0 采用了统一的 TypeScript 驱动构建链，位于 `electron` 目录。
+执行以下命令打包对应当前平台的安装包：
 
 ```bash
-cd ./electron
+cd electron
 npm run build
 ```
 
 构建产物将生成于 `dist/release` 目录下。
+
+> [!IMPORTANT]
+> 构建过程仅打包应用程序主体。为了使程序正常工作，您仍需确保将 AI 模型权重文件 (`.pth`) 放置在 `models/` 目录，并将二进制扩展 (`.pyd`/`.so`) 放置在 `lib/` 目录中。
 
 ---
 

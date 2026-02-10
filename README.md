@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/image/assets/akagi.png" width="50%">
+  <img src="https://gcore.jsdelivr.net/gh/Xe-Persistent/CDN-source/image/assets/akagi.png" width="50%" alt="Akagi Shigeru">
   <h1>Akagi-NG</h1>
 
   <p>
@@ -8,9 +8,23 @@
   </p>
 <p><i>「死ねば助かるのに……」— 赤木しげる</i></p>
 
-  <img src="https://img.shields.io/badge/python-3.12+-blue?logo=python">
-  <img src="https://img.shields.io/badge/platform-Windows-lightgrey">
-  <img src="https://img.shields.io/badge/license-AGPL--3.0-green">
+<p>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xe-Persistent/Akagi-NG/test.yml?branch=main&label=CI&logo=github" alt="CI Status"></a>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/releases"><img src="https://img.shields.io/github/v/release/Xe-Persistent/Akagi-NG?display_name=tag" alt="GitHub release"></a>
+<a href="https://github.com/Xe-Persistent/Akagi-NG/stargazers"><img src="https://img.shields.io/github/stars/Xe-Persistent/Akagi-NG?style=social" alt="GitHub stars"></a>
+<br>
+<img src="https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white" alt="Electron">
+<img src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61DAFB" alt="React">
+<img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+<img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite">
+<img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
+<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
+<img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
+<br>
+<img src="https://img.shields.io/badge/platform-Windows-lightgrey" alt="Platform">
+<img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="License">
+<a href="https://discord.gg/Z2wjXUK8bN"><img src="https://img.shields.io/discord/823053702206750730?logo=discord&label=Discord" alt="Discord"></a>
+<a href="https://codecov.io/gh/Xe-Persistent/Akagi-NG"><img src="https://img.shields.io/codecov/c/github/Xe-Persistent/Akagi-NG?logo=codecov" alt="Codecov"></a>
 </p>
 
 <p align="center">
@@ -35,14 +49,106 @@ Core Philosophy of Akagi-NG:
 
 ---
 
-## ⚠️ Disclaimer
+## Core Architecture
 
-This project is for **educational and research purposes only**.
+The graph below is the overall data flow of Akagi-NG in Electron desktop / MITM modes.
 
-Using third-party auxiliary tools in online games may violate the game's Terms of Service.
-The authors and contributors of Akagi-NG are **NOT responsible for any consequences**, including but not limited to **account bans or suspensions**.
+**Components:**
 
-Please fully understand and assume the relevant risks before use.
+- **Dual-Mode Interceptor**: Provides two methods for game data acquisition
+  - **Desktop Mode**: Intercepts game communication via built-in Chromium browser + resource hooks, no proxy/certificate configuration needed
+  - **MITM Mode**: Intercepts traffic from external browsers/clients via mitmproxy, supports third-party devices
+
+- **Python Backend (DataServer)**: Core data processing hub, running on port `:8765`
+  - **Protocol Bridge**: Converts Mahjong Soul protocol to MJAI standard format
+  - **State Tracker Bot**: Maintains complete game state machine
+  - **AI Controller**: Manages AI model and Lookahead algorithm, provides decision recommendations
+  - **SSE Event Stream**: Pushes AI decisions to frontend in real-time via Server-Sent Events
+
+- **Electron Frontend**: User interface and window management
+  - **Main Process**: Manages backend process and coordinates multiple windows
+  - **Dashboard**: Provides configuration management and game launch entry
+  - **HUD Overlay**: Transparent overlay window displaying AI recommendations in real-time
+
+- **Game Window**: Final game presentation layer
+  - In Desktop Mode: Chromium instance managed by Electron
+  - In MITM Mode: User's own browser or game client
+
+**Data Flow:**
+
+1. Game Server → Interceptor: Raw game data transmitted via WebSocket
+2. Interceptor → Python Backend: Converted to MJAI event format
+3. Python Backend Processing: State tracking + AI decision computation
+4. Python Backend → Electron: Pushes decision results via SSE
+5. HUD Overlay: Displays AI suggestions overlaid on game window
+
+```mermaid
+graph TB
+    %% Game Server
+    GS["Game Server<br/>"]
+
+    %% Dual Mode Entry
+    subgraph Modes ["Dual-Mode Interceptor"]
+        direction LR
+        DesktopMode["Desktop Mode<br/>Built-in Chromium + Hook"]
+        MitmMode["MITM Mode<br/>mitm-proxy"]
+    end
+
+    %% Python Backend Core
+    subgraph Backend ["Python Backend"]
+        direction TB
+        Bridge["Protocol Bridge<br/>(MJAI Adapter)"]
+        Bot["State Tracker Bot<br/>(Game State)"]
+        Controller["AI Controller<br/>(Mortal + Lookahead)"]
+        SSE["SSE Event Stream<br/>(Real-time Push)"]
+
+        Bridge --> Bot
+        Bridge --> Controller
+        Bot --> SSE
+        Controller --> SSE
+    end
+
+    %% Electron Frontend
+    subgraph Frontend ["Electron Frontend"]
+        direction TB
+        MainProcess["Main Process<br/>(Backend Manager + Window Manager)"]
+        Dashboard["Dashboard<br/>(React UI)"]
+        HUD["HUD Overlay<br/>(Transparent Layer)"]
+
+        MainProcess -- "Window Management" --> Dashboard
+        MainProcess -- "Window Management" --> HUD
+    end
+
+    %% Game Window
+    GameWin["Game Window<br/>(Chromium Instance or Client)"]
+
+    %% Data Flow
+    GS <-- "Game Data" --> DesktopMode
+    GS <-- "Game Data" --> MitmMode
+
+    DesktopMode -- "MJAI Events" --> Bridge
+    MitmMode -- "MJAI Events" --> Bridge
+
+    SSE -- "SSE Connection" --> Dashboard
+    SSE -- "AI Decisions" --> HUD
+
+    Dashboard -- "IPC" --> MainProcess
+    MainProcess -- "Window Management (Desktop Mode Only)" --> GameWin
+    HUD -- "Visual Overlay" --> GameWin
+
+    %% Styling
+    classDef serverStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef modeStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef backendStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef frontendStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef gameStyle fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+
+    class GS serverStyle
+    class DesktopMode,MitmMode modeStyle
+    class Bridge,Bot,Controller,SSE backendStyle
+    class MainProcess,Dashboard,HUD frontendStyle
+    class GameWin gameStyle
+```
 
 ---
 
@@ -101,6 +207,10 @@ Please fully understand and assume the relevant risks before use.
 > 6. **Result Display**: The frontend UI receives this `6m` information. The interface will highlight Riichi and other discard recommendations (such as `damaten`). It will also display the recommended discard tile `6m` in the Riichi recommendation sub-item. If there is more than one Riichi discard candidate, the sub-items will display each Riichi discard tile and its confidence respectively.
 > </details>
 
+## Demo
+
+https://github.com/user-attachments/assets/b15d1f76-3009-448d-9648-0d2ffd4f3b7e
+
 ## Screenshots
 
 ### Main Interface
@@ -111,22 +221,33 @@ Please fully understand and assume the relevant risks before use.
 
 ![Settings Panel](./docs/screen_shots/settings_panel_en.png)
 
-## Demo
+---
 
-https://github.com/user-attachments/assets/b15d1f76-3009-448d-9648-0d2ffd4f3b7e
+## ⚠️ Disclaimer
+
+This project is for **educational and research purposes only**.
+
+Using third-party auxiliary tools in online games may violate the game's Terms of Service.
+The authors and contributors of Akagi-NG are **NOT responsible for any consequences**, including but not limited to **account bans or suspensions**.
+
+Please fully understand and assume the relevant risks before use.
 
 ---
 
 ## Installation & Usage
 
-### 1. Download Program
+### 1. Quick Start
 
-Please go to the [Releases](../../releases) page to download the latest version compressed package.
+1. **Download**: Go to [Releases](../../releases) and download the latest version, then extract it.
+2. **Deploy**: Place AI model weight files (`.pth`) in the `models/` directory, and binary extensions (`.pyd`/`.so`) in the `lib/` directory.
+3. **Run**: Double-click `Akagi-NG.exe`.
+4. **Play**: Click "**Launch Game**" in the Dashboard and click the monitor icon at the top right to enable **HUD**.
 
-### 2. Deploy Resources
+---
 
-Akagi-NG requires external model files and dependency libraries to run.
-Please check the directory structure where `Akagi-NG.exe` is located.
+### 2. Directory Structure
+
+To ensure the program runs correctly, please verify the directory structure where `Akagi-NG.exe` is located:
 
 ```plain
 Akagi-NG/
@@ -134,7 +255,7 @@ Akagi-NG/
   ├── assets/          # Platform-specific UI assets
   ├── bin/             # Backend core executable directory
   ├── config/          # Configuration directory (settings.json)
-  ├── lib/             # libriichi local extension libraries (.pyd/.so)
+  ├── lib/             # libriichi binary extensions (.pyd/.so)
   │     ├── libriichi.pyd
   │     └── libriichi3p.pyd
   ├── locales/         # Localization resource files
@@ -148,7 +269,7 @@ Akagi-NG/
   └── ...              # Other runtime files (.dll, .pak, etc.)
 ```
 
-### 3. Run & Exit
+### 3. Play & Exit
 
 When running `Akagi-NG.exe` for the first time, the integrated dashboard will appear. You can start the game directly from the dashboard to launch a dedicated browser window. Click the monitor icon in the top right of the dashboard to open the HUD overlay.
 
@@ -178,17 +299,13 @@ In this mode, Akagi-NG leverages its Electron core to manage a specialized Chrom
 
 ### 6. MITM Mode
 
-Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. This allows you to play using any browser or on a mobile device (with proxy configured).
+Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. This allows you to play using any browser, client or on a mobile device (with proxy configured).
 
 1. **Enable Configuration**:
    Switch on "External Proxy" in the configuration panel or modify the `mitm` field in `config/settings.json`:
 
-   ```json
-   "mitm": {
-       "enabled": true,
-       "host": "127.0.0.1",
-       "port": 6789
-   }
+   ```yaml
+   "mitm": { "enabled": true, "host": "127.0.0.1", "port": 6789 }
    ```
 
 2. **Set Proxy**:
@@ -214,7 +331,18 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attack. Th
 
 ### 7. FAQ
 
+**Q: I launched the program for the first time, but it hangs on the welcome/loading screen. What should I do?**
+**A:** This is usually caused by a conflict with the DataServer's default port `8765`.
+**Solution:**
+
+1. Open `config/settings.json`.
+2. Find `"server": { "port": 8765 }` and change `8765` to another available port (e.g., `8888`).
+3. Restart the program.
+
 **Q: I am using proxy software like Clash/v2rayN (TUN/System Proxy mode), how should I configure it?**
+
+<details>
+<summary><b>Click to view detailed proxy split configuration schemes</b></summary>
 
 #### Configuration Scheme A: Browser Web Version (SwitchyOmega Proxy)
 
@@ -296,6 +424,7 @@ This scheme is suitable for **PC/Steam Client** players. Since the client cannot
 
    ```yaml
    rules:
+     - PROCESS-NAME,akagi-ng.exe,DIRECT
      - PROCESS-NAME,雀魂麻將,🀄 Mahjong Soul
      - PROCESS-NAME,Jantama_MahjongSoul.exe,🀄 Mahjong Soul
      - DOMAIN-Keyword,maj-soul,🀄 Mahjong Soul
@@ -305,47 +434,78 @@ This scheme is suitable for **PC/Steam Client** players. Since the client cannot
    Save and refresh the Clash configuration. Now start the Mahjong Soul client, the traffic path is:
    `Mahjong Soul Client -> Clash (TUN) -> Matches Rules -> Forward to Akagi-NG (6789) -> Your Network/Upstream Proxy`
 
+</details>
+
 ---
 
 ## Source Code Build Guide
 
-### Environment Dependencies
+### Prerequisites
 
-- Python **3.12+**
-- Node.js & npm (for compiling frontend)
-- Windows (Recommended development environment)
-- Git
+- **Python 3.12+**: Required for the backend engine.
+- **Node.js 24+ & npm**: Required for the Electron desktop and React frontend.
+- **Git**: For cloning the repository.
+- **Windows**: Recommended development and build platform.
 
-### 1. Clone & Initialize
+### 1. Project Initialization
+
+Clone the repository and initialize the project:
 
 ```bash
 git clone https://github.com/Xe-Persistent/Akagi-NG.git
-
-# Install python backend dependencies (Python 3.12+)
-cd ./akagi_backend
-pip install -e .
+cd Akagi-NG
 ```
 
-### 2. Debug Run
+#### Backend Setup
 
-To run in development mode:
+The integrated build system expects a virtual environment in the `akagi_backend` directory:
 
 ```bash
-cd ./electron
+cd akagi_backend
+python -m venv .venv
+# Windows
+.\.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+
+pip install -e .
+cd ..
+```
+
+#### Frontend & Desktop Setup
+
+```bash
+# Install frontend dependencies
+cd akagi_frontend
 npm install
+
+# Install electron desktop dependencies
+cd ../electron
+npm install
+```
+
+### 2. Running in Development
+
+To launch the integrated development environment:
+
+```bash
+cd electron
 npm run dev
 ```
 
-### 3. Build Toolchain
+### 3. Building for Production
 
-We use a unified TypeScript-driven build chain located in the `electron` directory.
+To package the application for your current platform:
 
 ```bash
-cd ./electron
+cd electron
 npm run build
 ```
 
-The build artifacts will be generated in `dist/release`.
+The build artifacts will be generated in the `dist/release` directory.
+
+> [!IMPORTANT]
+> The build process packages the application core. You still need to ensure that AI model weight files (`.pth`) are placed in the `models/` directory and binary extensions (`.pyd`/`.so`) are in the `lib/` directory of the release folder for the program to function.
 
 ---
 

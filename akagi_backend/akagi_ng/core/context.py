@@ -1,14 +1,8 @@
-from __future__ import annotations
-
 import queue
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from akagi_ng.electron_client import BaseElectronClient as ElectronClient
-    from akagi_ng.mitm_client import MitmClient
-    from akagi_ng.mjai_bot import Controller, StateTrackerBot
-    from akagi_ng.settings import Settings
+from akagi_ng.core.protocols import Bot, ControllerProtocol, ElectronClientProtocol, MessageSource
+from akagi_ng.settings import Settings
 
 
 @dataclass
@@ -16,11 +10,11 @@ class AppContext:
     """Application context containing all core components."""
 
     settings: Settings
-    controller: Controller | None
-    bot: StateTrackerBot | None
-    mitm_client: MitmClient | None
-    electron_client: ElectronClient | None = None
-    shared_queue: queue.Queue[dict] | None = None
+    shared_queue: queue.Queue[dict]
+    controller: ControllerProtocol | None
+    bot: Bot | None
+    mitm_client: MessageSource | None
+    electron_client: ElectronClientProtocol | None = None
 
 
 # Global variable for application context (shared across threads)

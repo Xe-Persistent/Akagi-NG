@@ -6,12 +6,12 @@ from typing import Any
 import numpy as np
 
 from akagi_ng.core.paths import get_models_dir
+from akagi_ng.core.protocols import Bot
 from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.mortal import load_local_mortal_engine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.logger import logger
-from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.settings import local_settings
 
 # 全局引擎缓存

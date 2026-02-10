@@ -1,9 +1,9 @@
 import json
 
 from akagi_ng.core import NotificationCode
+from akagi_ng.core.protocols import Bot
 from akagi_ng.mjai_bot.engine.base import BaseEngine, engine_options
 from akagi_ng.mjai_bot.lookahead import LookaheadBot
-from akagi_ng.mjai_bot.protocols import Bot
 from akagi_ng.mjai_bot.utils import make_error_response
 
 

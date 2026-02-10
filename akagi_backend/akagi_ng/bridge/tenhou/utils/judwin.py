@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 REMAINDER_HEAD = 2
 REMAINDER_MODULO = 3
 

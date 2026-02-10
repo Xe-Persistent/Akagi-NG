@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import queue
 
 from akagi_ng.core.constants import Platform

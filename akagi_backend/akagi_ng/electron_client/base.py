@@ -1,13 +1,14 @@
-from __future__ import annotations
-
 import queue
 import threading
 from abc import ABC, abstractmethod
 
+from akagi_ng.core.protocols import GameBridge
 from akagi_ng.electron_client.logger import logger
 
 
 class BaseElectronClient(ABC):
+    bridge: GameBridge | None = None
+
     def __init__(self, shared_queue: queue.Queue[dict]):
         self.message_queue: queue.Queue[dict] = shared_queue
         self.running = False
@@ -18,7 +19,7 @@ class BaseElectronClient(ABC):
         with self._lock:
             self.running = True
             self._active_connections = 0
-            if hasattr(self, "bridge") and self.bridge:
+            if self.bridge:
                 self.bridge.reset()
             logger.info(f"{self.__class__.__name__} started.")
 
@@ -63,7 +64,7 @@ class BaseElectronClient(ABC):
                 # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message,
                 # so we verify and suppress the disconnection error.
                 game_ended = False
-                if hasattr(self, "bridge") and self.bridge:
+                if self.bridge:
                     game_ended = getattr(self.bridge, "game_ended", False)
 
                 if not game_ended:

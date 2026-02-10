@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from akagi_ng.bridge.tenhou.utils.judwin import islh, issp, isto
 
 MAX_TILE_COUNT = 4

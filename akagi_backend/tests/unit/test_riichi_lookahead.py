@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from akagi_ng.mjai_bot.lookahead import LookaheadBot
 from akagi_ng.mjai_bot.mortal.base import MortalBot
 
 
@@ -134,6 +135,54 @@ class TestRiichiLookahead(unittest.TestCase):
 
         # Verify error handling
         self.assertEqual(result, {"error": True})
+
+    def test_lookahead_with_replay_engine(self):
+        """测试使用 ReplayEngine 进行 Lookahead 模拟"""
+        mock_loader = sys.modules["akagi_ng.core.lib_loader"]
+        mock_loader.libriichi.mjai.Bot = MagicMock(return_value=MagicMock())
+
+        # 创建 mock engine
+        mock_engine = MagicMock()
+        mock_engine.last_inference_result = {
+            "actions": [5],
+            "q_out": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6]],
+            "masks": [[True, False, True, True, False, True]],
+            "is_greedy": [True],
+        }
+
+        # 创建 LookaheadBot
+        lookahead_bot = LookaheadBot(mock_engine, player_id=0, is_3p=False)
+
+        # Mock ReplayEngine (由于它在方法内部导入，我们需要 patch 它)
+        with patch("akagi_ng.mjai_bot.engine.replay.ReplayEngine") as MockReplayEngine:
+            # 配置 Mock ReplayEngine 实例
+            mock_replay_instance = MockReplayEngine.return_value
+
+            # 配置 sim_bot (libs.mjai.Bot) 的行为
+            # 注意：LookaheadBot 现在会创建一个新的 sim_bot
+            mock_sim_bot = mock_loader.libriichi.mjai.Bot.return_value
+            mock_sim_bot.react.side_effect = [
+                None,  # game_start
+                None,  # history
+                json.dumps({"type": "dahai", "meta": {"q_values": [0.1], "mask_bits": 45}}),  # reach event
+            ]
+
+            # 执行模拟
+            result = lookahead_bot.simulate_reach(
+                history_events=[{"type": "start_kyoku"}],
+                candidate_event={"type": "reach", "actor": 0},
+                game_start_event={"type": "start_game", "id": 0},
+            )
+
+            # 验证 ReplayEngine 被正确初始化
+            MockReplayEngine.assert_called_once_with(mock_engine)
+
+            # 验证 stop_replaying 被调用
+            mock_replay_instance.stop_replaying.assert_called_once()
+
+            # 验证结果
+            self.assertIsNotNone(result)
+            self.assertEqual(result["mask_bits"], 45)
 
 
 if __name__ == "__main__":

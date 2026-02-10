@@ -59,7 +59,7 @@ The graph below is the overall data flow of Akagi-NG in Electron desktop / MITM 
   - **Desktop Mode**: Intercepts game communication via built-in Chromium browser + resource hooks, no proxy/certificate configuration needed
   - **MITM Mode**: Intercepts traffic from external browsers/clients via mitmproxy, supports third-party devices
 
-- **Python Backend (DataServer)**: Core data processing hub, running on port `:8765`
+- **Python Backend (DataServer)**: Core data processing hub
   - **Protocol Bridge**: Converts Mahjong Soul protocol to MJAI standard format
   - **State Tracker Bot**: Maintains complete game state machine
   - **AI Controller**: Manages AI model and Lookahead algorithm, provides decision recommendations

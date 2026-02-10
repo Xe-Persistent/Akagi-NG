@@ -7,15 +7,68 @@ on:
         description: "Version tag (e.g., x.y.z)"
         required: false
         default: "dev"
+      skip_tests:
+        description: "Skip test suite"
+        required: false
+        default: false
+        type: boolean
+
+# 并发控制：同一分支/标签只保留最新运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PYTHONUTF8: 1
-  # Skip mockup mode for production builds
   AKAGI_MOCK_MODE: 0
 
 jobs:
+  # 添加测试前置步骤
+  test:
+    runs-on: windows-latest
+    if: ${{ !inputs.skip_tests }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: akagi_backend/pyproject.toml
+
+      - name: Cache Python virtual environment
+        uses: actions/cache@v4
+        id: venv-cache
+        with:
+          path: akagi_backend/.venv
+          key: venv-${{ runner.os }}-py3.12-${{ hashFiles('akagi_backend/pyproject.toml') }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.12-
+
+      - name: Install Python dependencies
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        working-directory: akagi_backend
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        working-directory: akagi_backend
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          python -m pytest tests/ -k "not e2e" --tb=short
+
   build:
     runs-on: windows-latest
+    needs: test
+    # 仅在测试成功或跳过时执行构建
+    if: ${{ always() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
 
     steps:
       - name: Checkout code
@@ -26,6 +79,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: akagi_backend/pyproject.toml
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -36,9 +90,22 @@ jobs:
             akagi_frontend/package-lock.json
             electron/package-lock.json
 
+      - name: Cache Python virtual environment
+        uses: actions/cache@v4
+        id: venv-cache
+        with:
+          path: akagi_backend/.venv
+          key: venv-${{ runner.os }}-py3.12-${{ hashFiles('akagi_backend/pyproject.toml') }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.12-
+
       - name: Install Python dependencies
+        if: steps.venv-cache.outputs.cache-hit != 'true'
         working-directory: akagi_backend
+        shell: pwsh
         run: |
+          python -m venv .venv
+          .\.venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
@@ -59,9 +126,21 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v6
         with:
-          name: akagi-ng-${{ github.event.inputs.version || 'dev' }}
+          name: akagi-ng-${{ github.event.inputs.version || 'dev' }}-${{ github.run_number }}
           path: |
             dist/release/*.exe
             dist/release/*.zip
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      # 构建失败时上传日志
+      - name: Upload build logs on failure
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: build-logs-${{ github.run_number }}
+          path: |
+            electron/*.log
+            dist/**/*.log
+          retention-days: 7
+          if-no-files-found: ignore

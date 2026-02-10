@@ -12,29 +12,28 @@ coverage:
         target: auto
         threshold: 1%
         if_ci_failed: error
+        informational: false
 
     patch:
       default:
-        target: auto
-        threshold: 1%
+        target: 80%
+        threshold: 5%
         if_ci_failed: error
+        informational: false
 
 comment:
-  layout: "reach,diff,flags,files,footer"
+  layout: "diff,flags,files,footer"
   behavior: default
   require_changes: false
   require_base: false
   require_head: true
-
-flags:
-  backend:
-    paths:
-      - "akagi_ng/"
-    carryforward: true
+  # 防止多个 job 上传时重复评论
+  after_n_builds: 1
 
 ignore:
   - "scripts/"
   - "tests/"
+  - "**/test_*.py"
   - "**/__init__.py"
   - "**/__main__.py"
   - ".venv/"

@@ -1,0 +1,65 @@
+name: Cache Cleanup
+
+on:
+  schedule:
+    # 每周日 UTC 00:00 清理旧缓存
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+# 并发控制：同时只运行一个清理任务
+concurrency:
+  group: cache-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+
+    steps:
+      - name: Cleanup old caches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            console.log(`Cleaning up caches for ${owner}/${repo}`);
+
+            // 获取所有缓存
+            const caches = await github.rest.actions.getActionsCacheList({
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const now = Date.now();
+            const weekInMs = 7 * 24 * 60 * 60 * 1000;
+            let deletedCount = 0;
+            let totalSize = 0;
+
+            // 删除超过 7 天的缓存
+            for (const cache of caches.data.actions_caches) {
+              const cacheAge = now - new Date(cache.created_at).getTime();
+              
+              if (cacheAge > weekInMs) {
+                try {
+                  await github.rest.actions.deleteActionsCacheById({
+                    owner,
+                    repo,
+                    cache_id: cache.id,
+                  });
+                  deletedCount++;
+                  totalSize += cache.size_in_bytes;
+                  console.log(`✓ Deleted cache: ${cache.key} (${(cache.size_in_bytes / 1024 / 1024).toFixed(2)} MB, age: ${Math.floor(cacheAge / (24 * 60 * 60 * 1000))} days)`);
+                } catch (error) {
+                  console.error(`✗ Failed to delete cache ${cache.key}:`, error.message);
+                }
+              }
+            }
+
+            console.log(`\n=== Cleanup Summary ===`);
+            console.log(`Deleted caches: ${deletedCount}`);
+            console.log(`Freed space: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+            console.log(`Remaining caches: ${caches.data.actions_caches.length - deletedCount}`);

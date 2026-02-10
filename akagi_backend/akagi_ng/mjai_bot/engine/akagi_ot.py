@@ -115,14 +115,13 @@ class AkagiOTEngine(BaseEngine):
         self.is_online = True
         self.engine_type = "akagiot"
 
-    def get_notification_flags(self) -> dict[str, object]:
+    def get_notification_flags(self) -> dict[str, bool]:
         """返回 AkagiOT 引擎的通知标志。"""
-        flags = {}
+        flags: dict[str, bool] = {}
         if self.client._circuit_open:
             flags["circuit_open"] = True
         if self.client._just_restored:
             flags["circuit_restored"] = True
-            self.client._just_restored = False
         return flags
 
     def get_additional_meta(self) -> dict[str, object]:
@@ -165,5 +164,8 @@ class AkagiOTEngine(BaseEngine):
             "masks": r_json["masks"],
             "is_greedy": r_json["is_greedy"],
         }
+
+        # 推理成功后，重置恢复标志（避免在 getter 中产生副作用）
+        self.client._just_restored = False
 
         return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]

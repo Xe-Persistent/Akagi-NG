@@ -42,7 +42,7 @@ export function ModelStatusIndicator({ isConnected, className }: ModelStatusIndi
     if (data.circuit_open) return 'circuitOpen';
 
     // 2. Warning: Fallback
-    if (data.is_fallback) return 'fallback';
+    if (data.fallback_used) return 'fallback';
 
     // 3. Normal: Online vs Local
     return data.engine_type === 'akagiot' ? 'online' : 'local';

@@ -14,7 +14,7 @@ export interface Recommendation {
 export interface FullRecommendationData {
   recommendations: Recommendation[];
   engine_type?: string;
-  is_fallback?: boolean;
+  fallback_used?: boolean;
   circuit_open?: boolean;
 }
 

@@ -278,10 +278,10 @@ function generateMockData(counter: number): FullRecommendationData {
 
   // Cycle through status states for visual verification
   const statusStates = [
-    { engine_type: 'akagi-ot', is_fallback: false, circuit_open: false }, // Online (Green)
-    { engine_type: 'mortal', is_fallback: false, circuit_open: false }, // Local (Blue)
-    { engine_type: 'akagi-ot', is_fallback: true, circuit_open: false }, // Fallback (Yellow)
-    { engine_type: 'akagi-ot', is_fallback: false, circuit_open: true }, // Circuit Open (Red)
+    { engine_type: 'akagi-ot', fallback_used: false, circuit_open: false }, // Online (Green)
+    { engine_type: 'mortal', fallback_used: false, circuit_open: false }, // Local (Blue)
+    { engine_type: 'akagi-ot', fallback_used: true, circuit_open: false }, // Fallback (Yellow)
+    { engine_type: 'akagi-ot', fallback_used: false, circuit_open: true }, // Circuit Open (Red)
   ];
   const status = statusStates[counter % statusStates.length];
 

@@ -244,7 +244,7 @@ def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTracker
         return {
             "recommendations": recommendations,
             "engine_type": meta.get("engine_type"),
-            "is_fallback": meta.get("is_fallback"),
+            "fallback_used": meta.get("fallback_used"),
             "circuit_open": meta.get("circuit_open"),
         }
 

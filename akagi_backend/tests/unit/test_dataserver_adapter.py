@@ -265,7 +265,7 @@ def test_build_dataserver_payload_comprehensive(mock_bot):
     assert build_dataserver_payload({}, mock_bot) is None  # no meta
 
     mjai_res = {
-        "meta": {"q_values": [], "mask_bits": [], "engine_type": "test", "is_fallback": False, "circuit_open": False}
+        "meta": {"q_values": [], "mask_bits": [], "engine_type": "test", "fallback_used": False, "circuit_open": False}
     }
     mock_bot.self_riichi_accepted = True
 
@@ -278,7 +278,7 @@ def test_build_dataserver_payload_comprehensive(mock_bot):
         assert "is_riichi" not in payload
         # Flattened meta check
         assert "engine_type" in payload
-        assert "is_fallback" in payload
+        assert "fallback_used" in payload
         assert "circuit_open" in payload
         # Ensure we didn't just copy the whole meta dict under a key
         assert "meta" not in payload

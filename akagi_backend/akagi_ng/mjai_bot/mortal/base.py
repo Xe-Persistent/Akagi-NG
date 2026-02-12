@@ -1,8 +1,7 @@
 import json
 
 from akagi_ng.core import NotificationCode
-from akagi_ng.core.protocols import Bot
-from akagi_ng.mjai_bot.engine.base import BaseEngine, engine_options
+from akagi_ng.core.protocols import Bot, EngineProtocol, MjaiMetadata
 from akagi_ng.mjai_bot.lookahead import LookaheadBot
 from akagi_ng.mjai_bot.utils import make_error_response
 
@@ -12,7 +11,7 @@ class MortalBot:
     Mortal Bot 的封装类,负责处理事件并返回推荐动作。
     """
 
-    def __init__(self, engine: BaseEngine | None = None, is_3p: bool = False):
+    def __init__(self, engine: EngineProtocol | None = None, is_3p: bool = False):
         self.engine = engine
         self.is_3p = is_3p
         self.player_id: int | None = None
@@ -50,9 +49,7 @@ class MortalBot:
         """
         return_action = None
         is_game_start_batch = False
-        batch_size = len(events)
-
-        for i, e in enumerate(events):
+        for e in events:
             e_type = e["type"]
             if e_type == "start_game":
                 self._handle_start_game(e)
@@ -77,28 +74,15 @@ class MortalBot:
                 continue
 
             # 处理同步/回放模式
-            # 默认为 True 如果事件标记了 sync
             is_sync = e.get("sync", False)
 
-            # 末帧强制推理逻辑 (Last-Frame Inference)
-            # 如果是批次中最后一个事件，且属于"需要回应"的事件，强制执行推理
-            is_last_event = i == batch_size - 1
-            if is_sync and is_last_event:
-                # 检查是否轮到自己操作
-                # actor = e.get("actor")  # Unused
-                e_type = e.get("type", "")
-
-                # 简单的启发式判断：如果是自摸(tsumo)且actor是自己，或者打牌(dahai)且可能需要鸣牌(此时actor不是自己)
-                # 或者 reach (actor=self)
-                # 这里为了稳健，如果是最后一帧，我们尝试强制推理
-                # 注意：如果C++层认为不需要React，它会直接返回None/Empty，不仅节省了Python侧开销，
-                # 也意味着 engine.react_batch 不会被调用。
-                # 所以我们只需负责把 is_sync set to False，让 C++ 决定是否调用网络。
-                is_sync = False
-                self.logger.info(f"Last-Frame Inference triggered for event type: {e_type}")
-
-            # 使用 ContextVar 传递配置给 Engine (跨越 C++ 边界)
-            with engine_options({"is_sync": is_sync}):
+            if self.engine:
+                try:
+                    self.engine.is_sync = is_sync
+                    return_action = self.model.react(e_json)
+                finally:
+                    self.engine.is_sync = False
+            else:
                 return_action = self.model.react(e_json)
 
         return return_action, is_game_start_batch
@@ -112,7 +96,6 @@ class MortalBot:
         self.game_start_event = e
 
         # 检测加载的模型类型并设置通知
-        # EngineProvider 会在元数据中包含真实的引擎类型
         meta = self.engine.get_additional_meta()
         engine_type = meta.get("engine_type", "unknown")
 
@@ -120,6 +103,8 @@ class MortalBot:
             self._pending_notifications["model_loaded_online"] = True
         elif engine_type == "mortal":
             self._pending_notifications["model_loaded_local"] = True
+        elif engine_type == "replay":
+            pass
         else:
             self.logger.warning(f"Unknown engine type: {engine_type}")
 
@@ -130,7 +115,7 @@ class MortalBot:
         self.engine = None
         self.game_start_event = None
 
-    def _handle_riichi_lookahead(self, meta: dict):
+    def _handle_riichi_lookahead(self, meta: MjaiMetadata):
         """
         处理立直前瞻逻辑,如果满足条件则运行模拟并更新 meta 或 notification_flags。
 
@@ -160,7 +145,7 @@ class MortalBot:
             else:
                 meta["riichi_lookahead"] = lookahead_meta
 
-    def _set_meta_to_response(self, raw_data: dict, meta: dict):
+    def _set_meta_to_response(self, raw_data: dict, meta: MjaiMetadata):
         """
         根据游戏模式设置 meta 到响应中。
 
@@ -251,8 +236,14 @@ class MortalBot:
 
             self.logger.debug("Riichi Lookahead: Starting simulation (using LookaheadBot).")
 
-            # 实例化 LookaheadBot，复用当前引擎（无状态）
-            lookahead_bot = LookaheadBot(self.engine, self.player_id, is_3p=self.is_3p)
+            # 实例化 LookaheadBot
+            # 使用 fork() 获取纯净的、同类型的 Engine 副本
+            # 这样前瞻模拟将遵循当前引擎的状态：
+            # - 如果在线引擎激活，前瞻也使用在线引擎（及其 Fork）。
+            # - 如果处于回退状态，前瞻自然也使用本地引擎的副本。
+            sim_engine = self.engine.fork()
+
+            lookahead_bot = LookaheadBot(sim_engine, self.player_id, is_3p=self.is_3p)
 
             # 构造 Reach 事件
             reach_event = {"type": "reach", "actor": self.player_id}

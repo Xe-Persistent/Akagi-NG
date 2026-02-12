@@ -4,6 +4,7 @@ import locale
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Self
 
 import jsonschema
 from jsonschema.exceptions import ValidationError
@@ -91,7 +92,7 @@ class Settings:
         logger.info(f"Saved settings to {SETTINGS_JSON_PATH}")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Settings":
+    def from_dict(cls, data: dict) -> Self:
         """从字典创建 Settings 对象"""
         mitm_data = data.get("mitm", {})
         server_data = data.get("server", {})

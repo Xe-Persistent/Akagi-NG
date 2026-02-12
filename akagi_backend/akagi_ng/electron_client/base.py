@@ -1,12 +1,11 @@
 import queue
 import threading
-from abc import ABC, abstractmethod
 
 from akagi_ng.core.protocols import GameBridge
 from akagi_ng.electron_client.logger import logger
 
 
-class BaseElectronClient(ABC):
+class BaseElectronClient:
     bridge: GameBridge | None = None
 
     def __init__(self, shared_queue: queue.Queue[dict]):
@@ -76,7 +75,6 @@ class BaseElectronClient(ABC):
             else:
                 logger.debug(f"[{self.__class__.__name__}] Debugger detached, no active connections.")
 
-    @abstractmethod
     def handle_message(self, message: dict):
         """Handle platform-specific messages (abstract)"""
-        pass
+        raise NotImplementedError("Subclasses must implement handle_message()")

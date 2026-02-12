@@ -1,11 +1,12 @@
 import gzip
 import json
 import time
+from typing import Self
 
 import numpy as np
 import requests
 
-from akagi_ng.mjai_bot.engine.base import BaseEngine, get_current_options
+from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
 
 
@@ -30,28 +31,8 @@ class AkagiOTClient:
         self._circuit_open = False
         self._last_failure_time = 0
         self._circuit_recovery_period = 30.0  # 秒
-        self._failure_threshold = 3
+        self._failure_threshold = 3  # 次
         self._just_restored = False
-
-        # 启动背景连接预热
-        self._pre_warm_connection()
-
-    def _pre_warm_connection(self):
-        """发送一个轻量级的 OPTIONS 请求以预热 TCP/TLS 连接。"""
-        try:
-            import threading
-
-            def _warm():
-                try:
-                    # 使用 OPTIONS 或 HEAD 以最小化开销
-                    self.session.options(self.url, timeout=2.0)
-                    logger.info(f"AkagiOT: Connection pre-warmed for {self.url}")
-                except Exception:
-                    pass
-
-            threading.Thread(target=_warm, daemon=True).start()
-        except Exception as e:
-            logger.warning(f"AkagiOT: Pre-warm failed: {e}")
 
     def predict(self, is_3p: bool, obs: list, masks: list) -> dict:
         # 熔断器检查
@@ -108,12 +89,16 @@ class AkagiOTClient:
 
 
 class AkagiOTEngine(BaseEngine):
-    def __init__(self, is_3p: bool, url: str, api_key: str):
+    def __init__(self, is_3p: bool, client: AkagiOTClient):
         super().__init__(is_3p=is_3p, version=4, name="AkagiOT", is_oracle=False)
-        self.client = AkagiOTClient(url, api_key)
+        self.client = client
 
         self.is_online = True
         self.engine_type = "akagiot"
+
+    def fork(self) -> Self:
+        """创建共享 Client 但状态独立的副本"""
+        return AkagiOTEngine(self.is_3p, self.client)
 
     def get_notification_flags(self) -> dict[str, bool]:
         """返回 AkagiOT 引擎的通知标志。"""
@@ -135,35 +120,28 @@ class AkagiOTEngine(BaseEngine):
         self,
         obs: np.ndarray,
         masks: np.ndarray,
-        invisible_obs: np.ndarray,
-        options: dict | None = None,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         """
         执行在线推理。发生的异常（如连通性问题、超时、熔断）
         将抛回给 EngineProvider 进行回退处理。
         """
+        if is_sync is None:
+            is_sync = self.is_sync
+
         # 确保输入为 numpy 数组
         obs = np.asanyarray(obs)
         masks = np.asanyarray(masks)
-
-        options = options or get_current_options()
-        is_sync = options.get("is_sync", False)
 
         # 如果处于显式同步模式，执行极速快进（跳过网络请求）
         if is_sync:
             return self._sync_fast_forward(masks)
 
-        list_obs = [o.tolist() for o in obs]
-        list_masks = [m.tolist() for m in masks]
+        list_obs = obs.tolist()
+        list_masks = masks.tolist()
 
         r_json = self.client.predict(self.is_3p, list_obs, list_masks)
-
-        self.last_inference_result = {
-            "actions": r_json["actions"],
-            "q_out": r_json["q_out"],
-            "masks": r_json["masks"],
-            "is_greedy": r_json["is_greedy"],
-        }
 
         # 推理成功后，重置恢复标志（避免在 getter 中产生副作用）
         self.client._just_restored = False

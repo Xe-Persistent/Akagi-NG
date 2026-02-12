@@ -1,77 +1,66 @@
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
+from typing import Self
 
 import numpy as np
 import torch
 from torch.distributions import Categorical, Normal
 
 from akagi_ng.core.constants import ModelConstants
-from akagi_ng.mjai_bot.engine.base import BaseEngine, get_current_options
+from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
 
 
+@dataclass
+class MortalModelResource:
+    """
+    持有 Mortal 模型核心资源的容器。
+    这些资源在多个 Bot 实例间共享，以减少显存占用。
+    Warmup 也在资源加载阶段完成。
+    """
+
+    brain: torch.nn.Module
+    dqn: torch.nn.Module
+    version: int
+    device: torch.device
+    stochastic_latent: bool
+    boltzmann_epsilon: float
+    boltzmann_temp: float
+    top_p: float
+    engine_name: str
+    enable_amp: bool
+
+
 class MortalEngine(BaseEngine):
-    def __init__(  # noqa: PLR0913
-        self,
-        brain: torch.nn.Module,
-        dqn: torch.nn.Module,
-        version: int,
-        is_oracle: bool = False,
-        device: torch.device | None = None,
-        stochastic_latent: bool = False,
-        name: str = "NoName",
-        boltzmann_epsilon: float = 0,
-        boltzmann_temp: float = 1,
-        top_p: float = 1,
-        is_3p: bool = False,
-    ):
-        super().__init__(is_3p=is_3p, version=version, name=name, is_oracle=is_oracle)
-
+    def __init__(self, resource: MortalModelResource, is_3p: bool):
+        super().__init__(is_3p=is_3p, version=resource.version, name=resource.engine_name, is_oracle=False)
+        self.resource = resource
         self.engine_type = "mortal"
-        self.device = device or get_inference_device()
-        self.brain = brain.to(self.device).eval()
-        self.dqn = dqn.to(self.device).eval()
+        self.device = resource.device
 
-        self.stochastic_latent = stochastic_latent
+    @property
+    def enable_amp(self) -> bool:
+        return self.resource.enable_amp
 
-        self.boltzmann_epsilon = boltzmann_epsilon
-        self.boltzmann_temp = boltzmann_temp
-        self.top_p = top_p
-
-    def warmup(self):
-        """执行一次 dummy 推理以预热 CUDA/CPU 内核，消除首个真实请求的卡顿。"""
-        try:
-            # 动态检测模型输入维度
-            # Brain.encoder.net[0] 是第一个 Conv1d 层
-            in_channels = self.brain.encoder.net[0].in_channels
-            action_space = self.dqn.action_space
-
-            # 构造最小规模的有效观测
-            # 观测维由 Brain.encoder 决定，通常是 (B, C, 34)
-            obs = np.zeros((1, in_channels, 34), dtype=np.float32)
-            masks = np.ones((1, action_space), dtype=bool)
-            invisible_obs = np.zeros((1, in_channels, 34), dtype=np.float32)
-
-            logger.debug(f"MortalEngine ({self.name}): Warming up engine with shape (1, {in_channels}, 34)...")
-            self.react_batch(obs, masks, invisible_obs)
-            logger.info(f"MortalEngine ({self.name}): Warmup completed.")
-        except Exception as e:
-            logger.warning(f"MortalEngine warmup failed: {e}")
+    def fork(self) -> Self:
+        """创建共享模型资源的副本"""
+        return MortalEngine(self.resource, self.is_3p)
 
     def react_batch(
         self,
         obs: np.ndarray,
         masks: np.ndarray,
-        invisible_obs: np.ndarray,
-        options: dict | None = None,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
+        if is_sync is None:
+            is_sync = self.is_sync
+
         # 确保输入为 numpy 数组
         obs = np.asanyarray(obs)
         masks = np.asanyarray(masks)
-
-        options = options or get_current_options()
-        is_sync = options.get("is_sync", False)
 
         # 如果处于显式同步模式，执行极速快进（跳过神经网络）
         if is_sync:
@@ -79,7 +68,7 @@ class MortalEngine(BaseEngine):
 
         try:
             with (
-                torch.autocast(self.device.type, enabled=False),
+                torch.autocast(self.device.type, enabled=self.enable_amp),
                 torch.inference_mode(),
             ):
                 return self._react_batch(obs, masks, invisible_obs)
@@ -89,30 +78,35 @@ class MortalEngine(BaseEngine):
     def _react_batch(
         self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
-        obs_t = torch.as_tensor(np.stack(obs, axis=0), device=self.device)
-        masks_t = torch.as_tensor(np.stack(masks, axis=0), device=self.device)
-        inv_obs_t = (
-            torch.as_tensor(np.stack(invisible_obs, axis=0), device=self.device) if invisible_obs is not None else None
-        )
+        # 使用 resource 中的对象
+        brain = self.resource.brain
+        dqn = self.resource.dqn
+        version = self.resource.version
+        stochastic_latent = self.resource.stochastic_latent
+        boltzmann_epsilon = self.resource.boltzmann_epsilon
+        boltzmann_temp = self.resource.boltzmann_temp
+        top_p = self.resource.top_p
+
+        obs_t = torch.as_tensor(obs, device=self.device)
+        masks_t = torch.as_tensor(masks, device=self.device)
+        inv_obs_t = torch.as_tensor(invisible_obs, device=self.device) if invisible_obs is not None else None
         batch_size = obs_t.shape[0]
         q_out = None
-        match self.version:
+        match version:
             case ModelConstants.MODEL_VERSION_1:
-                mu, logsig = self.brain(obs_t, inv_obs_t)
-                latent = Normal(mu, logsig.exp() + 1e-6).sample() if self.stochastic_latent else mu
-                q_out = self.dqn(latent, masks_t)
+                mu, logsig = brain(obs_t, inv_obs_t)
+                latent = Normal(mu, logsig.exp() + 1e-6).sample() if stochastic_latent else mu
+                q_out = dqn(latent, masks_t)
             case ModelConstants.MODEL_VERSION_2 | ModelConstants.MODEL_VERSION_3 | ModelConstants.MODEL_VERSION_4:
-                phi = self.brain(obs_t)
-                q_out = self.dqn(phi, masks_t)
+                phi = brain(obs_t)
+                q_out = dqn(phi, masks_t)
             case _:
-                raise ValueError(f"Unsupported Mortal version: {self.version}")
+                raise ValueError(f"Unsupported Mortal version: {version}")
 
-        if self.boltzmann_epsilon > 0:
-            is_greedy = (
-                torch.full((batch_size,), 1 - self.boltzmann_epsilon, device=self.device).bernoulli().to(torch.bool)
-            )
-            logits = (q_out / self.boltzmann_temp).masked_fill(~masks_t, -torch.inf)
-            sampled = _sample_top_p(logits, self.top_p)
+        if boltzmann_epsilon > 0:
+            is_greedy = torch.full((batch_size,), 1 - boltzmann_epsilon, device=self.device).bernoulli().to(torch.bool)
+            logits = (q_out / boltzmann_temp).masked_fill(~masks_t, -torch.inf)
+            sampled = _sample_top_p(logits, top_p)
             actions = torch.where(is_greedy, q_out.argmax(-1), sampled)
         else:
             is_greedy = torch.ones(batch_size, dtype=torch.bool, device=self.device)
@@ -122,13 +116,6 @@ class MortalEngine(BaseEngine):
         result_q_out = q_out.tolist()
         result_masks = masks_t.tolist()
         result_is_greedy = is_greedy.tolist()
-
-        self.last_inference_result = {
-            "actions": result_actions,
-            "q_out": result_q_out,
-            "masks": result_masks,
-            "is_greedy": result_is_greedy,
-        }
 
         return result_actions, result_q_out, result_masks, result_is_greedy
 
@@ -146,21 +133,20 @@ def _sample_top_p(logits: torch.Tensor, p: float) -> torch.Tensor:
     return probs_idx.gather(-1, probs_sort.multinomial(1)).squeeze(-1)
 
 
-def load_local_mortal_engine(
+def load_mortal_resource(
     model_path: Path,
     consts: ModuleType,
     is_3p: bool = False,
-) -> MortalEngine | None:
+) -> MortalModelResource | None:
     """
-    加载本地 Mortal 模型并返回 MortalEngine。
-    如果文件未找到或加载失败则返回 None。
+    加载本地 Mortal 模型并返回资源对象。
     """
-
     if not model_path.exists():
         return None
 
     try:
-        state = torch.load(model_path, map_location=get_inference_device(), weights_only=False)
+        device = get_inference_device()
+        state = torch.load(model_path, map_location=device, weights_only=False)
 
         # 提取配置版本
         cfg = state["config"]
@@ -194,18 +180,26 @@ def load_local_mortal_engine(
         mortal.load_state_dict(state["mortal"])
         dqn.load_state_dict(state[dqn_key])
 
-        engine = MortalEngine(
-            mortal,
-            dqn,
-            is_oracle=False,
+        # 转移到设备
+        mortal = mortal.to(device)
+        dqn = dqn.to(device)
+
+        resource = MortalModelResource(
+            brain=mortal,
+            dqn=dqn,
             version=control_version,
-            name=engine_name,
-            is_3p=is_3p,
+            device=device,
+            stochastic_latent=False,  # Default
+            boltzmann_epsilon=0,  # Default
+            boltzmann_temp=1,  # Default
+            top_p=1,  # Default
+            engine_name=engine_name,
+            enable_amp=False,  # Default
         )
-        engine.warmup()
-        logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) model loaded successfully.")
-        return engine
+
+        logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) resource loaded successfully.")
+        return resource
 
     except Exception as e:
-        logger.error(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) model: {e}")
+        logger.error(f"Failed to load local Mortal ({'3P' if is_3p else '4P'}) resource: {e}")
         return None

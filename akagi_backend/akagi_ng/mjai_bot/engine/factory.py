@@ -1,21 +1,22 @@
 import threading
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 
 from akagi_ng.core.paths import get_models_dir
 from akagi_ng.core.protocols import Bot
-from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTEngine
+from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTClient, AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
-from akagi_ng.mjai_bot.engine.mortal import load_local_mortal_engine
+from akagi_ng.mjai_bot.engine.mortal import MortalEngine, MortalModelResource, load_mortal_resource
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.settings import local_settings
 
-# 全局引擎缓存
-_ENGINE_CACHE: dict[tuple[Any, ...], BaseEngine] = {}
+# 资源缓存
+# Key: (is_3p, server_url) for Network / (model_path) for Model
+_RESOURCE_CACHE: dict[Any, Any] = {}
 _CACHE_LOCK = threading.Lock()
 
 
@@ -29,12 +30,15 @@ class NullEngine(BaseEngine):
         super().__init__(is_3p=is_3p, version=4, name="NullEngine", is_oracle=False)
         self.engine_type = "null"
 
+    def fork(self) -> Self:
+        return NullEngine(self.is_3p)
+
     def react_batch(
         self,
         obs: np.ndarray,
         masks: np.ndarray,
-        invisible_obs: np.ndarray,
-        options: dict | None = None,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         # 使用基类的 _sync_fast_forward 返回第一个合法动作
         return self._sync_fast_forward(np.asanyarray(masks))
@@ -43,8 +47,7 @@ class NullEngine(BaseEngine):
 class LazyLocalEngine(BaseEngine):
     """
     轻量级延迟加载引擎。
-    仅在第一次调用 react_batch 时加载真实的本地模型。
-    如果加载失败，回退到 NullEngine 而非抛出异常。
+    仅在第一次调用 react_batch 时从全局缓存加载资源并创建 MortalEngine。
     """
 
     def __init__(self, model_path: Path, consts: ModuleType, is_3p: bool):
@@ -55,14 +58,20 @@ class LazyLocalEngine(BaseEngine):
         self._real_engine: BaseEngine | None = None
         self._load_failed = False
 
+    def fork(self) -> Self:
+        return LazyLocalEngine(self.model_path, self.consts, self.is_3p)
+
     def _ensure_engine(self) -> BaseEngine:
         if self._real_engine is None and not self._load_failed:
-            logger.info("LazyLocalEngine: Loading real model from disk...")
-            self._real_engine = load_local_mortal_engine(self.model_path, self.consts, self.is_3p)
-            if not self._real_engine:
+            # 尝试从全局资源缓存获取或加载
+            resource = _get_or_load_model_resource(self.model_path, self.consts, self.is_3p)
+
+            if resource:
+                self._real_engine = MortalEngine(resource, self.is_3p)
+            else:
                 logger.error(f"Failed to load local model at {self.model_path}. Using NullEngine as fallback.")
                 self._load_failed = True
-                self.engine_type = "null"  # 同步更新引擎类型，以便 Provider 判断
+                self.engine_type = "null"
                 self._real_engine = NullEngine(self.is_3p)
 
         return self._real_engine
@@ -71,13 +80,11 @@ class LazyLocalEngine(BaseEngine):
         self,
         obs: np.ndarray,
         masks: np.ndarray,
-        invisible_obs: np.ndarray,
-        options: dict | None = None,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         real_engine = self._ensure_engine()
-        res = real_engine.react_batch(obs, masks, invisible_obs, options=options)
-        self.last_inference_result = real_engine.last_inference_result
-        return res
+        return real_engine.react_batch(obs, masks, invisible_obs, is_sync=is_sync)
 
     def get_additional_meta(self) -> dict[str, Any]:
         if self._real_engine is None:
@@ -88,6 +95,30 @@ class LazyLocalEngine(BaseEngine):
         if self._real_engine is None:
             return {}
         return self._real_engine.get_notification_flags()
+
+
+def _get_or_load_model_resource(model_path: Path, consts: ModuleType, is_3p: bool) -> MortalModelResource | None:
+    """Helper to manage ModelResource cache"""
+    cache_key = f"model:{model_path}"
+    with _CACHE_LOCK:
+        if cache_key not in _RESOURCE_CACHE:
+            logger.info("Factory: Loading model resource from disk...")
+            resource = load_mortal_resource(model_path, consts, is_3p)
+            if resource:
+                _RESOURCE_CACHE[cache_key] = resource
+            else:
+                return None
+        return _RESOURCE_CACHE[cache_key]
+
+
+def _get_or_create_ot_client(url: str, api_key: str) -> AkagiOTClient:
+    """Helper to manage AkagiOTClient cache"""
+    cache_key = f"network:{url}"
+    with _CACHE_LOCK:
+        if cache_key not in _RESOURCE_CACHE:
+            logger.debug(f"Factory: Creating new AkagiOTClient for {url}")
+            _RESOURCE_CACHE[cache_key] = AkagiOTClient(url, api_key)
+        return _RESOURCE_CACHE[cache_key]
 
 
 def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
@@ -104,26 +135,18 @@ def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
     consts = libriichi.consts
     model_path = get_models_dir() / model_filename
 
-    # 构造 Provider
-    with _CACHE_LOCK:
-        cache_key = (is_3p, local_settings.ot.online, local_settings.ot.server)
-        if cache_key not in _ENGINE_CACHE:
-            local_engine = LazyLocalEngine(model_path, consts, is_3p)
+    # 1. 准备 Lazy Local Engine (持有资源引用，按需加载)
+    local_engine = LazyLocalEngine(model_path, consts, is_3p)
 
-            online_engine = None
-            if local_settings.ot.online:
-                online_engine = AkagiOTEngine(
-                    is_3p=is_3p, url=local_settings.ot.server, api_key=local_settings.ot.api_key
-                )
+    # 2. 准备 Online Engine (如果启用)
+    online_engine = None
+    if local_settings.ot.online:
+        client = _get_or_create_ot_client(local_settings.ot.server, local_settings.ot.api_key)
+        # 创建全新的 Engine 实例，共享 client
+        online_engine = AkagiOTEngine(is_3p, client)
 
-            # 使用 EngineProvider 汇总
-            provider = EngineProvider(online_engine, local_engine, is_3p)
-            _ENGINE_CACHE[cache_key] = provider
+    # 3. 组装 Provider (全新的实例)
+    provider = EngineProvider(online_engine, local_engine, is_3p)
 
-        engine = _ENGINE_CACHE[cache_key]
-
-    # 清理旧的局状态信息
-    engine.last_inference_result = None
-
-    bot = libriichi.mjai.Bot(engine, seat)
-    return bot, engine
+    bot = libriichi.mjai.Bot(provider, seat)
+    return bot, provider

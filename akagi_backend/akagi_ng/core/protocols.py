@@ -1,9 +1,74 @@
-"""项目协议定义。
+from typing import Any, Protocol, Self, TypedDict
 
-集中定义所有协议接口，供类型检查和依赖注入使用。
-"""
+import numpy as np
 
-from typing import Protocol
+
+class MjaiMetadata(TypedDict, total=False):
+    """MJAI 协议响应中的元数据字段 (meta)。"""
+
+    # 核心推理预测
+    q_values: list[float]
+    mask_bits: int
+    is_greedy: bool
+    batch_size: int
+    eval_time_ns: int
+
+    # C++ 注入数据 (来自 libriichi)
+    shanten: int
+    at_furiten: bool
+
+    # 业务层注入数据
+    engine_type: str
+    fallback_used: bool
+    circuit_open: bool
+    game_start: bool
+
+    # 嵌套前瞻结果
+    riichi_lookahead: Self
+
+
+class EngineProtocol(Protocol):
+    """引擎协议接口。"""
+
+    is_3p: bool
+    version: int
+    name: str
+    is_oracle: bool
+
+    @property
+    def enable_quick_eval(self) -> bool: ...
+
+    @property
+    def enable_rule_based_agari_guard(self) -> bool: ...
+
+    @property
+    def enable_amp(self) -> bool: ...
+
+    def reset_status(self) -> None:
+        """重置引擎状态（如回退标志）。"""
+        ...
+
+    def fork(self) -> Self:
+        """创建引擎副本。"""
+        ...
+
+    def react_batch(
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
+        """批量处理。"""
+        ...
+
+    def get_notification_flags(self) -> dict[str, Any]:
+        """获取通知标志。"""
+        ...
+
+    def get_additional_meta(self) -> dict[str, Any]:
+        """获取附加元数据。"""
+        ...
 
 
 class Bot(Protocol):

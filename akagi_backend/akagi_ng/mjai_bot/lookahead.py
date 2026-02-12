@@ -1,6 +1,6 @@
 import json
 
-from akagi_ng.mjai_bot.engine.base import BaseEngine, InferenceResult
+from akagi_ng.core.protocols import EngineProtocol, MjaiMetadata
 from akagi_ng.mjai_bot.logger import logger
 
 
@@ -11,7 +11,7 @@ class LookaheadBot:
     并对候选切牌进行模拟推理。
     """
 
-    def __init__(self, engine: BaseEngine, player_id: int, is_3p: bool = False):
+    def __init__(self, engine: EngineProtocol, player_id: int, is_3p: bool = False):
         self.engine = engine
         self.player_id = player_id
         self.is_3p = is_3p
@@ -21,8 +21,9 @@ class LookaheadBot:
         history_events: list[dict],
         candidate_event: dict,
         game_start_event: dict | None = None,
-    ) -> InferenceResult | None:
+    ) -> MjaiMetadata | None:
         """
+        模拟立直后的行为（一发/自摸等）。
         在当前状态下模拟 Reach, 并返回 meta 数据(含 q_values/mask_bits)。
 
         Args:
@@ -74,12 +75,14 @@ class LookaheadBot:
 
             if response_json:
                 response = json.loads(response_json)
-                meta = response.get("meta", {})
+                meta: MjaiMetadata = response.get("meta", {})
                 if "mask_bits" in meta:
                     return meta
 
                 # 如果仍然缺少，可能是 engine 本身的问题，但 ReplayEngine 架构已尽力保证环境一致性
-                logger.warning("LookaheadBot: ReplayEngine returned meta without mask_bits")
+                logger.warning(
+                    f"LookaheadBot: ReplayEngine returned meta without mask_bits. Raw response: {response_json}"
+                )
 
         except Exception as e:
             logger.error(f"LookaheadBot: sim_bot.react failed: {e}")

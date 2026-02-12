@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 
@@ -29,32 +29,47 @@ class EngineProvider(BaseEngine):
         self,
         obs: np.ndarray,
         masks: np.ndarray,
-        invisible_obs: np.ndarray,
-        options: dict | None = None,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         """
         核心调度逻辑：
         1. 尝试在线引擎。
         2. 如果在线引擎不可用或抛出异常，自动回退到本地引擎。
         """
-        self.fallback_active = False
+        if is_sync is None:
+            is_sync = self.is_sync
 
         # 1. 尝试在线引擎 (如果配置了且没有处于熔断状态 - 熔断逻辑由 OTEngine 内部维护)
         if self.online_engine:
             try:
-                res = self.online_engine.react_batch(obs, masks, invisible_obs, options=options)
+                res = self.online_engine.react_batch(obs, masks, invisible_obs, is_sync=is_sync)
                 self.active_engine = self.online_engine
-                self.last_inference_result = self.online_engine.last_inference_result
+
+                self.fallback_active = False
+
                 return res
             except Exception as e:
-                logger.warning(f"EngineProvider: Online engine failed ({e}). Falling back to local.")
                 self.fallback_active = True
+                logger.warning(f"EngineProvider: Online engine failed ({e}). Falling back to local.")
 
         # 2. 本地引擎作为最终保底
         self.active_engine = self.local_engine
-        res = self.local_engine.react_batch(obs, masks, invisible_obs, options=options)
-        self.last_inference_result = self.local_engine.last_inference_result
-        return res
+
+        return self.local_engine.react_batch(obs, masks, invisible_obs, is_sync=is_sync)
+
+    def fork(self) -> Self:
+        """创建 Provider 无状态副本，同时 Fork 内部引擎"""
+        online_fork = self.online_engine.fork() if self.online_engine else None
+        local_fork = self.local_engine.fork()
+        provider_fork = EngineProvider(online_fork, local_fork, self.is_3p)
+
+        # 复制回退状态，确保 Fork 后的引擎行为一致
+        provider_fork.fallback_active = self.fallback_active
+        if self.fallback_active:
+            provider_fork.active_engine = provider_fork.local_engine
+
+        return provider_fork
 
     def get_notification_flags(self) -> dict[str, Any]:
         """聚合所有受管引擎的通知标志"""

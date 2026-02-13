@@ -1,4 +1,6 @@
-from akagi_ng.bridge.types import (
+from akagi_ng.schema.notifications import NotificationCode
+from akagi_ng.schema.types import (
+    AkagiEvent,
     AnkanEvent,
     ChiEvent,
     DahaiEvent,
@@ -7,7 +9,6 @@ from akagi_ng.bridge.types import (
     EndGameEvent,
     EndKyokuEvent,
     KakanEvent,
-    MJAIEvent,
     NukidoraEvent,
     PonEvent,
     ReachAcceptedEvent,
@@ -17,7 +18,6 @@ from akagi_ng.bridge.types import (
     SystemEvent,
     TsumoEvent,
 )
-from akagi_ng.core.notification_codes import NotificationCode
 
 
 class BaseBridge:
@@ -37,7 +37,7 @@ class BaseBridge:
         """
         pass
 
-    def parse(self, content: bytes) -> None | list[MJAIEvent]:
+    def parse(self, content: bytes) -> None | list[AkagiEvent]:
         """
         解析平台消息并返回 MJAI 指令列表。
 
@@ -51,9 +51,9 @@ class BaseBridge:
 
     # ===== MJAI 消息构建器 =====
 
-    def make_start_game(self, seat: int | None = None) -> StartGameEvent:
+    def make_start_game(self, seat: int, is_3p: bool) -> StartGameEvent:
         """构建 start_game（游戏开始）消息"""
-        return {"type": "start_game", "id": seat if seat is not None else self.seat}
+        return {"type": "start_game", "id": seat, "is_3p": is_3p}
 
     def make_start_kyoku(  # noqa: PLR0913
         self,
@@ -65,7 +65,6 @@ class BaseBridge:
         dora_marker: str,
         scores: list[int],
         tehais: list[list[str]],
-        is_3p: bool,
     ) -> StartKyokuEvent:
         """构建 start_kyoku（本局开始）消息"""
         msg: StartKyokuEvent = {
@@ -78,7 +77,6 @@ class BaseBridge:
             "oya": oya,
             "scores": scores,
             "tehais": tehais,
-            "is_3p": is_3p,
         }
         return msg
 

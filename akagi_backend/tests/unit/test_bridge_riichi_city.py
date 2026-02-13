@@ -5,7 +5,7 @@ import pytest
 
 from akagi_ng.bridge.riichi_city.bridge import RCMessage
 from akagi_ng.bridge.riichi_city.consts import RCAction
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.constants import MahjongConstants
 
 
 @pytest.fixture
@@ -219,7 +219,9 @@ def test_handle_game_start_4p(bridge) -> None:
     msg = RCMessage(1, 2, data)
     res = bridge._handle_game_start(msg)
     assert res[0]["type"] == "start_game"
+    assert res[0]["is_3p"] is False
     assert res[1]["type"] == "start_kyoku"
+    assert "is_3p" not in res[1]
     assert bridge.game_status.seat == 1
 
 
@@ -361,6 +363,7 @@ def test_handle_reconnect_real_data(bridge):
     assert start_kyoku["honba"] == 3
     # Scores should be rotated: [UserB, UserC, UserD, UserA] -> [42600, 15000, 22000, 20400]
     assert start_kyoku["scores"] == [42600, 15000, 22000, 20400]
+    assert "is_3p" not in start_kyoku
 
     # Verify my hand cards
     my_tehai = start_kyoku["tehais"][2]

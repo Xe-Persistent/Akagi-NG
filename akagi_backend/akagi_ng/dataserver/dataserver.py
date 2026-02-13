@@ -7,6 +7,7 @@ from aiohttp import web
 from akagi_ng.dataserver.api import cors_middleware, setup_routes
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.dataserver.sse import SSEManager
+from akagi_ng.schema.types import FullRecommendationData, Notification
 from akagi_ng.settings import local_settings
 
 
@@ -25,7 +26,7 @@ class DataServer(threading.Thread):
         """代理到 SSEManager"""
         self.sse_manager.broadcast_event(event, data)
 
-    def send_recommendations(self, recommendations_data: dict):
+    def send_recommendations(self, recommendations_data: FullRecommendationData):
         """广播推荐数据"""
         # 过滤空推荐以避免干扰
         if not recommendations_data.get("recommendations"):
@@ -35,7 +36,7 @@ class DataServer(threading.Thread):
     def update_system_error(self, error_code: str, details: str = ""):
         self.send_notifications([{"code": error_code, "msg": details}])
 
-    def send_notifications(self, notifications: list[dict]):
+    def send_notifications(self, notifications: list[Notification]):
         """
         使用 'notification' 事件广播通知列表。
         """

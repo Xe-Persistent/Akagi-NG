@@ -8,6 +8,9 @@ import requests
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.constants import ModelConstants
+from akagi_ng.schema.notifications import NotificationCode
 
 
 class AkagiOTClient:
@@ -34,12 +37,13 @@ class AkagiOTClient:
         self._failure_threshold = 3  # 次
         self._just_restored = False
 
-    def predict(self, is_3p: bool, obs: list, masks: list) -> dict:
+    def predict(self, is_3p: bool, obs: list, masks: list, status: BotStatusContext) -> dict:
         # 熔断器检查
         if self._circuit_open:
             if time.time() - self._last_failure_time > self._circuit_recovery_period:
                 self._close_circuit()
             else:
+                status.set_flag(NotificationCode.RECONNECTING)
                 raise RuntimeError("AkagiOT Circuit Breaker is OPEN. Skipping request.")
 
         # 准备请求负载
@@ -56,61 +60,72 @@ class AkagiOTClient:
 
             # 请求成功时重置熔断器
             if self._failures > 0:
-                self._reset_breaker()
+                self._reset_breaker(status)
 
-            return response.json()
+            r_json = response.json()
+
+            # [NEW] 协议适配：验证返回维度。
+            # 如果是 3P 请求但服务器返回了 46 维（常见于旧版模型分片），进行针对性裁剪。
+            expected_dims = ModelConstants.ACTION_DIMS_3P if is_3p else ModelConstants.ACTION_DIMS_4P
+            if r_json.get("q_out"):
+                actual_dims = len(r_json["q_out"][0])
+                if actual_dims != expected_dims:
+                    if is_3p and actual_dims == ModelConstants.ACTION_DIMS_4P:
+                        logger.warning(
+                            "[AkagiOT] Server protocol violation: 3P requested but 46 dims returned. "
+                            "Truncating to 44 dims."
+                        )
+                        # 仅保留前 44 维 (Mortal 3P 动作空间)
+                        r_json["q_out"] = [q[: ModelConstants.ACTION_DIMS_3P] for q in r_json["q_out"]]
+                        r_json["masks"] = [m[: ModelConstants.ACTION_DIMS_3P] for m in r_json["masks"]]
+                    else:
+                        logger.error(
+                            f"[AkagiOT] Unexpected dimension mismatch: expected {expected_dims}, got {actual_dims}"
+                        )
+
+            return r_json
 
         except requests.RequestException as e:
-            self._record_failure()
+            self._record_failure(status)
             logger.error(f"AkagiOT Request Failed: {e}")
             raise RuntimeError(f"AkagiOT request failed: {e}") from e
 
-    def _record_failure(self):
+    def _record_failure(self, status: BotStatusContext):
         if self._failures < self._failure_threshold:
             self._failures += 1
         self._last_failure_time = time.time()
         if self._failures >= self._failure_threshold:
-            self._open_circuit()
+            self._open_circuit(status)
 
-    def _open_circuit(self):
+    def _open_circuit(self, status: BotStatusContext):
         if not self._circuit_open:
             logger.warning(f"AkagiOT Circuit Breaker OPENED after {self._failures} failures.")
             self._circuit_open = True
+            status.set_flag(NotificationCode.RECONNECTING)
 
     def _close_circuit(self):
         logger.info("AkagiOT Circuit Breaker HALF-OPEN. Probing connection...")
         self._circuit_open = False
 
-    def _reset_breaker(self):
+    def _reset_breaker(self, status: BotStatusContext):
         logger.info("AkagiOT Circuit Breaker CLOSED. Connection restored, service fully operational.")
         self._failures = 0
         self._circuit_open = False
+        status.set_flag(NotificationCode.SERVICE_RESTORED)
         self._just_restored = True
 
 
 class AkagiOTEngine(BaseEngine):
-    def __init__(self, is_3p: bool, client: AkagiOTClient):
-        super().__init__(is_3p=is_3p, version=4, name="AkagiOT", is_oracle=False)
+    def __init__(self, status: BotStatusContext, is_3p: bool, client: AkagiOTClient):
+        super().__init__(status=status, is_3p=is_3p, version=4, name="AkagiOT", is_oracle=False)
         self.client = client
 
         self.is_online = True
         self.engine_type = "akagiot"
 
-    def fork(self) -> Self:
+    def fork(self, status: BotStatusContext | None = None) -> Self:
         """创建共享 Client 但状态独立的副本"""
-        return AkagiOTEngine(self.is_3p, self.client)
-
-    def get_notification_flags(self) -> dict[str, bool]:
-        """返回 AkagiOT 引擎的通知标志。"""
-        flags: dict[str, bool] = {}
-        if self.client._circuit_open:
-            flags["circuit_open"] = True
-        if self.client._just_restored:
-            flags["circuit_restored"] = True
-        return flags
-
-    def get_additional_meta(self) -> dict[str, object]:
-        return {"circuit_open": self.client._circuit_open}
+        return AkagiOTEngine(status or self.status, self.is_3p, self.client)
 
     @property
     def enable_rule_based_agari_guard(self) -> bool:
@@ -141,7 +156,16 @@ class AkagiOTEngine(BaseEngine):
         list_obs = obs.tolist()
         list_masks = masks.tolist()
 
-        r_json = self.client.predict(self.is_3p, list_obs, list_masks)
+        if self.client._circuit_open:
+            self.status.set_metadata(NotificationCode.RECONNECTING, True)
+        self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.engine_type)
+
+        r_json = self.client.predict(self.is_3p, list_obs, list_masks, self.status)
+
+        expected_dims = ModelConstants.ACTION_DIMS_3P if self.is_3p else ModelConstants.ACTION_DIMS_4P
+        actual_dims = len(r_json["q_out"][0])
+        if actual_dims != expected_dims:
+            raise RuntimeError(f"Engine output dimension mismatch: expected {expected_dims}, got {actual_dims}")
 
         # 推理成功后，重置恢复标志（避免在 getter 中产生副作用）
         self.client._just_restored = False

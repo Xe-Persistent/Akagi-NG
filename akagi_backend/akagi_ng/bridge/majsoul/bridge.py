@@ -8,9 +8,9 @@ from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
-from akagi_ng.bridge.types import MJAIEvent
-from akagi_ng.core import NotificationCode
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.constants import MahjongConstants
+from akagi_ng.schema.notifications import NotificationCode
+from akagi_ng.schema.types import AkagiEvent, MJAIEvent
 
 
 class MajsoulBridge(BaseBridge):
@@ -41,7 +41,7 @@ class MajsoulBridge(BaseBridge):
     def reset(self):
         self._init_state()
 
-    def parse(self, content: bytes) -> None | list[MJAIEvent]:
+    def parse(self, content: bytes) -> list[AkagiEvent] | None:
         """解析内容并返回 MJAI 指令。
 
         Args:
@@ -60,10 +60,14 @@ class MajsoulBridge(BaseBridge):
     def _parse_sync_game(self, liqi_message: dict) -> list[MJAIEvent]:
         """处理游戏同步消息（重连后的同步）"""
         self.syncing = True
+
+        # 预扫描模式
+        self._pre_scan_mode_from_sync_msg(liqi_message)
+
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
         parsed_list: list[MJAIEvent] = [self.make_system_event(code=NotificationCode.GAME_SYNCING)]
 
-        snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
+        _, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
         for i, msg in enumerate(action_msgs):
             parsed = self.parse_liqi(msg)
@@ -75,48 +79,43 @@ class MajsoulBridge(BaseBridge):
                         event["sync"] = True
                 parsed_list.extend(parsed)
 
-        has_start_kyoku = any(evt.get("type") == "start_kyoku" for evt in parsed_list)
-
-        if not has_start_kyoku and snapshot_msg:
-            logger.info("start_kyoku missing (ActionNewRound missing or failed), recovering from snapshot.")
-            start_kyoku_and_tsumo = self._handle_sync_game_snapshot(snapshot_msg)
-            if start_kyoku_and_tsumo:
-                # snapshot 恢复的事件全部打上 sync 标签，除非后面没有任何 action_msgs
-                should_sync_snapshot = len(action_msgs) > 0
-                for event in start_kyoku_and_tsumo:
-                    if should_sync_snapshot:
-                        event["sync"] = True
-                parsed_list[1:1] = start_kyoku_and_tsumo
-
         self.syncing = False
         return parsed_list if len(parsed_list) >= 1 else []
 
     def _parse_enter_game(self, liqi_message: dict) -> list[MJAIEvent]:
-        """处理进入对局消息（首次连接，无需同步）
+        """处理进入对局消息（首次连接，无需同步）"""
+        self.syncing = False
 
-        首次进入对局时，服务器只会发送当前局的开局信息（ActionNewRound），
-        不存在需要快进的历史事件，因此所有事件都直接触发推荐，无需 sync 标记。
-        """
-        self.syncing = False  # 首次进入，非同步模式
+        # 预扫描模式
+        self._pre_scan_mode_from_sync_msg(liqi_message)
+
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
         parsed_list: list[MJAIEvent] = []
 
-        snapshot_msg, action_msgs = self._analyze_sync_game(sync_game_msgs)
+        _, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
         for msg in action_msgs:
             parsed = self.parse_liqi(msg)
             if parsed:
                 parsed_list.extend(parsed)
 
-        has_start_kyoku = any(evt.get("type") == "start_kyoku" for evt in parsed_list)
-
-        if not has_start_kyoku and snapshot_msg:
-            logger.info("start_kyoku missing (ActionNewRound missing or failed), recovering from snapshot.")
-            start_kyoku_and_tsumo = self._handle_sync_game_snapshot(snapshot_msg)
-            if start_kyoku_and_tsumo:
-                parsed_list[0:0] = start_kyoku_and_tsumo  # 插入到开头
-
         return parsed_list if len(parsed_list) >= 1 else []
+
+    def _pre_scan_mode_from_sync_msg(self, msg_dict: dict) -> None:
+        """从同步/进入房间消息中预扫描游戏模式"""
+        try:
+            data = msg_dict.get("data", {})
+            restore = data.get("gameRestore")
+            if not restore:
+                return
+            snapshot = restore.get("snapshot")
+            if not snapshot:
+                return
+            players = snapshot.get("players", [])
+            self.is_3p = len(players) == MahjongConstants.SEATS_3P
+            logger.debug(f"[Majsoul] Pre-scanned mode from snapshot: is_3p={self.is_3p}")
+        except Exception as e:
+            logger.warning(f"Failed to pre-scan mode from sync msg: {e}")
 
     def _parse_sync_game_raw(self, msg_dict: dict) -> list[dict]:
         """从后端同步字典中解析出原始消息列表"""
@@ -163,112 +162,6 @@ class MajsoulBridge(BaseBridge):
             action_msgs.append(msg)
         return snapshot_msg, action_msgs
 
-    def _handle_sync_game_snapshot(self, snapshot_msg: dict) -> list[MJAIEvent]:
-        """从 syncGame 的 snapshot 中恢复 start_kyoku"""
-        try:
-            snapshot = snapshot_msg.get("snapshot")
-            if not snapshot:
-                return []
-
-            # 1. 基础信息 & 3人麻将检测
-            players = snapshot.get("players", [])
-            if len(players) == MahjongConstants.SEATS_3P:
-                self.is_3p = True
-
-            # 2. 提取各项数据
-            scores = self._extract_snapshot_scores(players)
-            self.doras = self._extract_snapshot_dora(snapshot)
-            dora_marker = self.doras[0] if self.doras else "?"
-
-            tehais, self.my_tehais, self.my_tsumohai = self._extract_snapshot_hands(snapshot)
-
-            # 3. 构造 start_kyoku
-            bakaze = ["E", "S", "W", "N"][snapshot.get("chang", 0)]
-            oya = snapshot.get("ju", 0)
-            start_kyoku = self.make_start_kyoku(
-                bakaze=bakaze,
-                kyoku=oya + 1,
-                honba=snapshot.get("ben", 0),
-                kyotaku=0,  # 默认为 0
-                oya=oya,
-                dora_marker=dora_marker,
-                scores=scores,
-                tehais=tehais,
-                is_3p=self.is_3p,
-            )
-
-            ret: list[MJAIEvent] = []
-            if start_kyoku:
-                ret.append(start_kyoku)
-
-            # 4. 补充 tsumo 事件
-            if self.my_tsumohai:
-                ret.append(self.make_tsumo(self.seat, self.my_tsumohai))
-
-            return ret
-
-        except Exception as e:
-            logger.error(f"Failed to recover from snapshot: {e}")
-            import traceback
-
-            logger.error(traceback.format_exc())
-            return []
-
-    def _extract_snapshot_scores(self, players: list[dict]) -> list[int]:
-        """提取并初始化分数"""
-        scores = [35000, 35000, 35000, 0] if self.is_3p else [25000] * 4
-
-        for i, p in enumerate(players):
-            if i < MahjongConstants.SEATS_4P:
-                score = p.get("score")
-                if score is not None:
-                    scores[i] = score
-
-        if self.is_3p:
-            scores[3] = 0
-
-        return scores
-
-    def _extract_snapshot_dora(self, snapshot: dict) -> list[str]:
-        """提取宝牌指示牌"""
-        doras_list = snapshot.get("doras", [])
-        if doras_list:
-            return [MS_TILE_2_MJAI_TILE.get(doras_list[0], "?")]
-        return []
-
-    def _extract_snapshot_hands(self, snapshot: dict) -> tuple[list[list[str]], list[str], str | None]:
-        """提取手牌信息
-
-        Returns:
-            tuple: (tehais_display, my_tehais, my_tsumohai)
-        """
-        tehais = [["?"] * MahjongConstants.TEHAI_SIZE for _ in range(MahjongConstants.SEATS_4P)]
-        my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
-        my_tsumohai = None
-
-        players = snapshot.get("players", [])
-
-        if not players or self.seat < 0 or self.seat >= len(players):
-            logger.warning(f"Snapshot players list invalid or seat {self.seat} out of bounds")
-            return tehais, my_tehais, my_tsumohai
-
-        player_data = players[self.seat]
-        hands = player_data.get("hands", [])
-
-        if len(hands) >= MahjongConstants.TEHAI_SIZE:
-            my_hand_tiles = [MS_TILE_2_MJAI_TILE.get(t, "?") for t in hands]
-
-            # 判断是否包含自摸牌 (14张)
-            if len(my_hand_tiles) == MahjongConstants.TSUMO_TEHAI_SIZE:
-                my_tsumohai = my_hand_tiles[-1]
-                my_tehais = sorted(my_hand_tiles[:-1], key=cmp_to_key(compare_pai))
-            else:
-                my_tehais = sorted(my_hand_tiles, key=cmp_to_key(compare_pai))
-
-            tehais[self.seat] = list(my_tehais)
-
-        return tehais, my_tehais, my_tsumohai
-
     def _parse_auth_game_req(self, liqi_message: dict) -> list[MJAIEvent]:
         """处理游戏认证请求"""
         self.reset()
@@ -285,7 +178,7 @@ class MajsoulBridge(BaseBridge):
 
         seat_list = liqi_message["data"]["seatList"]
         self.seat = seat_list.index(self.accountId)
-        return [self.make_start_game()]
+        return [self.make_start_game(self.seat, is_3p=self.is_3p)]
 
     def _setup_new_round_tehais(self, tiles: list[str]) -> tuple[list[list[str]], list[str], str | None]:
         """初始化新一局的手牌
@@ -349,7 +242,6 @@ class MajsoulBridge(BaseBridge):
                 dora_marker=dora_marker,
                 scores=scores,
                 tehais=tehais,
-                is_3p=self.is_3p,
             )
         )
 

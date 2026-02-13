@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 import requests
 
-from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTEngine
+from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTClient, AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
+from akagi_ng.mjai_bot.status import BotStatusContext
 
 type InferenceResult = tuple[list[int], list[list[float]], list[list[bool]], list[bool]]
 
@@ -16,13 +17,13 @@ class MockFallbackEngine(BaseEngine):
     使用现代语法的模拟本地引擎。
     """
 
-    def __init__(self) -> None:
-        super().__init__(is_3p=False, version=1, name="MockFallback", is_oracle=False)
+    def __init__(self, status: BotStatusContext) -> None:
+        super().__init__(status=status, is_3p=False, version=1, name="MockFallback", is_oracle=False)
         self.call_count: int = 0
         self.engine_type: str = "mortal"
 
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray | None, options: dict | None = None
+        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray | None, is_sync: bool | None = None
     ) -> InferenceResult:
         self.call_count += 1
         batch_size = obs.shape[0]
@@ -36,17 +37,19 @@ class MockFallbackEngine(BaseEngine):
 
 @pytest.fixture
 def fallback_engine() -> MockFallbackEngine:
-    return MockFallbackEngine()
+    return MockFallbackEngine(BotStatusContext())
 
 
 @pytest.fixture
 def ot_engine() -> AkagiOTEngine:
-    return AkagiOTEngine(is_3p=False, url="http://fake-server", api_key="fake-key")
+    status = BotStatusContext()
+    client = AkagiOTClient(url="http://fake-server", api_key="fake-key")
+    return AkagiOTEngine(status=status, is_3p=False, client=client)
 
 
 @pytest.fixture
 def engine_provider(ot_engine: AkagiOTEngine, fallback_engine: MockFallbackEngine) -> EngineProvider:
-    return EngineProvider(ot_engine, fallback_engine, is_3p=False)
+    return EngineProvider(ot_engine.status, ot_engine, fallback_engine, is_3p=False)
 
 
 @pytest.fixture
@@ -102,7 +105,7 @@ def test_circuit_breaker_complete_flow(
             mock_resp.status_code = 200
             mock_resp.json.return_value = {
                 "actions": [5],
-                "q_out": [[0.8] * 54],
+                "q_out": [[0.8] * 46],
                 "masks": [masks[0].tolist()],
                 "is_greedy": [True],
             }

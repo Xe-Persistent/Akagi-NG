@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.electron_client.majsoul import MajsoulElectronClient
+from akagi_ng.schema.notifications import NotificationCode
 
 # ... (fixture mock_majsoul_bridge remains same, but imports are now sorted)
 

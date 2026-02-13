@@ -3,10 +3,17 @@ import queue
 from akagi_ng.bridge.tenhou.bridge import TenhouBridge
 from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
+from akagi_ng.schema.types import (
+    ElectronMessage,
+    MJAIEvent,
+    WebSocketClosedMessage,
+    WebSocketCreatedMessage,
+    WebSocketFrameMessage,
+)
 
 
 class TenhouElectronClient(BaseElectronClient):
-    def __init__(self, shared_queue: queue.Queue[dict]):
+    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = TenhouBridge()
@@ -17,7 +24,7 @@ class TenhouElectronClient(BaseElectronClient):
     WS_TEXT = 1
     WS_BINARY = 2
 
-    def handle_message(self, message: dict):
+    def handle_message(self, message: ElectronMessage):
         match message.get("type"):
             case "websocket_created":
                 self._handle_websocket_created(message)
@@ -26,14 +33,14 @@ class TenhouElectronClient(BaseElectronClient):
             case "websocket":
                 self._handle_websocket_frame(message)
 
-    def _handle_websocket_created(self, message: dict):
+    def _handle_websocket_created(self, message: WebSocketCreatedMessage):
         url = message.get("url", "")
         # Only track Tenhou related WebSockets
         if "tenhou.net" in url or "nodocchi" in url:
             with self._lock:
                 self._active_connections += 1
                 if self._active_connections == 1:
-                    from akagi_ng.core import NotificationCode
+                    from akagi_ng.schema.notifications import NotificationCode
 
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
                     logger.info(f"[Electron] Tenhou client connected (first connection): {url}")
@@ -41,7 +48,7 @@ class TenhouElectronClient(BaseElectronClient):
             if self.bridge:
                 self.bridge.reset()
 
-    def _handle_websocket_closed(self, message: dict):
+    def _handle_websocket_closed(self, message: WebSocketClosedMessage):
         with self._lock:
             if self._active_connections <= 0:
                 logger.warning("[Electron] Unexpected Tenhou websocket close event with no active connections")
@@ -51,7 +58,7 @@ class TenhouElectronClient(BaseElectronClient):
             if self._active_connections == 0:
                 # Determine if we should send GAME_DISCONNECTED
                 # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message.
-                from akagi_ng.core import NotificationCode
+                from akagi_ng.schema.notifications import NotificationCode
 
                 game_ended = getattr(self.bridge, "game_ended", False) if self.bridge else False
 
@@ -65,7 +72,7 @@ class TenhouElectronClient(BaseElectronClient):
                         "[Electron] All Tenhou connections closed after game end, suppressing GAME_DISCONNECTED."
                     )
 
-    def _handle_websocket_frame(self, message: dict):
+    def _handle_websocket_frame(self, message: WebSocketFrameMessage):
         if not self.bridge:
             return
 
@@ -104,7 +111,7 @@ class TenhouElectronClient(BaseElectronClient):
 
                     # Check for game end to trigger notification
                     if msg.get("type") == "end_game":
-                        from akagi_ng.core import NotificationCode
+                        from akagi_ng.schema.notifications import NotificationCode
 
                         logger.info("[Electron] Detected end_game message in Tenhou, sending RETURN_LOBBY")
                         self.message_queue.put({"type": "system_event", "code": NotificationCode.RETURN_LOBBY})

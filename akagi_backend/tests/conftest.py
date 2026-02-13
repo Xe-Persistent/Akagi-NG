@@ -23,6 +23,7 @@ def sample_start_game_message():
     return {
         "type": "start_game",
         "id": 0,
+        "is_3p": False,
     }
 
 
@@ -95,6 +96,7 @@ def amatsuki_bridge(sample_tehai_strs):
     bridge.desk_id = 123
     bridge.game_status = MagicMock()
     bridge.game_status.tehai = sample_tehai_strs
+    bridge.game_status.is_3p = False
     return bridge
 
 
@@ -109,6 +111,7 @@ def riichi_city_bridge():
     bridge.game_status.player_list = [1000, 1001, 1002, 1003]  # User at index 1
     bridge.game_status.seat = 1
     bridge.game_status.last_dahai_actor = 0
+    bridge.game_status.is_3p = False
     return bridge
 
 
@@ -119,4 +122,5 @@ def tenhou_bridge(sample_tehai_indices):
     bridge.state = MagicMock()
     bridge.state.seat = 0
     bridge.state.hand = sample_tehai_indices
+    bridge.state.is_3p = False
     return bridge

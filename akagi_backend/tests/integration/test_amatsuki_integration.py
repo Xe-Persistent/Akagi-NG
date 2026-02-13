@@ -116,6 +116,9 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
 
     # 发送 tsumo 给 controller，期望获得 mock 引擎的响应
     res = integration_controller.react(events[0])
+    print(f"DEBUG: Controller response: {res}")
+    if integration_controller.bot:
+        print(f"DEBUG: Bot is_3p: {integration_controller.bot.is_3p}")
     # Mock engine 默认返回 type: none，但会包含 meta
     assert res["type"] == "none"
     assert "meta" in res

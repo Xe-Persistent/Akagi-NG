@@ -49,6 +49,10 @@ class ModelConstants:
     MODEL_VERSION_3 = 3
     MODEL_VERSION_4 = 4
 
+    # 动作空间维度
+    ACTION_DIMS_3P = 44  # 三麻动作空间维度
+    ACTION_DIMS_4P = 46  # 四麻动作空间维度
+
 
 class ServerConstants:
     """服务器和网络相关常量"""

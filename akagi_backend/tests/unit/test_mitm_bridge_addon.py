@@ -9,8 +9,8 @@ from akagi_ng.bridge import (
     RiichiCityBridge,
     TenhouBridge,
 )
-from akagi_ng.core.constants import Platform
 from akagi_ng.mitm_client.bridge_addon import BridgeAddon
+from akagi_ng.schema.constants import Platform
 
 
 @pytest.fixture

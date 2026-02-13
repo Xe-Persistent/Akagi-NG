@@ -4,38 +4,40 @@ import threading
 
 from akagi_ng.core import (
     AppContext,
-    MessageSource,
-    NotificationHandler,
-    NotificationSource,
     configure_logging,
     get_app_context,
     logger,
     set_app_context,
 )
-from akagi_ng.core.constants import ServerConstants
 from akagi_ng.dataserver import DataServer
 from akagi_ng.dataserver.adapter import build_dataserver_payload
 from akagi_ng.mitm_client import MitmClient
 from akagi_ng.mjai_bot import Controller, StateTrackerBot
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.constants import ServerConstants
+from akagi_ng.schema.protocols import (
+    BotProtocol,
+    ControllerProtocol,
+    MessageSource,
+)
+from akagi_ng.schema.types import (
+    MJAIEvent,
+    MJAIResponse,
+    Notification,
+    ProcessResult,
+)
 from akagi_ng.settings import local_settings as loaded_settings
 
 logger = logger.bind(module="akagi")
-
-
-def _get_notification_flags(source: NotificationSource | object) -> dict[str, bool]:
-    """从任何实现 NotificationSource 协议的对象获取通知标志。
-
-    使用 getattr 而非 isinstance 检查以确保与 mock 对象的兼容性。
-    """
-    return getattr(source, "notification_flags", {}) or {}
 
 
 class AkagiApp:
     def __init__(self):
         self._stop_event = threading.Event()
         self.ds: DataServer | None = None
+        self.status: BotStatusContext | None = None
         self.frontend_url = ""
-        self.message_queue: queue.Queue[dict] = queue.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
+        self.message_queue: queue.Queue[MJAIEvent] = queue.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
 
     def initialize(self):
         import importlib
@@ -54,12 +56,14 @@ class AkagiApp:
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        mjai_bot, mjai_controller = None, None
+        mjai_bot: StateTrackerBot | None = None
+        mjai_controller: Controller | None = None
         try:
             importlib.import_module("akagi_ng.core.lib_loader")
-            from akagi_ng.mjai_bot import Controller, StateTrackerBot
-
-            mjai_bot, mjai_controller = StateTrackerBot(), Controller()
+            status = BotStatusContext()
+            self.status = status
+            mjai_controller = Controller(status=status)
+            mjai_bot = StateTrackerBot(status=status)
             logger.info("Bot components loaded successfully.")
         except ImportError as e:
             logger.error(f"Failed to load bot components or native library: {e}")
@@ -109,11 +113,11 @@ class AkagiApp:
 
     def _handle_message_logic(
         self,
-        msg: dict,
-        batch_notifications: list[dict],
-        bot: StateTrackerBot | None,
-        controller: Controller | None,
-        mjai_responses: list[dict],
+        msg: MJAIEvent,
+        batch_notifications: list[Notification],
+        bot: BotProtocol | None,
+        controller: ControllerProtocol | None,
+        mjai_responses: list[MJAIResponse],
     ) -> bool:
         """统一处理消息分发的 match-case 逻辑。
 
@@ -129,50 +133,26 @@ class AkagiApp:
                 self.stop()
                 return True
             case "system_event":
-                if n := NotificationHandler.from_message(msg):
-                    batch_notifications.append(n)
+                if code := msg.get("code"):
+                    batch_notifications.append({"code": code})
                 return True
 
-        # 2. 业务通知类消息 (即便不是 system_event 也可能包含有效通知)
-        if n := NotificationHandler.from_message(msg):
-            batch_notifications.append(n)
+        # 2. 业务通知类消息 (直接处理来自 Bridge 的动态通知)
+        if msg_type != "system_event" and (code := msg.get("code")):
+            batch_notifications.append({"code": code})
 
         # 3. 游戏业务分发
-        # Controller 响应消息
-        self._collect_controller_response(msg, controller, mjai_responses, batch_notifications)
-        # Bot 更新状态
-        self._update_bot_state(msg, bot, batch_notifications)
+        if controller and (resp := controller.react(msg)):
+            mjai_responses.append(resp)
+
+        if bot:
+            bot.react(msg)
 
         return False
 
-    def _collect_controller_response(
-        self, msg: dict, controller: Controller | None, mjai_responses: list[dict], batch_notifications: list[dict]
-    ) -> None:
-        """收集 Controller 的响应和通知"""
-        if not controller:
-            return
-
-        if resp := controller.react(msg):
-            mjai_responses.append(resp)
-            # 立即采集 Controller 产生的标志 (如模型加载)
-            flags = _get_notification_flags(controller)
-            if flags:
-                batch_notifications.extend(NotificationHandler.from_flags(flags))
-
-    def _update_bot_state(self, msg: dict, bot: StateTrackerBot | None, batch_notifications: list[dict]) -> None:
-        """更新 Bot 状态并收集通知"""
-        if not bot:
-            return
-
-        bot.react(msg)
-        # 立即采集 Bot 产生的标志
-        flags = _get_notification_flags(bot)
-        if flags:
-            batch_notifications.extend(NotificationHandler.from_flags(flags))
-
     def _process_message_batch(
-        self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
-    ) -> tuple[list[dict], list[dict]]:
+        self, mjai_msgs: list[MJAIEvent], bot: BotProtocol | None, controller: ControllerProtocol | None
+    ) -> tuple[list[MJAIResponse], list[Notification]]:
         """
         处理一批 MJAI 消息
 
@@ -180,13 +160,20 @@ class AkagiApp:
         Controller 基于当前状态做决策，如果 Bot 先更新状态
         Controller 将基于"未来"状态而非当前事件做出响应
         """
-        mjai_responses: list[dict] = []
-        batch_notifications: list[dict] = []
+        mjai_responses: list[MJAIResponse] = []
+        batch_notifications: list[Notification] = []
 
         for msg in mjai_msgs:
             try:
                 if self._handle_message_logic(msg, batch_notifications, bot, controller, mjai_responses):
                     continue
+
+                # 每一条消息处理后，统一从 Context 中采集当前累积的标志
+                if self.status:
+                    flags = self.status.flags
+                    if flags:
+                        batch_notifications.extend([{"code": code} for code, is_active in flags.items() if is_active])
+                        self.status.clear_flags()
 
             except (ValueError, KeyError, TypeError) as e:
                 logger.error(f"Invalid MJAI message format: {msg}, error: {e}")
@@ -195,7 +182,7 @@ class AkagiApp:
 
         return mjai_responses, batch_notifications
 
-    def _get_next_message(self, timeout: float = ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS) -> dict | None:
+    def _get_next_message(self, timeout: float = ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS) -> MJAIEvent | None:
         """
         从事件队列获取下一条消息(阻塞、100ms超时)
         如果超时或队列为空则返回 None
@@ -208,8 +195,8 @@ class AkagiApp:
             return None
 
     def _process_events(
-        self, mjai_msgs: list[dict], bot: StateTrackerBot | None, controller: Controller | None
-    ) -> dict:
+        self, mjai_msgs: list[MJAIEvent], bot: BotProtocol | None, controller: ControllerProtocol | None
+    ) -> ProcessResult:
         """
         处理 MJAI 消息批次
         这是 Reactor 模式的 PROCESS 阶段
@@ -226,13 +213,13 @@ class AkagiApp:
             "is_sync": any(msg.get("sync", False) for msg in mjai_msgs),
         }
 
-    def _emit_outputs(self, result: dict, bot: StateTrackerBot | None):
+    def _emit_outputs(self, result: ProcessResult, bot: BotProtocol | None):
         """
         将处理结果发送到 DataServer
         这是 Reactor 模式的 OUTPUT 阶段
         """
-        mjai_responses = result["mjai_responses"]
-        batch_notifications = result["batch_notifications"]
+        mjai_responses: list[MJAIResponse] = result["mjai_responses"]
+        batch_notifications: list[Notification] = result["batch_notifications"]
         is_sync = result.get("is_sync", False)
 
         # 1. Payload：使用最后一个有效响应
@@ -243,8 +230,8 @@ class AkagiApp:
         all_notifications = batch_notifications.copy()
 
         # 3. 检查响应中的错误
-        if error_notification := NotificationHandler.from_error_response(last_response):
-            all_notifications.append(error_notification)
+        if error_code := last_response.get("error"):
+            all_notifications.append({"code": error_code})
 
         if all_notifications:
             self.ds.send_notifications(all_notifications)

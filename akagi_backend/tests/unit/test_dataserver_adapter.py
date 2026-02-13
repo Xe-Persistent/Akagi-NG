@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.dataserver.adapter import (
     _attach_riichi_lookahead,
     _get_fuuro_details,
@@ -13,6 +12,7 @@ from akagi_ng.dataserver.adapter import (
     _process_standard_recommendations,
     build_dataserver_payload,
 )
+from akagi_ng.schema.constants import MahjongConstants
 
 
 @pytest.fixture

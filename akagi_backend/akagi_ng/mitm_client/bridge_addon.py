@@ -13,9 +13,10 @@ from akagi_ng.bridge import (
     RiichiCityBridge,
     TenhouBridge,
 )
-from akagi_ng.core import NotificationCode
-from akagi_ng.core.constants import Platform
 from akagi_ng.mitm_client.logger import logger
+from akagi_ng.schema.constants import Platform
+from akagi_ng.schema.notifications import NotificationCode
+from akagi_ng.schema.types import MJAIEvent
 from akagi_ng.settings import local_settings
 
 # Mapping of platforms to URL patterns for detection
@@ -28,7 +29,7 @@ PLATFORM_URL_PATTERNS = {
 
 
 class BridgeAddon:
-    def __init__(self, shared_queue: queue.Queue[dict]):
+    def __init__(self, shared_queue: queue.Queue[MJAIEvent]):
         self.active_majsoul_flow: mitmproxy.http.HTTPFlow | None = None
         # 共享的消息队列（事件驱动模式）
         self.mjai_messages = shared_queue
@@ -181,7 +182,7 @@ class BridgeAddon:
 
         # 只在所有连接都关闭时发送断线通知
         if all_connections_closed:
-            from akagi_ng.core import NotificationCode
+            from akagi_ng.schema.notifications import NotificationCode
 
             code = NotificationCode.RETURN_LOBBY if game_ended else NotificationCode.GAME_DISCONNECTED
             self.mjai_messages.put({"type": "system_event", "code": code})

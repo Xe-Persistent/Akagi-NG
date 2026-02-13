@@ -6,12 +6,17 @@ from typing import Any, Self
 import numpy as np
 
 from akagi_ng.core.paths import get_models_dir
-from akagi_ng.core.protocols import Bot
 from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTClient, AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
-from akagi_ng.mjai_bot.engine.mortal import MortalEngine, MortalModelResource, load_mortal_resource
+from akagi_ng.mjai_bot.engine.mortal import (
+    MortalEngine,
+    MortalModelResource,
+    load_mortal_resource,
+)
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.logger import logger
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.protocols import BotProtocol, EngineProtocol
 from akagi_ng.settings import local_settings
 
 # 资源缓存
@@ -26,12 +31,12 @@ class NullEngine(BaseEngine):
     返回第一个合法动作，并通过 notification_flags 告知前端引擎不可用。
     """
 
-    def __init__(self, is_3p: bool):
-        super().__init__(is_3p=is_3p, version=4, name="NullEngine", is_oracle=False)
+    def __init__(self, status: BotStatusContext, is_3p: bool):
+        super().__init__(status=status, is_3p=is_3p, version=4, name="NullEngine", is_oracle=False)
         self.engine_type = "null"
 
-    def fork(self) -> Self:
-        return NullEngine(self.is_3p)
+    def fork(self, status: BotStatusContext | None = None) -> Self:
+        return NullEngine(status or self.status, self.is_3p)
 
     def react_batch(
         self,
@@ -50,16 +55,16 @@ class LazyLocalEngine(BaseEngine):
     仅在第一次调用 react_batch 时从全局缓存加载资源并创建 MortalEngine。
     """
 
-    def __init__(self, model_path: Path, consts: ModuleType, is_3p: bool):
-        super().__init__(is_3p=is_3p, version=4, name="Mortal(Lazy)", is_oracle=False)
+    def __init__(self, status: BotStatusContext, model_path: Path, consts: ModuleType, is_3p: bool):
+        super().__init__(status=status, is_3p=is_3p, version=4, name="Mortal(Lazy)", is_oracle=False)
         self.model_path = model_path
         self.consts = consts
         self.engine_type = "mortal"
         self._real_engine: BaseEngine | None = None
         self._load_failed = False
 
-    def fork(self) -> Self:
-        return LazyLocalEngine(self.model_path, self.consts, self.is_3p)
+    def fork(self, status: BotStatusContext | None = None) -> Self:
+        return LazyLocalEngine(status or self.status, self.model_path, self.consts, self.is_3p)
 
     def _ensure_engine(self) -> BaseEngine:
         if self._real_engine is None and not self._load_failed:
@@ -67,12 +72,12 @@ class LazyLocalEngine(BaseEngine):
             resource = _get_or_load_model_resource(self.model_path, self.consts, self.is_3p)
 
             if resource:
-                self._real_engine = MortalEngine(resource, self.is_3p)
+                self._real_engine = MortalEngine(self.status, resource, self.is_3p)
             else:
                 logger.error(f"Failed to load local model at {self.model_path}. Using NullEngine as fallback.")
                 self._load_failed = True
                 self.engine_type = "null"
-                self._real_engine = NullEngine(self.is_3p)
+                self._real_engine = NullEngine(self.status, self.is_3p)
 
         return self._real_engine
 
@@ -85,16 +90,6 @@ class LazyLocalEngine(BaseEngine):
     ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         real_engine = self._ensure_engine()
         return real_engine.react_batch(obs, masks, invisible_obs, is_sync=is_sync)
-
-    def get_additional_meta(self) -> dict[str, Any]:
-        if self._real_engine is None:
-            return {}
-        return self._real_engine.get_additional_meta()
-
-    def get_notification_flags(self) -> dict[str, Any]:
-        if self._real_engine is None:
-            return {}
-        return self._real_engine.get_notification_flags()
 
 
 def _get_or_load_model_resource(model_path: Path, consts: ModuleType, is_3p: bool) -> MortalModelResource | None:
@@ -121,7 +116,9 @@ def _get_or_create_ot_client(url: str, api_key: str) -> AkagiOTClient:
         return _RESOURCE_CACHE[cache_key]
 
 
-def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
+def load_bot_and_engine(
+    status: BotStatusContext, player_id: int, is_3p: bool = False
+) -> tuple[BotProtocol, EngineProtocol]:
     """加载引擎的统一入口"""
     if is_3p:
         from akagi_ng.core.lib_loader import libriichi3p as libriichi
@@ -136,17 +133,21 @@ def load_bot_and_engine(seat: int, is_3p: bool) -> tuple[Bot, BaseEngine]:
     model_path = get_models_dir() / model_filename
 
     # 1. 准备 Lazy Local Engine (持有资源引用，按需加载)
-    local_engine = LazyLocalEngine(model_path, consts, is_3p)
+    local_engine = LazyLocalEngine(status, model_path, consts, is_3p)
 
     # 2. 准备 Online Engine (如果启用)
     online_engine = None
     if local_settings.ot.online:
         client = _get_or_create_ot_client(local_settings.ot.server, local_settings.ot.api_key)
         # 创建全新的 Engine 实例，共享 client
-        online_engine = AkagiOTEngine(is_3p, client)
+        online_engine = AkagiOTEngine(status, is_3p, client)
 
     # 3. 组装 Provider (全新的实例)
-    provider = EngineProvider(online_engine, local_engine, is_3p)
+    provider = EngineProvider(status, online_engine, local_engine, is_3p)
 
-    bot = libriichi.mjai.Bot(provider, seat)
+    bot = libriichi.mjai.Bot(provider, player_id)
+    # 注入 status 到 bot (对于 libriichi.mjai.Bot 可能需要手动注入或者它不关心但符合协议)
+    if hasattr(bot, "status"):
+        bot.status = status
+
     return bot, provider

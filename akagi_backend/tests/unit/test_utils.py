@@ -12,33 +12,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from akagi_ng.mjai_bot.utils import (
-    make_error_response,
     mask_unicode_3p,
     mask_unicode_4p,
     meta_to_recommend,
 )
-
-
-class TestMakeErrorResponse(unittest.TestCase):
-    """测试 make_error_response 函数"""
-
-    def test_basic_error_response(self):
-        """测试基本错误响应结构"""
-        result = make_error_response("test_error")
-        self.assertEqual(result["type"], "none")
-        self.assertEqual(result["error"], "test_error")
-
-    def test_json_decode_error(self):
-        """测试 JSON 解码错误响应"""
-        result = make_error_response("json_decode_error")
-        self.assertEqual(result["type"], "none")
-        self.assertEqual(result["error"], "json_decode_error")
-
-    def test_no_bot_loaded_error(self):
-        """测试无 Bot 加载错误响应"""
-        result = make_error_response("no_bot_loaded")
-        self.assertEqual(result["type"], "none")
-        self.assertEqual(result["error"], "no_bot_loaded")
 
 
 class TestMaskUnicode(unittest.TestCase):

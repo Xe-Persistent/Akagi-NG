@@ -1,30 +1,52 @@
-from typing import Any, Protocol, Self, TypedDict
+from typing import Protocol, Self
 
 import numpy as np
 
+from akagi_ng.schema.types import (
+    AkagiEvent,
+    ElectronMessage,
+    EngineAdditionalMeta,
+    EngineAdditionalMetaKey,
+    EngineType,
+    MJAIEvent,
+    MJAIResponse,
+    NotificationFlagKey,
+    NotificationFlags,
+)
 
-class MjaiMetadata(TypedDict, total=False):
-    """MJAI 协议响应中的元数据字段 (meta)。"""
 
-    # 核心推理预测
-    q_values: list[float]
-    mask_bits: int
-    is_greedy: bool
-    batch_size: int
-    eval_time_ns: int
+class BotStatusContext(Protocol):
+    """Bot 状态上下文协议。"""
 
-    # C++ 注入数据 (来自 libriichi)
-    shanten: int
-    at_furiten: bool
+    @property
+    def flags(self) -> NotificationFlags:
+        """获取所有标志位。"""
+        ...
 
-    # 业务层注入数据
-    engine_type: str
-    fallback_used: bool
-    circuit_open: bool
-    game_start: bool
+    @property
+    def metadata(self) -> EngineAdditionalMeta:
+        """获取所有元数据。"""
+        ...
 
-    # 嵌套前瞻结果
-    riichi_lookahead: Self
+    def set_flag(self, key: NotificationFlagKey, value: bool = True) -> None:
+        """设置通知标志位。"""
+        ...
+
+    def set_metadata(self, key: EngineAdditionalMetaKey, value: EngineType | bool) -> None:
+        """设置附加元数据。"""
+        ...
+
+    def clear_flags(self) -> None:
+        """清除所有通知标志位。"""
+        ...
+
+    def clear_metadata(self) -> None:
+        """清除所有附加元数据。"""
+        ...
+
+    def clear(self) -> None:
+        """重置所有状态。"""
+        ...
 
 
 class EngineProtocol(Protocol):
@@ -34,6 +56,7 @@ class EngineProtocol(Protocol):
     version: int
     name: str
     is_oracle: bool
+    status: BotStatusContext
 
     @property
     def enable_quick_eval(self) -> bool: ...
@@ -62,32 +85,14 @@ class EngineProtocol(Protocol):
         """批量处理。"""
         ...
 
-    def get_notification_flags(self) -> dict[str, Any]:
-        """获取通知标志。"""
-        ...
 
-    def get_additional_meta(self) -> dict[str, Any]:
-        """获取附加元数据。"""
-        ...
-
-
-class Bot(Protocol):
+class BotProtocol(Protocol):
     """MJAI Bot 协议接口。"""
 
-    def react(self, events: str) -> str:
-        """处理事件并返回响应。"""
-        ...
+    status: BotStatusContext
 
-
-class NotificationSource(Protocol):
-    """通知源协议接口。
-
-    实现此协议的类可以提供通知标志，用于前端 Toast/Alert 显示。
-    """
-
-    @property
-    def notification_flags(self) -> dict[str, bool]:
-        """返回当前的通知标志字典。"""
+    def react(self, event: MJAIEvent) -> MJAIResponse:
+        """处理单个事件并返回响应。"""
         ...
 
 
@@ -101,7 +106,7 @@ class GameBridge(Protocol):
         """重置桥接器状态。"""
         ...
 
-    def parse(self, content: bytes) -> list[dict] | None:
+    def parse(self, content: bytes) -> list[AkagiEvent] | None:
         """解析平台消息。"""
         ...
 
@@ -127,7 +132,7 @@ class ElectronClientProtocol(MessageSource, Protocol):
     除了基本的消息源功能外，还支持向客户端推送消息。
     """
 
-    def push_message(self, message: dict) -> None:
+    def push_message(self, message: ElectronMessage) -> None:
         """向客户端推送消息。"""
         ...
 
@@ -138,11 +143,6 @@ class ControllerProtocol(Protocol):
     负责管理 Bot 生命周期和事件分发。
     """
 
-    def react(self, input_event: dict) -> dict | None:
-        """响应 MJAI 事件。"""
-        ...
-
-    @property
-    def notification_flags(self) -> dict:
-        """获取通知标志。"""
+    def react(self, event: AkagiEvent) -> MJAIResponse:
+        """响应 MJAI 或 系统事件。"""
         ...

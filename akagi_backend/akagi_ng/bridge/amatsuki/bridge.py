@@ -12,8 +12,8 @@ from akagi_ng.bridge.amatsuki.consts import (
 )
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
-from akagi_ng.bridge.types import MJAIEvent
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.constants import MahjongConstants
+from akagi_ng.schema.types import AkagiEvent, MJAIEvent
 
 
 class STOMPFrame(StrEnum):
@@ -183,7 +183,7 @@ class AmatsukiBridge(BaseBridge):
         self.is_3p = False
         self.hand_ids = []
 
-    def parse(self, content: bytes) -> None | list[MJAIEvent]:
+    def parse(self, content: bytes) -> list[AkagiEvent] | None:
         """解析内容并返回 MJAI 指令。
 
         Args:
@@ -315,12 +315,11 @@ class AmatsukiBridge(BaseBridge):
             dora_marker=None,
             scores=player_points,
             tehais=tehais,
-            is_3p=self.is_3p,
         )
         self.temp_start_round = command
         if not self.game_started:
             self.game_started = True
-            return [self.make_start_game(self.seat)]
+            return [self.make_start_game(self.seat, is_3p=self.is_3p)]
         return None
 
     def _handle_sync_dora(self, stomp: STOMP) -> list[MJAIEvent] | None:

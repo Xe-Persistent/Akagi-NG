@@ -1,15 +1,20 @@
 import queue
 import threading
 
-from akagi_ng.core.protocols import GameBridge
 from akagi_ng.electron_client.logger import logger
+from akagi_ng.schema.protocols import GameBridge
+from akagi_ng.schema.types import (
+    DebuggerDetachedMessage,
+    ElectronMessage,
+    MJAIEvent,
+)
 
 
 class BaseElectronClient:
     bridge: GameBridge | None = None
 
-    def __init__(self, shared_queue: queue.Queue[dict]):
-        self.message_queue: queue.Queue[dict] = shared_queue
+    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
+        self.message_queue: queue.Queue[ElectronMessage | MJAIEvent] = shared_queue
         self.running = False
         self._active_connections = 0
         self._lock = threading.Lock()
@@ -28,7 +33,7 @@ class BaseElectronClient:
             self._active_connections = 0
             logger.info(f"{self.__class__.__name__} stopped.")
 
-    def push_message(self, message: dict):
+    def push_message(self, message: ElectronMessage):
         """
         Process an incoming message from the Electron ingest API.
         This provides a base implementation that handles common message types.
@@ -44,7 +49,7 @@ class BaseElectronClient:
         # Delegate all messages including websocket lifecycle to specialized handlers
         self.handle_message(message)
 
-    def _handle_debugger_detached(self, message: dict):
+    def _handle_debugger_detached(self, message: DebuggerDetachedMessage):
         """
         Handle the event when the Electron debugger detaches (e.g. window closed).
         This forces reset of connection counts and sends disconnect notifications.
@@ -57,7 +62,7 @@ class BaseElectronClient:
                 )
                 self._active_connections = 0
 
-                from akagi_ng.core import NotificationCode
+                from akagi_ng.schema.notifications import NotificationCode
 
                 # Determine if we should send GAME_DISCONNECTED
                 # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message,
@@ -75,6 +80,6 @@ class BaseElectronClient:
             else:
                 logger.debug(f"[{self.__class__.__name__}] Debugger detached, no active connections.")
 
-    def handle_message(self, message: dict):
+    def handle_message(self, message: ElectronMessage):
         """Handle platform-specific messages (abstract)"""
         raise NotImplementedError("Subclasses must implement handle_message()")

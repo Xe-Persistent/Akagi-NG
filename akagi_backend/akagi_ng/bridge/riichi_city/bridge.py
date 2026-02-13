@@ -3,8 +3,8 @@ import json
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.riichi_city.consts import CARD2MJAI, RCAction, RCProtocol
-from akagi_ng.bridge.types import MJAIEvent
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.constants import MahjongConstants
+from akagi_ng.schema.types import AkagiEvent, MJAIEvent
 
 
 class RCMessage:
@@ -27,7 +27,7 @@ class GameStatus:
 
         self.player_list: list[int] = []
         self.dora_markers: list[str] = []
-        self.accept_reach: dict | None = None
+        self.accept_reach: MJAIEvent | None = None
         self.game_start: bool = False
         self.shift: int = 0
         self.classify_id: int | None = None
@@ -98,14 +98,14 @@ class RiichiCityBridge(BaseBridge):
 
         return RCMessage(msg_id, msg_type, msg_data)
 
-    def parse(self, content: bytes) -> None | list[MJAIEvent]:
+    def parse(self, content: bytes) -> list[AkagiEvent] | None:
         """解析内容并返回 MJAI 指令。
 
         Args:
             content (bytes): 待解析的内容。
 
         Returns:
-            None | list[MJAIEvent]: MJAI 指令。
+            list[AkagiEvent] | None: MJAI 指令。
         """
 
         rc_msg = self.preprocess(content)
@@ -155,7 +155,7 @@ class RiichiCityBridge(BaseBridge):
         self._init_reconnect_seat(data)
 
         # 2. 生成 start_game
-        start_game = self.make_start_game(self.game_status.seat)
+        start_game = self.make_start_game(self.game_status.seat, is_3p=self.game_status.is_3p)
         start_game["sync"] = True
         mjai_msgs.append(start_game)
 
@@ -183,7 +183,6 @@ class RiichiCityBridge(BaseBridge):
             dora_marker=dora_marker,
             scores=scores,
             tehais=tehais,
-            is_3p=self.game_status.is_3p,
         )
         start_kyoku["sync"] = True
         mjai_msgs.append(start_kyoku)
@@ -255,7 +254,7 @@ class RiichiCityBridge(BaseBridge):
             position_at = self.game_status.player_list.index(self.uid)
             self.game_status.seat = position_at
             self.game_status.shift = rc_msg.msg_data["data"]["dealer_pos"]
-            mjai_msgs.append(self.make_start_game(position_at))
+            mjai_msgs.append(self.make_start_game(position_at, is_3p=self.game_status.is_3p))
             if self.game_status.is_3p:
                 self.game_status.player_list.append(-1)
             self.game_status.game_start = False
@@ -292,7 +291,6 @@ class RiichiCityBridge(BaseBridge):
                 dora_marker=dora_marker,
                 scores=scores,
                 tehais=tehais,
-                is_3p=self.game_status.is_3p,
             )
         )
         self.game_status.dora_markers = []

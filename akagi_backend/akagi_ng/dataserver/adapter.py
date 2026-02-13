@@ -1,9 +1,18 @@
 from typing import Literal
 
-from akagi_ng.core.constants import MahjongConstants
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.mjai_bot import StateTrackerBot
 from akagi_ng.mjai_bot.utils import meta_to_recommend
+from akagi_ng.schema.constants import MahjongConstants
+from akagi_ng.schema.notifications import NotificationCode
+from akagi_ng.schema.types import (
+    FullRecommendationData,
+    FuuroDetail,
+    MJAIMetadata,
+    MJAIResponse,
+    Recommendation,
+    SimCandidate,
+)
 from akagi_ng.settings import local_settings
 
 ChiType = Literal["chi_low", "chi_mid", "chi_high"]
@@ -12,12 +21,12 @@ FuuroAction = Literal["chi_low", "chi_mid", "chi_high", "pon", "kan"]
 
 def _handle_chi_fuuro(
     bot: StateTrackerBot, last_kawa: str | None, chi_type: ChiType | None = None
-) -> list[dict[str, object]]:
+) -> list[FuuroDetail]:
     """处理吃的副露详情，支持根据位置（左、中、右）过滤"""
     if not last_kawa:
         return []
 
-    results = []
+    results: list[FuuroDetail] = []
     try:
         candidates = bot.find_chi_candidates()
         for cand in candidates:
@@ -53,12 +62,12 @@ def _handle_chi_fuuro(
     return results
 
 
-def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
+def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[FuuroDetail]:
     """处理碰的副露详情"""
     if not last_kawa:
         return []
 
-    results = []
+    results: list[FuuroDetail] = []
     try:
         candidates = bot.find_pon_candidates()
         if candidates:
@@ -72,9 +81,9 @@ def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
     return results
 
 
-def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[str, object]]:
+def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[FuuroDetail]:
     """处理杠的副露详情(大明杠/暗杠/加杠)"""
-    results = []
+    results: list[FuuroDetail] = []
 
     try:
         # 优先级1: 大明杠
@@ -100,7 +109,7 @@ def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[dict[
     return results
 
 
-def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[dict[str, object]]:
+def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[FuuroDetail]:
     """
     获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。
     使用 mjai.Bot 原生方法而非手动逻辑。
@@ -119,7 +128,7 @@ def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[dict[s
     return []
 
 
-def _handle_hora_action(base_item: dict[str, object], bot: StateTrackerBot):
+def _handle_hora_action(base_item: Recommendation, bot: StateTrackerBot):
     """处理和牌(hora)动作的特殊逻辑"""
     if getattr(bot, "can_tsumo_agari", False):
         # 情况A: 自摸
@@ -137,9 +146,9 @@ def _handle_hora_action(base_item: dict[str, object], bot: StateTrackerBot):
             base_item["tile"] = last_kawa
 
 
-def _process_standard_recommendations(meta: dict[str, object], bot: StateTrackerBot) -> list[dict[str, object]]:
+def _process_standard_recommendations(meta: MJAIMetadata, bot: StateTrackerBot) -> list[Recommendation]:
     """处理标准推荐(q_values)"""
-    recommendations: list[dict[str, object]] = []
+    recommendations: list[Recommendation] = []
     if "q_values" not in meta or "mask_bits" not in meta:
         return recommendations
 
@@ -148,16 +157,16 @@ def _process_standard_recommendations(meta: dict[str, object], bot: StateTracker
         if action == "kan_select":
             action = "kan"
 
-        base_item: dict[str, object] = {
+        base_item: Recommendation = {
             "action": action,
-            "confidence": float(confidence),
+            "confidence": confidence,
         }
 
         if action.startswith("chi_"):
             base_item["action"] = "chi"
 
         # 获取副露详情
-        fuuro_details_list = _get_fuuro_details(action, bot)
+        fuuro_details_list: list[FuuroDetail] = _get_fuuro_details(action, bot)
 
         if fuuro_details_list:
             # 如果有具体详情(如多个杠),展开
@@ -178,7 +187,7 @@ def _process_standard_recommendations(meta: dict[str, object], bot: StateTracker
     return recommendations
 
 
-def _attach_riichi_lookahead(recommendations: list[dict[str, object]], meta: dict[str, object], bot: StateTrackerBot):
+def _attach_riichi_lookahead(recommendations: list[Recommendation], meta: MJAIMetadata, bot: StateTrackerBot):
     """为 reach 推荐附加立直前瞻候选"""
     riichi_lookahead = meta.get("riichi_lookahead")
     if not riichi_lookahead:
@@ -194,7 +203,7 @@ def _attach_riichi_lookahead(recommendations: list[dict[str, object]], meta: dic
             return
 
         valid_riichi_discards = getattr(bot, "discardable_tiles_riichi_declaration", None)
-        sim_candidates = []
+        sim_candidates: list[SimCandidate] = []
 
         for action, conf in lookahead_recs:
             if valid_riichi_discards and action not in valid_riichi_discards:
@@ -215,13 +224,13 @@ def _attach_riichi_lookahead(recommendations: list[dict[str, object]], meta: dic
         logger.warning(f"Error attaching riichi lookahead: {e}")
 
 
-def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTrackerBot) -> dict[str, object] | None:
+def build_dataserver_payload(mjai_response: MJAIResponse, bot: StateTrackerBot) -> FullRecommendationData | None:
     """构建发送到 DataServer 的 Payload"""
     try:
         if bot is None:
             return None
 
-        meta = mjai_response.get("meta")
+        meta: MJAIMetadata = mjai_response.get("meta")
         if not meta:
             return None
 
@@ -243,9 +252,9 @@ def build_dataserver_payload(mjai_response: dict[str, object], bot: StateTracker
 
         return {
             "recommendations": recommendations,
-            "engine_type": meta.get("engine_type"),
-            "fallback_used": meta.get("fallback_used"),
-            "circuit_open": meta.get("circuit_open"),
+            "engine_type": meta.get(NotificationCode.ENGINE_TYPE),
+            "fallback_used": meta.get(NotificationCode.FALLBACK_USED),
+            "circuit_open": meta.get(NotificationCode.RECONNECTING),
         }
 
     except Exception as e:

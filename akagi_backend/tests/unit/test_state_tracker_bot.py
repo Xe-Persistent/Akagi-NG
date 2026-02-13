@@ -1,5 +1,4 @@
 import importlib
-import json
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -21,10 +20,10 @@ class MockBot:
         self.player_id = 0
 
     def action_discard(self, tile):
-        return "{}"
+        return {}
 
     def action_nothing(self):
-        return "{}"
+        return {}
 
     def brief_info(self):
         return "mock info"
@@ -52,6 +51,8 @@ import akagi_ng.mjai_bot.bot
 
 importlib.reload(akagi_ng.mjai_bot.bot)
 from akagi_ng.mjai_bot.bot import StateTrackerBot
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.notifications import NotificationCode
 
 
 @pytest.fixture
@@ -61,7 +62,8 @@ def bot():
         patch("akagi_ng.mjai_bot.bot.calc_shanten") as MockShanten,
     ):
         MockShanten.return_value = 0
-        bot = StateTrackerBot()
+        status = BotStatusContext()
+        bot = StateTrackerBot(status=status)
         bot.player_state = MockPlayerState.return_value
         return bot
 
@@ -72,14 +74,16 @@ def test_initialization(bot):
 
 
 def test_react_start_game(bot):
-    event = {"type": "start_game", "id": 1}
+    event = {"type": "start_game", "id": 1, "is_3p": False}
     bot.react(event)
     assert bot.player_id == 1
     assert bot.is_3p is False
 
 
 def test_react_start_kyoku(bot):
-    event = {"type": "start_kyoku", "is_3p": True, "dora_marker": "1m"}
+    # is_3p 现在必须通过 start_game 设置
+    bot.react({"type": "start_game", "id": 0, "is_3p": True})
+    event = {"type": "start_kyoku", "dora_marker": "1m"}
     bot.react(event)
     assert bot.is_3p is True
 
@@ -131,8 +135,8 @@ def test_nukidora_3p(bot):
 
 def test_error_handling(bot):
     # 模拟 BaseException
-    with patch.object(bot, "think", side_effect=RuntimeError("test error")):
-        res_str = bot.react({"type": "none"})
-        res = json.loads(res_str)
+    with patch.object(bot.player_state, "update", side_effect=RuntimeError("test error")):
+        res = bot.react({"type": "none"})
         assert res["type"] == "none"
-        assert "error" in res
+        assert bot.status.flags.get(str(NotificationCode.STATE_TRACKER_ERROR)) is True
+        assert bot.status.flags.get(str(NotificationCode.BOT_RUNTIME_ERROR)) is None

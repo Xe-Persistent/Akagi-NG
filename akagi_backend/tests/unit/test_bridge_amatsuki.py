@@ -249,8 +249,10 @@ def test_handle_round_start_happy_path(bridge):
     assert bridge.seat == 0
     assert len(res) == 1
     assert res[0]["type"] == "start_game"
+    assert res[0]["is_3p"] is False
     assert bridge.temp_start_round is not None
     assert bridge.temp_start_round["type"] == "start_kyoku"
+    assert "is_3p" not in bridge.temp_start_round
 
 
 def test_bridge_reset(bridge):

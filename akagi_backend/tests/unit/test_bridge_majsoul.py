@@ -80,6 +80,7 @@ class TestMajsoulBridge(unittest.TestCase):
         self.assertTrue(self.bridge.is_3p)
         self.assertEqual(self.bridge.seat, 1)
         self.assertEqual(result[0]["type"], "start_game")
+        self.assertTrue(result[0]["is_3p"])
 
     # ========== start_kyoku 相关测试 ==========
 
@@ -128,6 +129,7 @@ class TestMajsoulBridge(unittest.TestCase):
         self.assertEqual(result[0]["oya"], 0)
         self.assertEqual(result[0]["dora_marker"], "1m")
         self.assertEqual(result[0]["scores"], [25000, 25000, 25000, 25000])
+        self.assertNotIn("is_3p", result[0])
 
     def test_action_new_round_with_14_tiles_includes_tsumo(self):
         """测试庄家开局 14 张牌时包含自摸事件"""

@@ -12,8 +12,8 @@ from akagi_ng.bridge.tenhou.utils.converter import (
 from akagi_ng.bridge.tenhou.utils.decoder import Meld, MeldType, parse_sc_tag
 from akagi_ng.bridge.tenhou.utils.judrdy import isrh
 from akagi_ng.bridge.tenhou.utils.state import State
-from akagi_ng.bridge.types import MJAIEvent, RyukyokuEvent
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.constants import MahjongConstants
+from akagi_ng.schema.types import AkagiEvent, MJAIEvent, RyukyokuEvent
 
 
 class TenhouBridge(BaseBridge):
@@ -36,7 +36,7 @@ class TenhouBridge(BaseBridge):
     def reset(self):
         self.state = State()
 
-    def parse(self, content: bytes) -> None | list[MJAIEvent]:
+    def parse(self, content: bytes) -> list[AkagiEvent] | None:
         """
         解析 Tenhou 消息并返回 MJAI 指令。
         """
@@ -122,7 +122,7 @@ class TenhouBridge(BaseBridge):
             f"Assigned internal seat {self.state.seat}"
         )
         logger.info(msg)
-        return [self.make_start_game(self.state.seat)]
+        return [self.make_start_game(self.state.seat, is_3p=self.state.is_3p)]
 
     def _convert_start_kyoku(self, message: dict) -> list[MJAIEvent] | None:
         self.state.hand = [int(s) for s in message["hai"].split(",")]
@@ -162,7 +162,6 @@ class TenhouBridge(BaseBridge):
                 dora_marker=dora_marker,
                 scores=scores,
                 tehais=tehais,
-                is_3p=self.state.is_3p,
             )
         ]
 

@@ -7,10 +7,11 @@ import numpy as np
 import torch
 from torch.distributions import Categorical, Normal
 
-from akagi_ng.core.constants import ModelConstants
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.constants import ModelConstants
 
 
 @dataclass
@@ -34,8 +35,14 @@ class MortalModelResource:
 
 
 class MortalEngine(BaseEngine):
-    def __init__(self, resource: MortalModelResource, is_3p: bool):
-        super().__init__(is_3p=is_3p, version=resource.version, name=resource.engine_name, is_oracle=False)
+    def __init__(self, status: BotStatusContext, resource: MortalModelResource, is_3p: bool):
+        super().__init__(
+            status=status,
+            is_3p=is_3p,
+            version=resource.version,
+            name=resource.engine_name,
+            is_oracle=False,
+        )
         self.resource = resource
         self.engine_type = "mortal"
         self.device = resource.device
@@ -44,9 +51,9 @@ class MortalEngine(BaseEngine):
     def enable_amp(self) -> bool:
         return self.resource.enable_amp
 
-    def fork(self) -> Self:
+    def fork(self, status: BotStatusContext | None = None) -> Self:
         """创建共享模型资源的副本"""
-        return MortalEngine(self.resource, self.is_3p)
+        return MortalEngine(status or self.status, self.resource, self.is_3p)
 
     def react_batch(
         self,
@@ -67,6 +74,7 @@ class MortalEngine(BaseEngine):
             return self._sync_fast_forward(masks)
 
         try:
+            self.status.set_metadata("engine_type", self.engine_type)
             with (
                 torch.autocast(self.device.type, enabled=self.enable_amp),
                 torch.inference_mode(),
@@ -112,12 +120,12 @@ class MortalEngine(BaseEngine):
             is_greedy = torch.ones(batch_size, dtype=torch.bool, device=self.device)
             actions = q_out.argmax(-1)
 
-        result_actions = actions.tolist()
-        result_q_out = q_out.tolist()
-        result_masks = masks_t.tolist()
-        result_is_greedy = is_greedy.tolist()
+        # 最终完整性断言：确保模型输出维度严格符合 3P/4P 模式 (44/46)
+        expected_dims = ModelConstants.ACTION_DIMS_3P if self.is_3p else ModelConstants.ACTION_DIMS_4P
+        actual_dims = q_out.shape[-1]
+        assert actual_dims == expected_dims, f"MortalEngine output dim mismatch: {actual_dims} vs {expected_dims}"
 
-        return result_actions, result_q_out, result_masks, result_is_greedy
+        return actions.tolist(), q_out.tolist(), masks_t.tolist(), is_greedy.tolist()
 
 
 def _sample_top_p(logits: torch.Tensor, p: float) -> torch.Tensor:

@@ -6,30 +6,35 @@ import requests
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.notifications import NotificationCode
 
 
 class TestEngineProvider(unittest.TestCase):
     def setUp(self):
         # Mock engines
         self.mock_local_engine = MagicMock(spec=BaseEngine)
+        self.mock_local_engine.status = BotStatusContext()
         self.mock_local_engine.react_batch.return_value = ([0], [[0.0] * 46], [[True] * 46], [True])
         self.mock_local_engine.last_inference_result = {}
         self.mock_local_engine.name = "MockLocal"
         self.mock_local_engine.engine_type = "mortal"
-        self.mock_local_engine.get_additional_meta.return_value = {"local_meta": 1}
-        self.mock_local_engine.get_notification_flags.return_value = {}
+        self.mock_local_engine.version = 1
 
         self.mock_online_engine = MagicMock(spec=BaseEngine)
+        self.mock_online_engine.status = BotStatusContext()
         self.mock_online_engine.react_batch.return_value = ([1], [[0.1] * 46], [[True] * 46], [True])
         self.mock_online_engine.last_inference_result = {}
         self.mock_online_engine.name = "MockOnline"
         self.mock_online_engine.engine_type = "akagiot"
-        self.mock_online_engine.get_additional_meta.return_value = {"online_meta": 1}
-        self.mock_online_engine.get_notification_flags.return_value = {}
+        self.mock_online_engine.version = 1
 
         # Setup provider
         self.provider = EngineProvider(
-            online_engine=self.mock_online_engine, local_engine=self.mock_local_engine, is_3p=False
+            status=BotStatusContext(),
+            online_engine=self.mock_online_engine,
+            local_engine=self.mock_local_engine,
+            is_3p=False,
         )
         # Ensure active_engine is set initially (though __init__ does it)
         # self.provider.active_engine = self.mock_online_engine
@@ -74,14 +79,14 @@ class TestEngineProvider(unittest.TestCase):
         self.mock_online_engine.react_batch.side_effect = Exception("Fail")
         self.provider.react_batch(self.dummy_obs, self.dummy_masks, self.dummy_obs)
 
-        meta = self.provider.get_additional_meta()
-        flags = self.provider.get_notification_flags()
+        meta = self.provider.status.metadata
+        flags = self.provider.status.flags
 
         # EngineProvider switches active_engine to local on fallback
         # BUT get_additional_meta reports primary engine type
         self.assertEqual(meta["engine_type"], "akagiot")
         # Expect fallback_used to be True
-        self.assertTrue(flags.get("fallback_used"))
+        self.assertTrue(flags.get(str(NotificationCode.FALLBACK_USED)))
 
 
 if __name__ == "__main__":

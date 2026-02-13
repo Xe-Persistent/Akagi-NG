@@ -1,7 +1,8 @@
 import json
 
-from akagi_ng.core.protocols import EngineProtocol, MjaiMetadata
 from akagi_ng.mjai_bot.logger import logger
+from akagi_ng.schema.protocols import EngineProtocol
+from akagi_ng.schema.types import MJAIEvent, MJAIMetadata, StartGameEvent
 
 
 class LookaheadBot:
@@ -18,10 +19,10 @@ class LookaheadBot:
 
     def simulate_reach(
         self,
-        history_events: list[dict],
-        candidate_event: dict,
-        game_start_event: dict | None = None,
-    ) -> MjaiMetadata | None:
+        history_events: list[MJAIEvent],
+        candidate_event: MJAIEvent,
+        game_start_event: StartGameEvent | None = None,
+    ) -> MJAIMetadata | None:
         """
         模拟立直后的行为（一发/自摸等）。
         在当前状态下模拟 Reach, 并返回 meta 数据(含 q_values/mask_bits)。
@@ -34,8 +35,8 @@ class LookaheadBot:
         from akagi_ng.mjai_bot.engine.replay import ReplayEngine
 
         # 1. 构造 ReplayEngine 包装器
-        # 这将隔离回放状态与真实引擎状态，确保 C++ Bot 能正确获取元数据
-        replay_engine = ReplayEngine(self.engine)
+        # 使用底层引擎已有的 Status Context (通常是在 fork 时传入的独立实例)
+        replay_engine = ReplayEngine(self.engine.status, self.engine)
 
         # 2. 为模拟创建一个专用的 C++ Bot 实例
         # 必须使用 replay_engine 初始化，以便拦截回放请求
@@ -50,7 +51,7 @@ class LookaheadBot:
 
         # 3. 重放历史事件
         # ReplayEngine 处于 replay_mode=True，会快速响应，不调用底层引擎
-        all_events: list[dict] = []
+        all_events: list[MJAIEvent] = []
         if game_start_event:
             all_events.append(game_start_event)
         all_events.extend(history_events)
@@ -75,7 +76,7 @@ class LookaheadBot:
 
             if response_json:
                 response = json.loads(response_json)
-                meta: MjaiMetadata = response.get("meta", {})
+                meta: MJAIMetadata = response.get("meta", {})
                 if "mask_bits" in meta:
                     return meta
 

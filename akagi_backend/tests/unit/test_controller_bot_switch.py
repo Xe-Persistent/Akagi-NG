@@ -41,10 +41,12 @@ def test_bot_switch_scenarios():
         # 手动设置 available_bots（因为 mock 的类和实际类不一样）
         def create_controller():
             c = Controller.__new__(Controller)
-            c.available_bots = [MockMortalBot, MockMortal3pBot]
+            # 适配新的构造逻辑：接收 status 参数
+            c.available_bots = [lambda status=None: MockMortalBot(), lambda status=None: MockMortal3pBot()]
             c.available_bots_names = ["mortal", "mortal3p"]
             c.bot = MockMortalBot()  # 默认四麻
             c.pending_start_game_event = None
+            c.status = MagicMock()
             return c
 
         # 场景 1：正常四麻游戏
@@ -52,11 +54,12 @@ def test_bot_switch_scenarios():
         controller = create_controller()
         print(f"初始化后 Bot: {type(controller.bot).__name__}")
 
-        controller.react({"type": "start_game", "id": 0})
+        controller.react({"type": "start_game", "id": 0, "is_3p": False})
         controller.react(
             {
                 "type": "start_kyoku",
                 "scores": [25000, 25000, 25000, 25000],
+                "is_3p": False,
                 "bakaze": "E",
                 "kyoku": 1,
                 "honba": 0,
@@ -73,11 +76,12 @@ def test_bot_switch_scenarios():
         # 场景 2：正常三麻游戏
         print("=== 场景 2：正常三麻游戏 ===")
         controller2 = create_controller()
-        controller2.react({"type": "start_game", "id": 0})
+        controller2.react({"type": "start_game", "id": 0, "is_3p": True})
         controller2.react(
             {
                 "type": "start_kyoku",
                 "scores": [35000, 35000, 35000, 0],
+                "is_3p": True,
                 "bakaze": "E",
                 "kyoku": 1,
                 "honba": 0,
@@ -95,11 +99,16 @@ def test_bot_switch_scenarios():
         print("=== 场景 3：重连场景（无 start_game） ===")
         controller3 = create_controller()
         print(f"初始化后 Bot: {type(controller3.bot).__name__}")
-        # 直接发送 start_kyoku（模拟重连，没有 start_game）
+        # 新的架构强制要求必须有 start_game 才能激活/切换 Bot
+        # 即使是重连场景，Bridge 也必须合成 start_game
+        controller3.react({"type": "start_game", "id": 0, "is_3p": True})
+
+        # 然后才是 start_kyoku
         controller3.react(
             {
                 "type": "start_kyoku",
                 "scores": [35000, 35000, 35000, 0],
+                "is_3p": True,
                 "bakaze": "E",
                 "kyoku": 1,
                 "honba": 0,
@@ -110,18 +119,8 @@ def test_bot_switch_scenarios():
             }
         )
         print(f"重连 start_kyoku 后 Bot: {type(controller3.bot).__name__}")
-        assert type(controller3.bot).__name__ == "MockMortal3pBot", "重连三麻应该切换到 mortal3p"
+        assert type(controller3.bot).__name__ == "MockMortal3pBot", "重连三麻应该通过 is_3p 标志切换到 mortal3p"
         print("✅ 场景 3 通过\n")
-
-        # 场景 4：nukidora 事件触发切换
-        print("=== 场景 4：nukidora 事件触发切换 ===")
-        controller4 = create_controller()
-        print(f"初始化后 Bot: {type(controller4.bot).__name__}")
-        # 直接发送 nukidora（最极端的重连场景）
-        controller4.react({"type": "nukidora", "actor": 0, "pai": "N"})
-        print(f"nukidora 后 Bot: {type(controller4.bot).__name__}")
-        assert type(controller4.bot).__name__ == "MockMortal3pBot", "nukidora 应该触发切换到 mortal3p"
-        print("✅ 场景 4 通过\n")
 
         print("🎉 所有测试通过！")
 

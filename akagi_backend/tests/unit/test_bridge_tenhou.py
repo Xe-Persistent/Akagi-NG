@@ -14,9 +14,11 @@ def bridge(tenhou_bridge):
 def test_convert_start_game(bridge):
     """Test _convert_start_game (TAIKYOKU)"""
     message = {"tag": "TAIKYOKU", "oya": "0"}
+    bridge.state.is_3p = True
     result = bridge._convert_start_game(message)
     assert len(result) == 1
     assert result[0]["type"] == "start_game"
+    assert result[0]["is_3p"] is True
 
 
 def test_convert_tsumo(bridge):
@@ -145,6 +147,7 @@ def test_convert_start_kyoku(bridge) -> None:
     assert res[0]["bakaze"] == "E"
     assert res[0]["kyoku"] == 1
     assert res[0]["oya"] == 0
+    assert "is_3p" not in res[0]
 
 
 def test_dispatch_reach_accepted(bridge) -> None:

@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from akagi_ng.core.notification_codes import NotificationCode
 from akagi_ng.electron_client.tenhou import TenhouElectronClient
+from akagi_ng.schema.notifications import NotificationCode
 
 
 @pytest.fixture

@@ -3,8 +3,7 @@ from unittest.mock import patch
 
 from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
 from akagi_ng.bridge.majsoul.liqi import MsgType
-from akagi_ng.core import NotificationCode
-from akagi_ng.core.constants import MahjongConstants
+from akagi_ng.schema.notifications import NotificationCode
 
 
 class TestMajsoulSyncAndReconnect(unittest.TestCase):
@@ -13,8 +12,6 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         self.bridge.accountId = 12345
         self.bridge.seat = 0
         self.bridge.is_3p = False
-
-    # --- Tests from test_liqi_sync_fix.py ---
 
     def test_parse_sync_game_camel_case_keys(self):
         """Test that parse_sync_game handles 'gameRestore' (camelCase) correctly."""
@@ -44,101 +41,31 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         # Should be empty as we expect 'gameRestore'
         self.assertEqual(len(msgs), 0)
 
-    # --- Tests from test_bridge_snapshot_fix.py ---
-
-    def test_extract_snapshot_hands_nested_structure(self):
-        """Test that _extract_snapshot_hands correctly extracts hands from the nested players structure."""
-        self.bridge.seat = 0
-
-        # Mock standard 13-tile hand using keys expected by MS_TILE_2_MJAI_TILE
-        hand_tiles = ["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1p", "2p", "3p", "4p"]
-
-        # Real structure: snapshot -> players -> [player0...] -> hands -> [tiles...]
-        snapshot = {
-            "players": [
-                {
-                    "hands": hand_tiles,  # Seat 0
-                    "ming": [],
-                    "score": 25000,
-                },
-                {"hands": [], "score": 25000},  # Seat 1
-                {"hands": [], "score": 25000},  # Seat 2
-                {"hands": [], "score": 25000},  # Seat 3
-            ]
-        }
-
-        tehais, my_tehais, _ = self.bridge._extract_snapshot_hands(snapshot)
-
-        # Check if we got our hand back
-        self.assertEqual(len(my_tehais), 13, "Should extract 13 tiles")
-        self.assertNotEqual(my_tehais[0], "?", "Should interpret tiles correctly (not default to ?)")
-        self.assertEqual(tehais[0], my_tehais, "Display tehais should match extracted hand")
-
-    def test_extract_snapshot_fallback_missing_players(self):
-        """Test graceful failure if 'players' key is missing or structure is malformed."""
-        self.bridge.seat = 0
-        snapshot = {"hands": ["1m"]}  # Old/Wrong structure
-
-        _, my_tehais, _ = self.bridge._extract_snapshot_hands(snapshot)
-
-        # Should return defaults
-        self.assertEqual(my_tehais, ["?"] * MahjongConstants.TEHAI_SIZE)
-
-    # --- Tests from test_majsoul_reconnect.py ---
-
     @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
-    def test_reconnect_synthesize_start_kyoku(self, mock_parse_sync_game):
+    def test_reconnect_pre_scans_is_3p_from_snapshot(self, mock_parse_sync_game):
         """
-        Verify that if syncGame lacks ActionNewRound but has a snapshot,
-        start_kyoku is synthesized.
+        Verify that is_3p is correctly determined from snapshot BEFORE action parsing.
         """
         mock_actions = [
-            # A random historical action that IS NOT ActionNewRound
             {
                 "type": MsgType.Notify,
                 "method": ".lq.ActionPrototype",
-                "data": {
-                    "name": "ActionDealTile",
-                    "data": {"seat": 0, "tile": "1m"},
-                },
+                "data": {"name": "ActionDealTile", "data": {"seat": 0, "tile": "1m"}},
             },
-            # The snapshot message
             {
                 "type": "sync_game",
                 "snapshot": {
-                    "ju": 0,  # East 1
-                    "ben": 0,
-                    "chang": 0,  # East wind
-                    "doras": ["1m"],
-                    "players": [
-                        {"score": 25000},
-                        {"score": 25000},
-                        {"score": 25000},
-                        {"score": 25000},
-                    ],
-                    "hands": ["1m", "2m", "3m"],
-                    "index_player": 0,
+                    "players": [{"score": 35000}] * 3,  # 3 players
                 },
             },
         ]
-
         mock_parse_sync_game.return_value = mock_actions
 
-        # Call _parse_sync_game with a dummy dict
-        events = self.bridge._parse_sync_game({})
+        self.bridge.is_3p = False  # Initial state
+        self.bridge._parse_sync_game({"data": {"gameRestore": {"snapshot": {"players": [{}, {}, {}]}}}})
 
-        # Expect:
-        # 0: system_event GAME_SYNCING
-        # 1: start_kyoku (Synthesized from snapshot!)
-        # 2...: parsed actions
-
-        self.assertEqual(events[0]["type"], "system_event")
-        self.assertEqual(events[0]["code"], NotificationCode.GAME_SYNCING)
-
-        self.assertEqual(events[1]["type"], "start_kyoku")
-        self.assertEqual(events[1]["kyoku"], 1)  # ju=0 -> kyoku=1
-        self.assertEqual(events[1]["scores"][0], 25000)
-        self.assertEqual(events[1]["dora_marker"], "1m")
+        # Verify pre-scan worked
+        self.assertTrue(self.bridge.is_3p)
 
     @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
     def test_reconnect_existing_action_new_round(self, mock_parse_sync_game):
@@ -176,82 +103,6 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         self.assertEqual(events[1]["type"], "start_kyoku")
         start_kyoku_count = sum(1 for e in events if e["type"] == "start_kyoku")
         self.assertEqual(start_kyoku_count, 1)
-
-    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
-    def test_reconnect_3p_scores(self, mock_parse_sync_game):
-        """
-        Verify that in 3-player mode, missing ActionNewRound results in 35000 starting score
-        when synthesizing start_kyoku from snapshot.
-        """
-        self.bridge.is_3p = True
-
-        mock_actions = [
-            {
-                "type": "sync_game",
-                "snapshot": {
-                    "ju": 0,
-                    "ben": 0,
-                    "players": [
-                        {"score": 35000},
-                        {"score": 35000},
-                        {"score": 35000},
-                    ],
-                    "hands": ["1m", "2m"],
-                    "index_player": 0,
-                },
-            }
-        ]
-
-        mock_parse_sync_game.return_value = mock_actions
-
-        events = self.bridge._parse_sync_game({})
-
-        self.assertEqual(events[1]["type"], "start_kyoku")
-        self.assertEqual(events[1]["scores"][0], 35000)
-        # 3p mode should have 4 score entries (last one is 0)
-        self.assertEqual(len(events[1]["scores"]), 4)
-        self.assertEqual(events[1]["scores"][3], 0)
-
-    @patch("akagi_ng.bridge.majsoul.bridge.MajsoulBridge._parse_sync_game_raw")
-    def test_reconnect_with_invalid_snapshot_players_list(self, mock_parse_sync_game):
-        """
-        Refined test based on trace log observation:
-        'Snapshot players list invalid or seat 0 out of bounds'
-        Verify that even if snapshot players list is missing/invalid,
-        we typically recover using default values for start_kyoku.
-        """
-        self.bridge.seat = 0
-
-        # Simulate the scenario from log where extraction fails
-        mock_actions = [
-            {
-                "type": "sync_game",
-                "snapshot": {
-                    "ju": 0,
-                    "ben": 0,
-                    "chang": 0,
-                    "doras": ["1m"],
-                    # "players": []  <-- Missing or empty players list
-                    "hands": [],
-                    "index_player": 0,
-                },
-            }
-        ]
-
-        mock_parse_sync_game.return_value = mock_actions
-
-        # This should trigger the warning but NOT crash using defaults
-        events = self.bridge._parse_sync_game({})
-
-        # Check recovery
-        self.assertEqual(events[0]["type"], "system_event")
-        self.assertEqual(events[0]["code"], NotificationCode.GAME_SYNCING)
-
-        # start_kyoku should still be synthesized with defaults
-        start_kyoku = events[1]
-        self.assertEqual(start_kyoku["type"], "start_kyoku")
-        self.assertEqual(start_kyoku["scores"], [25000, 25000, 25000, 25000])  # Defaults
-        self.assertEqual(start_kyoku["tehais"][0], ["?"] * 13)  # Default hands
 
     def test_reconnect_with_real_log_data(self):
         """

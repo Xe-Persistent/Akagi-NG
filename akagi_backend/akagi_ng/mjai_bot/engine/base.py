@@ -1,12 +1,21 @@
-from typing import Any, Literal, Self
+from typing import Self
 
 import numpy as np
 
-EngineType = Literal["mortal", "akagiot", "replay", "unknown", "null"]
+from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.schema.types import EngineType
 
 
 class BaseEngine:
-    def __init__(self, is_3p: bool, version: int, name: str, is_oracle: bool = False):
+    def __init__(
+        self,
+        status: BotStatusContext,
+        is_3p: bool,
+        version: int,
+        name: str,
+        is_oracle: bool = False,
+    ):
+        self.status = status
         self.is_3p = is_3p
         self.version = version
         self.name = name
@@ -17,7 +26,7 @@ class BaseEngine:
         self.is_online = False
         self.is_sync = False
 
-    def fork(self) -> Self:
+    def fork(self, status: BotStatusContext | None = None) -> Self:
         """
         创建当前引擎的副本（Fork）。
         共享底层的重资源（如模型、网络连接），但拥有独立的状态。
@@ -83,15 +92,3 @@ class BaseEngine:
             如果为 True，调用 self._sync_fast_forward(masks) 跳过实际推理。
         """
         raise NotImplementedError("Subclasses must implement react_batch()")
-
-    def get_notification_flags(self) -> dict[str, Any]:
-        """
-        返回引擎的通知标志（如网络故障、熔断等）。
-        """
-        return {}
-
-    def get_additional_meta(self) -> dict[str, Any]:
-        """
-        返回需要合并到推荐响应中的附加元数据。
-        """
-        return {}

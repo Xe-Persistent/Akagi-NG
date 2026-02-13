@@ -37,7 +37,7 @@ def test_nukidora_event_processing(bot_3p):
     """Verify that a nukidora (Kita) event is processed without error by libriichi3p."""
     # 1. Setup minimal 3P game state
     events = [
-        {"type": "start_game", "id": 0},
+        {"type": "start_game", "id": 0, "is_3p": True},
         {
             "type": "start_kyoku",
             "bakaze": "E",

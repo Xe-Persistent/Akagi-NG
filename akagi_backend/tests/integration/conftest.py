@@ -61,17 +61,30 @@ def mock_mortal_engine(monkeypatch):
     mock_engine.get_additional_meta.return_value = {"engine_type": "mortal_mock"}
     mock_engine.get_notification_flags.return_value = {}
 
-    def mock_loader(player_id, is_3p):
+    def mock_loader(status, player_id, is_3p=False):
+        from akagi_ng.schema.notifications import NotificationCode
+
+        status.set_metadata(NotificationCode.ENGINE_TYPE, "mortal_mock")
         return mock_model, mock_engine
 
     monkeypatch.setattr("akagi_ng.mjai_bot.engine.factory.load_bot_and_engine", mock_loader)
 
-    # Mock libriichi to prevent ImportError in CI environments without binary files
-    mock_lib = MagicMock()
-    import sys
+    # Mock libriichi only if not present to prevent ImportError in CI
+    try:
+        import libriichi  # noqa: F401
+    except ImportError:
+        mock_lib = MagicMock()
+        import sys
 
-    sys.modules["libriichi"] = mock_lib
-    sys.modules["libriichi3p"] = mock_lib
+        sys.modules["libriichi"] = mock_lib
+
+    try:
+        import libriichi3p  # noqa: F401
+    except ImportError:
+        mock_lib = MagicMock()
+        import sys
+
+        sys.modules["libriichi3p"] = mock_lib
 
 
 @pytest.fixture

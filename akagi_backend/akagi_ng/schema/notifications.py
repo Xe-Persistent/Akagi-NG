@@ -10,8 +10,11 @@ class NotificationCode(StrEnum):
     """通知代码常量类。"""
 
     # ============================================================
-    # 服务状态通知
+    # 引擎元数据与连接状态
     # ============================================================
+    ENGINE_TYPE = "engine_type"
+    """当前使用的引擎类型"""
+
     RECONNECTING = "online_service_reconnecting"
     """在线服务连接中断,正在重连"""
 
@@ -70,16 +73,16 @@ class NotificationCode(StrEnum):
     # Bot 错误
     # ============================================================
     NO_BOT_LOADED = "no_bot_loaded"
-    """Bot 未加载"""
+    """Bot 未加载或所有引擎不可用"""
 
     BOT_SWITCH_FAILED = "bot_switch_failed"
     """Bot 切换失败"""
 
+    MODEL_LOAD_FAILED = "model_load_failed"
+    """模型加载失败"""
+
     BOT_RUNTIME_ERROR = "bot_runtime_error"
     """Bot 运行异常"""
-
-    NO_ENGINE_AVAILABLE = "no_engine_available"
-    """所有引擎不可用，推荐结果将不可靠"""
 
     STATE_TRACKER_ERROR = "state_tracker_error"
     """对局状态异常"""

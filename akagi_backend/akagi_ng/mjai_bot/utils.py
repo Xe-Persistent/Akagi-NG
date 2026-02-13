@@ -1,5 +1,7 @@
 import numpy as np
 
+from akagi_ng.schema.types import MJAIMetadata
+
 
 def decode_tile(tile: str) -> tuple[int, str]:
     """
@@ -21,19 +23,6 @@ def decode_tile(tile: str) -> tuple[int, str]:
         return int(val_str), type_str
     except (ValueError, IndexError):
         return 0, ""
-
-
-def make_error_response(error_code: str) -> dict:
-    """
-    构造统一格式的错误响应。
-
-    Args:
-        error_code: 错误代码,如 "json_decode_error", "no_bot_loaded" 等
-
-    Returns:
-        标准格式的错误响应字典: {"type": "none", "error": error_code}
-    """
-    return {"type": "none", "error": error_code}
 
 
 mask_unicode_4p = [
@@ -159,32 +148,8 @@ def _softmax(arr: list[float] | np.ndarray, temperature: float = 1.0) -> np.ndar
     return exp_arr / sum_exp
 
 
-def meta_to_recommend(meta: dict, is_3p: bool = False, temperature: float = 1.0) -> list[tuple[str, float]]:
-    """
-    ExampleMeta:
-    {
-        "q_values":[
-            -9.09196,
-            -9.46696,
-            -8.365397,
-            -8.849772,
-            -9.43571,
-            -10.06071,
-            -9.295085,
-            -0.73649096,
-            -9.27946,
-            -9.357585,
-            0.3221028,
-            -2.7794597
-        ],
-        "mask_bits":2697207348,
-        "is_greedy":true,
-        "eval_time_ns":357088300
-    }
-    """
-
+def meta_to_recommend(meta: MJAIMetadata, is_3p: bool = False, temperature: float = 1.0) -> list[tuple[str, float]]:
     recommend = []
-
     mask_unicode = mask_unicode_3p if is_3p else mask_unicode_4p
 
     def mask_bits_to_binary_string(mask_bits: int) -> str:
@@ -209,7 +174,7 @@ def meta_to_recommend(meta: dict, is_3p: bool = False, temperature: float = 1.0)
     for i in range(len(mask_unicode)):
         if mask[i]:
             confidence = scaled_q_values[i] if is_full_space else scaled_q_values[q_value_idx]
-            recommend.append((mask_unicode[i], confidence))
+            recommend.append((mask_unicode[i], float(confidence)))
             if not is_full_space:
                 q_value_idx += 1
 

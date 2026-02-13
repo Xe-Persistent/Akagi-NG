@@ -10,17 +10,15 @@ from akagi_ng.core import get_app_context
 
 @pytest.fixture
 def mock_components():
-    import akagi_ng.application  # Ensure module is loaded
-
     with (
         patch("akagi_ng.application.DataServer") as MockDS,
         patch("akagi_ng.application.MitmClient") as MockMitm,
         patch("akagi_ng.electron_client.create_electron_client") as mock_create_client,
-        patch("akagi_ng.mjai_bot.StateTrackerBot") as MockBot,
-        patch("akagi_ng.mjai_bot.Controller") as MockController,
+        patch("akagi_ng.application.StateTrackerBot") as MockBot,
+        patch("akagi_ng.application.Controller") as MockController,
         patch("akagi_ng.application.configure_logging"),
+        patch("akagi_ng.application.loaded_settings") as mock_settings,
         patch("importlib.import_module"),  # mock lib_loader
-        patch.object(akagi_ng.application, "loaded_settings") as mock_settings,
     ):
         mock_ds_instance = MockDS.return_value
         mock_mitm_instance = MockMitm.return_value

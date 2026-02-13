@@ -6,10 +6,18 @@ from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
 from akagi_ng.core.paths import ensure_dir, get_assets_dir
 from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
+from akagi_ng.schema.types import (
+    ElectronMessage,
+    LiqiDefinitionMessage,
+    MJAIEvent,
+    WebSocketClosedMessage,
+    WebSocketCreatedMessage,
+    WebSocketFrameMessage,
+)
 
 
 class MajsoulElectronClient(BaseElectronClient):
-    def __init__(self, shared_queue: queue.Queue[dict]):
+    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = MajsoulBridge()
@@ -17,8 +25,8 @@ class MajsoulElectronClient(BaseElectronClient):
             logger.error(f"Failed to initialize MajsoulBridge in MajsoulElectronClient: {e}")
             self.bridge = None
 
-    def handle_message(self, message: dict):
-        match message.get("type"):
+    def handle_message(self, message: ElectronMessage):
+        match message["type"]:
             case "websocket_created":
                 self._handle_websocket_created(message)
             case "websocket_closed":
@@ -28,21 +36,21 @@ class MajsoulElectronClient(BaseElectronClient):
             case "websocket":
                 self._handle_websocket_frame(message)
 
-    def _handle_websocket_created(self, message: dict):
+    def _handle_websocket_created(self, message: WebSocketCreatedMessage):
         url = message.get("url", "")
         # Track Majsoul related WebSockets (including regional variants like mahjongsoul, maj-soul)
         if any(keyword in url for keyword in ["maj-soul", "mahjongsoul", "majsoul"]):
             with self._lock:
                 self._active_connections += 1
                 if self._active_connections == 1:
-                    from akagi_ng.core import NotificationCode
+                    from akagi_ng.schema.notifications import NotificationCode
 
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
                     logger.info(f"[Electron] Majsoul client connected (first connection): {url}")
         else:
             logger.debug(f"[Electron] Ignoring non-Majsoul WebSocket: {url}")
 
-    def _handle_websocket_closed(self, message: dict):
+    def _handle_websocket_closed(self, message: WebSocketClosedMessage):
         # We don't have URL in closed event in CDP usually, but we track count
         with self._lock:
             if self._active_connections <= 0:
@@ -56,7 +64,7 @@ class MajsoulElectronClient(BaseElectronClient):
                 game_ended = getattr(self.bridge, "game_ended", False) if self.bridge else False
 
                 if not game_ended:
-                    from akagi_ng.core import NotificationCode
+                    from akagi_ng.schema.notifications import NotificationCode
 
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.GAME_DISCONNECTED})
                     logger.info(
@@ -67,11 +75,11 @@ class MajsoulElectronClient(BaseElectronClient):
                         "[Electron] All Majsoul connections closed after game end, suppressing GAME_DISCONNECTED."
                     )
 
-    def _handle_liqi_definition(self, message: dict):
-        from akagi_ng.core import NotificationCode
+    def _handle_liqi_definition(self, message: LiqiDefinitionMessage):
+        from akagi_ng.schema.notifications import NotificationCode
 
         try:
-            data = message.get("data", "")
+            data = message["data"]
             if not data:
                 return
 
@@ -109,7 +117,7 @@ class MajsoulElectronClient(BaseElectronClient):
             logger.error(f"Unexpected error in handle liqi definition: {e}")
             self.message_queue.put({"type": "system_event", "code": NotificationCode.MAJSOUL_PROTO_UPDATE_FAILED})
 
-    def _handle_websocket_frame(self, message: dict):
+    def _handle_websocket_frame(self, message: WebSocketFrameMessage):
         if not self.bridge:
             return
 
@@ -137,7 +145,7 @@ class MajsoulElectronClient(BaseElectronClient):
 
                     # Check for game end to trigger notification
                     if msg.get("type") == "end_game":
-                        from akagi_ng.core import NotificationCode
+                        from akagi_ng.schema.notifications import NotificationCode
 
                         logger.info("[Electron] Detected end_game message, sending RETURN_LOBBY")
                         self.message_queue.put({"type": "system_event", "code": NotificationCode.RETURN_LOBBY})

@@ -4,8 +4,13 @@ import json
 
 from aiohttp import web
 
-from akagi_ng.core.constants import ServerConstants
 from akagi_ng.dataserver.logger import logger
+from akagi_ng.schema.constants import ServerConstants
+from akagi_ng.schema.types import (
+    FullRecommendationData,
+    Notification,
+    SSEClientData,
+)
 
 
 def _format_sse_message(data: dict, event: str | None = None) -> bytes:
@@ -21,9 +26,9 @@ class SSEManager:
     """
 
     def __init__(self):
-        self.clients: dict[str, dict] = {}  # {clientId: {"response": StreamResponse, "queue": asyncio.Queue}}
-        self.latest_recommendations = None
-        self.notification_history: list[dict] = []
+        self.clients: dict[str, SSEClientData] = {}  # {clientId: {"response": StreamResponse, "queue": asyncio.Queue}}
+        self.latest_recommendations: FullRecommendationData | None = None
+        self.notification_history: list[dict[str, list[Notification]]] = []
         self.MAX_HISTORY = ServerConstants.SSE_MAX_NOTIFICATION_HISTORY
         self.keep_alive_task = None
         self.loop = None  # 事件循环引用，由 DataServer 设置
@@ -145,7 +150,7 @@ class SSEManager:
                 except asyncio.QueueFull:
                     logger.warning("SSE client queue full, dropping message.")
 
-    def broadcast_event(self, event: str, data: dict):
+    def broadcast_event(self, event: str, data: FullRecommendationData | dict[str, list[Notification]]):
         """
         Broadcast a named event to all clients.
         Update the corresponding cache based on event type.
@@ -180,7 +185,7 @@ class SSEManager:
                     with contextlib.suppress(asyncio.QueueFull):
                         queue.put_nowait(keepalive_payload)
 
-    async def add_client(self, client_id: str, data: dict):
+    async def add_client(self, client_id: str, data: SSEClientData):
         """
         手动添加客户端（用于特定内部逻辑或测试）
         """

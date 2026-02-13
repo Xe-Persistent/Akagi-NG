@@ -4,7 +4,7 @@ from functools import partial
 import torch
 from torch import Tensor, nn
 
-from akagi_ng.core.constants import ModelConstants
+from akagi_ng.schema.constants import ModelConstants
 
 
 def orthogonal_init(layer: nn.Module, gain: float = 1.0) -> None:

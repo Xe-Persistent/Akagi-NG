@@ -5,13 +5,13 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from akagi_ng.core import NotificationCode
-from akagi_ng.core.constants import Platform
 from akagi_ng.electron_client import (
     MajsoulElectronClient,
     TenhouElectronClient,
     create_electron_client,
 )
+from akagi_ng.schema.constants import Platform
+from akagi_ng.schema.notifications import NotificationCode
 
 # ==========================================================
 # Factory Tests

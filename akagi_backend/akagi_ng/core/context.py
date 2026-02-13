@@ -1,7 +1,13 @@
 import queue
 from dataclasses import dataclass
 
-from akagi_ng.core.protocols import Bot, ControllerProtocol, ElectronClientProtocol, MessageSource
+from akagi_ng.schema.protocols import (
+    BotProtocol,
+    ControllerProtocol,
+    ElectronClientProtocol,
+    MessageSource,
+)
+from akagi_ng.schema.types import MJAIEvent
 from akagi_ng.settings import Settings
 
 
@@ -10,9 +16,9 @@ class AppContext:
     """Application context containing all core components."""
 
     settings: Settings
-    shared_queue: queue.Queue[dict]
+    shared_queue: queue.Queue[MJAIEvent]
     controller: ControllerProtocol | None
-    bot: Bot | None
+    bot: BotProtocol | None
     mitm_client: MessageSource | None
     electron_client: ElectronClientProtocol | None = None
 

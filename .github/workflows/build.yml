@@ -39,7 +39,7 @@ jobs:
           cache-dependency-path: akagi_backend/pyproject.toml
 
       - name: Cache Python virtual environment
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: venv-cache
         with:
           path: akagi_backend/.venv
@@ -91,7 +91,7 @@ jobs:
             electron/package-lock.json
 
       - name: Cache Python virtual environment
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: venv-cache
         with:
           path: akagi_backend/.venv

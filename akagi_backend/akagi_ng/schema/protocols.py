@@ -71,7 +71,7 @@ class EngineProtocol(Protocol):
         """重置引擎状态（如回退标志）。"""
         ...
 
-    def fork(self) -> Self:
+    def fork(self, status: BotStatusContext | None = None) -> Self:
         """创建引擎副本。"""
         ...
 

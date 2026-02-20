@@ -85,7 +85,7 @@ def test_circuit_breaker_complete_flow(
             assert fallback_engine.call_count == i
             assert ot_engine.client._failures == i
 
-        assert ot_engine.client._circuit_open is True
+        assert ot_engine.client.circuit_open is True
 
         # --- 阶段 2: 快速失败 ---
         mock_post.reset_mock()
@@ -116,6 +116,6 @@ def test_circuit_breaker_complete_flow(
             # 应该发起了网络请求尝试探测
             mock_post.assert_called_once()
             # 探测成功，熔断闭合
-            assert ot_engine.client._circuit_open is False
+            assert ot_engine.client.circuit_open is False
             assert ot_engine.client._failures == 0
             assert actions == [5]

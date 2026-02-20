@@ -12,9 +12,9 @@ from akagi_ng.schema.protocols import BotProtocol
 from akagi_ng.schema.types import MJAIEvent, MJAIMetadata, MJAIResponse
 
 
-class StateTrackerBot(Bot, BotProtocol):
+class StateTracker(Bot, BotProtocol):
     """
-    状态追踪 Bot，用于跟踪游戏状态。
+    状态追踪器，用于跟踪游戏状态。
     重写部分 mjai.Bot 方法以兼容 Akagi 应用。
     """
 
@@ -64,7 +64,7 @@ class StateTrackerBot(Bot, BotProtocol):
 
             return {"type": "none"}
 
-        except BaseException:
+        except Exception:
             logger.exception(f"Exception in react. Brief info:\n{self.brief_info()}")
             self.status.set_flag(NotificationCode.STATE_TRACKER_ERROR)
 

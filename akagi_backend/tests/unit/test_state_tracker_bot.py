@@ -47,23 +47,23 @@ sys.modules["mjai.mlibriichi.state"] = mock_mjai_mlibriichi_state
 sys.modules["mjai.mlibriichi.tools"] = mock_mjai_mlibriichi_tools
 sys.modules["numpy"] = mock_numpy
 
-import akagi_ng.mjai_bot.bot
+import akagi_ng.mjai_bot.tracker
 
-importlib.reload(akagi_ng.mjai_bot.bot)
-from akagi_ng.mjai_bot.bot import StateTrackerBot
+importlib.reload(akagi_ng.mjai_bot.tracker)
 from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.mjai_bot.tracker import StateTracker
 from akagi_ng.schema.notifications import NotificationCode
 
 
 @pytest.fixture
 def bot():
     with (
-        patch("akagi_ng.mjai_bot.bot.PlayerState") as MockPlayerState,
-        patch("akagi_ng.mjai_bot.bot.calc_shanten") as MockShanten,
+        patch("akagi_ng.mjai_bot.tracker.PlayerState") as MockPlayerState,
+        patch("akagi_ng.mjai_bot.tracker.calc_shanten") as MockShanten,
     ):
         MockShanten.return_value = 0
         status = BotStatusContext()
-        bot = StateTrackerBot(status=status)
+        bot = StateTracker(status=status)
         bot.player_state = MockPlayerState.return_value
         return bot
 
@@ -116,7 +116,7 @@ def test_find_kakan_candidates(bot):
     bot.tehai_mjai = ["5m", "6m"]
     bot.player_id = 0
     # Mock 外部生成的内部私有变量
-    bot._StateTrackerBot__call_events = [{"type": "pon", "actor": 0, "consumed": ["5m", "5m"]}]
+    bot._StateTracker__call_events = [{"type": "pon", "actor": 0, "consumed": ["5m", "5m"]}]
 
     candidates = bot.find_kakan_candidates()
     assert len(candidates) == 1
@@ -130,11 +130,11 @@ def test_nukidora_3p(bot):
     event = {"type": "nukidora", "actor": 0}
     bot.react(event)
     # 检查 discard_events 是否记录了替换后的事件
-    assert any(e["type"] == "dahai" and e["pai"] == "N" for e in bot._StateTrackerBot__discard_events)
+    assert any(e["type"] == "dahai" and e["pai"] == "N" for e in bot._StateTracker__discard_events)
 
 
 def test_error_handling(bot):
-    # 模拟 BaseException
+    # 模拟 Exception
     with patch.object(bot.player_state, "update", side_effect=RuntimeError("test error")):
         res = bot.react({"type": "none"})
         assert res["type"] == "none"

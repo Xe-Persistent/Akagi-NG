@@ -11,20 +11,20 @@ from akagi_ng.schema.types import (
 
 class Controller:
     def __init__(self, status: BotStatusContext | None = None):
-        self.available_bots: list[type[BotProtocol]] = []
-        self.available_bots_names: list[str] = []
+        self._bot_registry: dict[str, type[BotProtocol]] = {}
         self.bot: BotProtocol | None = None
         self.status = status or BotStatusContext()
-        self.list_available_bots()
-        # Bot 将在收到第一个 start_kyoku 事件时延迟初始化
+        self._register_bots()
+        # Bot 将在收到第一个 start_game 事件时初始化
         self.pending_start_game_event: StartGameEvent | None = None
 
-    def list_available_bots(self) -> list[type[BotProtocol]]:
+    def _register_bots(self) -> None:
         from akagi_ng.mjai_bot.mortal import Mortal3pBot, MortalBot
 
-        self.available_bots = [MortalBot, Mortal3pBot]
-        self.available_bots_names = ["mortal", "mortal3p"]
-        return self.available_bots
+        self._bot_registry = {
+            "mortal": MortalBot,
+            "mortal3p": Mortal3pBot,
+        }
 
     def react(self, event: AkagiEvent) -> MJAIResponse:
         """
@@ -78,7 +78,7 @@ class Controller:
         # 重置当前 Bot
         self.bot = None
 
-        # [NEW] 模式信息（is_3p）现在是强制的，立即确定并激活 Bot
+        # 模式信息（is_3p）现在是强制的，立即确定并激活 Bot
         is_3p = event["is_3p"]
         logger.info(f"StartGame event mode: is_3p={is_3p}. Activating bot immediately.")
         self._ensure_bot_activated(is_3p)
@@ -98,7 +98,7 @@ class Controller:
             else:
                 logger.info(f"Switching bot from {current_name} to {target_name}.")
 
-            if not self._choose_bot_name(target_name):
+            if not self._choose_bot(target_name):
                 logger.error(f"Failed to load {target_name} bot")
                 self.status.set_flag(NotificationCode.BOT_SWITCH_FAILED)
                 return
@@ -113,20 +113,14 @@ class Controller:
     def _get_current_bot_name(self) -> str | None:
         if not self.bot:
             return None
-        try:
-            return self.available_bots_names[self.available_bots.index(type(self.bot))]
-        except ValueError:
-            return None
+        bot_type = type(self.bot)
+        for name, cls in self._bot_registry.items():
+            if cls is bot_type:
+                return name
+        return None
 
-    def _choose_bot_index(self, bot_index: int) -> bool:
-        if 0 <= bot_index < len(self.available_bots):
-            self.bot = self.available_bots[bot_index](status=self.status)
-            return True
-        return False
-
-    def _choose_bot_name(self, bot_name: str) -> bool:
-        if bot_name in self.available_bots_names:
-            index = self.available_bots_names.index(bot_name)
-            self.bot = self.available_bots[index](status=self.status)
+    def _choose_bot(self, bot_name: str) -> bool:
+        if bot_cls := self._bot_registry.get(bot_name):
+            self.bot = bot_cls(status=self.status)
             return True
         return False

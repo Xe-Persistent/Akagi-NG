@@ -12,7 +12,7 @@ from akagi_ng.core import (
 from akagi_ng.dataserver import DataServer
 from akagi_ng.dataserver.adapter import build_dataserver_payload
 from akagi_ng.mitm_client import MitmClient
-from akagi_ng.mjai_bot import Controller, StateTrackerBot
+from akagi_ng.mjai_bot import Controller, StateTracker
 from akagi_ng.mjai_bot.status import BotStatusContext
 from akagi_ng.schema.constants import ServerConstants
 from akagi_ng.schema.protocols import (
@@ -56,14 +56,14 @@ class AkagiApp:
         target_host = "127.0.0.1" if host == "0.0.0.0" else host
         self.frontend_url = f"http://{target_host}:{port}/"
 
-        mjai_bot: StateTrackerBot | None = None
+        mjai_bot: StateTracker | None = None
         mjai_controller: Controller | None = None
         try:
             importlib.import_module("akagi_ng.core.lib_loader")
             status = BotStatusContext()
             self.status = status
             mjai_controller = Controller(status=status)
-            mjai_bot = StateTrackerBot(status=status)
+            mjai_bot = StateTracker(status=status)
             logger.info("Bot components loaded successfully.")
         except ImportError as e:
             logger.error(f"Failed to load bot components or native library: {e}")

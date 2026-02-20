@@ -30,16 +30,16 @@ class AkagiOTClient:
         self.timeout = (2.0, 4.0)
 
         # 熔断器状态
+        self.circuit_open = False
+        self.just_restored = False
         self._failures = 0
-        self._circuit_open = False
         self._last_failure_time = 0
         self._circuit_recovery_period = 30.0  # 秒
         self._failure_threshold = 3  # 次
-        self._just_restored = False
 
     def predict(self, is_3p: bool, obs: list, masks: list, status: BotStatusContext) -> dict:
         # 熔断器检查
-        if self._circuit_open:
+        if self.circuit_open:
             if time.time() - self._last_failure_time > self._circuit_recovery_period:
                 self._close_circuit()
             else:
@@ -62,28 +62,7 @@ class AkagiOTClient:
             if self._failures > 0:
                 self._reset_breaker(status)
 
-            r_json = response.json()
-
-            # [NEW] 协议适配：验证返回维度。
-            # 如果是 3P 请求但服务器返回了 46 维（常见于旧版模型分片），进行针对性裁剪。
-            expected_dims = ModelConstants.ACTION_DIMS_3P if is_3p else ModelConstants.ACTION_DIMS_4P
-            if r_json.get("q_out"):
-                actual_dims = len(r_json["q_out"][0])
-                if actual_dims != expected_dims:
-                    if is_3p and actual_dims == ModelConstants.ACTION_DIMS_4P:
-                        logger.warning(
-                            "[AkagiOT] Server protocol violation: 3P requested but 46 dims returned. "
-                            "Truncating to 44 dims."
-                        )
-                        # 仅保留前 44 维 (Mortal 3P 动作空间)
-                        r_json["q_out"] = [q[: ModelConstants.ACTION_DIMS_3P] for q in r_json["q_out"]]
-                        r_json["masks"] = [m[: ModelConstants.ACTION_DIMS_3P] for m in r_json["masks"]]
-                    else:
-                        logger.error(
-                            f"[AkagiOT] Unexpected dimension mismatch: expected {expected_dims}, got {actual_dims}"
-                        )
-
-            return r_json
+            return response.json()
 
         except requests.RequestException as e:
             self._record_failure(status)
@@ -98,21 +77,21 @@ class AkagiOTClient:
             self._open_circuit(status)
 
     def _open_circuit(self, status: BotStatusContext):
-        if not self._circuit_open:
+        if not self.circuit_open:
             logger.warning(f"AkagiOT Circuit Breaker OPENED after {self._failures} failures.")
-            self._circuit_open = True
+            self.circuit_open = True
             status.set_flag(NotificationCode.RECONNECTING)
 
     def _close_circuit(self):
         logger.info("AkagiOT Circuit Breaker HALF-OPEN. Probing connection...")
-        self._circuit_open = False
+        self.circuit_open = False
 
     def _reset_breaker(self, status: BotStatusContext):
         logger.info("AkagiOT Circuit Breaker CLOSED. Connection restored, service fully operational.")
         self._failures = 0
-        self._circuit_open = False
+        self.circuit_open = False
         status.set_flag(NotificationCode.SERVICE_RESTORED)
-        self._just_restored = True
+        self.just_restored = True
 
 
 class AkagiOTEngine(BaseEngine):
@@ -156,7 +135,7 @@ class AkagiOTEngine(BaseEngine):
         list_obs = obs.tolist()
         list_masks = masks.tolist()
 
-        if self.client._circuit_open:
+        if self.client.circuit_open:
             self.status.set_metadata(NotificationCode.RECONNECTING, True)
         self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.engine_type)
 
@@ -168,6 +147,6 @@ class AkagiOTEngine(BaseEngine):
             raise RuntimeError(f"Engine output dimension mismatch: expected {expected_dims}, got {actual_dims}")
 
         # 推理成功后，重置恢复标志（避免在 getter 中产生副作用）
-        self.client._just_restored = False
+        self.client.just_restored = False
 
         return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]

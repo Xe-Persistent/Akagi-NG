@@ -14,7 +14,7 @@ def mock_components():
         patch("akagi_ng.application.DataServer") as MockDS,
         patch("akagi_ng.application.MitmClient") as MockMitm,
         patch("akagi_ng.electron_client.create_electron_client") as mock_create_client,
-        patch("akagi_ng.application.StateTrackerBot") as MockBot,
+        patch("akagi_ng.application.StateTracker") as MockBot,
         patch("akagi_ng.application.Controller") as MockController,
         patch("akagi_ng.application.configure_logging"),
         patch("akagi_ng.application.loaded_settings") as mock_settings,

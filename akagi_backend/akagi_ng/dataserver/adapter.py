@@ -1,7 +1,7 @@
 from typing import Literal
 
 from akagi_ng.dataserver.logger import logger
-from akagi_ng.mjai_bot import StateTrackerBot
+from akagi_ng.mjai_bot import StateTracker
 from akagi_ng.mjai_bot.utils import meta_to_recommend
 from akagi_ng.schema.constants import MahjongConstants
 from akagi_ng.schema.notifications import NotificationCode
@@ -20,7 +20,7 @@ FuuroAction = Literal["chi_low", "chi_mid", "chi_high", "pon", "kan"]
 
 
 def _handle_chi_fuuro(
-    bot: StateTrackerBot, last_kawa: str | None, chi_type: ChiType | None = None
+    bot: StateTracker, last_kawa: str | None, chi_type: ChiType | None = None
 ) -> list[FuuroDetail]:
     """处理吃的副露详情，支持根据位置（左、中、右）过滤"""
     if not last_kawa:
@@ -62,7 +62,7 @@ def _handle_chi_fuuro(
     return results
 
 
-def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[FuuroDetail]:
+def _handle_pon_fuuro(bot: StateTracker, last_kawa: str | None) -> list[FuuroDetail]:
     """处理碰的副露详情"""
     if not last_kawa:
         return []
@@ -81,7 +81,7 @@ def _handle_pon_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[Fuuro
     return results
 
 
-def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[FuuroDetail]:
+def _handle_kan_fuuro(bot: StateTracker, last_kawa: str | None) -> list[FuuroDetail]:
     """处理杠的副露详情(大明杠/暗杠/加杠)"""
     results: list[FuuroDetail] = []
 
@@ -109,7 +109,7 @@ def _handle_kan_fuuro(bot: StateTrackerBot, last_kawa: str | None) -> list[Fuuro
     return results
 
 
-def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[FuuroDetail]:
+def _get_fuuro_details(action: FuuroAction, bot: StateTracker) -> list[FuuroDetail]:
     """
     获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。
     使用 mjai.Bot 原生方法而非手动逻辑。
@@ -128,7 +128,7 @@ def _get_fuuro_details(action: FuuroAction, bot: StateTrackerBot) -> list[FuuroD
     return []
 
 
-def _handle_hora_action(base_item: Recommendation, bot: StateTrackerBot):
+def _handle_hora_action(base_item: Recommendation, bot: StateTracker):
     """处理和牌(hora)动作的特殊逻辑"""
     if getattr(bot, "can_tsumo_agari", False):
         # 情况A: 自摸
@@ -146,7 +146,7 @@ def _handle_hora_action(base_item: Recommendation, bot: StateTrackerBot):
             base_item["tile"] = last_kawa
 
 
-def _process_standard_recommendations(meta: MJAIMetadata, bot: StateTrackerBot) -> list[Recommendation]:
+def _process_standard_recommendations(meta: MJAIMetadata, bot: StateTracker) -> list[Recommendation]:
     """处理标准推荐(q_values)"""
     recommendations: list[Recommendation] = []
     if "q_values" not in meta or "mask_bits" not in meta:
@@ -187,7 +187,7 @@ def _process_standard_recommendations(meta: MJAIMetadata, bot: StateTrackerBot) 
     return recommendations
 
 
-def _attach_riichi_lookahead(recommendations: list[Recommendation], meta: MJAIMetadata, bot: StateTrackerBot):
+def _attach_riichi_lookahead(recommendations: list[Recommendation], meta: MJAIMetadata, bot: StateTracker):
     """为 reach 推荐附加立直前瞻候选"""
     riichi_lookahead = meta.get("riichi_lookahead")
     if not riichi_lookahead:
@@ -224,7 +224,7 @@ def _attach_riichi_lookahead(recommendations: list[Recommendation], meta: MJAIMe
         logger.warning(f"Error attaching riichi lookahead: {e}")
 
 
-def build_dataserver_payload(mjai_response: MJAIResponse, bot: StateTrackerBot) -> FullRecommendationData | None:
+def build_dataserver_payload(mjai_response: MJAIResponse, bot: StateTracker) -> FullRecommendationData | None:
     """构建发送到 DataServer 的 Payload"""
     try:
         if bot is None:

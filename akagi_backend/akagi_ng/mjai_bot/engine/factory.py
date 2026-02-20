@@ -25,6 +25,22 @@ _RESOURCE_CACHE: dict[Any, Any] = {}
 _CACHE_LOCK = threading.Lock()
 
 
+def clear_resource_cache(key_prefix: str | None = None) -> None:
+    """清理全局资源缓存。
+
+    Args:
+        key_prefix: 如果指定，只清理匹配前缀的条目（如 "model:"）。
+                    如果为 None，清空全部缓存。
+    """
+    with _CACHE_LOCK:
+        if key_prefix is None:
+            _RESOURCE_CACHE.clear()
+        else:
+            keys_to_remove = [k for k in _RESOURCE_CACHE if k.startswith(key_prefix)]
+            for k in keys_to_remove:
+                del _RESOURCE_CACHE[k]
+
+
 class NullEngine(BaseEngine):
     """
     空引擎 - 在所有引擎都不可用时提供兜底。

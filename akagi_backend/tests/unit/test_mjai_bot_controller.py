@@ -33,9 +33,9 @@ def test_controller_invalid_return_type(controller):
 
 
 def test_controller_bot_switch_failed(controller):
-    # 模拟 _choose_bot_name 失败（会设置 notification_flag）
-    with patch.object(controller, "_choose_bot_name", return_value=False):
-        # start_game 触发立即激活，由于 _choose_bot_name 失败，标志位应立即设置
+    # 模拟 _choose_bot 失败（会设置 notification_flag）
+    with patch.object(controller, "_choose_bot", return_value=False):
+        # start_game 触发立即激活，由于 _choose_bot 失败，标志位应立即设置
         controller.react({"type": "start_game", "id": 0, "is_3p": False})
 
         assert controller.bot is None

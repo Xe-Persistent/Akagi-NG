@@ -19,7 +19,7 @@ def test_app_initialization(app) -> None:
         patch("akagi_ng.application.DataServer") as mock_ds_class,
         patch("akagi_ng.application.MitmClient"),
         patch("akagi_ng.mjai_bot.Controller"),
-        patch("akagi_ng.mjai_bot.StateTrackerBot"),
+        patch("akagi_ng.mjai_bot.StateTracker"),
         patch("akagi_ng.electron_client.create_electron_client"),
         patch("akagi_ng.application.set_app_context") as mock_set_ctx,
     ):

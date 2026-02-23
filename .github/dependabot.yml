@@ -13,7 +13,6 @@ updates:
       timezone: "Asia/Shanghai"
     labels:
       - "dependencies"
-      - "github-actions"
     commit-message:
       prefix: "ci"
       include: "scope"

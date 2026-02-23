@@ -30,9 +30,9 @@
   "license": "AGPL-3.0",
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "devtools-protocol": "^0.0.1581282",
-    "electron": "40.2.1",
-    "electron-builder": "^26.7.0",
+    "devtools-protocol": "^0.0.1588380",
+    "electron": "40.6.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^12.1.1",
@@ -41,8 +41,8 @@
     "prettier": "^3.8.1",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0",
-    "wait-on": "^9.0.3"
+    "typescript-eslint": "^8.56.0",
+    "wait-on": "^9.0.4"
   },
   "build": {
     "appId": "me.akagi.ng",

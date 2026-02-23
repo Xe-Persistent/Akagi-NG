@@ -25,6 +25,7 @@ def decode_tile(tile: str) -> tuple[int, str]:
         return 0, ""
 
 
+# fmt: off
 _BASE_TILES = [
     "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
     "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
@@ -33,8 +34,15 @@ _BASE_TILES = [
     "5mr", "5pr", "5sr",
 ]
 
-mask_unicode_4p = [*_BASE_TILES, "reach", "chi_low", "chi_mid", "chi_high", "pon", "kan_select", "hora", "ryukyoku", "none"]
-mask_unicode_3p = [*_BASE_TILES, "reach", "pon", "kan_select", "nukidora", "hora", "ryukyoku", "none"]
+mask_unicode_4p = [
+    *_BASE_TILES,
+    "reach", "chi_low", "chi_mid", "chi_high", "pon", "kan_select", "hora", "ryukyoku", "none"
+]
+mask_unicode_3p = [
+    *_BASE_TILES,
+    "reach", "pon", "kan_select", "nukidora", "hora", "ryukyoku", "none"
+]
+# fmt: on
 
 
 def _is_approximately_equal(left: float, right: float) -> bool:
@@ -67,30 +75,17 @@ def meta_to_recommend(meta: MJAIMetadata, is_3p: bool = False, temperature: floa
     recommend = []
     mask_unicode = mask_unicode_3p if is_3p else mask_unicode_4p
 
-    def mask_bits_to_binary_string(mask_bits: int) -> str:
-        binary_string = bin(mask_bits)[2:]
-        return binary_string.zfill(len(mask_unicode))
-
-    def mask_bits_to_bool_list(mask_bits: int) -> list[bool]:
-        binary_string = mask_bits_to_binary_string(mask_bits)
-        bool_list = []
-        for bit in binary_string[::-1]:
-            bool_list.append(bit == "1")
-        return bool_list
-
     q_values = meta["q_values"]
     mask_bits = meta["mask_bits"]
-    mask = mask_bits_to_bool_list(mask_bits)
     scaled_q_values = _softmax(q_values, temperature)
 
-    is_full_space = len(q_values) == len(mask_unicode)
-    q_value_idx = 0
-
+    q_idx = 0
     for i in range(len(mask_unicode)):
-        if mask[i]:
-            confidence = scaled_q_values[i] if is_full_space else scaled_q_values[q_value_idx]
-            recommend.append((mask_unicode[i], float(confidence)))
-            if not is_full_space:
-                q_value_idx += 1
+        if (mask_bits & (1 << i)) != 0:
+            if q_idx < len(scaled_q_values):
+                recommend.append((mask_unicode[i], float(scaled_q_values[q_idx])))
+                q_idx += 1
+            else:
+                break
 
     return sorted(recommend, key=lambda x: x[1], reverse=True)

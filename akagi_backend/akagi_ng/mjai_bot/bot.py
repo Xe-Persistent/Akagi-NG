@@ -31,7 +31,7 @@ class MortalBot:
         self.model: BotProtocol | None = None
         self.game_start_event: StartGameEvent | None = None
 
-        from akagi_ng.mjai_bot.mortal.logger import logger
+        from akagi_ng.mjai_bot.logger import logger
 
         self.logger = logger
 
@@ -94,9 +94,7 @@ class MortalBot:
         try:
             # MJAI 协议底层 C++ Bot (mjai-python) 接受并返回 JSON 字符串
             res = self.model.react(json.dumps(event, separators=(",", ":")))
-            # 解析响应并确保返回字典
-            action = json.loads(res) if isinstance(res, str) else res
-            return action if isinstance(action, dict) else {"type": "none"}
+            return json.loads(res)
         except Exception as e:
             self.logger.error(f"MortalBot engine error: {e}")
             self.status.set_flag(
@@ -117,7 +115,7 @@ class MortalBot:
         if is_game_start:
             meta["game_start"] = True
 
-        # 3. 立直前瞻逻辑
+        # 2. 立直前瞻逻辑
         self._handle_riichi_lookahead(meta)
 
     def _finalize_response(self, response: MJAIResponse, meta: MJAIMetadata) -> None:
@@ -207,16 +205,12 @@ class MortalBot:
                 self.logger.warning("Riichi Lookahead: Simulation returned no metadata.")
                 return None
 
-            if "q_values" in sim_meta and "mask_bits" in sim_meta:
-                from akagi_ng.mjai_bot.utils import meta_to_recommend
+            from akagi_ng.mjai_bot.utils import meta_to_recommend
 
-                sim_recs = meta_to_recommend(sim_meta, is_3p=self.is_3p)
-                all_candidates = ", ".join([f"{action}({conf:.3f})" for action, conf in sim_recs])
-                self.logger.info(f"Riichi Lookahead: Simulation success. Candidates: {all_candidates}")
-                return sim_meta
-
-            self.logger.warning("Riichi Lookahead: Simulation meta missing q_values or mask_bits.")
-            return None
+            sim_recs = meta_to_recommend(sim_meta, is_3p=self.is_3p)
+            all_candidates = ", ".join([f"{action}({conf:.3f})" for action, conf in sim_recs])
+            self.logger.info(f"Riichi Lookahead: Simulation success. Candidates: {all_candidates}")
+            return sim_meta
 
         except Exception as lookahead_err:
             self.logger.error(f"Riichi Lookahead failed: {lookahead_err}")

@@ -40,10 +40,6 @@ class ReplayEngine(BaseEngine):
         return forked
 
     @property
-    def enable_quick_eval(self) -> bool:
-        return self.delegate.enable_quick_eval
-
-    @property
     def enable_rule_based_agari_guard(self) -> bool:
         return self.delegate.enable_rule_based_agari_guard
 
@@ -73,14 +69,4 @@ class ReplayEngine(BaseEngine):
             # 复用基类的同步快进逻辑
             return self._sync_fast_forward(masks)
 
-        res_actions, res_q_out, res_masks, res_greedy = self.delegate.react_batch(
-            obs, masks, invisible_obs, is_sync=is_sync
-        )
-
-        # 鲁棒性增强: 强制转换为 Python 原生 list，满足部分 strict Rust Bridge (如 libriichi3p) 的要求
-        final_actions = res_actions if isinstance(res_actions, list) else res_actions.tolist()
-        final_q_out = res_q_out if isinstance(res_q_out, list) else res_q_out.tolist()
-        final_masks = res_masks if isinstance(res_masks, list) else res_masks.tolist()
-        final_greedy = res_greedy if isinstance(res_greedy, list) else res_greedy.tolist()
-
-        return final_actions, final_q_out, final_masks, final_greedy
+        return self.delegate.react_batch(obs, masks, invisible_obs, is_sync=is_sync)

@@ -57,15 +57,11 @@ class EngineProtocol(Protocol):
     name: str
     is_oracle: bool
     status: BotStatusContext
-
-    @property
-    def enable_quick_eval(self) -> bool: ...
+    enable_quick_eval: bool
+    enable_amp: bool
 
     @property
     def enable_rule_based_agari_guard(self) -> bool: ...
-
-    @property
-    def enable_amp(self) -> bool: ...
 
     def reset_status(self) -> None:
         """重置引擎状态（如回退标志）。"""

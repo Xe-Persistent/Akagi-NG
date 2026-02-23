@@ -48,47 +48,14 @@ MS_TILE_2_MJAI_TILE = {
 MJAI_TILE_2_MS_TILE = {v: k for k, v in MS_TILE_2_MJAI_TILE.items()}
 
 # 牌的排序优先级(用于手牌排序)
+# fmt: off
 PAI_ORDER = [
-    "1m",
-    "2m",
-    "3m",
-    "4m",
-    "5mr",
-    "5m",
-    "6m",
-    "7m",
-    "8m",
-    "9m",
-    "1p",
-    "2p",
-    "3p",
-    "4p",
-    "5pr",
-    "5p",
-    "6p",
-    "7p",
-    "8p",
-    "9p",
-    "1s",
-    "2s",
-    "3s",
-    "4s",
-    "5sr",
-    "5s",
-    "6s",
-    "7s",
-    "8s",
-    "9s",
-    "E",
-    "S",
-    "W",
-    "N",
-    "P",
-    "F",
-    "C",
-    "?",
+    "1m", "2m", "3m", "4m", "5mr", "5m", "6m", "7m", "8m", "9m",
+    "1p", "2p", "3p", "4p", "5pr", "5p", "6p", "7p", "8p", "9p",
+    "1s", "2s", "3s", "4s", "5sr", "5s", "6s", "7s", "8s", "9s",
+    "E", "S", "W", "N", "P", "F", "C", "?",
 ]
-
+# fmt: on
 
 # 优化排序查找字典
 PAI_ORDER_INDEX = {pai: i for i, pai in enumerate(PAI_ORDER)}

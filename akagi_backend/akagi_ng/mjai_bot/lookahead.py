@@ -77,13 +77,9 @@ class LookaheadBot:
             if response_json:
                 response = json.loads(response_json)
                 meta: MJAIMetadata = response.get("meta", {})
-                if "mask_bits" in meta:
+                if meta:
                     return meta
-
-                # 如果仍然缺少，可能是 engine 本身的问题，但 ReplayEngine 架构已尽力保证环境一致性
-                logger.warning(
-                    f"LookaheadBot: ReplayEngine returned meta without mask_bits. Raw response: {response_json}"
-                )
+                logger.warning("LookaheadBot: engine returned empty meta.")
 
         except Exception as e:
             logger.error(f"LookaheadBot: sim_bot.react failed: {e}")

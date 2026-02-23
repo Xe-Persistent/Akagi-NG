@@ -31,7 +31,6 @@ class MortalModelResource:
     boltzmann_temp: float
     top_p: float
     engine_name: str
-    enable_amp: bool
 
 
 class MortalEngine(BaseEngine):
@@ -46,10 +45,6 @@ class MortalEngine(BaseEngine):
         self.resource = resource
         self.engine_type = "mortal"
         self.device = resource.device
-
-    @property
-    def enable_amp(self) -> bool:
-        return self.resource.enable_amp
 
     def fork(self, status: BotStatusContext | None = None) -> Self:
         """创建共享模型资源的副本"""
@@ -75,10 +70,7 @@ class MortalEngine(BaseEngine):
 
         try:
             self.status.set_metadata("engine_type", self.engine_type)
-            with (
-                torch.autocast(self.device.type, enabled=self.enable_amp),
-                torch.inference_mode(),
-            ):
+            with torch.inference_mode():
                 return self._react_batch(obs, masks, invisible_obs)
         except Exception as ex:
             raise RuntimeError(f"Error during inference: {ex}") from ex
@@ -202,7 +194,6 @@ def load_mortal_resource(
             boltzmann_temp=1,  # Default
             top_p=1,  # Default
             engine_name=engine_name,
-            enable_amp=False,  # Default
         )
 
         logger.info(f"Local Mortal ({'3P' if is_3p else '4P'}) resource loaded successfully.")

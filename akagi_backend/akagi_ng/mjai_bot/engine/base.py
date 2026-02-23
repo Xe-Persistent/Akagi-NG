@@ -26,6 +26,12 @@ class BaseEngine:
         self.is_online = False
         self.is_sync = False
 
+        # quick_eval=True 会导致只有一个候选动作时跳过引擎推理，不返回 meta
+        self.enable_quick_eval = False
+
+        # torch.autocast 参数，CPU 推理无需 AMP
+        self.enable_amp = False
+
     def fork(self, status: BotStatusContext | None = None) -> Self:
         """
         创建当前引擎的副本（Fork）。
@@ -40,10 +46,6 @@ class BaseEngine:
         是否启用基于规则的和牌保护（防止振听/无役和牌）。
         在线模型通常自带保护，本地模型可能需要。
         """
-        return True
-
-    @property
-    def enable_quick_eval(self) -> bool:
         return True
 
     def reset_status(self):

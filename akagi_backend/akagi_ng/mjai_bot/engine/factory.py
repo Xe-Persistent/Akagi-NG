@@ -162,8 +162,5 @@ def load_bot_and_engine(
     provider = EngineProvider(status, online_engine, local_engine, is_3p)
 
     bot = libriichi.mjai.Bot(provider, player_id)
-    # 注入 status 到 bot (对于 libriichi.mjai.Bot 可能需要手动注入或者它不关心但符合协议)
-    if hasattr(bot, "status"):
-        bot.status = status
 
     return bot, provider

@@ -11,20 +11,10 @@ from akagi_ng.schema.types import (
 
 class Controller:
     def __init__(self, status: BotStatusContext | None = None):
-        self._bot_registry: dict[str, type[BotProtocol]] = {}
         self.bot: BotProtocol | None = None
         self.status = status or BotStatusContext()
-        self._register_bots()
         # Bot 将在收到第一个 start_game 事件时初始化
         self.pending_start_game_event: StartGameEvent | None = None
-
-    def _register_bots(self) -> None:
-        from akagi_ng.mjai_bot.mortal import Mortal3pBot, MortalBot
-
-        self._bot_registry = {
-            "mortal": MortalBot,
-            "mortal3p": Mortal3pBot,
-        }
 
     def react(self, event: AkagiEvent) -> MJAIResponse:
         """
@@ -113,14 +103,12 @@ class Controller:
     def _get_current_bot_name(self) -> str | None:
         if not self.bot:
             return None
-        bot_type = type(self.bot)
-        for name, cls in self._bot_registry.items():
-            if cls is bot_type:
-                return name
-        return None
+        return "mortal3p" if self.bot.is_3p else "mortal"
 
     def _choose_bot(self, bot_name: str) -> bool:
-        if bot_cls := self._bot_registry.get(bot_name):
-            self.bot = bot_cls(status=self.status)
+        if bot_name in ("mortal", "mortal3p"):
+            from akagi_ng.mjai_bot.bot import MortalBot
+
+            self.bot = MortalBot(status=self.status, is_3p=(bot_name == "mortal3p"))
             return True
         return False

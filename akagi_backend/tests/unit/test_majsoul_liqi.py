@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType
+from akagi_ng.bridge.majsoul.liqi import LiqiProto
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def test_liqi_proto_get_message_class_failure(proto) -> None:
 
 
 def test_liqi_proto_full_parse_flow(proto) -> None:
-    header = bytes([MsgType.Req.value]) + struct.pack("<H", 123)
+    header = bytes([2]) + struct.pack("<H", 123)
     data = header + b"payload"
 
     with (
@@ -228,33 +228,55 @@ def test_liqi_proto_parse_notify_inner_unknown_cls(proto):
 
 def test_liqi_proto_full_parse_notify(proto):
     """测试 parse 方法处理 Notify 类型"""
-    buf = bytes([MsgType.Notify.value]) + b"dummy_pb"
+    buf = bytes([1]) + b"dummy_pb"
     with (
         patch("akagi_ng.bridge.majsoul.liqi.from_protobuf", return_value=[]),
         patch.object(proto, "_parse_notify", return_value=("method", {"d": 1})),
     ):
         res = proto.parse(buf)
-        assert res["type"] == MsgType.Notify
+        assert res["type"] == 1
         assert res["method"] == "method"
 
 
 def test_liqi_proto_full_parse_response(proto):
     """测试 parse 方法处理 Res 类型"""
-    buf = bytes([MsgType.Res.value]) + struct.pack("<H", 123) + b"dummy_pb"
+    buf = bytes([3]) + struct.pack("<H", 123) + b"dummy_pb"
     with (
         patch("akagi_ng.bridge.majsoul.liqi.from_protobuf", return_value=[]),
         patch.object(proto, "_parse_response", return_value=("method", {"d": 1})),
     ):
         res = proto.parse(buf)
-        assert res["type"] == MsgType.Res
+        assert res["type"] == 3
         assert res["id"] == 123
 
 
 def test_liqi_proto_full_parse_error(proto):
     """测试 parse 方法处理异常（如数据截断）"""
-    buf = bytes([MsgType.Res.value])  # Missing msg_id bytes
+    buf = bytes([3])  # Missing msg_id bytes
     res = proto.parse(buf)
     assert res == {}  # Exception caught and return empty dict
+
+
+def test_liqi_proto_duplicate_msg_id(proto):
+    """测试重复 msg_id 的容错处理（登录网络延迟检查场景）"""
+    block = [{"data": b".lq.Lobby.oauth2Auth"}, {"data": b"data"}]
+    proto.jsonProto = {
+        "nested": {
+            "lq": {"nested": {"Lobby": {"methods": {"oauth2Auth": {"requestType": "Req", "responseType": "Res"}}}}}
+        }
+    }
+
+    # 先注册一个 msg_id=1 的旧请求
+    proto.res_type[1] = (".lq.OldMethod", MagicMock())
+
+    with (
+        patch.object(proto, "get_message_class", return_value=MagicMock()),
+        patch("akagi_ng.bridge.majsoul.liqi.MessageToDict", return_value={"key": "val"}),
+    ):
+        # 应该不会抛异常，而是覆盖旧记录
+        method, dict_obj = proto._parse_request(1, block)
+        assert method == ".lq.Lobby.oauth2Auth"
+        assert dict_obj == {"key": "val"}
 
 
 def test_liqi_proto_from_protobuf_varint_and_string():
@@ -270,3 +292,35 @@ def test_liqi_proto_from_protobuf_varint_and_string():
     assert res[0]["data"] == 1
     assert res[1]["type"] == "string"
     assert res[1]["data"] == b"a"
+
+
+# ===== 真实数据集成测试（原 test_liqi.py）=====
+
+
+def test_liqi_proto_real_initialization():
+    """验证 LiqiProto 能够成功加载真实的 liqi.json 并构建描述符"""
+    lp = LiqiProto()
+    assert lp.msg_id == 1
+    assert lp.parsed_msg_count == 0
+
+    types_to_check = [
+        "ActionNewRound",
+        "ActionDiscardTile",
+        "ResCommon",
+        "ActionPrototype",
+        "Wrapper",
+    ]
+    for t in types_to_check:
+        cls = lp.get_message_class(t)
+        assert cls is not None, f"Failed to find message class: {t}"
+
+
+def test_liqi_proto_init_method():
+    """测试 init 方法重置状态"""
+    lp = LiqiProto()
+    lp.msg_id = 100
+    lp.res_type[1] = ("test", None)
+
+    lp.init()
+    assert lp.msg_id == 1
+    assert len(lp.res_type) == 0

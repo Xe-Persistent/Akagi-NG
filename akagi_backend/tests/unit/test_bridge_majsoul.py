@@ -5,16 +5,9 @@ MajsoulBridge 单元测试
 直接测试 parse_liqi 方法的 MJAI 转换逻辑。
 """
 
-import sys
 import unittest
-from pathlib import Path
 
-# 添加项目根目录到 sys.path
-sys.path.append(str(Path(__file__).parent.parent))
-
-# 直接导入需要的模块，避免循环导入
 from akagi_ng.bridge.majsoul import MajsoulBridge
-from akagi_ng.bridge.majsoul.liqi import MsgType
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE
 
 
@@ -31,7 +24,7 @@ class TestMajsoulBridge(unittest.TestCase):
         """测试 authGame 请求正确设置 accountId"""
         liqi_message = {
             "method": ".lq.FastTest.authGame",
-            "type": MsgType.Req,
+            "type": 2,
             "data": {"accountId": 12345678},
         }
 
@@ -47,7 +40,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.FastTest.authGame",
-            "type": MsgType.Res,
+            "type": 3,
             "data": {
                 "seatList": [11111111, 12345678, 22222222, 33333333],
                 "gameConfig": {"meta": {"modeId": 1}},
@@ -68,7 +61,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.FastTest.authGame",
-            "type": MsgType.Res,
+            "type": 3,
             "data": {
                 "seatList": [11111111, 12345678, 22222222],  # 只有 3 人
                 "gameConfig": {"meta": {"modeId": 2}},
@@ -90,7 +83,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -137,7 +130,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -182,7 +175,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDealTile",
                 "data": {
@@ -206,7 +199,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDiscardTile",
                 "data": {
@@ -232,7 +225,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDiscardTile",
                 "data": {
@@ -261,7 +254,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionChiPengGang",
                 "data": {
@@ -287,7 +280,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionChiPengGang",
                 "data": {
@@ -314,7 +307,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionAnGangAddGang",
                 "data": {
@@ -337,7 +330,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionAnGangAddGang",
                 "data": {
@@ -363,7 +356,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionHule",
                 "data": {
@@ -385,7 +378,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionLiuJu",
                 "data": {
@@ -406,7 +399,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNoTile",
                 "data": {},
@@ -427,7 +420,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {
@@ -451,7 +444,7 @@ class TestMajsoulBridge(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.NotifyGameEndResult",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "result": {
                     "players": [
@@ -499,7 +492,7 @@ class TestMajsoulBridge(unittest.TestCase):
         """测试未知方法返回空列表"""
         liqi_message = {
             "method": ".lq.SomeUnknownMethod",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {},
         }
 
@@ -532,7 +525,3 @@ class TestMajsoulBridgeTileMapping(unittest.TestCase):
         self.assertEqual(MS_TILE_2_MJAI_TILE["5z"], "P")  # 白
         self.assertEqual(MS_TILE_2_MJAI_TILE["6z"], "F")  # 发
         self.assertEqual(MS_TILE_2_MJAI_TILE["7z"], "C")  # 中
-
-
-if __name__ == "__main__":
-    unittest.main()

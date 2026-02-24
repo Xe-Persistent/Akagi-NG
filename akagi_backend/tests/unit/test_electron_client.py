@@ -10,8 +10,6 @@ from akagi_ng.electron_client import (
     TenhouElectronClient,
     create_electron_client,
 )
-from akagi_ng.schema.constants import Platform
-from akagi_ng.schema.notifications import NotificationCode
 
 # ==========================================================
 # Factory Tests
@@ -20,13 +18,13 @@ from akagi_ng.schema.notifications import NotificationCode
 
 def test_create_electron_client():
     q = queue.Queue()
-    client = create_electron_client(Platform.MAJSOUL, shared_queue=q)
+    client = create_electron_client("majsoul", shared_queue=q)
     assert isinstance(client, MajsoulElectronClient)
 
-    client = create_electron_client(Platform.TENHOU, shared_queue=q)
+    client = create_electron_client("tenhou", shared_queue=q)
     assert isinstance(client, TenhouElectronClient)
 
-    client = create_electron_client(Platform.AUTO, shared_queue=q)
+    client = create_electron_client("auto", shared_queue=q)
     assert isinstance(client, MajsoulElectronClient)
 
 
@@ -50,19 +48,19 @@ def test_majsoul_lifecycle(ms_client):
     # Created
     ms_client.push_message({"type": "websocket_created", "url": "wss://majsoul.com/game"})
     assert ms_client._active_connections == 1
-    assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.CLIENT_CONNECTED
+    assert ms_client.message_queue.get(timeout=2.0)["code"] == "client_connected"
 
     # Closed
     ms_client.push_message({"type": "websocket_closed"})
     assert ms_client._active_connections == 0
-    assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.GAME_DISCONNECTED
+    assert ms_client.message_queue.get(timeout=2.0)["code"] == "game_disconnected"
 
 
 def test_majsoul_debugger_events(ms_client):
     ms_client._active_connections = 1
     ms_client.push_message({"type": "debugger_detached"})
     assert ms_client._active_connections == 0
-    assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.GAME_DISCONNECTED
+    assert ms_client.message_queue.get(timeout=2.0)["code"] == "game_disconnected"
 
 
 def test_majsoul_liqi_update(ms_client):
@@ -72,11 +70,11 @@ def test_majsoul_liqi_update(ms_client):
         patch("builtins.open", mock_open()),
     ):
         ms_client.push_message({"type": "liqi_definition", "data": '{"test":1}'})
-        assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.MAJSOUL_PROTO_UPDATED
+        assert ms_client.message_queue.get(timeout=2.0)["code"] == "majsoul_proto_updated"
 
     # Fail case
     ms_client.push_message({"type": "liqi_definition", "data": "invalid json"})
-    assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.MAJSOUL_PROTO_UPDATE_FAILED
+    assert ms_client.message_queue.get(timeout=2.0)["code"] == "majsoul_proto_update_failed"
 
 
 def test_majsoul_frames(ms_client):
@@ -85,7 +83,7 @@ def test_majsoul_frames(ms_client):
 
     assert ms_client.message_queue.get(timeout=2.0)["type"] == "msg1"
     assert ms_client.message_queue.get(timeout=2.0)["type"] == "end_game"
-    assert ms_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.RETURN_LOBBY
+    assert ms_client.message_queue.get(timeout=2.0)["code"] == "return_lobby"
 
 
 # ==========================================================
@@ -107,11 +105,11 @@ def th_client():
 def test_tenhou_lifecycle(th_client):
     th_client.push_message({"type": "websocket_created", "url": "https://tenhou.net/3/"})
     assert th_client._active_connections == 1
-    assert th_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.CLIENT_CONNECTED
+    assert th_client.message_queue.get(timeout=2.0)["code"] == "client_connected"
 
     th_client.push_message({"type": "websocket_closed"})
     assert th_client._active_connections == 0
-    assert th_client.message_queue.get(timeout=2.0)["code"] == NotificationCode.GAME_DISCONNECTED
+    assert th_client.message_queue.get(timeout=2.0)["code"] == "game_disconnected"
 
 
 def test_tenhou_frames(th_client):

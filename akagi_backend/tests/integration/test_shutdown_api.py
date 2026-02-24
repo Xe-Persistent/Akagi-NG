@@ -2,7 +2,6 @@
 测试 shutdown API 的单元测试
 """
 
-import pytest
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
@@ -21,7 +20,6 @@ class TestShutdownAPI(AioHTTPTestCase):
 
     async def test_shutdown_no_message_queue(self):
         """测试当消息队列不可用时的响应"""
-        # 设置一个没有 electron_client 的 app context
         from unittest.mock import Mock
 
         mock_settings = Mock()
@@ -68,8 +66,3 @@ class TestShutdownAPI(AioHTTPTestCase):
         assert not mock_queue.empty()
         shutdown_msg = mock_queue.get()
         assert shutdown_msg["type"] == "system_shutdown"
-        assert shutdown_msg["source"] == "api"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

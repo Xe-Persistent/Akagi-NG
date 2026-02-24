@@ -5,7 +5,6 @@ import pytest
 
 from akagi_ng.bridge.riichi_city.bridge import RCMessage
 from akagi_ng.bridge.riichi_city.consts import RCAction
-from akagi_ng.schema.constants import MahjongConstants
 
 
 @pytest.fixture
@@ -56,7 +55,7 @@ def test_handle_game_action_brc_dahai(bridge):
                     "action": RCAction.DAHAI_REACH,
                     "user_id": 101,
                     "card": "1m",
-                    "move_cards_pos": [MahjongConstants.TSUMO_TEHAI_SIZE],
+                    "move_cards_pos": [14],
                     "is_li_zhi": False,
                 }
             ]

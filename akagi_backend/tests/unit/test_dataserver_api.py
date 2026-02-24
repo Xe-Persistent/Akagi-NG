@@ -103,3 +103,28 @@ async def test_ingest_mjai_no_client(cli):
     with patch("akagi_ng.core.get_app_context", return_value=mock_app):
         resp = await cli.post("/api/ingest", json={"type": "tsumo"})
         assert resp.status == 503
+
+
+async def test_save_settings_triggers_cache_clear(cli):
+    """验证保存设置时会触发缓存清理"""
+    with (
+        patch("akagi_ng.dataserver.api.verify_settings", return_value=True),
+        patch("akagi_ng.dataserver.api.local_settings"),
+        patch("akagi_ng.dataserver.api.clear_resource_cache") as mock_clear,
+        patch("akagi_ng.dataserver.api.get_settings_dict", return_value={}),
+    ):
+        resp = await cli.post("/api/settings", json={"model_config": {"device": "cpu"}})
+        assert resp.status == 200
+        mock_clear.assert_called_once()
+
+
+async def test_reset_settings_triggers_cache_clear(cli):
+    """验证重置设置时会触发缓存清理"""
+    with (
+        patch("akagi_ng.dataserver.api.local_settings"),
+        patch("akagi_ng.dataserver.api.clear_resource_cache") as mock_clear,
+        patch("akagi_ng.dataserver.api.get_default_settings_dict", return_value={}),
+    ):
+        resp = await cli.post("/api/settings/reset")
+        assert resp.status == 200
+        mock_clear.assert_called_once()

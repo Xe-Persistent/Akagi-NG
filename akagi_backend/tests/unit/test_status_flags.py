@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.status import BotStatusContext
-from akagi_ng.schema.notifications import NotificationCode
 
 
 class MockEngine(BaseEngine):
@@ -16,7 +15,7 @@ class MockEngine(BaseEngine):
         return MockEngine(status or self.status, self.name, self.custom_meta)
 
     def react_batch(self, obs, masks, invisible_obs=None, is_sync=None):
-        self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.engine_type)
+        self.status.set_metadata("engine_type", self.engine_type)
         for k, v in self.custom_meta.items():
             self.status.set_metadata(k, v)
         return [0], [[0.0]], [[True]], [True]
@@ -33,9 +32,9 @@ def test_status_flags_green_online():
     provider.react_batch(None, None)
 
     meta = status.metadata
-    assert meta[NotificationCode.ENGINE_TYPE] == "akagiot"
-    assert meta.get(NotificationCode.FALLBACK_USED) is None
-    assert meta.get(NotificationCode.RECONNECTING) is None
+    assert meta["engine_type"] == "akagiot"
+    assert meta.get("fallback_used") is False
+    assert meta.get("online_service_reconnecting") is None
 
 
 def test_status_flags_blue_local():
@@ -47,9 +46,9 @@ def test_status_flags_blue_local():
     provider.react_batch(None, None)
 
     meta = status.metadata
-    assert meta[NotificationCode.ENGINE_TYPE] == "mortal"
-    assert meta.get(NotificationCode.FALLBACK_USED) is None
-    assert meta.get(NotificationCode.RECONNECTING) is None
+    assert meta["engine_type"] == "mortal"
+    assert meta.get("fallback_used") is False
+    assert meta.get("online_service_reconnecting") is None
 
 
 def test_status_flags_yellow_fallback():
@@ -69,8 +68,8 @@ def test_status_flags_yellow_fallback():
 
     meta = status.metadata
     # provider sets this after local.react_batch returns
-    assert meta[NotificationCode.ENGINE_TYPE] == "akagiot"
-    assert meta[NotificationCode.FALLBACK_USED] is True
+    assert meta["engine_type"] == "akagiot"
+    assert meta["fallback_used"] is True
 
 
 def test_status_flags_red_circuit_breaker():
@@ -80,7 +79,7 @@ def test_status_flags_red_circuit_breaker():
 
     # Simulate react raising Circuit Open Error AND setting metadata
     def side_effect(*args, **kwargs):
-        status.set_metadata(NotificationCode.RECONNECTING, True)
+        status.set_metadata("online_service_reconnecting", True)
         raise RuntimeError("Circuit Open")
 
     online.react_batch = MagicMock(side_effect=side_effect)
@@ -92,6 +91,6 @@ def test_status_flags_red_circuit_breaker():
     provider.react_batch(None, None)
 
     meta = status.metadata
-    assert meta[NotificationCode.ENGINE_TYPE] == "akagiot"
-    assert meta[NotificationCode.FALLBACK_USED] is True
-    assert meta[NotificationCode.RECONNECTING] is True
+    assert meta["engine_type"] == "akagiot"
+    assert meta["fallback_used"] is True
+    assert meta["online_service_reconnecting"] is True

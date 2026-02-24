@@ -5,30 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from akagi_ng.mjai_bot.bot import MortalBot
 from akagi_ng.mjai_bot.lookahead import LookaheadBot
-from akagi_ng.mjai_bot.mortal.base import MortalBot
 from akagi_ng.mjai_bot.status import BotStatusContext
-from akagi_ng.schema.notifications import NotificationCode
 
-
-@pytest.fixture(autouse=True, scope="function")
-def mock_lib_loader_module():
-    """只有在找不到真实二进制库时才进行彻底 Mock"""
-    try:
-        from akagi_ng.core import lib_loader  # noqa: F401
-
-        # 如果能导入，说明环境中有真实库，不进行 patch
-        yield None
-    except ImportError:
-        mock_module = MagicMock()
-        mock_module.libriichi = MagicMock()
-        mock_module.libriichi.mjai.Bot = MagicMock
-
-        mock_module.libriichi3p = MagicMock()
-        mock_module.libriichi3p.mjai.Bot = MagicMock
-
-        with patch.dict(sys.modules, {"akagi_ng.core.lib_loader": mock_module}):
-            yield mock_module
+# 自动应用 mock_lib_loader_module fixture（定义在 unit/conftest.py 中）
+pytestmark = pytest.mark.usefixtures("mock_lib_loader_module")
 
 
 class TestRiichiLookahead(unittest.TestCase):
@@ -41,7 +23,7 @@ class TestRiichiLookahead(unittest.TestCase):
         self.bot.model_loader = self.model_loader
         self.bot.player_id = 0
 
-    @patch("akagi_ng.mjai_bot.utils.meta_to_recommend")
+    @patch("akagi_ng.mjai_bot.bot.meta_to_recommend")
     def test_handle_riichi_lookahead_trigger(self, mock_meta_to_recommend):
         # Case: Reach is in Top 3 -> Should run simulation
         mock_meta_to_recommend.return_value = [("reach", 0.8), ("discard", 0.15), ("chi", 0.05)]
@@ -57,7 +39,7 @@ class TestRiichiLookahead(unittest.TestCase):
             "Riichi Lookahead: Reach is in Top 3 (['reach', 'discard', 'chi']). Starting simulation."
         )
 
-    @patch("akagi_ng.mjai_bot.utils.meta_to_recommend")
+    @patch("akagi_ng.mjai_bot.bot.meta_to_recommend")
     def test_handle_riichi_lookahead_no_trigger(self, mock_meta_to_recommend):
         # Case: Reach is NOT in Top 3 -> Should NOT run simulation
         mock_meta_to_recommend.return_value = [("discard", 0.8), ("chi", 0.15), ("pon", 0.05)]
@@ -70,7 +52,7 @@ class TestRiichiLookahead(unittest.TestCase):
         self.bot._run_riichi_lookahead.assert_not_called()
         self.assertNotIn("riichi_lookahead", meta)
 
-    @patch("akagi_ng.mjai_bot.utils.meta_to_recommend")
+    @patch("akagi_ng.mjai_bot.bot.meta_to_recommend")
     def test_handle_riichi_lookahead_error(self, mock_meta_to_recommend):
         # Case: Simulation returns error -> Should add to notification_flags
         mock_meta_to_recommend.return_value = [("reach", 0.9)]
@@ -80,7 +62,7 @@ class TestRiichiLookahead(unittest.TestCase):
         meta = {"q_values": [0.1], "mask_bits": 1}
         self.bot._handle_riichi_lookahead(meta)
 
-        self.assertTrue(self.bot.status.flags.get(NotificationCode.RIICHI_SIM_FAILED))
+        self.assertTrue(self.bot.status.flags.get("riichi_simulation_failed"))
         self.assertNotIn("riichi_lookahead", meta)
 
     def test_run_riichi_lookahead_simulation_success(self):
@@ -129,7 +111,7 @@ class TestRiichiLookahead(unittest.TestCase):
         ]
 
         # 2. Run with patched LookaheadBot
-        with patch("akagi_ng.mjai_bot.mortal.base.LookaheadBot") as MockLookaheadBot:
+        with patch("akagi_ng.mjai_bot.bot.LookaheadBot") as MockLookaheadBot:
             mock_lookahead_instance = MockLookaheadBot.return_value
             mock_lookahead_instance.simulate_reach.return_value = expected_meta
 
@@ -229,7 +211,3 @@ class TestRiichiLookahead(unittest.TestCase):
             # 验证结果
             self.assertIsNotNone(result)
             self.assertEqual(result["mask_bits"], 45)
-
-
-if __name__ == "__main__":
-    unittest.main()

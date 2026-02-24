@@ -72,7 +72,7 @@ def test_app_main_loop_flow(app) -> None:
 
     with (
         patch("akagi_ng.application.get_app_context", return_value=mock_ctx),
-        patch.object(app, "_get_next_message", side_effect=side_effect),
+        patch.object(app.message_queue, "get", side_effect=side_effect),
         patch.object(app, "_emit_outputs") as mock_emit,
         patch.object(app, "cleanup"),
     ):
@@ -97,7 +97,7 @@ def test_app_cleanup(app) -> None:
         assert app.ds.stop.called
 
 
-def test_process_message_batch_error_handling(app) -> None:
+def test_process_event_error_handling(app) -> None:
     """测试消息处理中的异常捕获。"""
     mock_bot = MagicMock()
     mock_ctrl = MagicMock()
@@ -105,20 +105,21 @@ def test_process_message_batch_error_handling(app) -> None:
     # 模拟 Controller 抛出异常
     mock_ctrl.react.side_effect = ValueError("Test Error")
 
-    msgs = [{"type": "dahai"}]
-    responses, notifications = app._process_message_batch(msgs, mock_bot, mock_ctrl)
+    msg = {"type": "dahai", "sync": False}
+    result = app._process_event(msg, mock_bot, mock_ctrl)
 
     # 不应导致崩溃，且返回为空
-    assert responses == []
-    assert notifications == []
+    assert result["response"] is None
+    assert result["notifications"] == []
+    assert result["is_sync"] is False
 
 
 def test_emit_outputs_standard(app) -> None:
     """测试标准输出发射路径。"""
     app.ds = MagicMock()
     result = {
-        "mjai_responses": [{"action": "dahai", "meta": {}}],
-        "batch_notifications": [{"code": "TEST"}],
+        "response": {"action": "dahai", "meta": {}},
+        "notifications": [{"code": "TEST"}],
         "is_sync": False,
     }
     mock_bot = MagicMock()
@@ -135,8 +136,8 @@ def test_emit_outputs_sync_masking(app) -> None:
     """测试同步期间屏蔽推荐。"""
     app.ds = MagicMock()
     result = {
-        "mjai_responses": [{"action": "sync", "meta": {}}],
-        "batch_notifications": [{"code": "SYNCING"}],
+        "response": {"action": "sync", "meta": {}},
+        "notifications": [{"code": "SYNCING"}],
         "is_sync": True,
     }
     mock_bot = MagicMock()

@@ -9,8 +9,6 @@ from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.status import BotStatusContext
 
-type InferenceResult = tuple[list[int], list[list[float]], list[list[bool]], list[bool]]
-
 
 class MockFallbackEngine(BaseEngine):
     """
@@ -23,8 +21,12 @@ class MockFallbackEngine(BaseEngine):
         self.engine_type: str = "mortal"
 
     def react_batch(
-        self, obs: np.ndarray, masks: np.ndarray, invisible_obs: np.ndarray | None, is_sync: bool | None = None
-    ) -> InferenceResult:
+        self,
+        obs: np.ndarray,
+        masks: np.ndarray,
+        invisible_obs: np.ndarray | None = None,
+        is_sync: bool | None = None,
+    ) -> tuple[list[int], list[list[float]], list[list[bool]], list[bool]]:
         self.call_count += 1
         batch_size = obs.shape[0]
         # 返回 54 维动作空间的全假响应

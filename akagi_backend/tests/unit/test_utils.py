@@ -4,12 +4,7 @@ mjai_bot/utils.py 单元测试
 测试工具函数的正确性。
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-# 添加项目根目录到 sys.path
-sys.path.append(str(Path(__file__).parent.parent))
 
 from akagi_ng.mjai_bot.utils import (
     mask_unicode_3p,
@@ -162,7 +157,3 @@ class TestMetaToRecommendEdgeCases(unittest.TestCase):
 
         # 极低温度下，最高值应该接近 1.0
         self.assertGreater(result[0][1], 0.9)
-
-
-if __name__ == "__main__":
-    unittest.main()

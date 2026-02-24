@@ -16,132 +16,129 @@ from akagi_ng.schema.types import (
 from akagi_ng.settings import local_settings
 
 ChiType = Literal["chi_low", "chi_mid", "chi_high"]
-FuuroAction = Literal["chi_low", "chi_mid", "chi_high", "pon", "kan"]
+FuuroAction = Literal["chi_low", "chi_mid", "chi_high", "pon", "kan_select"]
 
 
-def _handle_chi_fuuro(
-    bot: StateTracker, last_kawa: str | None, chi_type: ChiType | None = None
-) -> list[FuuroDetail]:
-    """处理吃的副露详情，支持根据位置（左、中、右）过滤"""
-    if not last_kawa:
+def _extract_consumed(hand_tiles_with_aka: list[str], target_bases: list[str]) -> list[str]:
+    """
+    基于需要消耗的基础牌名（不带 'r'），从实际带有赤宝牌的手牌列表里提取出要用掉的牌
+    优先提取带有 'r' 的赤宝牌
+    """
+    consumed = []
+    hand = hand_tiles_with_aka.copy()
+
+    for base in target_bases:
+        aka_version = f"{base}r" if "5" in base else None
+
+        if aka_version and aka_version in hand:
+            consumed.append(aka_version)
+            hand.remove(aka_version)
+        elif base in hand:
+            consumed.append(base)
+            hand.remove(base)
+        else:
+            consumed.append(base)
+
+    return consumed
+
+
+def _handle_chi_fuuro(bot: StateTracker, last_kawa: str | None, chi_type: ChiType) -> list[FuuroDetail]:
+    """处理吃的副露详情，直接通过 libriichi 的验证判定所需消耗"""
+    if not last_kawa or not bot.player_state:
         return []
 
-    results: list[FuuroDetail] = []
+    if not getattr(bot.player_state.last_cans, f"can_{chi_type}", False):
+        return [{"tile": last_kawa, "consumed": []}]
+
+    base = last_kawa.replace("r", "")
     try:
-        candidates = bot.find_chi_candidates()
-        for cand in candidates:
-            consumed = cand.get("consumed", [])
-            if len(consumed) != MahjongConstants.CHI_CONSUMED:
-                continue
+        num = int(base[0])
+        suit = base[1]
+    except (ValueError, IndexError):
+        return [{"tile": last_kawa, "consumed": []}]
 
-            # 如果指定了 chi_type，则进行过滤
-            if chi_type:
-                from akagi_ng.mjai_bot.utils import decode_tile
+    targets = []
+    if chi_type == "chi_low":
+        targets = [f"{num + 1}{suit}", f"{num + 2}{suit}"]
+    elif chi_type == "chi_mid":
+        targets = [f"{num - 1}{suit}", f"{num + 1}{suit}"]
+    elif chi_type == "chi_high":
+        targets = [f"{num - 2}{suit}", f"{num - 1}{suit}"]
 
-                last_val = decode_tile(last_kawa)[0]
-                c1_val = decode_tile(consumed[0])[0]
-                c2_val = decode_tile(consumed[1])[0]
-                all_vals = sorted([last_val, c1_val, c2_val])
-
-                match chi_type:
-                    case "chi_low" if last_val != all_vals[0]:
-                        continue
-                    case "chi_mid" if last_val != all_vals[1]:
-                        continue
-                    case "chi_high" if last_val != all_vals[2]:
-                        continue
-
-            results.append({"tile": last_kawa, "consumed": consumed})
-
-        # 回退:未找到候选且有 last_kawa
-        if not results:
-            results.append({"tile": last_kawa, "consumed": []})
-    except (AttributeError, Exception) as e:
-        logger.warning(f"Error in chi fuuro: {e}")
-
-    return results
+    consumed = _extract_consumed(bot.tehai_mjai_with_aka, targets)
+    return [{"tile": last_kawa, "consumed": consumed}]
 
 
 def _handle_pon_fuuro(bot: StateTracker, last_kawa: str | None) -> list[FuuroDetail]:
     """处理碰的副露详情"""
-    if not last_kawa:
+    if not last_kawa or not bot.player_state:
         return []
 
-    results: list[FuuroDetail] = []
-    try:
-        candidates = bot.find_pon_candidates()
-        if candidates:
-            results.append({"tile": last_kawa, "consumed": candidates[0].get("consumed", [])})
-        else:
-            # 回退
-            results.append({"tile": last_kawa, "consumed": []})
-    except (AttributeError, Exception) as e:
-        logger.warning(f"Error in pon fuuro: {e}")
+    if not bot.player_state.last_cans.can_pon:
+        return [{"tile": last_kawa, "consumed": []}]
 
-    return results
+    base = last_kawa.replace("r", "")
+    consumed = _extract_consumed(bot.tehai_mjai_with_aka, [base, base])
+
+    return [{"tile": last_kawa, "consumed": consumed}]
 
 
 def _handle_kan_fuuro(bot: StateTracker, last_kawa: str | None) -> list[FuuroDetail]:
     """处理杠的副露详情(大明杠/暗杠/加杠)"""
+    if not bot.player_state:
+        return []
+
     results: list[FuuroDetail] = []
 
-    try:
-        # 优先级1: 大明杠
-        daiminkan_candidates = bot.find_daiminkan_candidates()
-        if daiminkan_candidates and last_kawa:
-            for cand in daiminkan_candidates:
-                results.append({"tile": last_kawa, "consumed": cand.get("consumed", [])})
-            return results
+    # 优先级1: 大明杠
+    if last_kawa and bot.player_state.last_cans.can_daiminkan:
+        base = last_kawa.replace("r", "")
+        consumed = _extract_consumed(bot.tehai_mjai_with_aka, [base, base, base])
+        results.append({"tile": last_kawa, "consumed": consumed})
+        return results
 
-        # 优先级2: 暗杠和加杠
-        ankan_candidates = bot.find_ankan_candidates()
-        for cand in ankan_candidates:
-            consumed = cand.get("consumed", [])
-            results.append({"tile": consumed[0] if consumed else "?", "consumed": consumed})
+    # 优先级2: 暗杠
+    for cand in bot.player_state.ankan_candidates():
+        base = cand.replace("r", "")
+        consumed = _extract_consumed(bot.tehai_mjai_with_aka, [base, base, base, base])
+        results.append({"tile": consumed[0] if consumed else "?", "consumed": consumed})
 
-        kakan_candidates = bot.find_kakan_candidates()
-        for cand in kakan_candidates:
-            consumed = cand.get("consumed", [])
-            results.append({"tile": consumed[0] if consumed else "?", "consumed": consumed})
-    except (AttributeError, Exception) as e:
-        logger.warning(f"Error in kan fuuro: {e}")
+    # 优先级3: 加杠
+    for cand in bot.player_state.kakan_candidates():
+        base = cand.replace("r", "")
+        consumed = _extract_consumed(bot.tehai_mjai_with_aka, [base])
+        results.append({"tile": consumed[0] if consumed else "?", "consumed": consumed})
 
     return results
 
 
 def _get_fuuro_details(action: FuuroAction, bot: StateTracker) -> list[FuuroDetail]:
-    """
-    获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。
-    使用 mjai.Bot 原生方法而非手动逻辑。
-    返回列表,因为某些操作(如暗杠)可能有多个候选。
-    """
-    last_kawa = getattr(bot, "last_kawa_tile", None)
+    """获取副露(吃、碰、杠)所需的详细信息(牌张和消耗牌)。"""
+    last_kawa = bot.last_kawa_tile
 
     match action:
         case "chi_low" | "chi_mid" | "chi_high":
             return _handle_chi_fuuro(bot, last_kawa, chi_type=action)
         case "pon":
             return _handle_pon_fuuro(bot, last_kawa)
-        case "kan":
+        case "kan_select":
             return _handle_kan_fuuro(bot, last_kawa)
-
-    return []
+        case _:
+            return []
 
 
 def _handle_hora_action(base_item: Recommendation, bot: StateTracker):
     """处理和牌(hora)动作的特殊逻辑"""
-    if getattr(bot, "can_tsumo_agari", False):
+    if bot.can_tsumo_agari:
         # 情况A: 自摸
         base_item["action"] = "tsumo"
-        tsumo_tile = getattr(bot, "last_self_tsumo", None)
+        tsumo_tile = bot.last_self_tsumo
         if tsumo_tile:
             base_item["tile"] = tsumo_tile
-        elif hasattr(bot, "tehai") and bot.tehai:
-            base_item["tile"] = bot.tehai[-1]
     else:
         # 情况B: 荣和
         base_item["action"] = "ron"
-        last_kawa = getattr(bot, "last_kawa_tile", None)
+        last_kawa = bot.last_kawa_tile
         if last_kawa:
             base_item["tile"] = last_kawa
 
@@ -154,29 +151,26 @@ def _process_standard_recommendations(meta: MJAIMetadata, bot: StateTracker) -> 
 
     top3_recommendations = meta_to_recommend(meta, bot.is_3p, temperature=local_settings.model_config.temperature)[:3]
     for action, confidence in top3_recommendations:
+        original_action = action
+
         if action == "kan_select":
             action = "kan"
+        elif action.startswith("chi_"):
+            action = "chi"
 
         base_item: Recommendation = {
             "action": action,
             "confidence": confidence,
         }
 
-        if action.startswith("chi_"):
-            base_item["action"] = "chi"
-
         # 获取副露详情
-        fuuro_details_list: list[FuuroDetail] = _get_fuuro_details(action, bot)
+        fuuro_details_list: list[FuuroDetail] = _get_fuuro_details(original_action, bot)
 
         if fuuro_details_list:
             # 如果有具体详情(如多个杠),展开
-            for detail in fuuro_details_list:
-                new_item = base_item.copy()
-                new_item.update(detail)
-                recommendations.append(new_item)
+            recommendations.extend(base_item | detail for detail in fuuro_details_list)
         else:
             # 无副露详情,只添加基本项
-            # 特殊处理和牌和拔北
             if action == "hora":
                 _handle_hora_action(base_item, bot)
             elif action == "nukidora":
@@ -202,7 +196,7 @@ def _attach_riichi_lookahead(recommendations: list[Recommendation], meta: MJAIMe
         if not lookahead_recs:
             return
 
-        valid_riichi_discards = getattr(bot, "discardable_tiles_riichi_declaration", None)
+        valid_riichi_discards = bot.discardable_tiles_riichi_declaration
         sim_candidates: list[SimCandidate] = []
 
         for action, conf in lookahead_recs:
@@ -240,10 +234,8 @@ def build_dataserver_payload(mjai_response: MJAIResponse, bot: StateTracker) -> 
         # 2. 如果适用，附加立直前瞻信息
         _attach_riichi_lookahead(recommendations, meta, bot)
 
-        # 3. 如果已立直，过滤掉无需显示的推荐（只保留暗杠、和牌、拔北）
-        if getattr(bot, "self_riichi_accepted", False):
-            # 立直后只显示: 暗杠(kan), 自摸(tsumo), 荣和(ron), 拔北(nukidora)
-            # 注意: 这里的 'kan' 包含了暗杠候选
+        # 3. 如果已立直，过滤掉无需显示的推荐
+        if bot.self_riichi_accepted:
             allow_actions = {"kan", "tsumo", "ron", "nukidora"}
             recommendations = [rec for rec in recommendations if rec["action"] in allow_actions]
 

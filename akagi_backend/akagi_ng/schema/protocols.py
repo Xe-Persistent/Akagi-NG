@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Protocol, Self
 
 import numpy as np
@@ -47,6 +48,31 @@ class BotStatusContext(Protocol):
     def clear(self) -> None:
         """重置所有状态。"""
         ...
+
+
+class ActionCandidatesProtocol(Protocol):
+    can_chi_low: bool
+    can_chi_mid: bool
+    can_chi_high: bool
+    can_pon: bool
+    can_daiminkan: bool
+    can_tsumo_agari: bool
+    can_ron_agari: bool
+    can_ryukyoku: bool
+
+
+class PlayerStateProtocol(Protocol):
+    self_riichi_accepted: bool
+    last_cans: ActionCandidatesProtocol
+    tehai: Sequence[int]
+    akas_in_hand: list[bool]
+
+    def last_self_tsumo(self) -> str | None: ...
+    def last_kawa_tile(self) -> str | None: ...
+    def update(self, events: str): ...
+    def brief_info(self) -> str: ...
+    def ankan_candidates(self) -> Sequence[str]: ...
+    def kakan_candidates(self) -> Sequence[str]: ...
 
 
 class EngineProtocol(Protocol):

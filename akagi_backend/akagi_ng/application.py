@@ -65,8 +65,8 @@ class AkagiApp:
             mjai_controller = Controller(status=status)
             mjai_bot = StateTracker(status=status)
             logger.info("Bot components loaded successfully.")
-        except ImportError as e:
-            logger.error(f"Failed to load bot components or native library: {e}")
+        except ImportError:
+            logger.exception("Failed to load bot components or native library")
 
         app_context = AppContext(
             settings=settings,

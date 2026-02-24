@@ -51,12 +51,14 @@ class Controller:
         # 3. 正常执行决策
         try:
             result = self.bot.react(event)
-            if not isinstance(result, dict) or "type" not in result:
-                logger.error(f"Bot returned invalid response type: {type(result)}")
-                self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)
-                return {"type": "none"}
-            logger.trace(f"<- {result}")
-            return result
+            match result:
+                case None | {"type": _}:
+                    logger.trace(f"<- {result}")
+                    return result
+                case _:
+                    logger.error(f"Bot returned invalid response type: {type(result)}")
+                    self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)
+                    return None
         except Exception as e:
             logger.exception(f"Error calling bot.react: {e}")
             self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)

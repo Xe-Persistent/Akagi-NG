@@ -1,4 +1,5 @@
 import base64
+import contextlib
 from functools import cmp_to_key
 
 from google.protobuf.json_format import MessageToDict
@@ -173,7 +174,7 @@ class MajsoulBridge(BaseBridge):
         self.is_3p = len(liqi_message["data"]["seatList"]) == MahjongConstants.SEATS_3P
         try:
             self.mode_id = liqi_message["data"]["gameConfig"]["meta"]["modeId"]
-        except Exception:
+        except (KeyError, TypeError):
             self.mode_id = -1
 
         seat_list = liqi_message["data"]["seatList"]
@@ -494,13 +495,11 @@ class MajsoulBridge(BaseBridge):
 
     def _handle_game_end(self, data: dict) -> list[MJAIEvent]:
         """处理游戏结束"""
-        try:
+        with contextlib.suppress(Exception):
             for idx, player in enumerate(data["result"]["players"]):
                 if player["seat"] == self.seat:
                     self.rank = idx + 1
                     self.score = player["partPoint1"]
-        except Exception:
-            pass
         self.game_ended = True
         return [self.make_end_game()]
 

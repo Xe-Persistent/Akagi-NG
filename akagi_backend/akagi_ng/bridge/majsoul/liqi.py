@@ -252,7 +252,9 @@ class LiqiProto:
             result = {"id": msg_id, "type": msg_type, "method": method_name, "data": dict_obj}
             self.parsed_msg_count += 1
         except Exception as e:
-            logger.warning(f"Decode error: {e!s} (msg_id: {msg_id}, type: {buf[0] if buf else 'empty'})")
+            logger.debug(
+                f"Decode skipped: {type(e).__name__}: {e!s} (msg_id: {msg_id}, type: {buf[0] if buf else 'empty'})"
+            )
             return result
         return result
 
@@ -294,6 +296,6 @@ def from_protobuf(buf: bytes) -> list[dict]:
             data = buf[p : p + s_len]
             p += s_len
         else:
-            raise Exception(f"unknown pb block type: {block_type}")
+            raise ValueError(f"unknown pb block type: {block_type}")
         result.append({"id": block_id, "type": block_type, "data": data, "begin": block_begin})
     return result

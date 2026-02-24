@@ -60,8 +60,8 @@ class LookaheadBot:
             e_json = json.dumps(e, separators=(",", ":"))
             try:
                 sim_bot.react(e_json)
-            except Exception as e:
-                logger.error(f"LookaheadBot: Replay failed at event {e_json}: {e}")
+            except Exception:
+                logger.exception(f"LookaheadBot: Replay failed at event {e_json}")
                 return None
 
         # 4. 执行候选事件（真正的推理）
@@ -81,7 +81,7 @@ class LookaheadBot:
                     return meta
                 logger.warning("LookaheadBot: engine returned empty meta.")
 
-        except Exception as e:
-            logger.error(f"LookaheadBot: sim_bot.react failed: {e}")
+        except Exception:
+            logger.exception("LookaheadBot: sim_bot.react failed")
 
         return None

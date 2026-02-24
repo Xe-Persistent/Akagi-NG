@@ -64,8 +64,11 @@ async def save_settings_handler(request: web.Request) -> web.Response:
     except Exception:
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
-    if not isinstance(payload, dict):
-        return _json_response({"ok": False, "error": "Settings payload must be a JSON object"}, status=400)
+    match payload:
+        case dict():
+            pass
+        case _:
+            return _json_response({"ok": False, "error": "Settings payload must be a JSON object"}, status=400)
 
     if not verify_settings(payload):
         return _json_response({"ok": False, "error": "Settings validation failed (schema mismatch)"}, status=400)
@@ -128,9 +131,12 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
     # Basic structural validation
-    if not isinstance(payload, dict) or "type" not in payload:
-        logger.warning(f"Invalid MJAI ingest payload: {payload}")
-        return _json_response({"ok": False, "error": "Invalid MJAI payload structure"}, status=400)
+    match payload:
+        case {"type": _}:
+            pass
+        case _:
+            logger.warning(f"Invalid MJAI ingest payload: {payload}")
+            return _json_response({"ok": False, "error": "Invalid MJAI payload structure"}, status=400)
 
     try:
         from akagi_ng.core import get_app_context
@@ -143,11 +149,8 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
         logger.warning("ElectronClient is not active")
         return _json_response({"ok": False, "error": "ElectronClient not active"}, status=503)
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
         logger.error(f"Ingest handler error: {e}")
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _json_response({"ok": False, "error": "Internal server error"}, status=500)
 
 
 async def shutdown_handler(_request: web.Request) -> web.Response:
@@ -175,11 +178,8 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
         return _json_response({"ok": False, "error": "Message queue not available"}, status=503)
 
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
         logger.error(f"Shutdown handler error: {e}")
-        return _json_response({"ok": False, "error": str(e)}, status=500)
+        return _json_response({"ok": False, "error": "Internal server error"}, status=500)
 
 
 def setup_routes(app: web.Application):

@@ -82,7 +82,7 @@ class DataServer(threading.Thread):
             # Keep alive 任务由 SSEManager 管理，但需要 run_forever
             self.loop.run_forever()
         except Exception as e:
-            logger.error(f"DataServer startup/runtime error: {e}")
+            logger.error(f"DataServer runtime error: {e}")
             self.running = False
         finally:
             if self.runner:

@@ -257,6 +257,6 @@ def build_dataserver_payload(mjai_response: MJAIResponse, bot: StateTracker) -> 
             "circuit_open": meta.get(NotificationCode.RECONNECTING),
         }
 
-    except Exception as e:
-        logger.error(f"Failed to build payload: {e}")
+    except Exception:
+        logger.exception("Failed to build payload")
         return None

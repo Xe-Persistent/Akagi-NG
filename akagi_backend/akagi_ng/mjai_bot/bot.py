@@ -96,13 +96,13 @@ class MortalBot:
             res = self.model.react(json.dumps(event, separators=(",", ":")))
             return json.loads(res)
         except Exception as e:
-            self.logger.error(f"MortalBot engine error: {e}")
-            self.status.set_flag(
-                NotificationCode.JSON_DECODE_ERROR
-                if isinstance(e, json.JSONDecodeError)
-                else NotificationCode.BOT_RUNTIME_ERROR
-            )
-            return {"type": "none"}
+            self.logger.exception("MortalBot engine error")
+            match e:
+                case json.JSONDecodeError():
+                    self.status.set_flag(NotificationCode.JSON_DECODE_ERROR)
+                case _:
+                    self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)
+            return None
         finally:
             if self.engine:
                 self.engine.is_sync = False
@@ -212,6 +212,6 @@ class MortalBot:
             self.logger.info(f"Riichi Lookahead: Simulation success. Candidates: {all_candidates}")
             return sim_meta
 
-        except Exception as lookahead_err:
-            self.logger.error(f"Riichi Lookahead failed: {lookahead_err}")
+        except Exception:
+            self.logger.exception("Riichi Lookahead failed")
             return None

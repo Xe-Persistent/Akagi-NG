@@ -17,8 +17,8 @@ class TenhouElectronClient(BaseElectronClient):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = TenhouBridge()
-        except Exception as e:
-            logger.error(f"Failed to initialize TenhouBridge in TenhouElectronClient: {e}")
+        except Exception:
+            logger.exception("Failed to initialize TenhouBridge in TenhouElectronClient")
             self.bridge = None
 
     WS_TEXT = 1

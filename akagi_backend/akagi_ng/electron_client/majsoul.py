@@ -21,8 +21,8 @@ class MajsoulElectronClient(BaseElectronClient):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = MajsoulBridge()
-        except Exception as e:
-            logger.error(f"Failed to initialize MajsoulBridge in MajsoulElectronClient: {e}")
+        except Exception:
+            logger.exception("Failed to initialize MajsoulBridge in MajsoulElectronClient")
             self.bridge = None
 
     def handle_message(self, message: ElectronMessage):
@@ -132,7 +132,7 @@ class MajsoulElectronClient(BaseElectronClient):
             # Majsoul messages are always binary (opcode 2) and sent as base64 in CDP
             try:
                 raw_bytes = base64.b64decode(b64_data)
-            except Exception as e:
+            except ValueError as e:
                 logger.error(f"Failed to decode base64 websocket data: {e}")
                 return
 

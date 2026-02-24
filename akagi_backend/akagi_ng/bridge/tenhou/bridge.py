@@ -56,10 +56,10 @@ class TenhouBridge(BaseBridge):
                 case _:
                     raise ValueError("JSON is not a dictionary")
         except json.JSONDecodeError:
-            logger.warning("Failed to decode JSON: %s", content)
+            logger.warning(f"Failed to decode JSON: {content}")
             return None
-        except AssertionError:
-            logger.warning("Invalid JSON: %s", content)
+        except ValueError:
+            logger.warning(f"Invalid JSON: {content}")
             return None
 
     def _dispatch_message(self, message: dict) -> list[MJAIEvent] | None:

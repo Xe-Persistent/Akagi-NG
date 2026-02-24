@@ -66,7 +66,6 @@ class AkagiOTClient:
 
         except requests.RequestException as e:
             self._record_failure(status)
-            logger.error(f"AkagiOT Request Failed: {e}")
             raise RuntimeError(f"AkagiOT request failed: {e}") from e
 
     def _record_failure(self, status: BotStatusContext):

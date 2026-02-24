@@ -63,7 +63,7 @@ class BridgeAddon:
 
         platform = target_platform
 
-        logger.info(f"[MITM] WebSocket connection opened: {flow.id} ({flow.request.url}) for {platform.value}")
+        logger.info(f"[MITM] WebSocket connection opened: {flow.id} ({flow.request.url}) for {platform}")
 
         self.activated_flows.append(flow.id)
         with self.bridge_lock:
@@ -147,9 +147,8 @@ class BridgeAddon:
                     except queue.Full:
                         logger.warning("[MITM] MJAI message queue is full, dropping message.")
 
-        except Exception as e:
-            logger.error(f"[MITM] Error parsing message: {e}")
-            logger.error(traceback.format_exc())
+        except Exception:
+            logger.exception("[MITM] Error parsing message")
 
     def _on_connection_established(self):
         """处理连接建立事件"""

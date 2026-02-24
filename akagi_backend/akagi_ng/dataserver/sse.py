@@ -126,8 +126,8 @@ class SSEManager:
 
         except (asyncio.CancelledError, ConnectionResetError):
             logger.debug(f"SSE handler for {client_id} closed/cancelled.")
-        except Exception as exc:
-            logger.error(f"Error in SSE handler for {client_id}: {exc}")
+        except Exception as e:
+            logger.error(f"Error in SSE handler for {client_id}: {e}")
         finally:
             await self._remove_client(client_id, expected_response=response)
 

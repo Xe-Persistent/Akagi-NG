@@ -206,7 +206,7 @@ class AmatsukiBridge(BaseBridge):
 
             return None
         except Exception as e:
-            logger.error(f"Failed to parse: {e} at {e.__traceback__.tb_lineno}")
+            logger.error(f"Failed to parse STOMP message: {e}")
             return None
 
     def _handle_join_desk_callback(self, stomp: STOMP):

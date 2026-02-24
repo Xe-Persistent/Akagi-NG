@@ -95,10 +95,10 @@ class FuuroDetail(TypedDict):
 
 
 class ProcessResult(TypedDict):
-    """MJAI 消息批次处理结果"""
+    """MJAI 单条消息处理结果"""
 
-    mjai_responses: list[MJAIResponse]
-    batch_notifications: list[Notification]
+    response: MJAIResponse | None
+    notifications: list[Notification]
     is_sync: bool
 
 
@@ -258,6 +258,10 @@ class SystemEvent(MJAIEventBase):
     msg: NotRequired[str]
 
 
+class SystemShutdownEvent(TypedDict):
+    type: Literal["system_shutdown"]
+
+
 type MJAIEvent = (
     StartGameEvent
     | StartKyokuEvent
@@ -278,7 +282,7 @@ type MJAIEvent = (
 )
 
 
-type AkagiEvent = MJAIEvent | SystemEvent
+type AkagiEvent = MJAIEvent | SystemEvent | SystemShutdownEvent
 
 
 # ==========================================================

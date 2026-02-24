@@ -94,7 +94,7 @@ class TenhouBridge(BaseBridge):
             return self._convert_meld(message)
         return None
 
-    def _convert_helo(self, message: dict) -> list[MJAIEvent] | None:
+    def _convert_helo(self, _message: dict) -> list[MJAIEvent] | None:
         if self.state.game_active:
             logger.info("[Tenhou] Session re-initialized via HELO while game active. Sending end_game.")
             msgs = [self.make_end_game()]
@@ -102,7 +102,7 @@ class TenhouBridge(BaseBridge):
             return msgs
         return None
 
-    def _convert_rejoin(self, message: dict) -> list[MJAIEvent] | None:
+    def _convert_rejoin(self, _message: dict) -> list[MJAIEvent] | None:
         return None
 
     def _convert_un(self, message: dict) -> list[MJAIEvent] | None:

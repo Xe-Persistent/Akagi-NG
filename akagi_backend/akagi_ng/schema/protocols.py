@@ -16,6 +16,10 @@ from akagi_ng.schema.types import (
 )
 
 
+class MessageWithContent(Protocol):
+    content: bytes
+
+
 class BotStatusContext(Protocol):
     """Bot 状态上下文协议。"""
 
@@ -29,23 +33,23 @@ class BotStatusContext(Protocol):
         """获取所有元数据。"""
         ...
 
-    def set_flag(self, key: NotificationFlagKey, value: bool = True) -> None:
+    def set_flag(self, key: NotificationFlagKey, value: bool = True):
         """设置通知标志位。"""
         ...
 
-    def set_metadata(self, key: EngineAdditionalMetaKey, value: EngineType | bool) -> None:
+    def set_metadata(self, key: EngineAdditionalMetaKey, value: EngineType | bool):
         """设置附加元数据。"""
         ...
 
-    def clear_flags(self) -> None:
+    def clear_flags(self):
         """清除所有通知标志位。"""
         ...
 
-    def clear_metadata(self) -> None:
+    def clear_metadata(self):
         """清除所有附加元数据。"""
         ...
 
-    def clear(self) -> None:
+    def clear(self):
         """重置所有状态。"""
         ...
 
@@ -89,7 +93,7 @@ class EngineProtocol(Protocol):
     @property
     def enable_rule_based_agari_guard(self) -> bool: ...
 
-    def reset_status(self) -> None:
+    def reset_status(self):
         """重置引擎状态（如回退标志）。"""
         ...
 
@@ -113,7 +117,7 @@ class BotProtocol(Protocol):
 
     status: BotStatusContext
 
-    def react(self, event: MJAIEvent) -> MJAIResponse:
+    def react(self, event: MJAIEvent) -> MJAIResponse | None:
         """处理单个事件并返回响应。"""
         ...
 
@@ -124,7 +128,7 @@ class GameBridge(Protocol):
     负责解析特定平台的消息并转换为 MJAI 事件。
     """
 
-    def reset(self) -> None:
+    def reset(self):
         """重置桥接器状态。"""
         ...
 
@@ -139,11 +143,11 @@ class MessageSource(Protocol):
     负责接收和转发游戏消息（如 ElectronClient 或 MitmClient）。
     """
 
-    def start(self) -> None:
+    def start(self):
         """启动消息源。"""
         ...
 
-    def stop(self) -> None:
+    def stop(self):
         """停止消息源。"""
         ...
 
@@ -154,7 +158,7 @@ class ElectronClientProtocol(MessageSource, Protocol):
     除了基本的消息源功能外，还支持向客户端推送消息。
     """
 
-    def push_message(self, message: ElectronMessage) -> None:
+    def push_message(self, message: ElectronMessage):
         """向客户端推送消息。"""
         ...
 
@@ -165,6 +169,6 @@ class ControllerProtocol(Protocol):
     负责管理 Bot 生命周期和事件分发。
     """
 
-    def react(self, event: AkagiEvent) -> MJAIResponse:
+    def react(self, event: AkagiEvent) -> MJAIResponse | None:
         """响应 MJAI 或 系统事件。"""
         ...

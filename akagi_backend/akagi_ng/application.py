@@ -1,6 +1,7 @@
 import queue
 import signal
 import threading
+from types import FrameType
 
 from akagi_ng.core import (
     AppContext,
@@ -18,10 +19,9 @@ from akagi_ng.schema.constants import ServerConstants
 from akagi_ng.schema.protocols import (
     BotProtocol,
     ControllerProtocol,
-    MessageSource,
 )
 from akagi_ng.schema.types import (
-    MJAIEvent,
+    AkagiEvent,
     MJAIResponse,
     Notification,
     ProcessResult,
@@ -37,7 +37,7 @@ class AkagiApp:
         self.ds: DataServer | None = None
         self.status: BotStatusContext | None = None
         self.frontend_url = ""
-        self.message_queue: queue.Queue[MJAIEvent] = queue.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
+        self.message_queue: queue.Queue[AkagiEvent] = queue.Queue(maxsize=ServerConstants.MESSAGE_QUEUE_MAXSIZE)
 
     def initialize(self):
         import importlib
@@ -85,13 +85,13 @@ class AkagiApp:
 
         app = get_app_context()
 
-        sources: list[MessageSource] = []
-        if app.settings.mitm.enabled and app.mitm_client:
-            sources.append(app.mitm_client)
-        if app.electron_client:
-            sources.append(app.electron_client)
-
-        for source in sources:
+        for source in filter(
+            None,
+            (
+                app.mitm_client if app.settings.mitm.enabled else None,
+                app.electron_client,
+            ),
+        ):
             source.start()
 
         self._setup_signals()
@@ -100,7 +100,7 @@ class AkagiApp:
     def _setup_signals(self):
         """设置信号处理器以关闭程序"""
 
-        def signal_handler(signum: int, _frame: object) -> None:
+        def signal_handler(signum: int, _frame: FrameType | None):
             sig_name = signal.Signals(signum).name
             logger.info(f"Received signal {sig_name} ({signum}), initiating shutdown...")
             self.stop()
@@ -112,132 +112,73 @@ class AkagiApp:
         self._stop_event.set()
 
     def _handle_message_logic(
-        self,
-        msg: MJAIEvent,
-        batch_notifications: list[Notification],
-        bot: BotProtocol | None,
-        controller: ControllerProtocol | None,
-        mjai_responses: list[MJAIResponse],
-    ) -> bool:
+        self, msg: AkagiEvent, bot: BotProtocol | None, controller: ControllerProtocol | None
+    ) -> tuple[MJAIResponse | None, Notification | None, bool]:
         """统一处理消息分发的 match-case 逻辑。
 
         Returns:
-            bool: 是否应跳过后续处理。
+            (response, notification, handled)
         """
-        msg_type = msg.get("type")
-
-        # 1. 系统管理类消息
-        match msg_type:
-            case "system_shutdown":
-                logger.info(f"Received shutdown signal from {msg.get('source', 'unknown')}.")
+        match msg:
+            # 1. 纯系统级别的管理事件 (不流向 Game Logic)
+            case {"type": "system_shutdown"}:
+                logger.info("Received shutdown signal.")
                 self.stop()
-                return True
-            case "system_event":
-                if code := msg.get("code"):
-                    batch_notifications.append({"code": code})
-                return True
+                return None, None, True
+            case {"type": "system_event", "code": code}:
+                return None, {"code": code}, True
 
-        # 2. 业务通知类消息 (直接处理来自 Bridge 的动态通知)
-        if msg_type != "system_event" and (code := msg.get("code")):
-            batch_notifications.append({"code": code})
+            # 2. 属于 Game Logic / MJAI 范畴的协议事件
+            case _:
+                resp = controller.react(msg) if controller else None
+                if bot:
+                    bot.react(msg)
+                return resp, None, False
 
-        # 3. 游戏业务分发
-        if controller and (resp := controller.react(msg)):
-            mjai_responses.append(resp)
-
-        if bot:
-            bot.react(msg)
-
-        return False
-
-    def _process_message_batch(
-        self, mjai_msgs: list[MJAIEvent], bot: BotProtocol | None, controller: ControllerProtocol | None
-    ) -> tuple[list[MJAIResponse], list[Notification]]:
-        """
-        处理一批 MJAI 消息
-
-        注意: Controller 必须在 Bot 更新状态之前响应
-        Controller 基于当前状态做决策，如果 Bot 先更新状态
-        Controller 将基于"未来"状态而非当前事件做出响应
-        """
-        mjai_responses: list[MJAIResponse] = []
-        batch_notifications: list[Notification] = []
-
-        for msg in mjai_msgs:
-            try:
-                if self._handle_message_logic(msg, batch_notifications, bot, controller, mjai_responses):
-                    continue
-
-                # 每一条消息处理后，统一从 Context 中采集当前累积的标志
-                if self.status:
-                    flags = self.status.flags
-                    if flags:
-                        batch_notifications.extend([{"code": code} for code, is_active in flags.items() if is_active])
-                        self.status.clear_flags()
-
-            except (ValueError, KeyError, TypeError) as e:
-                logger.error(f"Invalid MJAI message format: {msg}, error: {e}")
-            except Exception:
-                logger.exception(f"Unexpected error processing MJAI message: {msg}")
-
-        return mjai_responses, batch_notifications
-
-    def _get_next_message(self, timeout: float = ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS) -> MJAIEvent | None:
-        """
-        从事件队列获取下一条消息(阻塞、100ms超时)
-        如果超时或队列为空则返回 None
-
-        这是事件驱动的 INPUT 阶段
-        """
-        try:
-            return self.message_queue.get(block=True, timeout=timeout)
-        except queue.Empty:
-            return None
-
-    def _process_events(
-        self, mjai_msgs: list[MJAIEvent], bot: BotProtocol | None, controller: ControllerProtocol | None
+    def _process_event(
+        self, msg: AkagiEvent, bot: BotProtocol | None, controller: ControllerProtocol | None
     ) -> ProcessResult:
         """
-        处理 MJAI 消息批次
+        处理单条 MJAI 消息
         这是 Reactor 模式的 PROCESS 阶段
-
-        Returns:
-            mjai_responses: Controller 的响应列表
-            notifications: 要发送的通知列表
         """
-        mjai_responses, batch_notifications = self._process_message_batch(mjai_msgs, bot, controller)
+        response: MJAIResponse | None = None
+        notifications: list[Notification] = []
 
-        return {
-            "mjai_responses": mjai_responses,
-            "batch_notifications": batch_notifications,
-            "is_sync": any(msg.get("sync", False) for msg in mjai_msgs),
-        }
+        try:
+            resp, sys_notif, handled = self._handle_message_logic(msg, bot, controller)
+            if resp:
+                response = resp
+            if sys_notif:
+                notifications.append(sys_notif)
+
+            # 每一条消息处理后，统一从 Context 中采集当前累积的标志
+            if not handled and self.status and self.status.flags:
+                notifications.extend({"code": k} for k, v in self.status.flags.items() if v)
+                self.status.clear_flags()
+
+        except Exception:
+            logger.exception(f"Unexpected error processing MJAI message: {msg}")
+
+        return ProcessResult(
+            response=response,
+            notifications=notifications,
+            is_sync=msg.get("sync", False),
+        )
 
     def _emit_outputs(self, result: ProcessResult, bot: BotProtocol | None):
         """
         将处理结果发送到 DataServer
         这是 Reactor 模式的 OUTPUT 阶段
         """
-        mjai_responses: list[MJAIResponse] = result["mjai_responses"]
-        batch_notifications: list[Notification] = result["batch_notifications"]
-        is_sync = result.get("is_sync", False)
+        response = result["response"] or MJAIResponse(type="none")
+        payload = build_dataserver_payload(response, bot)
 
-        # 1. Payload：使用最后一个有效响应
-        last_response = mjai_responses[-1] if mjai_responses else {}
-        payload = build_dataserver_payload(last_response, bot)
-
-        # 2. Notifications: 从各种来源收集通知
-        all_notifications = batch_notifications.copy()
-
-        # 3. 检查响应中的错误
-        if error_code := last_response.get("error"):
-            all_notifications.append({"code": error_code})
-
-        if all_notifications:
-            self.ds.send_notifications(all_notifications)
+        if notifications := result["notifications"]:
+            self.ds.send_notifications(notifications)
 
         # 同步期间屏蔽推荐输出，仅保留通知
-        if payload and not is_sync:
+        if payload and not result["is_sync"]:
             self.ds.send_recommendations(payload)
 
     def run(self) -> int:
@@ -245,9 +186,9 @@ class AkagiApp:
         使用 Reactor 模式的主应用循环。
 
         循环分三个阶段：
-        1. _poll_inputs()   - 从事件源收集消息
-        2. _process_events() - 处理消息并生成响应
-        3. _emit_outputs()   - 发送结果到 DataServer
+        1. message_queue.get()  - 从事件队列收集消息
+        2. _process_event()     - 处理消息并生成响应
+        3. _emit_outputs()      - 发送结果到 DataServer
         """
         # 启动主循环
         logger.info("Starting main loop...")
@@ -258,18 +199,15 @@ class AkagiApp:
 
         try:
             while not self._stop_event.is_set():
-                # 阶段 1：INPUT - 从事件队列获取消息（阻塞模式，替代轮询）
-                msg = self._get_next_message(timeout=ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS)
-                if not msg:
-                    # Timeout, check stop event and continue
+                # 阶段 1：INPUT - 从事件队列获取消息 (阻塞、100ms超时)
+                try:
+                    msg = self.message_queue.get(block=True, timeout=ServerConstants.MAIN_LOOP_POLL_TIMEOUT_SECONDS)
+                except queue.Empty:
                     continue
-
-                # 将单个消息包装为列表以兼容现有处理逻辑
-                mjai_msgs = [msg]
 
                 try:
                     # 阶段 2：PROCESS - 处理事件
-                    result = self._process_events(mjai_msgs, bot, controller)
+                    result = self._process_event(msg, bot, controller)
 
                     # 阶段 3：OUTPUT - 分发结果
                     self._emit_outputs(result, bot)
@@ -289,13 +227,7 @@ class AkagiApp:
         app = get_app_context()
 
         # 停止消息源
-        sources: list[MessageSource] = []
-        if app.mitm_client:
-            sources.append(app.mitm_client)
-        if app.electron_client:
-            sources.append(app.electron_client)
-
-        for source in sources:
+        for source in filter(None, (app.mitm_client, app.electron_client)):
             try:
                 logger.info(f"Stopping {source.__class__.__name__}...")
                 source.stop()

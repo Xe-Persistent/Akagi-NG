@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Any
+
+from akagi_ng.bridge.tenhou.utils.decoder import Meld
 
 
 @dataclass
@@ -12,7 +13,7 @@ class State:
     hand: list[int] = field(default_factory=list)
     in_riichi: bool = False
     live_wall: int = 70
-    melds: list[Any] = field(default_factory=list)
+    melds: list[Meld] = field(default_factory=list)
     wait: list[str] = field(default_factory=list)
     last_kawa_tile: str = "?"
     is_tsumo: bool = False

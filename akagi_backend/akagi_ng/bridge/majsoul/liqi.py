@@ -6,12 +6,14 @@ from enum import IntEnum
 
 from google.protobuf import descriptor_pb2 as _descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
+from google.protobuf import message as _message
 from google.protobuf import message_factory as _message_factory
 from google.protobuf.json_format import MessageToDict
 
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import LiqiProtocolConstants
 from akagi_ng.core.paths import get_assets_dir
+from akagi_ng.schema.protocols import MessageWithContent
 
 
 class MsgType(IntEnum):
@@ -38,7 +40,7 @@ class LiqiProto:
 
         self._build_descriptors()
 
-    def _build_descriptors(self) -> None:
+    def _build_descriptors(self):
         """Build FileDescriptorProto from liqi.json and add to pool."""
         fd = _descriptor_pb2.FileDescriptorProto()
         fd.name = "protocol.proto"
@@ -57,7 +59,7 @@ class LiqiProto:
 
         self.pool.Add(fd)
 
-    def _register_types(self, nested_data: dict, prefix: str, type_info: dict[str, bool]) -> None:
+    def _register_types(self, nested_data: dict, prefix: str, type_info: dict[str, bool]):
         for name, obj in nested_data.items():
             full_name = f"{prefix}.{name}"
             if "fields" in obj:
@@ -67,13 +69,25 @@ class LiqiProto:
             elif "values" in obj:
                 type_info[full_name] = True
 
-    def _build_type(self, parent_proto: object, name: str, obj: dict, type_info: dict[str, bool]) -> None:
+    def _build_type(
+        self,
+        parent_proto: _descriptor_pb2.FileDescriptorProto | _descriptor_pb2.DescriptorProto,
+        name: str,
+        obj: dict,
+        type_info: dict[str, bool],
+    ):
         if "fields" in obj:
             self._build_message(parent_proto, name, obj, type_info)
         elif "values" in obj:
             self._build_enum(parent_proto, name, obj)
 
-    def _build_message(self, parent_proto: object, name: str, obj: dict, type_info: dict[str, bool]) -> None:
+    def _build_message(
+        self,
+        parent_proto: _descriptor_pb2.FileDescriptorProto | _descriptor_pb2.DescriptorProto,
+        name: str,
+        obj: dict,
+        type_info: dict[str, bool],
+    ):
         if hasattr(parent_proto, "nested_type"):
             msg_desc = parent_proto.nested_type.add()
         else:
@@ -87,7 +101,9 @@ class LiqiProto:
             for n_name, n_obj in obj["nested"].items():
                 self._build_type(msg_desc, n_name, n_obj, type_info)
 
-    def _build_field(self, msg_desc: object, f_name: str, f_obj: dict, type_info: dict[str, bool]) -> None:
+    def _build_field(
+        self, msg_desc: _descriptor_pb2.DescriptorProto, f_name: str, f_obj: dict, type_info: dict[str, bool]
+    ):
         field = msg_desc.field.add()
         field.name = f_name
         field.number = f_obj["id"]
@@ -132,7 +148,9 @@ class LiqiProto:
                 return k
         return resolved
 
-    def _build_enum(self, parent_proto: object, name: str, obj: dict) -> None:
+    def _build_enum(
+        self, parent_proto: _descriptor_pb2.FileDescriptorProto | _descriptor_pb2.DescriptorProto, name: str, obj: dict
+    ):
         enum_desc = parent_proto.enum_type.add()
         enum_desc.name = name
         for v_name, v_id in obj["values"].items():
@@ -140,7 +158,7 @@ class LiqiProto:
             val.name = v_name
             val.number = v_id
 
-    def get_message_class(self, name: str) -> type | None:
+    def get_message_class(self, name: str) -> type[_message.Message] | None:
         """Find specialized message class by name (e.g. 'ActionNewRound')."""
         try:
             desc = self.pool.FindMessageTypeByName(f"lq.{name}")
@@ -230,7 +248,7 @@ class LiqiProto:
         dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
         return method_name, dict_obj
 
-    def parse(self, flow_msg: bytes | object) -> dict:
+    def parse(self, flow_msg: bytes | MessageWithContent) -> dict:
         buf: bytes = flow_msg if isinstance(flow_msg, bytes) else flow_msg.content
         result = {}
         msg_id = -1

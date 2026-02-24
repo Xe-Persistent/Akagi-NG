@@ -16,7 +16,7 @@ class Controller:
         # Bot 将在收到第一个 start_game 事件时初始化
         self.pending_start_game_event: StartGameEvent | None = None
 
-    def react(self, event: AkagiEvent) -> MJAIResponse:
+    def react(self, event: AkagiEvent) -> MJAIResponse | None:
         """
         处理来自 Bridge 的事件序列。
         """
@@ -27,9 +27,9 @@ class Controller:
 
         except Exception as e:
             logger.exception(f"Controller error: {e}")
-            return {"type": "none"}
+            return None
 
-    def _handle_event(self, event: AkagiEvent) -> MJAIResponse:
+    def _handle_event(self, event: AkagiEvent) -> MJAIResponse | None:
         """分发单个事件并确保 Bot 已就绪"""
         e_type = event["type"]
 
@@ -38,7 +38,7 @@ class Controller:
             case "start_game":
                 return self._handle_start_game_event(event)
             case "system_event":
-                return {"type": "none"}
+                return None
             case _:
                 pass
 
@@ -46,7 +46,7 @@ class Controller:
         if self.bot is None:
             if e_type not in ("start_game", "start_kyoku"):
                 logger.error(f"Received event {e_type} before bot activation. Bot is not active.")
-            return {"type": "none"}
+            return None
 
         # 3. 正常执行决策
         try:
@@ -62,9 +62,9 @@ class Controller:
         except Exception as e:
             logger.exception(f"Error calling bot.react: {e}")
             self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)
-            return {"type": "none"}
+            return None
 
-    def _handle_start_game_event(self, event: StartGameEvent) -> MJAIResponse:
+    def _handle_start_game_event(self, event: StartGameEvent) -> MJAIResponse | None:
         """处理 start_game 事件：重置状态并缓存上下文"""
         self.pending_start_game_event = event
         # 重置当前 Bot
@@ -75,9 +75,9 @@ class Controller:
         logger.info(f"StartGame event mode: is_3p={is_3p}. Activating bot immediately.")
         self._ensure_bot_activated(is_3p)
 
-        return {"type": "none"}
+        return None
 
-    def _ensure_bot_activated(self, is_3p: bool) -> None:
+    def _ensure_bot_activated(self, is_3p: bool):
         """
         确保正确的 Bot 已经加载并完成了初始化（Context Sync）。
         """

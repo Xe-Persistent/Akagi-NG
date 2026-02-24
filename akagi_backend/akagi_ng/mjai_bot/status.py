@@ -18,19 +18,19 @@ class BotStatusContext:
         self._flags: NotificationFlags = {}
         self._metadata: EngineAdditionalMeta = {}
 
-    def set_flag(self, key: NotificationFlagKey, value: bool = True) -> None:
+    def set_flag(self, key: NotificationFlagKey, value: bool = True):
         """设置通知标志位"""
         self._flags[key] = value
 
-    def update_flags(self, flags: NotificationFlags) -> None:
+    def update_flags(self, flags: NotificationFlags):
         """批量更新标志位"""
         self._flags.update(flags)
 
-    def set_metadata(self, key: EngineAdditionalMetaKey, value: EngineType | bool) -> None:
+    def set_metadata(self, key: EngineAdditionalMetaKey, value: EngineType | bool):
         """设置附加元数据"""
         self._metadata[key] = value
 
-    def update_metadata(self, metadata: EngineAdditionalMeta) -> None:
+    def update_metadata(self, metadata: EngineAdditionalMeta):
         """批量更新元数据"""
         self._metadata.update(metadata)
 
@@ -44,15 +44,15 @@ class BotStatusContext:
         """获取所有元数据"""
         return self._metadata.copy()
 
-    def clear_flags(self) -> None:
+    def clear_flags(self):
         """清除所有通知标志位"""
         self._flags.clear()
 
-    def clear_metadata(self) -> None:
+    def clear_metadata(self):
         """清除所有附加元数据"""
         self._metadata.clear()
 
-    def clear(self) -> None:
+    def clear(self):
         """重置所有状态"""
         self.clear_flags()
         self.clear_metadata()

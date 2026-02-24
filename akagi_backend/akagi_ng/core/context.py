@@ -7,7 +7,7 @@ from akagi_ng.schema.protocols import (
     ElectronClientProtocol,
     MessageSource,
 )
-from akagi_ng.schema.types import MJAIEvent
+from akagi_ng.schema.types import AkagiEvent
 from akagi_ng.settings import Settings
 
 
@@ -16,7 +16,7 @@ class AppContext:
     """Application context containing all core components."""
 
     settings: Settings
-    shared_queue: queue.Queue[MJAIEvent]
+    shared_queue: queue.Queue[AkagiEvent]
     controller: ControllerProtocol | None
     bot: BotProtocol | None
     mitm_client: MessageSource | None
@@ -40,7 +40,7 @@ def get_app_context() -> AppContext:
     return _app_context
 
 
-def set_app_context(context: AppContext) -> None:
+def set_app_context(context: AppContext):
     """Set the application context."""
     global _app_context
     _app_context = context

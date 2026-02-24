@@ -34,18 +34,19 @@ class MortalBot:
         self.model: BotProtocol | None = None
         self.game_start_event: StartGameEvent | None = None
 
-        from akagi_ng.mjai_bot.logger import logger
-
         self.logger = logger
 
-    def react(self, event: MJAIEvent) -> MJAIResponse:
+    def react(self, event: MJAIEvent) -> MJAIResponse | None:
         """MortalBot 对外核心接口，流水线处理事件"""
         try:
             # 1. 预处理：生命周期管理与历史记录
             is_game_start, is_game_end = self._pre_react(event)
 
             # 2. 决策：调用模型/引擎
-            response = self._think(event) if not is_game_end else {"type": "none"}
+            response = self._think(event) if not is_game_end else None
+
+            if response is None:
+                return None
 
             # 3. 增强：注入元数据与执行前瞻逻辑
             meta: MJAIMetadata = response.get("meta", {})
@@ -59,7 +60,7 @@ class MortalBot:
         except Exception as e:
             self.logger.exception(f"MortalBot runtime error in select_action: {e}")
             self.status.set_flag(NotificationCode.BOT_RUNTIME_ERROR)
-            return {"type": "none"}
+            return None
 
     def _pre_react(self, event: MJAIEvent) -> tuple[bool, bool]:
         """维护历史、处理生命周期事件。返回 (is_game_start, is_game_end)"""
@@ -82,10 +83,10 @@ class MortalBot:
 
         return is_game_start, is_game_end
 
-    def _think(self, event: MJAIEvent) -> MJAIResponse:
+    def _think(self, event: MJAIEvent) -> MJAIResponse | None:
         """调用引擎/模型获取决策动作"""
         if not self.model:
-            return {"type": "none"}
+            return None
 
         if self.engine:
             self.engine.is_sync = event.get("sync", False)
@@ -93,6 +94,8 @@ class MortalBot:
         try:
             # MJAI 协议底层 C++ Bot (mjai-python) 接受并返回 JSON 字符串
             res = self.model.react(json.dumps(event, separators=(",", ":")))
+            if res is None:
+                return None
             return json.loads(res)
         except Exception as e:
             self.logger.exception("MortalBot engine error")
@@ -106,7 +109,7 @@ class MortalBot:
             if self.engine:
                 self.engine.is_sync = False
 
-    def _post_react(self, meta: MJAIMetadata, is_game_start: bool) -> None:
+    def _post_react(self, meta: MJAIMetadata, is_game_start: bool):
         """元数据增强阶段"""
         # 1. 注入同步元数据
         meta.update(self.status.metadata)
@@ -117,7 +120,7 @@ class MortalBot:
         # 2. 立直前瞻逻辑
         self._handle_riichi_lookahead(meta)
 
-    def _finalize_response(self, response: MJAIResponse, meta: MJAIMetadata) -> None:
+    def _finalize_response(self, response: MJAIResponse, meta: MJAIMetadata):
         """最终业务逻辑修正"""
         # 三麻抑制单一选项的 meta 显示
         if self.is_3p and "mask_bits" in meta and meta["mask_bits"].bit_count() == 1:
@@ -130,8 +133,6 @@ class MortalBot:
 
     def _handle_start_game(self, e: StartGameEvent):
         """处理游戏开始事件，初始化模型和引擎"""
-        from akagi_ng.mjai_bot.engine.factory import load_bot_and_engine
-
         self.player_id = e["id"]
         self.model, self.engine = load_bot_and_engine(self.status, self.player_id, self.is_3p)
         self.history = []

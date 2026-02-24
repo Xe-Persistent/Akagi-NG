@@ -15,7 +15,7 @@ from akagi_ng.bridge import (
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.schema.constants import Platform
 from akagi_ng.schema.notifications import NotificationCode
-from akagi_ng.schema.types import MJAIEvent
+from akagi_ng.schema.types import AkagiEvent
 from akagi_ng.settings import local_settings
 
 # Mapping of platforms to URL patterns for detection
@@ -28,7 +28,7 @@ PLATFORM_URL_PATTERNS = {
 
 
 class BridgeAddon:
-    def __init__(self, shared_queue: queue.Queue[MJAIEvent]):
+    def __init__(self, shared_queue: queue.Queue[AkagiEvent]):
         self.active_majsoul_flow: mitmproxy.http.HTTPFlow | None = None
         # 共享的消息队列（事件驱动模式）
         self.mjai_messages = shared_queue

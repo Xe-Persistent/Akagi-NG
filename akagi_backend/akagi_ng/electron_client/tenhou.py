@@ -6,8 +6,8 @@ from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
 from akagi_ng.schema.notifications import NotificationCode
 from akagi_ng.schema.types import (
+    AkagiEvent,
     ElectronMessage,
-    MJAIEvent,
     WebSocketClosedMessage,
     WebSocketCreatedMessage,
     WebSocketFrameMessage,
@@ -15,7 +15,7 @@ from akagi_ng.schema.types import (
 
 
 class TenhouElectronClient(BaseElectronClient):
-    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
+    def __init__(self, shared_queue: queue.Queue[AkagiEvent]):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = TenhouBridge()
@@ -48,7 +48,7 @@ class TenhouElectronClient(BaseElectronClient):
             if self.bridge:
                 self.bridge.reset()
 
-    def _handle_websocket_closed(self, message: WebSocketClosedMessage):
+    def _handle_websocket_closed(self, _message: WebSocketClosedMessage):
         with self._lock:
             if self._active_connections <= 0:
                 logger.warning("[Electron] Unexpected Tenhou websocket close event with no active connections")

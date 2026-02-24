@@ -6,7 +6,14 @@ from aiohttp import web
 from akagi_ng.core import configure_logging
 from akagi_ng.core.paths import get_models_dir
 from akagi_ng.dataserver.logger import logger
-from akagi_ng.settings import get_default_settings_dict, get_settings_dict, local_settings, verify_settings
+from akagi_ng.mjai_bot.engine import clear_resource_cache
+from akagi_ng.schema.types import SystemShutdownEvent
+from akagi_ng.settings import (
+    get_default_settings_dict,
+    get_settings_dict,
+    local_settings,
+    verify_settings,
+)
 
 # CORS Headers configuration
 # For Electron desktop app, restrict to localhost origins
@@ -165,9 +172,8 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
         app = get_app_context()
 
         if hasattr(app, "shared_queue") and app.shared_queue:
-            shutdown_message = {
+            shutdown_message : SystemShutdownEvent = {
                 "type": "system_shutdown",
-                "source": "api",
             }
             app.shared_queue.put(shutdown_message)
             logger.info("Shutdown signal sent to message queue.")

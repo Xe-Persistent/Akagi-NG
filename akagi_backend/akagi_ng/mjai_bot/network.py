@@ -7,7 +7,7 @@ from torch import Tensor, nn
 from akagi_ng.schema.constants import ModelConstants
 
 
-def orthogonal_init(layer: nn.Module, gain: float = 1.0) -> None:
+def orthogonal_init(layer: nn.Module, gain: float = 1.0):
     nn.init.orthogonal_(layer.weight, gain=gain)
     nn.init.constant_(layer.bias, 0)
 

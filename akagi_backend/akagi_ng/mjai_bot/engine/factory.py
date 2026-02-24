@@ -1,7 +1,7 @@
 import threading
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Self
+from typing import Self
 
 import numpy as np
 
@@ -21,11 +21,11 @@ from akagi_ng.settings import local_settings
 
 # 资源缓存
 # Key: (is_3p, server_url) for Network / (model_path) for Model
-_RESOURCE_CACHE: dict[Any, Any] = {}
+_RESOURCE_CACHE: dict[str, MortalModelResource | AkagiOTClient] = {}
 _CACHE_LOCK = threading.Lock()
 
 
-def clear_resource_cache(key_prefix: str | None = None) -> None:
+def clear_resource_cache(key_prefix: str | None = None):
     """清理全局资源缓存。
 
     Args:

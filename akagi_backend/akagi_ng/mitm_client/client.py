@@ -9,12 +9,12 @@ from mitmproxy.tools.dump import DumpMaster
 from akagi_ng.mitm_client.bridge_addon import BridgeAddon
 from akagi_ng.mitm_client.logger import logger
 from akagi_ng.schema.constants import ServerConstants
-from akagi_ng.schema.types import MJAIEvent
+from akagi_ng.schema.types import AkagiEvent
 from akagi_ng.settings import local_settings
 
 
 class MitmClient:
-    def __init__(self, shared_queue: queue.Queue[MJAIEvent]):
+    def __init__(self, shared_queue: queue.Queue[AkagiEvent]):
         self.running = False
         self._thread: threading.Thread | None = None
         self._master: DumpMaster | None = None

@@ -58,7 +58,7 @@ class MajsoulBridge(BaseBridge):
             logger.trace(f"-> {ret}")
         return ret
 
-    def _parse_sync_game(self, liqi_message: dict) -> list[MJAIEvent]:
+    def _parse_sync_game(self, liqi_message: dict) -> list[AkagiEvent]:
         """处理游戏同步消息（重连后的同步）"""
         self.syncing = True
 
@@ -66,7 +66,7 @@ class MajsoulBridge(BaseBridge):
         self._pre_scan_mode_from_sync_msg(liqi_message)
 
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
-        parsed_list: list[MJAIEvent] = [self.make_system_event(code=NotificationCode.GAME_SYNCING)]
+        parsed_list: list[AkagiEvent] = [self.make_system_event(code=NotificationCode.GAME_SYNCING)]
 
         _, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
@@ -83,7 +83,7 @@ class MajsoulBridge(BaseBridge):
         self.syncing = False
         return parsed_list if len(parsed_list) >= 1 else []
 
-    def _parse_enter_game(self, liqi_message: dict) -> list[MJAIEvent]:
+    def _parse_enter_game(self, liqi_message: dict) -> list[AkagiEvent]:
         """处理进入对局消息（首次连接，无需同步）"""
         self.syncing = False
 
@@ -91,7 +91,7 @@ class MajsoulBridge(BaseBridge):
         self._pre_scan_mode_from_sync_msg(liqi_message)
 
         sync_game_msgs = self._parse_sync_game_raw(liqi_message)
-        parsed_list: list[MJAIEvent] = []
+        parsed_list: list[AkagiEvent] = []
 
         _, action_msgs = self._analyze_sync_game(sync_game_msgs)
 
@@ -102,7 +102,7 @@ class MajsoulBridge(BaseBridge):
 
         return parsed_list if len(parsed_list) >= 1 else []
 
-    def _pre_scan_mode_from_sync_msg(self, msg_dict: dict) -> None:
+    def _pre_scan_mode_from_sync_msg(self, msg_dict: dict):
         """从同步/进入房间消息中预扫描游戏模式"""
         try:
             data = msg_dict.get("data", {})

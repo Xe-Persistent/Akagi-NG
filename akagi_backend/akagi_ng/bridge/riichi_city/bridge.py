@@ -194,7 +194,7 @@ class RiichiCityBridge(BaseBridge):
         logger.info(f"Reconnection: Restored game state for seat {self.game_status.seat}")
         return mjai_msgs
 
-    def _init_reconnect_seat(self, data: dict) -> None:
+    def _init_reconnect_seat(self, data: dict):
         """初始化重连时的玩家列表和座位。"""
         initial_dealer_pos = data.get("initial_dealer_pos", 0)
         self.game_status.player_list = (
@@ -419,6 +419,6 @@ class RiichiCityBridge(BaseBridge):
         self.game_status.dora_markers.append(dora_marker)
         return None
 
-    def _handle_room_end(self, rc_msg: RCMessage) -> list[MJAIEvent] | None:
+    def _handle_room_end(self, _rc_msg: RCMessage) -> list[MJAIEvent] | None:
         self.game_status = GameStatus()
         return [self.make_end_game()]

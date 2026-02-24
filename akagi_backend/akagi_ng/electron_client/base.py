@@ -4,17 +4,17 @@ import threading
 from akagi_ng.electron_client.logger import logger
 from akagi_ng.schema.protocols import GameBridge
 from akagi_ng.schema.types import (
+    AkagiEvent,
     DebuggerDetachedMessage,
     ElectronMessage,
-    MJAIEvent,
 )
 
 
 class BaseElectronClient:
     bridge: GameBridge | None = None
 
-    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
-        self.message_queue: queue.Queue[ElectronMessage | MJAIEvent] = shared_queue
+    def __init__(self, shared_queue: queue.Queue[AkagiEvent]):
+        self.message_queue: queue.Queue[AkagiEvent] = shared_queue
         self.running = False
         self._active_connections = 0
         self._lock = threading.Lock()
@@ -49,7 +49,7 @@ class BaseElectronClient:
         # Delegate all messages including websocket lifecycle to specialized handlers
         self.handle_message(message)
 
-    def _handle_debugger_detached(self, message: DebuggerDetachedMessage):
+    def _handle_debugger_detached(self, _message: DebuggerDetachedMessage):
         """
         Handle the event when the Electron debugger detaches (e.g. window closed).
         This forces reset of connection counts and sends disconnect notifications.

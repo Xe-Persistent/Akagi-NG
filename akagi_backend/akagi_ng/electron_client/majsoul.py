@@ -8,9 +8,9 @@ from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
 from akagi_ng.schema.notifications import NotificationCode
 from akagi_ng.schema.types import (
+    AkagiEvent,
     ElectronMessage,
     LiqiDefinitionMessage,
-    MJAIEvent,
     WebSocketClosedMessage,
     WebSocketCreatedMessage,
     WebSocketFrameMessage,
@@ -18,7 +18,7 @@ from akagi_ng.schema.types import (
 
 
 class MajsoulElectronClient(BaseElectronClient):
-    def __init__(self, shared_queue: queue.Queue[ElectronMessage | MJAIEvent]):
+    def __init__(self, shared_queue: queue.Queue[AkagiEvent]):
         super().__init__(shared_queue=shared_queue)
         try:
             self.bridge = MajsoulBridge()
@@ -49,7 +49,7 @@ class MajsoulElectronClient(BaseElectronClient):
         else:
             logger.debug(f"[Electron] Ignoring non-Majsoul WebSocket: {url}")
 
-    def _handle_websocket_closed(self, message: WebSocketClosedMessage):
+    def _handle_websocket_closed(self, _message: WebSocketClosedMessage):
         # We don't have URL in closed event in CDP usually, but we track count
         with self._lock:
             if self._active_connections <= 0:

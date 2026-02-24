@@ -91,6 +91,9 @@ async def save_settings_handler(request: web.Request) -> web.Response:
     ):
         restart_required = True
 
+    clear_resource_cache()
+    logger.info("Resource cache cleared due to settings update.")
+
     return _json_response({"ok": True, "restartRequired": restart_required})
 
 
@@ -98,6 +101,10 @@ async def reset_settings_handler(_request: web.Request) -> web.Response:
     default_settings = get_default_settings_dict()
     local_settings.update(default_settings)
     local_settings.save()
+
+    clear_resource_cache()
+    logger.info("Resource cache cleared due to settings reset.")
+
     return _json_response({"ok": True, "data": default_settings, "restartRequired": True})
 
 

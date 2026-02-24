@@ -350,25 +350,27 @@ class MajsoulBridge(BaseBridge):
             else:
                 consumed.append(MS_TILE_2_MJAI_TILE[data["tiles"][idx]])
 
-        assert target != actor
-        assert len(consumed) != 0
-        assert pai != ""
+        if target == actor or not consumed or not pai:
+            raise ValueError(f"Invalid Chi/Peng/Gang format: target={target}, consumed={consumed}, pai='{pai}'")
 
         self._update_hand_open_meld(actor, consumed)
 
-        match data["type"]:
-            case OperationChiPengGang.Chi:
-                assert len(consumed) == MahjongConstants.CHI_CONSUMED
-                return [self.make_chi(actor, target, pai, consumed)]
-            case OperationChiPengGang.Peng:
-                assert len(consumed) == MahjongConstants.PON_CONSUMED
-                return [self.make_pon(actor, target, pai, consumed)]
-            case OperationChiPengGang.Gang:
-                assert len(consumed) == MahjongConstants.DAIMINKAN_CONSUMED
-                return [self.make_daiminkan(actor, target, pai, consumed)]
-            case _:
-                logger.error(f"Unknown ActionChiPengGang type: {data['type']}")
-                return []
+        op_map = {
+            OperationChiPengGang.Chi: (MahjongConstants.CHI_CONSUMED, self.make_chi, "Chi"),
+            OperationChiPengGang.Peng: (MahjongConstants.PON_CONSUMED, self.make_pon, "Peng"),
+            OperationChiPengGang.Gang: (MahjongConstants.DAIMINKAN_CONSUMED, self.make_daiminkan, "Daiminkan"),
+        }
+
+        op_type = data["type"]
+        if op_type not in op_map:
+            logger.error(f"Unknown ActionChiPengGang type: {op_type}")
+            return []
+
+        expected_len, make_func, op_name = op_map[op_type]
+        if len(consumed) != expected_len:
+            raise ValueError(f"Invalid consumed count for {op_name}: {len(consumed)}")
+
+        return [make_func(actor, target, pai, consumed)]
 
     def _handle_action_an_gang_add_gang(self, action_data: dict) -> list[MJAIEvent]:
         """处理暗杠/加杠动作"""

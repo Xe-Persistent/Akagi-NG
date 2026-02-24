@@ -50,9 +50,11 @@ class TenhouBridge(BaseBridge):
             # Heartbeat
             return None
         try:
-            message = json.loads(content)
-            assert isinstance(message, dict)
-            return message
+            match json.loads(content):
+                case dict() as message:
+                    return message
+                case _:
+                    raise ValueError("JSON is not a dictionary")
         except json.JSONDecodeError:
             logger.warning("Failed to decode JSON: %s", content)
             return None

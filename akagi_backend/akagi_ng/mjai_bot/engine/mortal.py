@@ -115,7 +115,8 @@ class MortalEngine(BaseEngine):
         # 最终完整性断言：确保模型输出维度严格符合 3P/4P 模式 (44/46)
         expected_dims = ModelConstants.ACTION_DIMS_3P if self.is_3p else ModelConstants.ACTION_DIMS_4P
         actual_dims = q_out.shape[-1]
-        assert actual_dims == expected_dims, f"MortalEngine output dim mismatch: {actual_dims} vs {expected_dims}"
+        if actual_dims != expected_dims:
+            raise RuntimeError(f"MortalEngine output dim mismatch: {actual_dims} vs {expected_dims}")
 
         return actions.tolist(), q_out.tolist(), masks_t.tolist(), is_greedy.tolist()
 

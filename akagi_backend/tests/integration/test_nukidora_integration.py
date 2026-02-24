@@ -2,11 +2,13 @@ import json
 
 import pytest
 
-# Try to import libriichi3p, skip test if not available
-try:
-    from akagi_ng.core.lib_loader import libriichi3p
-except ImportError:
+# 直接测试 C++ 库行为，无法使用 mock 代替
+from tests.conftest import HAS_LIBRIICHI3P
+
+if not HAS_LIBRIICHI3P:
     pytest.skip("libriichi3p not available", allow_module_level=True)
+
+from akagi_ng.core.lib_loader import libriichi3p
 
 
 @pytest.fixture

@@ -3,10 +3,12 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
+from tests.conftest import HAS_LIBRIICHI
 
 from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
+from akagi_ng.mjai_bot.bot import MortalBot
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
-from akagi_ng.mjai_bot.mortal.base import MortalBot
 from akagi_ng.mjai_bot.status import BotStatusContext
 
 # ==========================================
@@ -91,7 +93,7 @@ class TestMortalBotResilience(unittest.TestCase):
         self.should_trigger_reach = False
 
         # Patch LookaheadBot CLASS to inspect constructor args
-        self.lookahead_patcher = patch("akagi_ng.mjai_bot.mortal.base.LookaheadBot")
+        self.lookahead_patcher = patch("akagi_ng.mjai_bot.bot.LookaheadBot")
         self.mock_lookahead_cls = self.lookahead_patcher.start()
         self.mock_lookahead_instance = self.mock_lookahead_cls.return_value
         self.mock_lookahead_instance.simulate_reach.return_value = {
@@ -100,12 +102,12 @@ class TestMortalBotResilience(unittest.TestCase):
         }
 
         # Patch meta_to_recommend
-        self.meta_recommend_patcher = patch("akagi_ng.mjai_bot.utils.meta_to_recommend")
+        self.meta_recommend_patcher = patch("akagi_ng.mjai_bot.bot.meta_to_recommend")
         self.mock_meta_recommend = self.meta_recommend_patcher.start()
         self.mock_meta_recommend.side_effect = self._side_effect_recommend
 
         # Patch Factory Loader
-        self.factory_patcher = patch("akagi_ng.mjai_bot.engine.factory.load_bot_and_engine")
+        self.factory_patcher = patch("akagi_ng.mjai_bot.bot.load_bot_and_engine")
         self.mock_loader = self.factory_patcher.start()
 
         # Mock Model React
@@ -159,7 +161,6 @@ class TestMortalBotResilience(unittest.TestCase):
 
     def _trigger_riichi_scenario(self, label=""):
         """Helper to invoke a tsumo event that triggers Riichi Lookahead."""
-        print(f"  Triggering Riichi Lookahead ({label})...")
         self.should_trigger_reach = True
         self.mock_lookahead_instance.simulate_reach.reset_mock()
         self.mock_lookahead_cls.reset_mock()
@@ -200,7 +201,6 @@ class TestMortalBotResilience(unittest.TestCase):
         """
         Scenario 1: 在线模型回退至本地模型时，能够正常输出打牌推荐。若...满足立直条件，能够执行立直前瞻
         """
-        print("\n[Scenario 1] Online -> Local Fallback + Lookahead")
         provider = self._setup_provider(online_fail=True)
 
         self._trigger_riichi_scenario("Scenario 1")
@@ -218,7 +218,6 @@ class TestMortalBotResilience(unittest.TestCase):
         """
         Scenario 2: 游戏掉线并重连时，能够正确恢复游戏状态... 执行立直前瞻
         """
-        print("\n[Scenario 2] Reconnect + Lookahead (Health Online)")
         self._setup_provider(online_fail=False)
 
         # 1. Init
@@ -238,7 +237,6 @@ class TestMortalBotResilience(unittest.TestCase):
         """
         Scenario 3: 本地模型恢复至在线模型时，能够正常输出... 执行立直前瞻
         """
-        print("\n[Scenario 3] Recovery to Online + Lookahead")
         provider = self._setup_provider(online_fail=False)
 
         # 1. Fail First
@@ -263,7 +261,6 @@ class TestMortalBotResilience(unittest.TestCase):
         """
         Scenario 4: 游戏掉线并重连、同时在线模型不可用时...回退至本地模型...执行立直前瞻
         """
-        print("\n[Scenario 4] Reconnect + Online Fail -> Local + Lookahead")
         provider = self._setup_provider(online_fail=True)
 
         # 1. Reconnect
@@ -299,12 +296,16 @@ class TestLookaheadInternal(unittest.TestCase):
         self.mock_local_engine.name = "MockLocal"
         self.mock_local_engine.engine_type = "mortal"
         self.mock_local_engine.fork.return_value = self.mock_local_engine
+        self.mock_local_engine.enable_quick_eval = False
+        self.mock_local_engine.enable_rule_based_agari_guard = False
+        self.mock_online_engine.enable_quick_eval = False
+        self.mock_online_engine.enable_rule_based_agari_guard = False
 
         num_actions = 44 if is_3p else 46
         self.success_return = (
             [0],  # Default action index
-            np.zeros((1, num_actions)),
-            np.ones((1, num_actions), dtype=bool),
+            [[0.0] * num_actions],
+            [[True] * num_actions],
             [True],
         )
         self.mock_local_engine.react_batch.return_value = self.success_return
@@ -337,15 +338,20 @@ class TestLookaheadInternal(unittest.TestCase):
             # Fallback to a minimal mock if libs are missing
             class MockCppBot:
                 def __init__(self, engine, player_id):
-                    pass
+                    self._engine = engine
 
                 def react(self, event_json):
-                    meta = {"q_values": [0.0] * 46, "mask_bits": 7}
+                    event = json.loads(event_json)
+                    n = 44 if getattr(self._engine, "is_3p", False) else 46
+                    # 模拟真实 C++ Bot 在决策事件时调用 engine.react_batch
+                    if event.get("type") in ("tsumo", "chi", "pon", "daiminkan"):
+                        self._engine.react_batch(np.zeros((1, n)), np.ones((1, n), dtype=bool), None)
+                    meta = {"q_values": [0.0] * n, "mask_bits": 7}
                     return json.dumps({"type": "none", "meta": meta})
 
             real_bot_cls = MockCppBot
 
-        self.factory_patcher = patch("akagi_ng.mjai_bot.engine.factory.load_bot_and_engine")
+        self.factory_patcher = patch("akagi_ng.mjai_bot.bot.load_bot_and_engine")
         self.mock_loader = self.factory_patcher.start()
         self.mock_loader.side_effect = lambda s, p, i: (real_bot_cls(self.provider, p), self.provider)
 
@@ -353,9 +359,9 @@ class TestLookaheadInternal(unittest.TestCase):
         if hasattr(self, "factory_patcher"):
             self.factory_patcher.stop()
 
+    @pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available in CI environment")
     def test_internal_execution_with_real_lib_4p(self):
         """Verify 4-player Lookahead with real libriichi."""
-        print("\n[InternalTest] 4-player Fidelity (Real Libriichi)")
         self._setup_real_bot(is_3p=False)
 
         # Online Fail
@@ -389,9 +395,9 @@ class TestLookaheadInternal(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("mask_bits", result)
 
+    @pytest.mark.skipif(not HAS_LIBRIICHI, reason="libriichi not available in CI environment")
     def test_internal_execution_with_real_lib_3p(self):
         """Verify 3-player Lookahead with real libriichi3p."""
-        print("\n[InternalTest] 3-player Fidelity (Real Libriichi3p)")
         self._setup_real_bot(is_3p=True)
 
         self.mock_online_engine.react_batch.side_effect = Exception("Online Dead")
@@ -424,7 +430,3 @@ class TestLookaheadInternal(unittest.TestCase):
         result = self.bot._run_riichi_lookahead()
         self.assertIsNotNone(result)
         self.assertIn("mask_bits", result)
-
-
-if __name__ == "__main__":
-    unittest.main()

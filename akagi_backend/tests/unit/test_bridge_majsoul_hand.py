@@ -6,15 +6,9 @@ MajsoulBridge 手牌追踪单元测试（合并版）
 - 拔北手牌追踪（三麻）
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-# 添加项目根目录到 sys.path
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from akagi_ng.bridge.majsoul import MajsoulBridge
-from akagi_ng.bridge.majsoul.liqi import MsgType
 
 
 class TestMajsoulBridgeHandTracking(unittest.TestCase):
@@ -26,7 +20,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
         """测试新回合的手牌初始化。"""
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -56,7 +50,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDealTile",
                 "data": {"seat": 0, "tile": "5m", "leftTileCount": 60},
@@ -73,7 +67,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDiscardTile",
                 "data": {"seat": 0, "tile": "5m", "isLiqi": False, "moqie": True},
@@ -92,7 +86,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDiscardTile",
                 "data": {"seat": 0, "tile": "1m", "isLiqi": False, "moqie": False},
@@ -113,7 +107,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionChiPengGang",
                 "data": {
@@ -143,7 +137,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionAnGangAddGang",
                 "data": {
@@ -176,7 +170,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {
@@ -202,7 +196,7 @@ class TestMajsoulBridgeHandTracking(unittest.TestCase):
 
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {
@@ -238,7 +232,7 @@ class TestMajsoulBridgeHandExtreme(unittest.TestCase):
         # 注意：Kakan 使用 ActionAnGangAddGang，type=2
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionAnGangAddGang",
                 "data": {
@@ -271,7 +265,7 @@ class TestMajsoulBridgeHandExtreme(unittest.TestCase):
         # ActionAnGangAddGang, type=3
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionAnGangAddGang",
                 "data": {
@@ -297,7 +291,7 @@ class TestMajsoulBridgeHandExtreme(unittest.TestCase):
         # 模拟岭上摸牌
         liqi_message = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDealTile",
                 "data": {
@@ -329,7 +323,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
         # 模拟 ActionNewRound
         liqi_message_new_round = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -355,7 +349,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
         # 模拟拔北 (ActionBaBei)
         liqi_message_kita = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {
@@ -377,7 +371,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
         # 模拟岭上摸牌
         liqi_message_deal = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDealTile",
                 "data": {
@@ -399,7 +393,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
         # 第 1 次拔北
         liqi_message_kita1 = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {"seat": 0},
@@ -413,7 +407,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
         # 岭上 -> 再摸到 'N'
         liqi_message_deal1 = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionDealTile",
                 "data": {
@@ -440,7 +434,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
 
         liqi_message_new_round = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -471,7 +465,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
 
         liqi_message_kita = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionBaBei",
                 "data": {"seat": 0},
@@ -507,7 +501,7 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
 
         liqi_message_new_round = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -537,7 +531,3 @@ class TestMajsoulBridgeKitaDebug(unittest.TestCase):
 
         all_bot_tiles = [*bot_tehais, bot_tsumo]
         self.assertIn("N", all_bot_tiles, "Bot 的视野中应该包含 'N' 牌")
-
-
-if __name__ == "__main__":
-    unittest.main()

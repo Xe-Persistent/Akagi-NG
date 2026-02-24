@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from akagi_ng.electron_client.tenhou import TenhouElectronClient
-from akagi_ng.schema.notifications import NotificationCode
 
 
 @pytest.fixture
@@ -45,7 +44,7 @@ def test_tenhou_electron_client_flow(mock_tenhou_bridge):
     # Expect CLIENT_CONNECTED notification
     item = q.get(timeout=1.0)
     assert item["type"] == "system_event"
-    assert item["code"] == NotificationCode.CLIENT_CONNECTED
+    assert item["code"] == "client_connected"
 
     assert client._active_connections == 1
 
@@ -58,7 +57,7 @@ def test_tenhou_electron_client_flow(mock_tenhou_bridge):
     }
 
     # Mock bridge parsing result
-    fake_helo_event = {"type": "none", "raw": "HELO"}
+    fake_helo_event = {"type": "log", "raw": "HELO"}
     mock_tenhou_bridge.parse.return_value = [fake_helo_event]
 
     client.push_message(ws_text_msg)
@@ -109,6 +108,6 @@ def test_tenhou_electron_client_flow(mock_tenhou_bridge):
 
     item = q.get(timeout=1.0)
     assert item["type"] == "system_event"
-    assert item["code"] == NotificationCode.GAME_DISCONNECTED
+    assert item["code"] == "game_disconnected"
 
     client.stop()

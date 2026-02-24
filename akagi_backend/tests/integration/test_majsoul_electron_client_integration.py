@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from akagi_ng.electron_client.majsoul import MajsoulElectronClient
-from akagi_ng.schema.notifications import NotificationCode
 
 # ... (fixture mock_majsoul_bridge remains same, but imports are now sorted)
 
@@ -45,7 +44,7 @@ def test_majsoul_electron_client_flow(mock_majsoul_bridge):
     # Expect CLIENT_CONNECTED notification on first connection
     item = q.get(timeout=1.0)
     assert item["type"] == "system_event"
-    assert item["code"] == NotificationCode.CLIENT_CONNECTED
+    assert item["code"] == "client_connected"
 
     assert client._active_connections == 1
 
@@ -92,7 +91,7 @@ def test_majsoul_electron_client_flow(mock_majsoul_bridge):
         # Verify MAJSOUL_PROTO_UPDATED event
         item = q.get(timeout=1.0)
         assert item["type"] == "system_event"
-        assert item["code"] == NotificationCode.MAJSOUL_PROTO_UPDATED
+        assert item["code"] == "majsoul_proto_updated"
 
     # 4. Simulate WebSocket Closed (Disconnect)
     ws_closed_msg = {"type": "websocket_closed"}
@@ -101,7 +100,7 @@ def test_majsoul_electron_client_flow(mock_majsoul_bridge):
     # Expect GAME_DISCONNECTED notification (if active connections drop to 0)
     item = q.get(timeout=1.0)
     assert item["type"] == "system_event"
-    assert item["code"] == NotificationCode.GAME_DISCONNECTED
+    assert item["code"] == "game_disconnected"
 
     assert client._active_connections == 0
 
@@ -125,6 +124,6 @@ def test_majsoul_electron_client_debugger_detached(mock_majsoul_bridge):
     # Should emit GAME_DISCONNECTED
     item = q.get(timeout=1.0)
     assert item["type"] == "system_event"
-    assert item["code"] == NotificationCode.GAME_DISCONNECTED
+    assert item["code"] == "game_disconnected"
 
     client.stop()

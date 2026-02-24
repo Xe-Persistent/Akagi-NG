@@ -5,7 +5,21 @@ from unittest.mock import MagicMock
 import pytest
 
 from akagi_ng.bridge import AmatsukiBridge, MajsoulBridge, RiichiCityBridge, TenhouBridge
-from akagi_ng.bridge.majsoul.liqi import MsgType
+
+# --- libriichi 可用性检测 ---
+try:
+    from akagi_ng.core.lib_loader import libriichi  # noqa: F401
+
+    HAS_LIBRIICHI = True
+except ImportError:
+    HAS_LIBRIICHI = False
+
+try:
+    from akagi_ng.core.lib_loader import libriichi3p  # noqa: F401
+
+    HAS_LIBRIICHI3P = True
+except ImportError:
+    HAS_LIBRIICHI3P = False
 
 
 @pytest.fixture
@@ -32,7 +46,7 @@ def sample_liqi_auth_game_req():
     """示例 Liqi authGame 请求消息"""
     return {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Req,
+        "type": 2,
         "data": {"accountId": 12345},
     }
 
@@ -42,7 +56,7 @@ def sample_liqi_auth_game_res_4p():
     """示例 Liqi authGame 响应消息（4人麻将）"""
     return {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [1, 2, 3, 4],
             "gameConfig": {"meta": {"modeId": 1}},
@@ -55,7 +69,7 @@ def sample_liqi_auth_game_res_3p():
     """示例 Liqi authGame 响应消息（3人麻将）"""
     return {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [1, 2, 3],
             "gameConfig": {"meta": {"modeId": 11}},

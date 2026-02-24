@@ -6,6 +6,7 @@ import pytest
 from aiohttp import web
 
 from akagi_ng.dataserver.sse import SSEManager, _format_sse_message
+from akagi_ng.schema.constants import ServerConstants
 
 
 @pytest.fixture
@@ -113,11 +114,12 @@ async def test_notification_history(sse_manager):
     """测试通知历史记录"""
     # 模拟广播以避免真正的协程调度
     with patch("asyncio.run_coroutine_threadsafe"):
-        for i in range(sse_manager.MAX_HISTORY + 5):
+        max_history = ServerConstants.SSE_MAX_NOTIFICATION_HISTORY
+        for i in range(max_history + 5):
             sse_manager.broadcast_event("notification", {"id": i})
 
-    assert len(sse_manager.notification_history) == sse_manager.MAX_HISTORY
-    assert sse_manager.notification_history[-1] == {"id": sse_manager.MAX_HISTORY + 4}
+    assert len(sse_manager.notification_history) == max_history
+    assert sse_manager.notification_history[-1] == {"id": max_history + 4}
 
 
 def test_format_sse_message_with_event():

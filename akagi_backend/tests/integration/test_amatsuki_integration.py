@@ -2,8 +2,6 @@
 
 import json
 
-from akagi_ng.bridge.amatsuki.consts import AmatsukiTopic
-
 
 def make_stomp_frame(destination, content):
     """构造 STOMP 消息帧 (bytes)"""
@@ -32,7 +30,7 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
         "maxCount": 4,
         "deskId": "desk101",
     }
-    join_msg = make_stomp_frame(AmatsukiTopic.JOIN_DESK_CALLBACK, join_content)
+    join_msg = make_stomp_frame("/user/topic/callback/joinDesk", join_content)
 
     events = amatsuki_bridge.parse(join_msg)
     assert events is None  # Join 只改变状态，不产生 MJAI
@@ -74,7 +72,7 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
     }
 
     # 模拟 Amatsuki 的 topic 动态后缀 (通常是桌号或随机ID，这里假设为 '1')
-    start_msg = make_stomp_frame(AmatsukiTopic.ROUND_START_PREFIX + "1", start_content)
+    start_msg = make_stomp_frame("/user/topic/desk/roundStart/" + "1", start_content)
     events = amatsuki_bridge.parse(start_msg)
 
     # 第一次只会是 `start_game`，`start_kyoku` 被缓存等待 DoraSync
@@ -83,7 +81,7 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
 
     # 将 start_game 发送给 controller
     res = integration_controller.react(events[0])
-    assert res["type"] == "none"
+    assert res is None
 
     # 3. Sync Dora (触发 cached start_kyoku)
     dora_content = {
@@ -91,7 +89,7 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
         "honba": 0,
         "reachCount": 0,
     }
-    dora_msg = make_stomp_frame(AmatsukiTopic.SYNC_DORA_PREFIX + "1", dora_content)
+    dora_msg = make_stomp_frame("/topic/desk/syncDora/" + "1", dora_content)
     events = amatsuki_bridge.parse(dora_msg)
 
     assert len(events) == 1
@@ -100,14 +98,14 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
 
     # 发送 start_kyoku 给 controller
     res = integration_controller.react(events[0])
-    assert res["type"] == "none"
+    assert res is None or res.get("type") == "dahai"
 
     # 4. Handle Draw (TSUMO)
     draw_content = {
         "hai": {"id": 8},  # 3m
         "position": 0,
     }
-    draw_msg = make_stomp_frame(AmatsukiTopic.DRAW_PREFIX + "1", draw_content)
+    draw_msg = make_stomp_frame("/user/topic/desk/draw/" + "1", draw_content)
     events = amatsuki_bridge.parse(draw_msg)
 
     assert len(events) == 1
@@ -116,10 +114,7 @@ def test_amatsuki_bridge_full_flow(amatsuki_bridge, integration_controller, mock
 
     # 发送 tsumo 给 controller，期望获得 mock 引擎的响应
     res = integration_controller.react(events[0])
-    print(f"DEBUG: Controller response: {res}")
-    if integration_controller.bot:
-        print(f"DEBUG: Bot is_3p: {integration_controller.bot.is_3p}")
-    # Mock engine 默认返回 type: none，但会包含 meta
-    assert res["type"] == "none"
+    assert res is not None
+    assert res.get("type") == "dahai"
     assert "meta" in res
     assert res["meta"]["engine_type"] == "mortal_mock"

@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -7,16 +6,8 @@ import pytest
 from akagi_ng.mjai_bot.engine.factory import _RESOURCE_CACHE, LazyLocalEngine, load_bot_and_engine
 from akagi_ng.mjai_bot.status import BotStatusContext
 
-
-@pytest.fixture(autouse=True)
-def mock_lib_loader_module():
-    """彻底 Mock 掉 lib_loader 模块，防止加载真实二进制库"""
-    mock_module = MagicMock()
-    mock_module.libriichi = MagicMock()
-    mock_module.libriichi3p = MagicMock()
-
-    with patch.dict(sys.modules, {"akagi_ng.core.lib_loader": mock_module}):
-        yield mock_module
+# 自动应用 mock_lib_loader_module fixture（定义在 unit/conftest.py 中）
+pytestmark = pytest.mark.usefixtures("mock_lib_loader_module")
 
 
 @pytest.fixture(autouse=True)

@@ -2,8 +2,6 @@ import unittest
 from unittest.mock import patch
 
 from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
-from akagi_ng.bridge.majsoul.liqi import MsgType
-from akagi_ng.schema.notifications import NotificationCode
 
 
 class TestMajsoulSyncAndReconnect(unittest.TestCase):
@@ -48,7 +46,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         """
         mock_actions = [
             {
-                "type": MsgType.Notify,
+                "type": 1,
                 "method": ".lq.ActionPrototype",
                 "data": {"name": "ActionDealTile", "data": {"seat": 0, "tile": "1m"}},
             },
@@ -74,7 +72,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         """
         mock_actions = [
             {
-                "type": MsgType.Notify,
+                "type": 1,
                 "method": ".lq.ActionPrototype",
                 "data": {
                     "name": "ActionNewRound",  # It exists!
@@ -138,7 +136,7 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
         # Assertions
         # 1. system_event
         self.assertEqual(events[0]["type"], "system_event")
-        self.assertEqual(events[0]["code"], NotificationCode.GAME_SYNCING)
+        self.assertEqual(events[0]["code"], "game_syncing")
 
         # 2. start_kyoku should be present!
         # If ActionNewRound parses correctly, we should get start_kyoku.
@@ -198,7 +196,3 @@ class TestMajsoulSyncAndReconnect(unittest.TestCase):
             start_kyoku_event["tehais"][0],
             "ActionNewRound event was mutated by subsequent discard! 1m should still be there.",
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

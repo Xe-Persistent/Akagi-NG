@@ -75,4 +75,4 @@ def test_riichi_city_bridge_full_flow(riichi_city_bridge, integration_controller
     # Controller 处理
     for ev in events:
         res = integration_controller.react(ev)
-        assert "error" not in res
+        assert res is None or "error" not in res

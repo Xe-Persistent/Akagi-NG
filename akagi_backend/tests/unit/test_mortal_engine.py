@@ -25,7 +25,6 @@ def mock_mortal_resource():
         boltzmann_temp=1.0,
         top_p=1.0,
         engine_name="mortal",
-        enable_amp=False,
     )
 
 

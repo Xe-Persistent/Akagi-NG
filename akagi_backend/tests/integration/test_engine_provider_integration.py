@@ -8,7 +8,6 @@ import pytest
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.status import BotStatusContext
-from akagi_ng.schema.notifications import NotificationCode
 
 
 @pytest.fixture
@@ -79,7 +78,7 @@ def test_provider_react_fallback(mock_engines):
 
     # Check flags
     flags = provider.status.flags
-    assert flags.get(str(NotificationCode.FALLBACK_USED)) is True
+    assert flags.get("fallback_used") is True
 
     # Check meta
     meta = provider.status.metadata

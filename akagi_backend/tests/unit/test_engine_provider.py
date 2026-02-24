@@ -7,7 +7,6 @@ import requests
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.status import BotStatusContext
-from akagi_ng.schema.notifications import NotificationCode
 
 
 class TestEngineProvider(unittest.TestCase):
@@ -86,8 +85,4 @@ class TestEngineProvider(unittest.TestCase):
         # BUT get_additional_meta reports primary engine type
         self.assertEqual(meta["engine_type"], "akagiot")
         # Expect fallback_used to be True
-        self.assertTrue(flags.get(str(NotificationCode.FALLBACK_USED)))
-
-
-if __name__ == "__main__":
-    unittest.main()
+        self.assertTrue(flags.get("fallback_used"))

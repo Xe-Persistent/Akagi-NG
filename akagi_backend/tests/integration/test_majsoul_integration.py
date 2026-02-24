@@ -5,8 +5,6 @@
 
 import pytest
 
-from akagi_ng.bridge.majsoul.liqi import MsgType
-
 
 @pytest.mark.integration
 def test_bridge_parses_start_game(majsoul_bridge):
@@ -14,7 +12,7 @@ def test_bridge_parses_start_game(majsoul_bridge):
     # 准备 authGame 请求
     auth_req = {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Req,
+        "type": 2,
         "data": {"accountId": 12345},
     }
 
@@ -32,7 +30,7 @@ def test_bridge_parses_start_game_response_4p(majsoul_bridge):
     # 准备 authGame 响应
     auth_res = {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [12345, 23456, 34567, 45678],
             "gameConfig": {"meta": {"modeId": 1}},
@@ -57,7 +55,7 @@ def test_bridge_parses_start_game_response_3p(majsoul_bridge):
     # 准备 authGame 响应（3 人麻将）
     auth_res = {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [12345, 23456, 34567],
             "gameConfig": {"meta": {"modeId": 11}},
@@ -81,7 +79,7 @@ def test_bridge_complete_kyoku_flow(majsoul_bridge):
 
     auth_res = {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [12345, 23456, 34567, 45678],
             "gameConfig": {"meta": {"modeId": 1}},
@@ -95,7 +93,7 @@ def test_bridge_complete_kyoku_flow(majsoul_bridge):
     # 模拟 ActionNewRound 消息
     new_round = {
         "method": ".lq.ActionPrototype",
-        "type": MsgType.Notify,
+        "type": 1,
         "data": {
             "name": "ActionNewRound",
             "data": {
@@ -133,7 +131,7 @@ def test_bridge_handles_multiple_kyoku(majsoul_bridge):
     majsoul_bridge.accountId = 12345
     auth_res = {
         "method": ".lq.FastTest.authGame",
-        "type": MsgType.Res,
+        "type": 3,
         "data": {
             "seatList": [12345, 23456, 34567, 45678],
             "gameConfig": {"meta": {"modeId": 1}},
@@ -145,7 +143,7 @@ def test_bridge_handles_multiple_kyoku(majsoul_bridge):
     for kyoku in range(3):
         new_round = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {
                 "name": "ActionNewRound",
                 "data": {
@@ -168,7 +166,7 @@ def test_bridge_handles_multiple_kyoku(majsoul_bridge):
         # 模拟局结束
         end_kyoku = {
             "method": ".lq.ActionPrototype",
-            "type": MsgType.Notify,
+            "type": 1,
             "data": {"name": "ActionNoTile", "data": {}},
         }
 

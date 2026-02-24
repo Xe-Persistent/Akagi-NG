@@ -1,9 +1,8 @@
-import os
 import re
 from PyInstaller.utils.hooks import collect_submodules
 
 def get_version():
-    with open('pyproject.toml', 'r', encoding='utf-8') as f:
+    with open('pyproject.toml', encoding='utf-8') as f:
         content = f.read()
     match = re.search(r'version\s*=\s*"([^"]+)"', content)
     if match:
@@ -84,8 +83,7 @@ with open(version_file, 'w', encoding='utf-8') as f:
 block_cipher = None
 
 hiddenimports = (
-    collect_submodules("mjai")
-    + collect_submodules("numpy")
+    collect_submodules("numpy")
 )
 
 a = Analysis(
@@ -99,7 +97,8 @@ a = Analysis(
     hiddenimports=hiddenimports,
     excludes=[
         "pytest", "pytest-asyncio", "pytest-cov", "ruff", "pyinstaller",
-        "setuptools", "pip", "pkg_resources"
+        "setuptools", "pip", "pkg_resources", "jedi", "parso", "mypy",
+        "black", "isort", "flake8", "pylint", "wheel", "build", "twine",
     ],
     noarchive=False,
 )

@@ -21,7 +21,6 @@ classifiers = [
 dynamic = []
 dependencies = [
     # Basic
-    "mjai~=0.2.1",
     "loguru~=0.7.0",
     "requests~=2.32.0",
     "jsonschema~=4.26.0",

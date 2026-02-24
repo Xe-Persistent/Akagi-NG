@@ -54,9 +54,9 @@ class STOMP:
         # 解析头
         headers = content_lines[1:-1]
         for header in headers:
-            if ":" not in header:
+            key, sep, value = header.partition(":")
+            if not sep:
                 continue
-            key, value = header.split(":", 1)
             match key:
                 case "destination":
                     self.destination = value
@@ -252,10 +252,10 @@ class AmatsukiBridge(BaseBridge):
         tehais = []
         for idx, player_tile in enumerate(player_tiles):
             tehai: list[str] = []
-            if any(key not in player_tile for key in ["haiRiver", "tehai"]):
+            if not {"haiRiver", "tehai"} <= player_tile.keys():
                 logger.error("Invalid content: missing keys in player_tile")
                 return []
-            if any(key not in player_tile["tehai"] for key in ["hand", "kitaArea", "lockArea"]):
+            if not {"hand", "kitaArea", "lockArea"} <= player_tile["tehai"].keys():
                 logger.error("Invalid content: missing keys in player_tile['tehai']")
                 return []
             if player_tile["tehai"]["hand"][0]["id"] == -1:
@@ -274,9 +274,7 @@ class AmatsukiBridge(BaseBridge):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(
-            key not in content_dict for key in ["bakaze", "honba", "isAllLast", "oya", "playerPoints", "playerTiles"]
-        ):
+        if not {"bakaze", "honba", "isAllLast", "oya", "playerPoints", "playerTiles"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
         return content_dict
@@ -328,7 +326,7 @@ class AmatsukiBridge(BaseBridge):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(key not in content_dict for key in ["dora", "honba", "reachCount"]):
+        if not {"dora", "honba", "reachCount"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
 
@@ -352,7 +350,7 @@ class AmatsukiBridge(BaseBridge):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(key not in content_dict for key in ["hai", "position"]):
+        if not {"hai", "position"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
 
@@ -425,7 +423,7 @@ class AmatsukiBridge(BaseBridge):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(key not in content_dict for key in ["action", "haiList", "isKiri", "isReachDisplay", "position"]):
+        if not {"action", "haiList", "isKiri", "isReachDisplay", "position"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
 
@@ -469,7 +467,7 @@ class AmatsukiBridge(BaseBridge):
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(key not in content_dict for key in ["action", "menzu", "position"]):
+        if not {"action", "menzu", "position"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
 
@@ -496,15 +494,13 @@ class AmatsukiBridge(BaseBridge):
                 return None
         return ret
 
-        return None
-
     def _handle_ron_action(self, stomp: STOMP) -> list[MJAIEvent] | None:
         if not self.valid_flow:
             return None
         content_dict = stomp.content_dict()
         if not self._validate_content(content_dict, stomp):
             return None
-        if any(key not in content_dict for key in ["agariInfo", "increaseAndDecrease", "isTsumo"]):
+        if not {"agariInfo", "increaseAndDecrease", "isTsumo"} <= content_dict.keys():
             logger.error(f"Invalid content: {stomp.content}")
             return None
         if self.temp_reach_accepted:

@@ -6,6 +6,7 @@ from akagi_ng.bridge.majsoul.bridge import MajsoulBridge
 from akagi_ng.core.paths import ensure_dir, get_assets_dir
 from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
+from akagi_ng.schema.notifications import NotificationCode
 from akagi_ng.schema.types import (
     ElectronMessage,
     LiqiDefinitionMessage,
@@ -43,8 +44,6 @@ class MajsoulElectronClient(BaseElectronClient):
             with self._lock:
                 self._active_connections += 1
                 if self._active_connections == 1:
-                    from akagi_ng.schema.notifications import NotificationCode
-
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
                     logger.info(f"[Electron] Majsoul client connected (first connection): {url}")
         else:
@@ -60,12 +59,9 @@ class MajsoulElectronClient(BaseElectronClient):
             self._active_connections -= 1
             if self._active_connections == 0:
                 # Determine if we should send GAME_DISCONNECTED
-                # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message.
                 game_ended = getattr(self.bridge, "game_ended", False) if self.bridge else False
 
                 if not game_ended:
-                    from akagi_ng.schema.notifications import NotificationCode
-
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.GAME_DISCONNECTED})
                     logger.info(
                         f"[Electron] All Majsoul connections closed, sending {NotificationCode.GAME_DISCONNECTED}"
@@ -76,8 +72,6 @@ class MajsoulElectronClient(BaseElectronClient):
                     )
 
     def _handle_liqi_definition(self, message: LiqiDefinitionMessage):
-        from akagi_ng.schema.notifications import NotificationCode
-
         try:
             data = message["data"]
             if not data:

@@ -1,7 +1,10 @@
 import json
 
+from akagi_ng.mjai_bot.engine.factory import load_bot_and_engine
+from akagi_ng.mjai_bot.logger import logger
 from akagi_ng.mjai_bot.lookahead import LookaheadBot
 from akagi_ng.mjai_bot.status import BotStatusContext
+from akagi_ng.mjai_bot.utils import meta_to_recommend
 from akagi_ng.schema.notifications import NotificationCode
 from akagi_ng.schema.protocols import BotProtocol, EngineProtocol
 from akagi_ng.schema.types import (
@@ -64,19 +67,15 @@ class MortalBot:
         is_game_start = False
         is_game_end = False
 
-        # 生命周期：对局开始
-        if e_type == "start_game":
-            self._handle_start_game(event)
-            is_game_start = True
-
-        # 生命周期：单局开始
-        elif e_type == "start_kyoku":
-            self.history = []
-
-        # 生命周期：对局结束
-        elif e_type == "end_game":
-            self._handle_end_game()
-            is_game_end = True
+        match e_type:
+            case "start_game":
+                self._handle_start_game(event)
+                is_game_start = True
+            case "start_kyoku":
+                self.history = []
+            case "end_game":
+                self._handle_end_game()
+                is_game_end = True
 
         # 维护历史
         self.history.append(event)
@@ -143,14 +142,15 @@ class MortalBot:
             engine_meta = self.status.metadata
             engine_type = engine_meta.get(NotificationCode.ENGINE_TYPE, "unknown")
 
-            if engine_type == "akagiot":
-                self.status.set_flag(NotificationCode.MODEL_LOADED_ONLINE)
-            elif engine_type == "mortal":
-                self.status.set_flag(NotificationCode.MODEL_LOADED_LOCAL)
-            elif engine_type == "replay":
-                pass
-            else:
-                self.logger.warning(f"Unknown engine type: {engine_type}")
+            match engine_type:
+                case "akagiot":
+                    self.status.set_flag(NotificationCode.MODEL_LOADED_ONLINE)
+                case "mortal":
+                    self.status.set_flag(NotificationCode.MODEL_LOADED_LOCAL)
+                case "replay":
+                    pass
+                case _:
+                    self.logger.warning(f"Unknown engine type: {engine_type}")
 
     def _handle_end_game(self):
         """处理游戏结束事件，清理状态"""
@@ -165,8 +165,6 @@ class MortalBot:
         """
         if "q_values" not in meta or "mask_bits" not in meta:
             return
-
-        from akagi_ng.mjai_bot.utils import meta_to_recommend
 
         recommendations = meta_to_recommend(meta, is_3p=self.is_3p)
         top_3_actions = [rec[0] for rec in recommendations[:3]]
@@ -204,8 +202,6 @@ class MortalBot:
             if not sim_meta:
                 self.logger.warning("Riichi Lookahead: Simulation returned no metadata.")
                 return None
-
-            from akagi_ng.mjai_bot.utils import meta_to_recommend
 
             sim_recs = meta_to_recommend(sim_meta, is_3p=self.is_3p)
             all_candidates = ", ".join([f"{action}({conf:.3f})" for action, conf in sim_recs])

@@ -1,7 +1,6 @@
 import queue
 import threading
 import time
-import traceback
 
 import mitmproxy.http
 import mitmproxy.websocket
@@ -67,17 +66,18 @@ class BridgeAddon:
 
         self.activated_flows.append(flow.id)
         with self.bridge_lock:
-            if platform == Platform.MAJSOUL:
-                self.bridges[flow.id] = MajsoulBridge()
-            elif platform == Platform.TENHOU:
-                self.bridges[flow.id] = TenhouBridge()
-            elif platform == Platform.AMATSUKI:
-                self.bridges[flow.id] = AmatsukiBridge()
-            elif platform == Platform.RIICHI_CITY:
-                self.bridges[flow.id] = RiichiCityBridge()
-            else:
-                logger.error(f"Unsupported platform: {platform}")
-                return
+            match platform:
+                case Platform.MAJSOUL:
+                    self.bridges[flow.id] = MajsoulBridge()
+                case Platform.TENHOU:
+                    self.bridges[flow.id] = TenhouBridge()
+                case Platform.AMATSUKI:
+                    self.bridges[flow.id] = AmatsukiBridge()
+                case Platform.RIICHI_CITY:
+                    self.bridges[flow.id] = RiichiCityBridge()
+                case _:
+                    logger.error(f"Unsupported platform: {platform}")
+                    return
 
             self.last_activity[flow.id] = time.time()
             # 更新连接计数并发送通知
@@ -186,14 +186,6 @@ class BridgeAddon:
             code = NotificationCode.RETURN_LOBBY if game_ended else NotificationCode.GAME_DISCONNECTED
             self.mjai_messages.put({"type": "system_event", "code": code})
             logger.info(f"[MITM] All connections closed, sending {code}")
-
-    def get_active_bridge(self) -> BaseBridge | None:
-        """
-        Get the bridge instance associated with the active Majsoul connection.
-        """
-        if self.active_majsoul_flow and self.active_majsoul_flow.id in self.bridges:
-            return self.bridges[self.active_majsoul_flow.id]
-        return None
 
     def _cleanup_stale_bridges(self, max_age_seconds: int = 300):
         """清理超过指定时间未活动的bridge"""

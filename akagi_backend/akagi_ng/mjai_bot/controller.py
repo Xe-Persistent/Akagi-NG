@@ -82,7 +82,7 @@ class Controller:
         确保正确的 Bot 已经加载并完成了初始化（Context Sync）。
         """
         target_name = "mortal3p" if is_3p else "mortal"
-        current_name = self._get_current_bot_name()
+        current_name = self.current_bot_name
 
         if current_name != target_name:
             if not self.bot:
@@ -102,7 +102,8 @@ class Controller:
                 logger.error(f"No pending start_game event to replay for {target_name} bot activation.")
                 self.status.set_flag(NotificationCode.MODEL_LOAD_FAILED)
 
-    def _get_current_bot_name(self) -> str | None:
+    @property
+    def current_bot_name(self) -> str | None:
         if not self.bot:
             return None
         return "mortal3p" if self.bot.is_3p else "mortal"

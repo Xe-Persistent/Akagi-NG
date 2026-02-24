@@ -516,12 +516,11 @@ class MajsoulBridge(BaseBridge):
         if not liqi_message:
             return None
 
-        method = liqi_message.get("method")
-        msg_type = liqi_message.get("type")
-        data = liqi_message.get("data")
-
-        if method is None or msg_type is None or data is None:
-            return []
+        match liqi_message:
+            case {"method": method, "type": msg_type, "data": data}:
+                pass
+            case _:
+                return []
 
         result: list[MJAIEvent] = []
 

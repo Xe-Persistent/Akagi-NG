@@ -9,13 +9,7 @@ def tenhou_to_mjai_one(index: int) -> str:
 
 
 def tenhou_to_mjai(indices: list[int]) -> list[str]:
-    ret = []
-
-    for index in indices:
-        label = tiles_mjai[index // 4]
-        ret.append(label + "r" if index in [16, 52, 88] else label)
-
-    return ret
+    return [f"{tiles_mjai[i // 4]}r" if i in {16, 52, 88} else tiles_mjai[i // 4] for i in indices]
 
 
 def to_34_array(indices: list[int]) -> list[int]:

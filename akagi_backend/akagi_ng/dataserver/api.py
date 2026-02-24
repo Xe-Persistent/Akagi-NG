@@ -4,6 +4,7 @@ from collections.abc import Callable
 from aiohttp import web
 
 from akagi_ng.core import configure_logging
+from akagi_ng.core.paths import get_models_dir
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.settings import get_default_settings_dict, get_settings_dict, local_settings, verify_settings
 
@@ -112,8 +113,6 @@ async def reset_settings_handler(_request: web.Request) -> web.Response:
 
 
 async def get_models_handler(_request: web.Request) -> web.Response:
-    from akagi_ng.core.paths import get_models_dir
-
     models_dir = get_models_dir()
     if not models_dir.exists():
         return _json_response({"ok": True, "data": []})

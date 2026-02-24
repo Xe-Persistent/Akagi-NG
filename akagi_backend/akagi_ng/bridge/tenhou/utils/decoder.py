@@ -1,5 +1,6 @@
 # http://tenhou.net/img/tehai.js
 # http://tenhou.net/img/mentsu136.txt
+from dataclasses import dataclass
 from enum import StrEnum
 
 from akagi_ng.bridge.tenhou.utils.converter import tenhou_to_mjai
@@ -13,15 +14,13 @@ class MeldType(StrEnum):
     ANKAN = "ankan"
 
 
+@dataclass
 class Meld:
-    def __init__(
-        self, target: int, meld_type: MeldType, tiles: list[int], unused: int | None = None, r: int | None = None
-    ):
-        self.target: int = target
-        self.meld_type: MeldType = meld_type
-        self.tiles: list[int] = tiles
-        self.unused: int | None = unused
-        self.r: int | None = r
+    target: int
+    meld_type: MeldType
+    tiles: list[int]
+    unused: int | None = None
+    r: int | None = None
 
     @property
     def pai(self) -> str:

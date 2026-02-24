@@ -79,8 +79,7 @@ def issp(h: list[int]) -> bool:
 
 
 def isto(h: list[int]) -> bool:
-    for i in [1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25]:
-        if h[i] > 0:
-            return False
+    if any(h[i] > 0 for i in [1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25]):
+        return False
 
     return all(h[i] != 0 for i in [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33])

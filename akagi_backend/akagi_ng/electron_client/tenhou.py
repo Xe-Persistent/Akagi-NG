@@ -1,8 +1,10 @@
+import base64
 import queue
 
 from akagi_ng.bridge.tenhou.bridge import TenhouBridge
 from akagi_ng.electron_client.base import BaseElectronClient
 from akagi_ng.electron_client.logger import logger
+from akagi_ng.schema.notifications import NotificationCode
 from akagi_ng.schema.types import (
     ElectronMessage,
     MJAIEvent,
@@ -40,8 +42,6 @@ class TenhouElectronClient(BaseElectronClient):
             with self._lock:
                 self._active_connections += 1
                 if self._active_connections == 1:
-                    from akagi_ng.schema.notifications import NotificationCode
-
                     self.message_queue.put({"type": "system_event", "code": NotificationCode.CLIENT_CONNECTED})
                     logger.info(f"[Electron] Tenhou client connected (first connection): {url}")
 
@@ -57,9 +57,6 @@ class TenhouElectronClient(BaseElectronClient):
             self._active_connections -= 1
             if self._active_connections == 0:
                 # Determine if we should send GAME_DISCONNECTED
-                # If bridge indicates game ended, we assume RETURN_LOBBY was already sent via MJAI message.
-                from akagi_ng.schema.notifications import NotificationCode
-
                 game_ended = getattr(self.bridge, "game_ended", False) if self.bridge else False
 
                 if not game_ended:
@@ -96,8 +93,6 @@ class TenhouElectronClient(BaseElectronClient):
             opcode = message.get("opcode", self.WS_TEXT)
 
             if opcode == self.WS_BINARY:
-                import base64
-
                 raw_bytes = base64.b64decode(data)
             else:
                 raw_bytes = data.encode("utf-8") if isinstance(data, str) else bytes(data)
@@ -111,8 +106,6 @@ class TenhouElectronClient(BaseElectronClient):
 
                     # Check for game end to trigger notification
                     if msg.get("type") == "end_game":
-                        from akagi_ng.schema.notifications import NotificationCode
-
                         logger.info("[Electron] Detected end_game message in Tenhou, sending RETURN_LOBBY")
                         self.message_queue.put({"type": "system_event", "code": NotificationCode.RETURN_LOBBY})
 

@@ -70,8 +70,4 @@ def compare_pai(pai1: str, pai2: str) -> int:
     idx1 = PAI_ORDER_INDEX.get(pai1, 999)
     idx2 = PAI_ORDER_INDEX.get(pai2, 999)
 
-    if idx1 > idx2:
-        return 1
-    if idx1 == idx2:
-        return 0
-    return -1
+    return (idx1 > idx2) - (idx1 < idx2)

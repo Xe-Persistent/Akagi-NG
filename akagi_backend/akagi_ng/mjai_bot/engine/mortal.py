@@ -9,7 +9,12 @@ from torch.distributions import Categorical, Normal
 
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.logger import logger
-from akagi_ng.mjai_bot.network import DQN, Brain, get_inference_device
+from akagi_ng.mjai_bot.network import (
+    DQN,
+    Brain,
+    CategoricalPolicy,
+    get_inference_device,
+)
 from akagi_ng.mjai_bot.status import BotStatusContext
 from akagi_ng.schema.constants import ModelConstants
 
@@ -159,8 +164,6 @@ def load_mortal_resource(
         is_policy_model = "policy_net" in state
         norm_type = "GN" if is_policy_model else "BN"
         dqn_key = "policy_net" if is_policy_model else "current_dqn"
-
-        from akagi_ng.mjai_bot.network import CategoricalPolicy
 
         mortal = Brain(
             obs_shape_func=consts.obs_shape,

@@ -167,13 +167,15 @@ class LiqiProto:
         dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
 
         # Handle Wrapper/ActionPrototype nested data
-        if "data" in dict_obj and "name" in dict_obj:
-            inner_name = dict_obj["name"]
-            inner_cls = self.get_message_class(inner_name)
-            if inner_cls:
-                decoded_binary_data = base64.b64decode(dict_obj["data"])
-                action_proto_obj = inner_cls.FromString(decode(decoded_binary_data))
-                dict_obj["data"] = MessageToDict(action_proto_obj, always_print_fields_with_no_presence=True)
+        match dict_obj:
+            case {"data": b64_data_str, "name": inner_name}:
+                inner_cls = self.get_message_class(inner_name)
+                if inner_cls:
+                    decoded_binary_data = base64.b64decode(b64_data_str)
+                    action_proto_obj = inner_cls.FromString(decode(decoded_binary_data))
+                    dict_obj["data"] = MessageToDict(action_proto_obj, always_print_fields_with_no_presence=True)
+            case _:
+                pass
         return method_name, dict_obj
 
     def _parse_request(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:

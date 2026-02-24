@@ -10,7 +10,7 @@ import jsonschema
 from jsonschema.exceptions import ValidationError
 
 from akagi_ng.core.paths import ensure_dir, get_assets_dir, get_settings_dir
-from akagi_ng.schema.constants import Platform
+from akagi_ng.schema.constants import DEFAULT_GAME_URLS, Platform
 from akagi_ng.settings.logger import logger
 
 CONFIG_DIR: Path = ensure_dir(get_settings_dir())
@@ -76,9 +76,6 @@ class Settings:
 
     def _validate_game_url(self):
         """验证并修正 game_url"""
-        from akagi_ng.schema.constants import DEFAULT_GAME_URLS
-
-        # 如果没有 URL 或者 URL 与平台不匹配（例如在 Tenhou 平台却用 Majsoul 的 URL）
         is_mismatch = (self.platform == Platform.TENHOU and "maj-soul.com" in self.game_url) or (
             self.platform == Platform.MAJSOUL and "tenhou.net" in self.game_url
         )
@@ -155,7 +152,7 @@ def _detect_locale_python() -> str | None:
         if sys_locale:
             if sys_locale.startswith("zh_CN"):
                 return "zh-CN"
-            if sys_locale.startswith("zh_TW") or sys_locale.startswith("zh_HK"):
+            if sys_locale.startswith(("zh_TW", "zh_HK")):
                 return "zh-TW"
             if sys_locale.startswith("ja"):
                 return "ja-JP"

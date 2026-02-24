@@ -1,9 +1,9 @@
 import sys
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 
-@lru_cache(maxsize=1)
+@cache
 def get_app_root() -> Path:
     if getattr(sys, "frozen", False):
         if hasattr(sys, "_MEIPASS"):
@@ -12,7 +12,7 @@ def get_app_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-@lru_cache(maxsize=1)
+@cache
 def get_runtime_root() -> Path:
     """
     Returns the root directory where runtime data (config, logs, lib, models) lives.

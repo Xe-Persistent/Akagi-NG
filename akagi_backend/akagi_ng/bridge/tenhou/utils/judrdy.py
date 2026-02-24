@@ -10,7 +10,7 @@ def isrh(h: list[int]) -> set[int]:
         if h[i] < MAX_TILE_COUNT:
             h[i] += 1
 
-            if islh(h) or issp(h) or isto(h):
+            if any((islh(h), issp(h), isto(h))):
                 ret.add(i)
 
             h[i] -= 1

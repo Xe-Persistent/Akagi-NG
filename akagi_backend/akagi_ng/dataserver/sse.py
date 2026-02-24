@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import json
+from collections import deque
 
 from aiohttp import web
 
@@ -28,8 +29,9 @@ class SSEManager:
     def __init__(self):
         self.clients: dict[str, SSEClientData] = {}  # {clientId: {"response": StreamResponse, "queue": asyncio.Queue}}
         self.latest_recommendations: FullRecommendationData | None = None
-        self.notification_history: list[dict[str, list[Notification]]] = []
-        self.MAX_HISTORY = ServerConstants.SSE_MAX_NOTIFICATION_HISTORY
+        self.notification_history: deque[dict[str, list[Notification]]] = deque(
+            maxlen=ServerConstants.SSE_MAX_NOTIFICATION_HISTORY
+        )
         self.keep_alive_task = None
         self.loop = None  # 事件循环引用，由 DataServer 设置
         self.running = False
@@ -155,12 +157,11 @@ class SSEManager:
         Broadcast a named event to all clients.
         Update the corresponding cache based on event type.
         """
-        if event == "recommendations":
-            self.latest_recommendations = data
-        elif event == "notification":
-            self.notification_history.append(data)
-            if len(self.notification_history) > self.MAX_HISTORY:
-                self.notification_history.pop(0)
+        match event:
+            case "recommendations":
+                self.latest_recommendations = data
+            case "notification":
+                self.notification_history.append(data)
 
         if self.loop and self.running:
             payload = _format_sse_message(data, event)

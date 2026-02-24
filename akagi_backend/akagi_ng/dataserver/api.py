@@ -172,7 +172,7 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
         app = get_app_context()
 
         if hasattr(app, "shared_queue") and app.shared_queue:
-            shutdown_message : SystemShutdownEvent = {
+            shutdown_message: SystemShutdownEvent = {
                 "type": "system_shutdown",
             }
             app.shared_queue.put(shutdown_message)

@@ -134,8 +134,7 @@ class AkagiOTEngine(BaseEngine):
         list_obs = obs.tolist()
         list_masks = masks.tolist()
 
-        if self.client.circuit_open:
-            self.status.set_metadata(NotificationCode.RECONNECTING, True)
+        self.status.set_metadata(NotificationCode.RECONNECTING, self.client.circuit_open)
         self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.engine_type)
 
         r_json = self.client.predict(self.is_3p, list_obs, list_masks, self.status)

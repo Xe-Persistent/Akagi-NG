@@ -56,9 +56,10 @@ class EngineProvider(BaseEngine):
             try:
                 res = self.online_engine.react_batch(obs, masks, invisible_obs, is_sync=is_sync)
                 self.active_engine = self.online_engine
-
                 self.fallback_active = False
 
+                self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.active_engine.engine_type)
+                self.status.set_metadata(NotificationCode.FALLBACK_USED, False)
                 return res
             except Exception as e:
                 self.fallback_active = True
@@ -74,8 +75,7 @@ class EngineProvider(BaseEngine):
         # Provider 也要确保最终上报的是主引擎类型（如 AkagiOT）及回退标志。
         primary_engine = self.online_engine if self.online_engine else self.local_engine
         self.status.set_metadata(NotificationCode.ENGINE_TYPE, primary_engine.engine_type)
-        if self.fallback_active:
-            self.status.set_metadata(NotificationCode.FALLBACK_USED, True)
+        self.status.set_metadata(NotificationCode.FALLBACK_USED, self.fallback_active)
 
         # 如果最终激活的是空引擎，说明全线崩溃
         if self.active_engine and self.active_engine.engine_type == "null":

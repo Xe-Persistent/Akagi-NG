@@ -178,9 +178,15 @@ class LiqiProto:
 
     def _parse_request(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:
         """解析 Request 类型消息"""
-        assert msg_id < 1 << 16
-        assert len(msg_block) == LiqiProtocolConstants.MSG_BLOCK_SIZE
-        assert msg_id not in self.res_type
+        if msg_id >= 1 << 16:
+            raise ValueError(f"msg_id {msg_id} exceeds max value")
+        if len(msg_block) != LiqiProtocolConstants.MSG_BLOCK_SIZE:
+            raise ValueError(
+                f"Invalid msg_block size: {len(msg_block)}, expected {LiqiProtocolConstants.MSG_BLOCK_SIZE}"
+            )
+        if msg_id in self.res_type:
+            logger.debug(f"Duplicate msg_id {msg_id}, overwriting previous request")
+            del self.res_type[msg_id]
 
         method_name = msg_block[0]["data"].decode()
         parts = method_name.split(".")
@@ -208,8 +214,10 @@ class LiqiProto:
 
     def _parse_response(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:
         """解析 Response 类型消息"""
-        assert len(msg_block[0]["data"]) == LiqiProtocolConstants.EMPTY_DATA_LEN
-        assert msg_id in self.res_type
+        if len(msg_block[0]["data"]) != LiqiProtocolConstants.EMPTY_DATA_LEN:
+            raise ValueError(f"Response first block not empty, got {len(msg_block[0]['data'])} bytes")
+        if msg_id not in self.res_type:
+            raise ValueError(f"Response msg_id {msg_id} not found in pending requests")
 
         method_name, res_cls = self.res_type.pop(msg_id)
         if res_cls is None:

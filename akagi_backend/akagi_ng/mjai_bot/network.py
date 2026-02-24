@@ -173,7 +173,8 @@ class Brain(nn.Module):
 
     def forward(self, obs: Tensor, invisible_obs: Tensor | None = None) -> tuple[Tensor, Tensor] | Tensor:
         if self.is_oracle:
-            assert invisible_obs is not None
+            if invisible_obs is None:
+                raise ValueError("invisible_obs must be provided for oracle model")
             obs = torch.cat((obs, invisible_obs), dim=1)
         phi = self.encoder(obs)
 

@@ -414,8 +414,9 @@ class AmatsukiBridge(BaseBridge):
             self.make_dahai(actor, pai, True),
         ]
 
-    def _build_kita(self, content_dict: dict, actor: int) -> list[MJAIEvent]:
-        assert self.is_3p, "nukidora is only available in 3P"
+    def _build_kita(self, _content_dict: dict, actor: int) -> list[MJAIEvent]:
+        if not self.is_3p:
+            raise ValueError("nukidora is only available in 3P")
         return [self.make_nukidora(actor)]
 
     def _handle_tehai_action(self, stomp: STOMP) -> list[MJAIEvent] | None:

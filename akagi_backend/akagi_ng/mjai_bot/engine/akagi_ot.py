@@ -31,7 +31,6 @@ class AkagiOTClient:
 
         # 熔断器状态
         self.circuit_open = False
-        self.just_restored = False
         self._failures = 0
         self._last_failure_time = 0
         self._circuit_recovery_period = 30.0  # 秒
@@ -80,6 +79,7 @@ class AkagiOTClient:
             logger.warning(f"AkagiOT Circuit Breaker OPENED after {self._failures} failures.")
             self.circuit_open = True
             status.set_flag(NotificationCode.RECONNECTING)
+            status.set_metadata(NotificationCode.RECONNECTING, True)
 
     def _close_circuit(self):
         logger.info("AkagiOT Circuit Breaker HALF-OPEN. Probing connection...")
@@ -90,7 +90,7 @@ class AkagiOTClient:
         self._failures = 0
         self.circuit_open = False
         status.set_flag(NotificationCode.SERVICE_RESTORED)
-        self.just_restored = True
+        status.set_metadata(NotificationCode.RECONNECTING, False)
 
 
 class AkagiOTEngine(BaseEngine):
@@ -126,17 +126,11 @@ class AkagiOTEngine(BaseEngine):
         list_obs = obs.tolist()
         list_masks = masks.tolist()
 
-        self.status.set_metadata(NotificationCode.RECONNECTING, self.client.circuit_open)
-        self.status.set_metadata(NotificationCode.ENGINE_TYPE, self.engine_type)
-
         r_json = self.client.predict(self.is_3p, list_obs, list_masks, self.status)
 
         expected_dims = ModelConstants.ACTION_DIMS_3P if self.is_3p else ModelConstants.ACTION_DIMS_4P
         actual_dims = len(r_json["q_out"][0])
         if actual_dims != expected_dims:
             raise RuntimeError(f"Engine output dimension mismatch: expected {expected_dims}, got {actual_dims}")
-
-        # 推理成功后，重置恢复标志（避免在 getter 中产生副作用）
-        self.client.just_restored = False
 
         return r_json["actions"], r_json["q_out"], r_json["masks"], r_json["is_greedy"]

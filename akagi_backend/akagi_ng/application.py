@@ -181,14 +181,17 @@ class AkagiApp:
         将处理结果发送到 DataServer
         这是 Reactor 模式的 OUTPUT 阶段
         """
-        response = result.response or MJAIResponse(type="none")
-        payload = build_dataserver_payload(response, tracker)
-
         if notifications := result.notifications:
             self.ds.send_notifications(notifications)
 
-        # 同步期间屏蔽推荐输出，仅保留通知
-        if payload and not result.is_sync:
+        # 同步期间屏蔽推荐输出，仅保留通知发送。
+        if result.is_sync:
+            return
+
+        response = result.response or MJAIResponse(type="none")
+        payload = build_dataserver_payload(response, tracker)
+
+        if payload:
             self.ds.send_recommendations(payload)
 
     def run(self) -> int:

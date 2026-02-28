@@ -1,4 +1,3 @@
-import base64
 import json
 import struct
 import time
@@ -31,6 +30,7 @@ class LiqiProto:
         self.parsed_msg_count = 0
         self.last_heartbeat_time = 0.0
         self.res_type = {}
+        self._msg_cls_cache: dict[str, type[_message.Message]] = {}
 
         # 动态构建 Protobuf 描述池
         self.pool = _descriptor_pool.DescriptorPool()
@@ -160,9 +160,13 @@ class LiqiProto:
 
     def get_message_class(self, name: str) -> type[_message.Message] | None:
         """按消息名查找动态生成的 Protobuf 消息类。"""
+        if name in self._msg_cls_cache:
+            return self._msg_cls_cache[name]
         try:
             desc = self.pool.FindMessageTypeByName(f"lq.{name}")
-            return _message_factory.GetMessageClass(desc)
+            cls = _message_factory.GetMessageClass(desc)
+            self._msg_cls_cache[name] = cls
+            return cls
         except KeyError:
             logger.warning(f"Message type {name} not found in protocol")
             return None
@@ -174,27 +178,37 @@ class LiqiProto:
     def _parse_notify(self, msg_block: list[dict]) -> tuple[str, dict]:
         """解析 Notify 类型消息"""
         method_name = msg_block[0]["data"].decode()
-        bits = method_name.split(".")
-        message_name = bits[-1]
+        message_name = method_name.split(".")[-1]
 
         msg_cls = self.get_message_class(message_name)
         if not msg_cls:
             raise AttributeError(f"Unknown Notify Message: {message_name}")
 
         proto_obj = msg_cls.FromString(msg_block[1]["data"])
-        dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
 
-        # 处理 Wrapper/ActionPrototype 的嵌套数据
-        match dict_obj:
-            case {"data": b64_data_str, "name": inner_name}:
-                inner_cls = self.get_message_class(inner_name)
-                if inner_cls:
-                    decoded_binary_data = base64.b64decode(b64_data_str)
-                    action_proto_obj = inner_cls.FromString(decode(decoded_binary_data))
-                    dict_obj["data"] = MessageToDict(action_proto_obj, always_print_fields_with_no_presence=True)
-            case _:
-                pass
+        # 如果是 ActionPrototype 包装器，避免对外部包装器执行昂贵的实例 Dict 转换。
+        if message_name == "ActionPrototype" or (hasattr(proto_obj, "name") and hasattr(proto_obj, "data")):
+            inner_name = proto_obj.name
+            inner_dict = self.parse_wrapper(inner_name, proto_obj.data, use_xor=True)
+            if inner_dict is not None:
+                res_dict = {"name": inner_name, "data": inner_dict}
+                if hasattr(proto_obj, "step"):
+                    res_dict["step"] = proto_obj.step
+                return method_name, res_dict
+
+        # 通用路径
+        dict_obj = MessageToDict(proto_obj, always_print_fields_with_no_presence=True)
         return method_name, dict_obj
+
+    def parse_wrapper(self, name: str, data: bytes, use_xor: bool = True) -> dict | None:
+        """解析包装器中的嵌套数据。"""
+        cls = self.get_message_class(name)
+        if not cls:
+            return None
+
+        raw_data = decode(data) if use_xor else data
+        proto = cls.FromString(raw_data)
+        return MessageToDict(proto, always_print_fields_with_no_presence=True)
 
     def _parse_request(self, msg_id: int, msg_block: list[dict]) -> tuple[str, dict]:
         """解析 Request 类型消息"""

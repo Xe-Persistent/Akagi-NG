@@ -2,8 +2,6 @@ import base64
 import contextlib
 from functools import cmp_to_key
 
-from google.protobuf.json_format import MessageToDict
-
 from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
@@ -76,7 +74,7 @@ class MajsoulBridge(BaseBridge):
                 # 只有最后一个动作不打 sync 标签，以便触发一次真实推荐展示
                 is_last_msg = i == len(sync_game_msgs) - 1
                 self.syncing = not is_last_msg
-                parsed = self.parse_liqi(msg)
+                parsed = self._handle_action_prototype(msg)
                 if parsed:
                     parsed_list.extend(parsed)
         finally:
@@ -93,7 +91,7 @@ class MajsoulBridge(BaseBridge):
         parsed_list: list[AkagiEvent] = []
 
         for msg in sync_game_msgs:
-            parsed = self.parse_liqi(msg)
+            parsed = self._handle_action_prototype(msg)
             if parsed:
                 parsed_list.extend(parsed)
 
@@ -101,19 +99,12 @@ class MajsoulBridge(BaseBridge):
 
     def _pre_scan_mode_from_sync_msg(self, msg_dict: dict):
         """从同步/进入房间消息中预扫描游戏模式"""
-        try:
-            data = msg_dict.get("data", {})
-            restore = data.get("gameRestore")
-            if not restore:
-                return
-            snapshot = restore.get("snapshot")
-            if not snapshot:
-                return
-            players = snapshot.get("players", [])
-            self.is_3p = len(players) == MahjongConstants.SEATS_3P
-            logger.debug(f"Pre-scanned mode from snapshot: is_3p={self.is_3p}")
-        except Exception as e:
-            logger.warning(f"Failed to pre-scan mode from sync msg: {e}")
+        match msg_dict:
+            case {"data": {"gameRestore": {"snapshot": {"players": players}}}}:
+                self.is_3p = len(players) == MahjongConstants.SEATS_3P
+                logger.debug(f"Pre-scanned mode from snapshot: is_3p={self.is_3p}")
+            case _:
+                pass
 
     def _parse_sync_game_raw(self, msg_dict: dict) -> list[dict]:
         """从后端同步字典中解析出原始消息列表"""
@@ -134,14 +125,15 @@ class MajsoulBridge(BaseBridge):
 
     def _parse_sync_game_action_item(self, action_dict: dict) -> dict:
         """解析同步消息中的单个动作项"""
-        msg_cls = self.liqi_proto.get_message_class(action_dict["name"])
-        if not msg_cls:
+        inner_name = action_dict["name"]
+        # 同步消息中的 data 为 base64 字符串，且由于是历史录像数据，不经过 XOR 加密。
+        raw_data = base64.b64decode(action_dict["data"])
+        inner_dict = self.liqi_proto.parse_wrapper(inner_name, raw_data, use_xor=False)
+
+        if inner_dict is None:
             return {}
 
-        action_dict["data"] = MessageToDict(
-            msg_cls.FromString(base64.b64decode(action_dict["data"])),
-            always_print_fields_with_no_presence=True,
-        )
+        action_dict["data"] = inner_dict
         return {"id": -1, "type": MsgType.Notify, "method": ".lq.ActionPrototype", "data": action_dict}
 
     def _parse_auth_game_req(self, liqi_message: dict) -> list[MJAIEvent]:
@@ -246,16 +238,18 @@ class MajsoulBridge(BaseBridge):
 
     def _remove_tile_from_hand(self, tile: str):
         """从手牌中移除指定牌（支持赤宝牌匹配）。
-
-        Args:
-            tile: 要移除的牌，如 "5m"、"5mr" 等
+        优先移除完全匹配的牌，否则移除基础相同的牌。
         """
         if tile in self.my_tehais:
             self.my_tehais.remove(tile)
-        elif tile.replace("r", "") in self.my_tehais:
-            self.my_tehais.remove(tile.replace("r", ""))
-        elif tile + "r" in self.my_tehais:
-            self.my_tehais.remove(tile + "r")
+            return
+
+        # 尝试基础牌名匹配（处理赤 5 / 普通 5 的交叉移除情况）
+        base = tile.rstrip("r")
+        for h in self.my_tehais:
+            if h.rstrip("r") == base:
+                self.my_tehais.remove(h)
+                break
 
     def _update_hand_discard(self, actor: int, pai: str, tsumogiri: bool):
         """更新打牌后的手牌状态"""
@@ -264,16 +258,15 @@ class MajsoulBridge(BaseBridge):
 
         if tsumogiri:
             self.my_tsumohai = None
+        elif pai in self.my_tehais:
+            self.my_tehais.remove(pai)
+        elif self.my_tsumohai == pai:
+            self.my_tsumohai = None
         else:
-            if pai in self.my_tehais:
-                self.my_tehais.remove(pai)
-            elif self.my_tsumohai == pai:
-                self.my_tsumohai = None
-            else:
-                logger.warning(f"Discarded tile {pai} not found in hand {self.my_tehais}")
+            logger.warning(f"Discarded tile {pai} not found in hand {self.my_tehais}")
 
-            # 手切后，将摸牌移入手牌
-            self._save_tsumohai_to_hand()
+        # 手切后，将当前的摸牌移入手牌
+        self._save_tsumohai_to_hand()
 
     def _update_hand_open_meld(self, actor: int, consumed: list[str]):
         """更新吃碰明杠后的手牌状态"""
@@ -281,41 +274,25 @@ class MajsoulBridge(BaseBridge):
             return
 
         for t in consumed:
-            if t in self.my_tehais:
-                self.my_tehais.remove(t)
+            self._remove_tile_from_hand(t)
 
     def _update_hand_kan(self, actor: int, consumed: list[str], is_kakan: bool, pai: str | None = None):
-        """更新暗杠/加杠后的手牌状态"""
+        """更新暗杠/加杠后的手牌状态。统一通过先存入手牌再统一移除的方式确保红黑匹配健壮性。"""
         if actor != self.seat:
             return
 
-        if is_kakan:
-            # 加杠前，检查 tsumohai 是否为被杠的牌
-            if self.my_tsumohai == pai:
-                # tsumohai 本身被加杠，直接消耗
-                self.my_tsumohai = None
-            else:
-                # tsumohai 不是被杠的牌，先保存再从手牌中移除被杠的牌
-                self._save_tsumohai_to_hand()
-                if pai and pai in self.my_tehais:
-                    self.my_tehais.remove(pai)
-        else:
-            # 暗杠：检查 tsumohai 是否参与消耗
-            removal_candidates = list(consumed)
-            tsumo_consumed = False
+        # 先将摸牌存入手牌，然后统一从手中移除
+        self._save_tsumohai_to_hand()
 
-            if self.my_tsumohai in removal_candidates:
-                removal_candidates.remove(self.my_tsumohai)
-                self.my_tsumohai = None
-                tsumo_consumed = True
-
-            # tsumohai 未被消耗，保存到手牌以等待岭上牌
-            if not tsumo_consumed:
-                self._save_tsumohai_to_hand()
-
-            # 从手牌中移除被杠的牌
-            for tile in removal_candidates:
-                self._remove_tile_from_hand(tile)
+        match is_kakan:
+            case True:
+                # 加杠逻辑：从手牌中扣除被加杠的那张牌
+                if pai:
+                    self._remove_tile_from_hand(pai)
+            case False:
+                # 暗杠逻辑：从手牌中扣除被暗杠的 4 张牌
+                for tile in consumed:
+                    self._remove_tile_from_hand(tile)
 
     def _handle_action_chi_peng_gang(self, action_data: dict) -> list[MJAIEvent]:
         """处理吃碰杠动作"""

@@ -258,7 +258,7 @@ export class WindowManager {
 
     // Set up proxy if using MITM
     if (useMitm) {
-      const mitm = this.backendManager.getMitmConfig();
+      const mitm = await this.backendManager.getMitmConfig();
       const proxyRules = `http://${mitm.host}:${mitm.port}`;
       console.log(`[WindowManager] Setting game window proxy to: ${proxyRules}`);
       await this.gameWindow.webContents.session.setProxy({
@@ -275,7 +275,7 @@ export class WindowManager {
           this.gameWindow.webContents &&
           !this.gameWindow.webContents.isDestroyed()
         ) {
-          const backend = this.backendManager.getBackendConfig();
+          const backend = await this.backendManager.getBackendConfig();
           const apiBase = `http://${backend.host}:${backend.port}`;
           this.gameHandler = new GameHandler(this.gameWindow.webContents, apiBase);
           this.gameHandler.attach(); // Do not await, let it happen in parallel with loadURL

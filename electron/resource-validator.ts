@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 
 export interface ResourceStatus {
@@ -11,12 +11,14 @@ export interface ResourceStatus {
 export class ResourceValidator {
   constructor(private projectRoot: string) {}
 
-  public validate(): ResourceStatus {
+  public async validate(): Promise<ResourceStatus> {
     const libPath = path.join(this.projectRoot, 'lib');
     const modelsPath = path.join(this.projectRoot, 'models');
 
-    const libExists = this.checkLib(libPath);
-    const modelsExists = this.checkModels(modelsPath);
+    const [libExists, modelsExists] = await Promise.all([
+      this.checkLib(libPath),
+      this.checkModels(modelsPath),
+    ]);
 
     const missingCritical: string[] = [];
     const missingOptional: string[] = [];
@@ -37,21 +39,27 @@ export class ResourceValidator {
     };
   }
 
-  private checkLib(dirPath: string): boolean {
-    if (!fs.existsSync(dirPath)) return false;
-    const files = fs.readdirSync(dirPath);
-    // On Windows look for .pyd, otherwise .so
-    const isWin = process.platform === 'win32';
-    const libRiichi = isWin ? 'libriichi.pyd' : 'libriichi.so';
-    const libRiichi3p = isWin ? 'libriichi3p.pyd' : 'libriichi3p.so';
+  private async checkLib(dirPath: string): Promise<boolean> {
+    try {
+      const files = await fs.readdir(dirPath);
+      // On Windows look for .pyd, otherwise .so
+      const isWin = process.platform === 'win32';
+      const libRiichi = isWin ? 'libriichi.pyd' : 'libriichi.so';
+      const libRiichi3p = isWin ? 'libriichi3p.pyd' : 'libriichi3p.so';
 
-    return files.includes(libRiichi) && files.includes(libRiichi3p);
+      return files.includes(libRiichi) && files.includes(libRiichi3p);
+    } catch {
+      return false;
+    }
   }
 
-  private checkModels(dirPath: string): boolean {
-    if (!fs.existsSync(dirPath)) return false;
-    const files = fs.readdirSync(dirPath);
-    // Look for at least one .pth file
-    return files.some((f) => f.endsWith('.pth'));
+  private async checkModels(dirPath: string): Promise<boolean> {
+    try {
+      const files = await fs.readdir(dirPath);
+      // Look for at least one .pth file
+      return files.some((f) => f.endsWith('.pth'));
+    } catch {
+      return false;
+    }
   }
 }

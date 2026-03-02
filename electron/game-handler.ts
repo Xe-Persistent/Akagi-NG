@@ -1,6 +1,42 @@
 import type { Protocol } from 'devtools-protocol';
 import type { WebContents } from 'electron';
 
+export type BackendIngestPayload =
+  | {
+      source: 'electron';
+      type: 'debugger_detached';
+      reason: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket_created';
+      requestId: string;
+      url: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket_closed';
+      requestId: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket';
+      requestId: string;
+      direction: 'inbound' | 'outbound';
+      data: string;
+      opcode: number;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'liqi_definition';
+      data: string;
+      url: string;
+    };
+
 export class GameHandler {
   private attached = false;
   private readonly BACKEND_API: string;
@@ -146,7 +182,7 @@ export class GameHandler {
       }
     }
 
-    const payload = {
+    const payload: BackendIngestPayload = {
       source: 'electron',
       type: 'websocket',
       requestId: requestId,
@@ -183,13 +219,16 @@ export class GameHandler {
     }
   }
 
-  private sendToBackend(data: unknown) {
+  private sendToBackend(data: BackendIngestPayload) {
     fetch(this.BACKEND_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).catch((err) => {
-      console.error('[GameHandler] Failed to send to backend:', err);
+      console.error(
+        '[GameHandler] Failed to send to backend:',
+        err instanceof Error ? err.message : String(err),
+      );
     });
   }
 }

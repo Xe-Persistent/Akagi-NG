@@ -33,7 +33,7 @@ app.whenReady().then(async () => {
 
   // 4. Try to detect backend readiness (informative only, don't block the UI further)
   try {
-    const { host, port } = backendManager.getBackendConfig();
+    const { host, port } = await backendManager.getBackendConfig();
     for (let i = 0; i < BACKEND_STARTUP_CHECK_RETRIES; i++) {
       try {
         const controller = new AbortController();

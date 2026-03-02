@@ -106,7 +106,7 @@ export function registerIpcHandlers(windowManager: WindowManager, backendManager
   });
 
   // Get backend host and port from settings
-  ipcMain.handle('get-backend-config', () => {
-    return backendManager.getBackendConfig();
+  ipcMain.handle('get-backend-config', async () => {
+    return await backendManager.getBackendConfig();
   });
 }

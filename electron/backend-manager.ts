@@ -2,7 +2,19 @@ import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { app, dialog } from 'electron';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
+
+interface AppSettings {
+  server?: {
+    host?: string;
+    port?: number;
+  };
+  mitm?: {
+    host?: string;
+    port?: number;
+  };
+}
 
 import { BACKEND_SHUTDOWN_API_TIMEOUT_MS, BACKEND_SHUTDOWN_TIMEOUT_MS } from './constants';
 import type { ResourceStatus } from './resource-validator';
@@ -16,43 +28,51 @@ export class BackendManager {
   private readyPromise: Promise<void>;
   private resolveReady!: () => void;
 
-  public getBackendConfig(): { host: string; port: number } {
+  public async getBackendConfig(): Promise<{ host: string; port: number }> {
     const defaultHost = '127.0.0.1';
     const defaultPort = 8765;
 
     try {
       const settingsPath = getAssetPath('config', 'settings.json');
+      const fileContent = await fsPromises.readFile(settingsPath, 'utf8');
+      const settings = JSON.parse(fileContent) as AppSettings;
 
-      if (fs.existsSync(settingsPath)) {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        return {
-          host: settings?.server?.host || defaultHost,
-          port: settings?.server?.port || defaultPort,
-        };
-      }
+      return {
+        host: settings?.server?.host ?? defaultHost,
+        port: settings?.server?.port ?? defaultPort,
+      };
     } catch (err) {
-      console.warn('[BackendManager] Failed to read settings.json for backend config:', err);
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn(
+          '[BackendManager] Failed to read settings.json for backend config:',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
     }
 
     return { host: defaultHost, port: defaultPort };
   }
 
-  public getMitmConfig(): { host: string; port: number } {
+  public async getMitmConfig(): Promise<{ host: string; port: number }> {
     const defaultHost = '127.0.0.1';
     const defaultPort = 6789;
 
     try {
       const settingsPath = getAssetPath('config', 'settings.json');
+      const fileContent = await fsPromises.readFile(settingsPath, 'utf8');
+      const settings = JSON.parse(fileContent) as AppSettings;
 
-      if (fs.existsSync(settingsPath)) {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        return {
-          host: settings?.mitm?.host || defaultHost,
-          port: settings?.mitm?.port || defaultPort,
-        };
-      }
+      return {
+        host: settings?.mitm?.host ?? defaultHost,
+        port: settings?.mitm?.port ?? defaultPort,
+      };
     } catch (err) {
-      console.warn('[BackendManager] Failed to read settings.json for mitm config:', err);
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn(
+          '[BackendManager] Failed to read settings.json for mitm config:',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
     }
 
     return { host: defaultHost, port: defaultPort };
@@ -69,8 +89,8 @@ export class BackendManager {
     this.validator = new ResourceValidator(getProjectRoot());
   }
 
-  public getResourceStatus(): ResourceStatus {
-    return this.validator.validate();
+  public async getResourceStatus(): Promise<ResourceStatus> {
+    return await this.validator.validate();
   }
 
   public start() {
@@ -231,7 +251,7 @@ export class BackendManager {
     if (!this.isRunning()) return;
 
     try {
-      const { host, port } = this.getBackendConfig();
+      const { host, port } = await this.getBackendConfig();
       await fetch(`http://${host}:${port}/api/shutdown`, {
         method: 'POST',
         signal: AbortSignal.timeout(BACKEND_SHUTDOWN_API_TIMEOUT_MS),

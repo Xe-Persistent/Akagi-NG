@@ -160,7 +160,6 @@ export class WindowManager {
       transparent: true,
       backgroundColor: '#00000000',
       show: false, // Keep hidden initially
-      alwaysOnTop: true,
       hasShadow: false,
       resizable: true,
       webPreferences: {
@@ -169,6 +168,12 @@ export class WindowManager {
         contextIsolation: true,
       },
     });
+
+    // Enforce high-level always-on-top (works over fullscreen apps/games on most OS)
+    this.hudWindow.setAlwaysOnTop(true, 'screen-saver');
+
+    // Ensure visibility across virtual desktops (Mac/Win)
+    this.hudWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
     // Enforce 16:9 aspect ratio natively
     this.hudWindow.setAspectRatio(16 / 9);

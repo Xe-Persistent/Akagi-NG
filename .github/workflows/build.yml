@@ -124,7 +124,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: akagi-ng-${{ github.event.inputs.version || 'dev' }}-${{ github.run_number }}
           path: |
@@ -135,7 +135,7 @@ jobs:
 
       # 构建失败时上传日志
       - name: Upload build logs on failure
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: build-logs-${{ github.run_number }}

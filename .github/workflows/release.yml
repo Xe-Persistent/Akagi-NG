@@ -139,7 +139,7 @@ jobs:
 
       # Release 失败时上传构建产物用于调试
       - name: Upload build artifacts on failure
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: failed-release-${{ steps.version.outputs.VERSION }}

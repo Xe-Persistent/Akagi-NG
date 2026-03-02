@@ -94,7 +94,7 @@ jobs:
 
       # 测试失败时上传 HTML 覆盖率报告便于调试
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: coverage-report-py3.12

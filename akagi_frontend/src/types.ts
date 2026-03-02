@@ -11,11 +11,13 @@ export interface Recommendation {
   tile?: string;
 }
 
+export type EngineType = 'mortal' | 'akagiot' | 'unknown' | 'null';
+
 export interface FullRecommendationData {
   recommendations: Recommendation[];
-  engine_type?: string;
-  fallback_used?: boolean;
-  circuit_open?: boolean;
+  engine_type: EngineType;
+  fallback_used: boolean;
+  circuit_open: boolean;
 }
 
 export interface NotificationItem {

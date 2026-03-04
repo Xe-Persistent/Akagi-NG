@@ -12,7 +12,6 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { APP_STARTUP_MIN_DELAY_MS } from '@/config/constants';
 import { useConnectionConfig } from '@/hooks/useConnectionConfig';
 import { fetchSettingsApi } from '@/hooks/useSettings';
-import { useTilePreloader } from '@/hooks/useTilePreloader';
 import { setBaseUrl } from '@/lib/api-client';
 import type { Settings } from '@/types';
 
@@ -36,7 +35,6 @@ function AppContent({ settingsPromise }: { settingsPromise: Promise<Settings> })
 }
 
 function AppInner() {
-  useTilePreloader();
   const { apiBase } = useConnectionConfig();
 
   const isHud = useMemo(() => window.location.hash === '#/hud', []);

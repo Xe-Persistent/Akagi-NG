@@ -141,7 +141,7 @@ def _detect_locale_windows() -> str | None:
         if lcid == LCID_JA_JP:
             return "ja-JP"
     except (AttributeError, OSError) as e:
-        logger.debug(f"Failed to detect locale via Windows API: {e}")
+        logger.warning(f"Failed to detect locale via Windows API: {e}")
     return None
 
 
@@ -157,7 +157,7 @@ def _detect_locale_python() -> str | None:
             if sys_locale.startswith("ja"):
                 return "ja-JP"
     except Exception as e:
-        logger.debug(f"Failed to detect locale via python locale: {e}")
+        logger.warning(f"Failed to detect locale via python locale: {e}")
     return None
 
 
@@ -207,8 +207,7 @@ def get_default_settings_dict() -> dict:
 
 def get_settings_dict() -> dict:
     """从 settings.json 读取设置"""
-    with open(SETTINGS_JSON_PATH, encoding="utf-8") as f:
-        return json.load(f)
+    return json.loads(SETTINGS_JSON_PATH.read_text(encoding="utf-8"))
 
 
 def verify_settings(data: dict) -> bool:
@@ -236,12 +235,12 @@ def _load_settings() -> Settings:
 
     if not SETTINGS_JSON_PATH.exists():
         logger.warning(f"{SETTINGS_JSON_PATH} not found. Creating a default {SETTINGS_JSON_PATH}.")
-        with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(get_default_settings_dict(), f, indent=4, ensure_ascii=False)
+        SETTINGS_JSON_PATH.write_text(
+            json.dumps(get_default_settings_dict(), indent=4, ensure_ascii=False), encoding="utf-8"
+        )
 
     try:
-        with open(SETTINGS_JSON_PATH, encoding="utf-8") as f:
-            loaded_settings = json.load(f)
+        loaded_settings = json.loads(SETTINGS_JSON_PATH.read_text(encoding="utf-8"))
         jsonschema.validate(loaded_settings, schema)
     except json.JSONDecodeError as e:
         loaded_settings = _backup_and_reset_settings(f"settings.json corrupted: {e}")
@@ -255,8 +254,7 @@ def _get_schema() -> dict:
     """获取 settings.json 的 schema"""
     if not SCHEMA_PATH.exists():
         raise FileNotFoundError(f"settings.schema.json not found at {SCHEMA_PATH}")
-    with open(SCHEMA_PATH, encoding="utf-8") as f:
-        return json.load(f)
+    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
 def _update_settings(settings: Settings, data: dict):
@@ -290,8 +288,7 @@ def _update_settings(settings: Settings, data: dict):
 
 def _save_settings(data: dict):
     """保存 settings.json"""
-    with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    SETTINGS_JSON_PATH.write_text(json.dumps(data, indent=4, ensure_ascii=False), encoding="utf-8")
 
 
 def _backup_and_reset_settings(reason: str) -> dict:
@@ -308,8 +305,7 @@ def _backup_and_reset_settings(reason: str) -> dict:
 
     logger.warning("Creating new settings.json with default values")
     default_settings = get_default_settings_dict()
-    with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(default_settings, f, indent=4, ensure_ascii=False)
+    SETTINGS_JSON_PATH.write_text(json.dumps(default_settings, indent=4, ensure_ascii=False), encoding="utf-8")
 
     return default_settings
 

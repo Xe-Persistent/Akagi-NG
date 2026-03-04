@@ -91,8 +91,7 @@ class MajsoulElectronClient(BaseElectronClient):
                 liqi_path = assets_dir / "liqi.json"
 
                 # 3. 写入文件
-                with open(liqi_path, "w", encoding="utf-8") as f:
-                    json.dump(json_obj, f, indent=2, ensure_ascii=False)
+                liqi_path.write_text(json.dumps(json_obj, indent=2, ensure_ascii=False), encoding="utf-8")
 
                 # 4. 成功后的处理
                 if self.bridge:

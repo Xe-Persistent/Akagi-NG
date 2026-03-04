@@ -35,8 +35,7 @@ class LiqiProto:
         # 动态构建 Protobuf 描述池
         self.pool = _descriptor_pool.DescriptorPool()
 
-        with open(get_assets_dir() / "liqi.json", encoding="utf-8") as f:
-            self.jsonProto = json.load(f)
+        self.jsonProto = json.loads((get_assets_dir() / "liqi.json").read_text(encoding="utf-8"))
 
         self._build_descriptors()
 

@@ -5,12 +5,14 @@ import threading
 from types import FrameType
 
 from akagi_ng import AKAGI_VERSION
-from akagi_ng.core import (
+from akagi_ng.core.context import (
     AppContext,
-    configure_logging,
     get_app_context,
-    logger,
     set_app_context,
+)
+from akagi_ng.core.logging import (
+    configure_logging,
+    logger,
 )
 from akagi_ng.dataserver import DataServer
 from akagi_ng.dataserver.adapter import build_dataserver_payload
@@ -152,18 +154,18 @@ class AkagiApp:
         is_sync = False
 
         try:
-            sys_notif, handled, is_sync = self._handle_message(msg, tracker, controller)
+            msg_code, handled, is_sync = self._handle_message(msg, tracker, controller)
 
             # 收集结果：决策响应（从 Controller 拉取）
             if controller and not handled:
                 response = controller.last_response
 
-            if sys_notif:
-                notifications.append({"code": sys_notif})
+            if msg_code:
+                notifications.append(Notification(code=msg_code))
 
             # 每一条消息处理后，统一从 Context 中采集当前累积的标志
             if not handled and self.status and self.status.flags:
-                notifications.extend({"code": code} for code in self.status.flags)
+                notifications.extend(Notification(code=code) for code in self.status.flags)
                 self.status.clear_flags()
 
         except Exception:

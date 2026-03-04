@@ -1,49 +1,39 @@
-import sys
 from functools import cache
 from pathlib import Path
 
 
 @cache
 def get_app_root() -> Path:
-    if getattr(sys, "frozen", False):
-        if hasattr(sys, "_MEIPASS"):
-            return Path(sys._MEIPASS)
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parents[3]
-
-
-@cache
-def get_runtime_root() -> Path:
     """
-    返回运行时数据目录（config、logs、lib、models）。
-    - 开发模式：项目根目录
-    - 生产模式（冻结包）：主程序所在根目录（Akagi-NG/）
+    动态推导项目根目录。
     """
-    if getattr(sys, "frozen", False):
-        # 可执行文件位于 Akagi-NG/bin/akagi-ng.exe，向上两级即运行根目录
-        return Path(sys.executable).parent.parent
-    return get_app_root()
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "assets").is_dir():
+            return parent
+
+    # 极端异常场景的回退保障（按照开发源目录推三层）
+    return current.parents[3]
 
 
 def get_assets_dir() -> Path:
-    # assets 通过 PyInstaller --datas 与二进制一同打包
     return get_app_root() / "assets"
 
 
 def get_settings_dir() -> Path:
-    return get_runtime_root() / "config"
+    return get_app_root() / "config"
 
 
 def get_lib_dir() -> Path:
-    return get_runtime_root() / "lib"
+    return get_app_root() / "lib"
 
 
 def get_models_dir() -> Path:
-    return get_runtime_root() / "models"
+    return get_app_root() / "models"
 
 
 def get_logs_dir() -> Path:
-    return get_runtime_root() / "logs"
+    return get_app_root() / "logs"
 
 
 def ensure_dir(path: Path) -> Path:

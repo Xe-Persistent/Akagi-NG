@@ -1,18 +1,13 @@
-import re
+import tempfile
+import tomllib
+from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules
 
-def get_version():
-    with open('pyproject.toml', encoding='utf-8') as f:
-        content = f.read()
-    match = re.search(r'version\s*=\s*"([^"]+)"', content)
-    if match:
-        return match.group(1)
-    return "0.0.0"
+version_str = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 
-version_str = get_version()
-version_tuple = tuple(map(int, version_str.split('.'))) + (0,) * (4 - len(version_str.split('.')))
+version_tuple = tuple(map(int, version_str.split("."))) + (0,) * (4 - len(version_str.split(".")))
 
-VERSION_INFO_TEMPLATE = """# UTF-8
+version_info_content = f"""# UTF-8
 #
 # For more details about fixed file info 'ffi' see:
 # http://msdn.microsoft.com/en-us/library/ms646997.aspx
@@ -20,8 +15,8 @@ VSVersionInfo(
   ffi=FixedFileInfo(
     # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
     # Set not needed items to zero 0.
-    filevers=(0, 0, 0, 0),
-    prodvers=(0, 0, 0, 0),
+    filevers={version_tuple},
+    prodvers={version_tuple},
     # Contains a bitmask that specifies the valid bits 'flags'r
     mask=0x3f,
     # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -44,40 +39,23 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Akagi-NG Contributors'),
-        StringStruct(u'FileDescription', u'Akagi-NG Client'),
-        StringStruct(u'FileVersion', u'0.0.0'),
+        StringStruct(u'FileDescription', u'Akagi-NG Service'),
+        StringStruct(u'FileVersion', u'{version_str}'),
         StringStruct(u'InternalName', u'akagi-ng'),
-        StringStruct(u'LegalCopyright', u'AGPL-3.0-only'),
+        StringStruct(u'LegalCopyright', u'Copyright (C) 2026 Akagi-NG Contributors'),
         StringStruct(u'OriginalFilename', u'akagi-ng.exe'),
         StringStruct(u'ProductName', u'Akagi-NG'),
-        StringStruct(u'ProductVersion', u'0.0.0')])
+        StringStruct(u'ProductVersion', u'{version_str}')])
       ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )
 """
 
-# Use the template directly
-version_info_content = VERSION_INFO_TEMPLATE
 
-# Replace versions in the content
-version_info_content = version_info_content.replace('0.0.0', version_str)
-version_info_content = re.sub(
-    r'filevers=\(\d+, \d+, \d+, \d+\)',
-    f'filevers={version_tuple}',
-    version_info_content
-)
-version_info_content = re.sub(
-    r'prodvers=\(\d+, \d+, \d+, \d+\)',
-    f'prodvers={version_tuple}',
-    version_info_content
-)
-
-# Write to the assets file
-version_file = '../assets/file_version_info.txt'
-with open(version_file, 'w', encoding='utf-8') as f:
-    f.write(version_info_content)
-
+version_file = Path(tempfile.gettempdir()) / "akagi_ng_version_info.txt"
+version_file.write_text(version_info_content, encoding="utf-8")
+version_file = str(version_file)
 
 
 block_cipher = None
@@ -90,15 +68,13 @@ a = Analysis(
     ['akagi_ng/__main__.py'],
     pathex=['.'],
     binaries=[],
-    datas=[
-        ('../assets', 'assets'),
-        ('pyproject.toml', '.'),
-    ],
+    datas=[],
     hiddenimports=hiddenimports,
     excludes=[
         "pytest", "pytest-asyncio", "pytest-cov", "ruff", "pyinstaller",
         "setuptools", "pip", "pkg_resources", "jedi", "parso", "mypy",
         "black", "isort", "flake8", "pylint", "wheel", "build", "twine",
+        "tkinter", "unittest", "IPython", "lib2to3", "pydoc", "pdb",
     ],
     noarchive=False,
 )

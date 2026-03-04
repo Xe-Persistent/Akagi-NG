@@ -4,7 +4,8 @@ from collections.abc import Callable
 
 from aiohttp import web
 
-from akagi_ng.core import configure_logging, get_app_context
+from akagi_ng.core.context import get_app_context
+from akagi_ng.core.logging import configure_logging
 from akagi_ng.core.paths import get_models_dir
 from akagi_ng.dataserver.logger import logger
 from akagi_ng.mjai_bot.engine import clear_resource_cache

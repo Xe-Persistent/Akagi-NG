@@ -1,0 +1,1 @@
+"""akagi_ng.schema"""

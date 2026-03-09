@@ -30,8 +30,8 @@
   "license": "AGPL-3.0",
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "devtools-protocol": "^0.0.1591961",
-    "electron": "40.6.1",
+    "devtools-protocol": "^0.0.1595872",
+    "electron": "40.8.0",
     "electron-builder": "^26.8.1",
     "eslint": "^9.39.3",
     "eslint-config-prettier": "^10.1.8",

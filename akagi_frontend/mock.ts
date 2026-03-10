@@ -41,7 +41,6 @@ const defaultSettings: Settings = {
     model_4p: 'mortal.pth',
     model_3p: 'mortal3p.pth',
     temperature: 0.3,
-    rule_based_agari_guard: true,
   },
 };
 

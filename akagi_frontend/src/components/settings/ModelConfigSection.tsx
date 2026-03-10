@@ -2,7 +2,6 @@ import { type FC, memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { CapsuleSwitch } from '@/components/ui/capsule-switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -168,19 +167,6 @@ export const ModelConfigSection: FC<ModelConfigSectionProps> = memo(
               </div>
             </SettingsItem>
 
-            <SettingsItem
-              label={t('settings.model_config.agari_guard')}
-              description={t('settings.model_config.agari_guard_desc')}
-              layout='row'
-            >
-              <Checkbox
-                id='agari_guard'
-                checked={settings.model_config.rule_based_agari_guard}
-                onCheckedChange={(checked) =>
-                  updateSetting(['model_config', 'rule_based_agari_guard'], checked === true)
-                }
-              />
-            </SettingsItem>
           </div>
         </div>
       </div>

@@ -50,7 +50,6 @@ class ServerConfig:
 @dataclass(slots=True)
 class ModelConfig:
     temperature: float
-    rule_based_agari_guard: bool
     model_4p: str = "mortal.pth"
     model_3p: str = "mortal3p.pth"
 
@@ -124,7 +123,6 @@ class Settings:
                 model_4p=model_config_data.get("model_4p", "mortal.pth"),
                 model_3p=model_config_data.get("model_3p", "mortal3p.pth"),
                 temperature=model_config_data.get("temperature", 0.3),
-                rule_based_agari_guard=model_config_data.get("rule_based_agari_guard", True),
             ),
         )
 
@@ -200,7 +198,6 @@ def get_default_settings_dict() -> dict:
             "model_4p": "mortal.pth",
             "model_3p": "mortal3p.pth",
             "temperature": 0.3,
-            "rule_based_agari_guard": True,
         },
     }
 
@@ -278,7 +275,6 @@ def _update_settings(settings: Settings, data: dict):
     settings.model_config.model_4p = model_config_data.get("model_4p", "mortal.pth")
     settings.model_config.model_3p = model_config_data.get("model_3p", "mortal3p.pth")
     settings.model_config.temperature = model_config_data.get("temperature", 0.3)
-    settings.model_config.rule_based_agari_guard = model_config_data.get("rule_based_agari_guard", True)
 
     ot_data = data.get("ot", {})
     settings.ot.online = ot_data.get("online", False)

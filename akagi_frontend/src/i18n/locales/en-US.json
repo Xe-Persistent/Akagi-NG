@@ -22,7 +22,7 @@
         "auto": "Auto Detect"
       },
       "game_url": "Game URL",
-      "game_url_desc": "Only supports Majsoul and Tenhou. Use Proxy mode for other platforms."
+      "game_url_desc": "Only supports Majsoul and Tenhou. Use Proxy mode for other games."
     },
     "connection": {
       "title": "Game Connection",
@@ -38,7 +38,7 @@
       }
     },
     "server": {
-      "title": "Service",
+      "title": "Background Service",
       "host": "Service Address",
       "port": "Port"
     },
@@ -52,9 +52,7 @@
       "model_4p": "4-Player Model",
       "model_3p": "3-Player Model",
       "temperature": "Temperature",
-      "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make probabilities closer.",
-      "agari_guard": "Rule-driven Agari Guard",
-      "agari_guard_desc": "Prevent missing winning hands due to recognition errors.",
+      "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make confidences closer.",
       "no_models_found": "No local models found"
     },
     "saved_success": "Settings updated.",

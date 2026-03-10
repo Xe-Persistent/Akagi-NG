@@ -71,7 +71,6 @@ function AppInner() {
             model_4p: '',
             model_3p: '',
             temperature: 0.3,
-            rule_based_agari_guard: true,
           },
         } satisfies Settings;
       });

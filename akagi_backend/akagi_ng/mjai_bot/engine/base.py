@@ -31,13 +31,9 @@ class BaseEngine:
         # torch.autocast 参数，CPU 推理无需 AMP
         self.enable_amp = False
 
-    @property
-    def enable_rule_based_agari_guard(self) -> bool:
-        """
-        是否启用基于规则的和牌保护（防止振听/无役和牌）。
-        在线模型通常自带保护，本地模型可能需要。
-        """
-        return True
+        # 是否启用基于规则的和牌保护（防止振听/无役和牌）。
+        # 在线模型通常自带保护，本地模型可能需要。
+        self.enable_rule_based_agari_guard = True
 
     def fork(self, status: BotStatusContext | None = None) -> Self:
         """

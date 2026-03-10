@@ -100,9 +100,8 @@ class EngineProtocol(Protocol):
     status: BotStatusContext
     enable_quick_eval: bool
     enable_amp: bool
+    enable_rule_based_agari_guard: bool
 
-    @property
-    def enable_rule_based_agari_guard(self) -> bool: ...
 
     def reset_status(self):
         """重置引擎状态（如回退标志）。"""

@@ -56,7 +56,6 @@ export interface Settings {
     model_4p: string;
     model_3p: string;
     temperature: number;
-    rule_based_agari_guard: boolean;
   };
 }
 

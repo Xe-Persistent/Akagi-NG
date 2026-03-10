@@ -131,18 +131,12 @@
           "type": "number",
           "default": 0.3,
           "description": "Softmax temperature for model confidence normalization."
-        },
-        "rule_based_agari_guard": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable rule-based check to prevent missing wins."
         }
       },
       "required": [
         "model_4p",
         "model_3p",
-        "temperature",
-        "rule_based_agari_guard"
+        "temperature"
       ],
       "additionalProperties": false
     }

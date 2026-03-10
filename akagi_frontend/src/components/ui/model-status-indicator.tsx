@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 // 样式常量
 const CONTAINER_BASE_CLASS =
   'no-drag animate-in fade-in slide-in-from-top-2 absolute top-2 left-2 z-50 duration-300';
-const DOT_BASE_CLASS =
-  'h-2.5 w-2.5 rounded-full shadow-sm transition-colors duration-500 ease-premium';
+const DOT_BASE_CLASS = 'h-2.5 w-2.5 rounded-full shadow-sm transition-colors duration-500';
 
 const STATUS_VARIANTS = {
   hidden: 'hidden',

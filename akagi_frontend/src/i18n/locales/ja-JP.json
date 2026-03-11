@@ -79,6 +79,8 @@
     "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
     "settings_title": "Akagi NG 設定",
     "settings_desc": "アプリケーション設定パネル",
+    "standby": "待機中",
+    "standby_desc": "対局データを待機中、打牌推奨の準備が整いました",
     "hud_active": "HUDモードが有効です",
     "hud_desc": "AIの打牌推奨が専用のHUDウィンドウに表示されます",
     "shutdown_confirm_title": "Akagi NGを終了しますか？",

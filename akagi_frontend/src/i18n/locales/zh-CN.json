@@ -79,6 +79,8 @@
     "launch_error": "无法获取游戏 URL，请检查设置",
     "settings_title": "Akagi NG 设置",
     "settings_desc": "应用配置面板",
+    "standby": "待机中",
+    "standby_desc": "正在等待对局数据，准备提供打牌建议",
     "hud_active": "HUD 模式已启用",
     "hud_desc": "AI 打牌建议将在独立的 HUD 窗口中实时显示",
     "shutdown_confirm_title": "确认退出",

@@ -79,6 +79,8 @@
     "launch_error": "Could not retrieve game URL. Please check settings.",
     "settings_title": "Akagi NG Settings",
     "settings_desc": "Application Configuration Panel",
+    "standby": "Standby",
+    "standby_desc": "Waiting for game data, ready to provide play suggestions",
     "hud_active": "HUD Mode Active",
     "hud_desc": "AI play suggestions are shown in a dedicated HUD window",
     "shutdown_confirm_title": "Confirm Shutdown",

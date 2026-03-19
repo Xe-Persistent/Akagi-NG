@@ -6,6 +6,7 @@ from akagi_ng.bridge.base import BaseBridge
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import OperationAnGangAddGang, OperationChiPengGang
 from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType
+from akagi_ng.bridge.majsoul.modifier import MajsoulModifier, PacketMutation
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE, compare_pai
 from akagi_ng.schema.constants import MahjongConstants
 from akagi_ng.schema.notifications import NotificationCode
@@ -16,6 +17,10 @@ class MajsoulBridge(BaseBridge):
     def __init__(self):
         super().__init__()
         self.liqi_proto = LiqiProto()
+        self.modifier = MajsoulModifier()
+        self._logged_first_frame = False
+        self._logged_first_parsed_message = False
+        self._logged_first_unparsed_frame = False
         self._init_state()
 
     def _init_state(self):
@@ -61,6 +66,39 @@ class MajsoulBridge(BaseBridge):
         except Exception as e:
             logger.error(f"Error parsing Majsoul message: {e}")
             return [self.make_system_event(NotificationCode.PARSE_ERROR)]
+
+    def process_message(self, content: bytes, *, from_client: bool) -> tuple[list[AkagiEvent], PacketMutation]:
+        """Parse MJAI events and optionally mutate the original websocket packet."""
+        try:
+            if not self._logged_first_frame:
+                self._logged_first_frame = True
+                logger.info(f"[MajsoulBridge] First websocket frame received from_client={from_client}")
+            liqi_message = self.liqi_proto.parse(content)
+            if liqi_message and not self._logged_first_parsed_message:
+                self._logged_first_parsed_message = True
+                logger.info(
+                    f"[MajsoulBridge] First parsed liqi message: "
+                    f"type={liqi_message.get('type')} method={liqi_message.get('method')}"
+                )
+            if not liqi_message and not self._logged_first_unparsed_frame:
+                self._logged_first_unparsed_frame = True
+                logger.warning("[MajsoulBridge] Received websocket frame but failed to parse liqi message")
+            mutation = self.modifier.process(
+                liqi_message,
+                from_client=from_client,
+                raw_content=content,
+                liqi_proto=self.liqi_proto,
+            )
+            parsed = self.parse_liqi(liqi_message)
+
+            if parsed:
+                logger.trace(f"<- {liqi_message}")
+                logger.trace(f"-> {parsed}")
+
+            return parsed, mutation
+        except Exception as e:
+            logger.error(f"Error processing Majsoul message: {e}")
+            return [self.make_system_event(NotificationCode.PARSE_ERROR)], PacketMutation()
 
     def _parse_sync_game(self, liqi_message: dict) -> list[AkagiEvent]:
         """处理游戏同步消息（重连后的同步）"""

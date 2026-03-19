@@ -19,6 +19,7 @@ import { useSettings } from '@/hooks/useSettings';
 
 import { ConnectionSection } from './settings/ConnectionSection';
 import { GeneralSection } from './settings/GeneralSection';
+import { MajsoulModSection } from './settings/MajsoulModSection';
 import { ModelConfigSection } from './settings/ModelConfigSection';
 import { ServiceSection } from './settings/ServiceSection';
 
@@ -93,6 +94,10 @@ const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose }) => {
             <ServiceSection settings={settings} updateSetting={updateSetting} />
 
             <ModelConfigSection settings={settings} updateSetting={updateSetting} />
+
+            {['majsoul', 'auto'].includes(settings.platform) && settings.mitm.enabled && (
+              <MajsoulModSection open={open} />
+            )}
 
             <div className='flex justify-end border-t border-white/5 pt-6'>
               <Button

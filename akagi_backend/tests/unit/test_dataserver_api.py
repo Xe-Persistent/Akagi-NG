@@ -35,6 +35,7 @@ def test_is_allowed_origin():
     assert _is_allowed_origin(None) is True
     assert _is_allowed_origin("http://localhost:3000") is True
     assert _is_allowed_origin("http://127.0.0.1:8080") is True
+    assert _is_allowed_origin("https://game.maj-soul.com") is True
     assert _is_allowed_origin("http://malicious.com") is False
 
 
@@ -56,6 +57,35 @@ async def test_get_settings(cli):
         data = await resp.json()
         assert data["ok"] is True
         assert data["data"] == {"test": "val"}
+
+
+async def test_get_majsoul_mod_settings(cli):
+    with patch("akagi_ng.dataserver.api.load_mod_settings_dict", return_value={"enabled": True}):
+        resp = await cli.get("/api/majsoul-mod-settings")
+        assert resp.status == 200
+        data = await resp.json()
+        assert data["data"] == {"enabled": True}
+
+
+async def test_save_majsoul_mod_settings(cli):
+    with (
+        patch("akagi_ng.dataserver.api.verify_mod_settings_dict", return_value=True),
+        patch("akagi_ng.dataserver.api.load_mod_settings_dict", return_value={"enabled": False}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict") as mock_save,
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings", json={"enabled": True})
+        assert resp.status == 200
+        mock_save.assert_called_once()
+
+
+async def test_reset_majsoul_mod_settings(cli):
+    with (
+        patch("akagi_ng.dataserver.api.get_default_mod_settings_dict", return_value={"enabled": True}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict") as mock_save,
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings/reset")
+        assert resp.status == 200
+        mock_save.assert_called_once_with({"enabled": True})
 
 
 async def test_save_settings_invalid_json(cli):
@@ -107,6 +137,18 @@ async def test_ingest_mjai_success(cli):
         resp = await cli.post("/api/ingest", json={"type": "websocket_closed"})
         assert resp.status == 200
         mock_app.electron_client.push_message.assert_called_once_with(WebSocketClosedMessage())
+
+
+async def test_ingest_mjai_returns_mutation(cli):
+    mock_app = MagicMock()
+    mock_app.electron_client = MagicMock()
+    mock_app.electron_client.push_message.return_value = {"drop": False, "data": "abc", "injectedMessages": []}
+
+    with patch("akagi_ng.dataserver.api.get_app_context", return_value=mock_app):
+        resp = await cli.post("/api/ingest", json={"type": "websocket_closed"})
+        assert resp.status == 200
+        data = await resp.json()
+        assert data["mutation"]["data"] == "abc"
 
 
 async def test_ingest_mjai_no_client(cli):

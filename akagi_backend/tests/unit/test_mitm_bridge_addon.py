@@ -13,6 +13,7 @@ import queue
 from unittest.mock import MagicMock, patch
 
 import pytest
+from mitmproxy.websocket import WebSocketMessage
 
 from akagi_ng.bridge import (
     AmatsukiBridge,
@@ -144,6 +145,30 @@ def test_bridge_addon_websocket_lifecycle(addon, shared_queue) -> None:
 
     addon.websocket_end(flow)
     assert flow.id not in addon.activated_flows
+
+
+def test_bridge_addon_websocket_mutation(addon):
+    flow = MagicMock()
+    flow.id = "flow1"
+    flow.request.url = "http://majsoul.com/socket"
+    flow.websocket.messages = [WebSocketMessage(2, True, b"orig")]
+
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = "majsoul"
+        addon.websocket_start(flow)
+
+    bridge = addon.bridges[flow.id]
+    mutation = MagicMock()
+    mutation.drop = False
+    mutation.content = b"patched"
+    mutation.injected_messages = [b"injected"]
+
+    with patch.object(bridge, "process_message", return_value=([{"type": "hello"}], mutation)):
+        addon.websocket_message(flow)
+
+    assert flow.websocket.messages[0].content == b"patched"
+    assert flow.websocket.messages[-1].content == b"injected"
+    assert flow.websocket.messages[-1].injected is True
 
 
 def test_bridge_addon_http_hooks_dispatch(addon) -> None:

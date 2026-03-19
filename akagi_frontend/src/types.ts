@@ -59,6 +59,34 @@ export interface Settings {
   };
 }
 
+export interface MajsoulModSettings {
+  enabled: boolean;
+  config: {
+    character: number;
+    characters: Record<string, number>;
+    nickname: string;
+    star_chars: number[];
+    bianjietishi: boolean;
+    title: number;
+    loading_image: number[];
+    emoji: boolean;
+    views: Record<string, unknown[]>;
+    views_index: number;
+    show_server: boolean;
+    verified: number;
+    anti_replace_nickname: boolean;
+    random_character: {
+      enabled: boolean;
+      pool: Array<Record<string, unknown>>;
+    };
+    safe_mode: boolean;
+  };
+  resource: {
+    auto_update: boolean;
+    lqc_lqbin_version: string;
+  };
+}
+
 export interface SaveSettingsResponse extends ApiResponse {
   restartRequired?: boolean;
 }

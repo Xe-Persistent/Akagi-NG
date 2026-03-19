@@ -84,7 +84,7 @@ a = Analysis(
         "pytest", "pytest-asyncio", "pytest-cov", "ruff", "pyinstaller",
         "setuptools", "pip", "pkg_resources", "jedi", "parso", "mypy",
         "black", "isort", "flake8", "pylint", "wheel", "build", "twine",
-        "tkinter", "unittest", "IPython", "lib2to3", "pydoc", "pdb",
+        "tkinter", "IPython", "lib2to3",
     ],
     noarchive=False,
 )

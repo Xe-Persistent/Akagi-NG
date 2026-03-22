@@ -31,7 +31,7 @@
     "typecheck": "npm exec --workspaces -- tsc --noEmit --pretty"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",

@@ -2,7 +2,7 @@ import ctypes
 import json
 import locale
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Self
 
@@ -76,6 +76,23 @@ class AutoplayConfig:
     input: AutoplayInputConfig
 
 
+def _default_autoplay_config() -> AutoplayConfig:
+    return AutoplayConfig(
+        enabled=False,
+        window_keyword="",
+        timing=AutoplayTimingConfig(
+            first_tile=5.0,
+            rand_min=1.0,
+            rand_max=3.0,
+            candidate=0.5,
+        ),
+        input=AutoplayInputConfig(
+            bezier_smoothing=0.35,
+            bezier_steps=18,
+        ),
+    )
+
+
 @dataclass(slots=True)
 class Settings:
     log_level: str
@@ -86,7 +103,7 @@ class Settings:
     server: ServerConfig
     ot: OTConfig
     model_config: ModelConfig
-    autoplay: AutoplayConfig
+    autoplay: AutoplayConfig = field(default_factory=_default_autoplay_config)
 
     def update(self, data: dict):
         """从字典更新设置"""

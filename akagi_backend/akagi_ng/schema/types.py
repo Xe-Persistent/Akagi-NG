@@ -97,8 +97,10 @@ type MJAIActionType = Literal[
     "ankan",
     "kakan",
     "tsumo",
+    "ron",
     "hora",
     "ryukyoku",
+    "nukidora",
 ]
 
 type ChiType = Literal["chi_low", "chi_mid", "chi_high"]

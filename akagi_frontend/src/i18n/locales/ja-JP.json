@@ -61,7 +61,26 @@
     "restart_required": "設定が変更されました。変更を反映するにはアプリを再起動してください。",
     "restored_success": "設定がデフォルトに戻されました。変更を反映するにはアプリを再起動してください。",
     "loading": "設定を読み込み中…",
-    "load_error_desc": "設定を読み込めませんでした。"
+    "load_error_desc": "設定を読み込めませんでした。",
+    "autoplay": {
+      "title": "Auto Play",
+      "enabled": "Enable Auto Play",
+      "enabled_desc": "Automatically execute the AI recommendation in the detected game window.",
+      "window_keyword": "Window Keywords",
+      "window_keyword_desc": "Optional. Separate multiple keywords with commas to force window matching.",
+      "first_tile": "Opening Delay",
+      "first_tile_desc": "Delay before the first discard of a round.",
+      "candidate": "Candidate Delay",
+      "candidate_desc": "Delay used for buttons and candidate selections.",
+      "rand_min": "Random Min",
+      "rand_min_desc": "Minimum discard delay after the opening turn.",
+      "rand_max": "Random Max",
+      "rand_max_desc": "Maximum discard delay after the opening turn.",
+      "bezier_smoothing": "Cursor Smoothing",
+      "bezier_smoothing_desc": "Mouse path curve strength from 0 to 1.",
+      "bezier_steps": "Cursor Steps",
+      "bezier_steps_desc": "Interpolation steps used during cursor movement."
+    }
   },
   "common": {
     "enabled": "有効",

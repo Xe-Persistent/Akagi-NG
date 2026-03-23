@@ -61,7 +61,26 @@
     "restart_required": "設定已變更，請重新啟動應用程式以套用變更",
     "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更",
     "loading": "正在載入設定…",
-    "load_error_desc": "無法載入設定。"
+    "load_error_desc": "無法載入設定。",
+    "autoplay": {
+      "title": "自動打牌",
+      "enabled": "啟用自動打牌",
+      "enabled_desc": "在偵測到的遊戲視窗中自動執行 AI 推薦操作。",
+      "window_keyword": "視窗關鍵字",
+      "window_keyword_desc": "可選。多個關鍵字請用英文逗號分隔，用於強制匹配目標視窗。",
+      "first_tile": "首打延時",
+      "first_tile_desc": "每局第一次出牌前的延遲時間。",
+      "candidate": "按鈕延時",
+      "candidate_desc": "按鈕點擊與候選選擇的延遲時間。",
+      "rand_min": "隨機最小值",
+      "rand_min_desc": "非首打回合的最小出牌延遲。",
+      "rand_max": "隨機最大值",
+      "rand_max_desc": "非首打回合的最大出牌延遲。",
+      "bezier_smoothing": "滑鼠平滑度",
+      "bezier_smoothing_desc": "滑鼠軌跡曲線強度，取值 0 到 1。",
+      "bezier_steps": "滑鼠步數",
+      "bezier_steps_desc": "滑鼠移動過程中的插值步數。"
+    }
   },
   "common": {
     "enabled": "已啟用",

@@ -10,7 +10,8 @@
     "dev": "wait-on http://localhost:5173 && tsc -p tsconfig.json && electron .",
     "dev:mock": "wait-on http://localhost:5173 && tsc -p tsconfig.json && electron . --mock",
     "build": "tsc -p tsconfig.json",
-    "package": "electron-builder --publish never"
+    "package": "electron-builder --publish never --config.win.signAndEditExecutable=false --config.win.verifyUpdateCodeSignature=false",
+    "package:signed": "electron-builder --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.3"

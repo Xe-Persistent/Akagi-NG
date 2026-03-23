@@ -9,7 +9,8 @@
     "mitm",
     "server",
     "ot",
-    "model_config"
+    "model_config",
+    "autoplay"
   ],
   "properties": {
     "log_level": {
@@ -154,6 +155,76 @@
         "model_3p",
         "temperature"
       ],
+      "additionalProperties": false
+    },
+    "autoplay": {
+      "type": "object",
+      "description": "Autoplay configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic in-game actions."
+        },
+        "window_keyword": {
+          "type": "string",
+          "default": "",
+          "description": "Optional custom window title keyword used to locate the target game window."
+        },
+        "timing": {
+          "type": "object",
+          "description": "Timing settings for autoplay actions.",
+          "properties": {
+            "first_tile": {
+              "type": "number",
+              "default": 5.0,
+              "minimum": 0.0,
+              "maximum": 15.0
+            },
+            "rand_min": {
+              "type": "number",
+              "default": 1.0,
+              "minimum": 0.0,
+              "maximum": 10.0
+            },
+            "rand_max": {
+              "type": "number",
+              "default": 3.0,
+              "minimum": 0.0,
+              "maximum": 10.0
+            },
+            "candidate": {
+              "type": "number",
+              "default": 0.5,
+              "minimum": 0.0,
+              "maximum": 5.0
+            }
+          },
+          "required": ["first_tile", "rand_min", "rand_max", "candidate"],
+          "additionalProperties": false
+        },
+        "input": {
+          "type": "object",
+          "description": "Mouse path tuning for autoplay input.",
+          "properties": {
+            "bezier_smoothing": {
+              "type": "number",
+              "default": 0.35,
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "bezier_steps": {
+              "type": "integer",
+              "default": 18,
+              "minimum": 6,
+              "maximum": 64
+            }
+          },
+          "required": ["bezier_smoothing", "bezier_steps"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled", "window_keyword", "timing", "input"],
       "additionalProperties": false
     }
   },

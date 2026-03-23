@@ -57,6 +57,20 @@ export interface Settings {
     model_3p: string;
     temperature: number;
   };
+  autoplay: {
+    enabled: boolean;
+    window_keyword: string;
+    timing: {
+      first_tile: number;
+      rand_min: number;
+      rand_max: number;
+      candidate: number;
+    };
+    input: {
+      bezier_smoothing: number;
+      bezier_steps: number;
+    };
+  };
 }
 
 export interface SaveSettingsResponse extends ApiResponse {

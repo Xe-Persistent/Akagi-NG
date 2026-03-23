@@ -1,4 +1,4 @@
-import platform
+﻿import platform
 import shutil
 import subprocess
 import sys
@@ -30,7 +30,7 @@ def get_download_url() -> str:
 
 
 def write_version_to_dest(backend_root: Path, packages_dest: Path) -> str:
-    print("   🔖 Generating version file inside the bundle...")
+    print("   Generating version file inside the bundle...")
     pyproject_path = backend_root / "pyproject.toml"
     version = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))["project"]["version"]
     version_file_path = packages_dest / "akagi_ng" / "_version.py"
@@ -46,17 +46,13 @@ __version__ = "{version}"
 
 
 def cleanup_python_dist(python_dir: Path):
-    print("   🧹 Sweeping Python standard library bloat...")
-    # Delete C/C++ headers
+    print("   Sweeping Python standard library bloat...")
     for p in python_dir.glob("**/include"):
         shutil.rmtree(p, ignore_errors=True)
-    # Delete static libraries
     for p in python_dir.rglob("*.a"):
         p.unlink(missing_ok=True)
-    # Delete manual pages
     for p in python_dir.glob("**/share"):
         shutil.rmtree(p, ignore_errors=True)
-    # Delete useless stdlib packages
     for useless_dir in ["idlelib", "tkinter", "turtledemo", "test"]:
         for p in python_dir.rglob(useless_dir):
             if p.is_dir():
@@ -64,8 +60,7 @@ def cleanup_python_dist(python_dir: Path):
 
 
 def cleanup_app_packages(app_packages_dir: Path):
-    print("   🧹 Cleaning up bloated files...")
-    # Delete C/C++ source files in packages
+    print("   Cleaning up bloated files...")
     for p in app_packages_dir.rglob("*.c"):
         p.unlink(missing_ok=True)
     for p in app_packages_dir.rglob("*.cpp"):
@@ -76,11 +71,9 @@ def cleanup_app_packages(app_packages_dir: Path):
         p.unlink(missing_ok=True)
     for p in app_packages_dir.rglob("*.hpp"):
         p.unlink(missing_ok=True)
-    # PyTorch and NumPy include massive C++ header directories useless at runtime
     for p in app_packages_dir.glob("**/include"):
         if p.is_dir():
             shutil.rmtree(p, ignore_errors=True)
-    # Delete pip metadata
     for p in app_packages_dir.glob("*.dist-info"):
         shutil.rmtree(p, ignore_errors=True)
     for p in app_packages_dir.glob("*.egg-info"):
@@ -89,19 +82,19 @@ def cleanup_app_packages(app_packages_dir: Path):
 
 def download_and_extract_python(dist_dir: Path) -> None:
     url = get_download_url()
-    print(f"   ⬇️ Downloading Portable Python from: {url}")
+    print(f"   Downloading portable Python from: {url}")
 
     temp_path = Path(tempfile.gettempdir()) / "portable_python.tar.gz"
     urllib.request.urlretrieve(url, temp_path)
 
-    print("   📦 Extracting Portable Python...")
+    print("   Extracting portable Python...")
     shutil.unpack_archive(temp_path, extract_dir=dist_dir, format="gztar", filter="data")
 
     temp_path.unlink(missing_ok=True)
 
 
 def install_dependencies_and_compile(backend_root: Path, packages_dest: Path) -> None:
-    print(f"   📥 Exporting Project and Dependencies to {packages_dest}...")
+    print(f"   Exporting project and dependencies to {packages_dest}...")
     cmd = [
         sys.executable,
         "-m",
@@ -114,27 +107,24 @@ def install_dependencies_and_compile(backend_root: Path, packages_dest: Path) ->
 
     subprocess.run(cmd, cwd=backend_root, check=True)
 
-    print("   ⚡ Pre-compiling Python bytecode for extreme startup performance...")
-    # 提前把所有源码编译成 .pyc 保存到硬盘，避免用户在终端（尤其是 Mac 只读目录）第一次打开时疯狂消耗 CPU 编译
+    print("   Pre-compiling Python bytecode for startup performance...")
     subprocess.run([sys.executable, "-m", "compileall", "-q", str(packages_dest)], check=False)
 
 
 def patch_and_rename_binaries(dist_dir: Path, backend_root: Path, version_str: str) -> None:
-    print("   🪪 Renaming binaries for OS process identification...")
+    print("   Renaming binaries for OS process identification...")
     python_dir = dist_dir / "python"
 
-    # Windows
     win_exe = python_dir / "python.exe"
     win_w_exe = python_dir / "pythonw.exe"
     if win_exe.exists():
         akagi_exe = python_dir / "akagi-ng.exe"
         win_exe.rename(akagi_exe)
 
-        # 修改 exe 图标和文件描述信息
         rcedit_path = backend_root.parent / "node_modules" / "electron-winstaller" / "vendor" / "rcedit.exe"
         icon_path = backend_root.parent / "assets" / "torii.ico"
         if rcedit_path.exists() and icon_path.exists():
-            print(f"   🎨 Patching icon and metadata for {akagi_exe.name}...")
+            print(f"   Patching icon and metadata for {akagi_exe.name}...")
             subprocess.run(
                 [
                     str(rcedit_path),
@@ -170,14 +160,12 @@ def patch_and_rename_binaries(dist_dir: Path, backend_root: Path, version_str: s
     if win_w_exe.exists():
         win_w_exe.unlink()
 
-    # Unix (Mac/Linux)
     unix_bin_dir = python_dir / "bin"
     unix_exe = unix_bin_dir / "python3"
     if unix_exe.exists():
         real_exe = unix_exe.resolve()
         if real_exe.exists():
             real_exe.rename(unix_bin_dir / "akagi-ng")
-        # 移除所有旧的软链接
         for item in unix_bin_dir.iterdir():
             if item.is_symlink():
                 item.unlink(missing_ok=True)
@@ -191,7 +179,7 @@ def main():
     dist_dir = project_root / "dist" / "backend" / "akagi-ng"
     packages_dest = dist_dir / "app_packages"
 
-    print("📦 Building Akagi-NG Portable Backend...")
+    print("Building Akagi-NG Portable Backend...")
 
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
@@ -206,7 +194,7 @@ def main():
     version_str = write_version_to_dest(backend_root, packages_dest)
     patch_and_rename_binaries(dist_dir, backend_root, version_str)
 
-    print(f"✅ Backend build successful! Portable backend is at: {dist_dir}")
+    print(f"Backend build successful. Portable backend is at: {dist_dir}")
 
 
 if __name__ == "__main__":

@@ -61,7 +61,26 @@
     "restart_required": "设置已更改，请重新启动应用以使更改生效",
     "restored_success": "设置已恢复为默认值，请重新启动应用以使更改生效",
     "loading": "正在加载设置…",
-    "load_error_desc": "无法加载设置。"
+    "load_error_desc": "无法加载设置。",
+    "autoplay": {
+      "title": "自动打牌",
+      "enabled": "启用自动打牌",
+      "enabled_desc": "在检测到的游戏窗口中自动执行 AI 推荐操作。",
+      "window_keyword": "窗口关键词",
+      "window_keyword_desc": "可选。多个关键词用英文逗号分隔，用于强制匹配目标窗口。",
+      "first_tile": "首打延时",
+      "first_tile_desc": "每局第一次出牌前的延时时间。",
+      "candidate": "按钮延时",
+      "candidate_desc": "按钮点击和候选选择的延时时间。",
+      "rand_min": "随机最小值",
+      "rand_min_desc": "非首打回合的最小出牌延时。",
+      "rand_max": "随机最大值",
+      "rand_max_desc": "非首打回合的最大出牌延时。",
+      "bezier_smoothing": "鼠标平滑度",
+      "bezier_smoothing_desc": "鼠标轨迹曲线强度，取值 0 到 1。",
+      "bezier_steps": "鼠标步数",
+      "bezier_steps_desc": "鼠标移动过程中的插值步数。"
+    }
   },
   "common": {
     "enabled": "已启用",

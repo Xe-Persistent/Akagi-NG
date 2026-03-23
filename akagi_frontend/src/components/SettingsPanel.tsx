@@ -17,6 +17,7 @@ import {
 import { StatusBar } from '@/components/ui/status-bar';
 import { useSettings } from '@/hooks/useSettings';
 
+import { AutoplaySection } from './settings/AutoplaySection';
 import { ConnectionSection } from './settings/ConnectionSection';
 import { GeneralSection } from './settings/GeneralSection';
 import { ModelConfigSection } from './settings/ModelConfigSection';
@@ -99,6 +100,8 @@ const SettingsPanel: FC<SettingsPanelProps> = memo(({ open, onClose }) => {
             <ServiceSection settings={settings} updateSetting={updateSetting} />
 
             <ModelConfigSection settings={settings} updateSetting={updateSetting} />
+
+            <AutoplaySection settings={settings} updateSetting={updateSetting} />
 
             <div className='flex justify-end border-t border-white/5 pt-6'>
               <Button

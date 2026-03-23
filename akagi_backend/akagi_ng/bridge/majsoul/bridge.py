@@ -28,6 +28,8 @@ class MajsoulBridge(BaseBridge):
         self.doras = []
         self.my_tehais = ["?"] * MahjongConstants.TEHAI_SIZE
         self.my_tsumohai = "?"
+        self.latest_self_operation_list: list[dict] = []
+        self.latest_operation_step: int | None = None
         self.syncing = False
 
         self.mode_id = -1
@@ -39,6 +41,44 @@ class MajsoulBridge(BaseBridge):
 
     def reset(self):
         self._init_state()
+
+    def _clear_self_operation_state(self) -> None:
+        self.latest_self_operation_list = []
+        self.latest_operation_step = None
+
+    def _capture_self_operation_list(self, liqi_message: dict) -> None:
+        wrapper = liqi_message.get("data", {})
+        payload = wrapper.get("data", {})
+        step = wrapper.get("step")
+        operation = payload.get("operation")
+        if not operation:
+            # Majsoul only sends self operationList while the decision window is active.
+            # Once a later action arrives without operation data, the previous self-operation
+            # window has expired and stale buttons must be cleared for autoplay retry logic.
+            if self.latest_self_operation_list or self.latest_operation_step is not None:
+                logger.debug(
+                    f"[Majsoul] Clearing stale self operation list at step={step}, seat={payload.get('seat')}"
+                )
+            self._clear_self_operation_state()
+            return
+
+        seat = int(operation.get("seat", -1))
+        if seat != self.seat:
+            return
+
+        operation_list = operation.get("operationList", operation.get("operation_list", []))
+        self.latest_self_operation_list = [
+            {
+                "type": int(item.get("type", 0)),
+                "combination": list(item.get("combination", [])),
+            }
+            for item in operation_list
+        ]
+        self.latest_operation_step = int(step) if step is not None else None
+        logger.debug(
+            f"[Majsoul] Captured self operation list at step={self.latest_operation_step}: "
+            f"{[item['type'] for item in self.latest_self_operation_list]}"
+        )
 
     def parse(self, content: bytes) -> list[AkagiEvent]:
         """解析内容并返回 MJAI 指令。
@@ -411,6 +451,7 @@ class MajsoulBridge(BaseBridge):
     def _handle_action_prototype(self, liqi_message: dict) -> list[MJAIEvent]:
         """处理ActionPrototype相关的所有动作"""
         ret: list[MJAIEvent] = []
+        self._capture_self_operation_list(liqi_message)
         action_data = liqi_message["data"]
         action_name = action_data["name"]
 

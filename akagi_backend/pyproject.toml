@@ -22,7 +22,7 @@ dynamic = []
 dependencies = [
     # Basic
     "loguru~=0.7.3",
-    "requests~=2.32.5",
+    "requests~=2.33.0",
     "jsonschema~=4.26.0",
     # Majsoul
     "protobuf~=7.34.0",

@@ -27,7 +27,7 @@ dependencies = [
     # Majsoul
     "protobuf~=7.34.0",
     # PyTorch
-    "torch~=2.10.0",
+    "torch~=2.11.0",
     "numpy~=2.4.3",
     # MITM
     "mitmproxy~=12.2.1",

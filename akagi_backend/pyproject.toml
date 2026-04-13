@@ -28,7 +28,7 @@ dependencies = [
     "torch~=2.11.0",
     "numpy~=2.4.4",
     # MITM
-    "mitmproxy~=12.2.1",
+    "mitmproxy~=12.2.2",
     # DataServer
     "aiohttp~=3.13.5",
 ]

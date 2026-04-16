@@ -13,7 +13,7 @@
     "package": "electron-builder --publish never"
   },
   "devDependencies": {
-    "electron": "41.2.0",
+    "electron": "41.2.1",
     "electron-builder": "^26.8.1",
     "wait-on": "^9.0.5"
   },

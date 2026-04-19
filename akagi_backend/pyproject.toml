@@ -48,7 +48,6 @@ akagi-ng = "akagi_ng.__main__:main"
 src = ["akagi_ng"]
 line-length = 120
 target-version = "py312"
-extend-exclude = []
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "RET", "C90", "PLR", "TID", "C4", "RUF", "ANN"]
@@ -76,6 +75,9 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "PLR2004", "E402"]
+"akagi_ng/bridge/majsoul/modifier.py" = ["ANN401", "C901", "PLR0912", "PLR0915", "PLR2004"]
+"akagi_ng/dataserver/api.py" = ["C901"]
+"akagi_ng/mitm_client/bridge_addon.py" = ["C901"]
 
 
 [tool.setuptools]

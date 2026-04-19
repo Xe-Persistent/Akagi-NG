@@ -53,13 +53,41 @@
       "temperature_desc": "調整各推薦選項之間的信心差距。較低的溫度會使最高概率的選項更加突出，較高的溫度會使各選項概率更接近。",
       "no_models_found": "未找到本地模型"
     },
-    "status_saved": "儲存成功",
+    "majsoul_mod": {
+      "title": "雀魂 Mod",
+      "description": "在這裡管理雀魂大廳 Mod 功能。",
+      "reset": "重設",
+      "enable_mod": "啟用 Mod",
+      "safe_mode": "安全模式",
+      "safe_mode_desc": "把除了你之外的玩家都顯示成安全預設角色。",
+      "nickname": "暱稱",
+      "nickname_desc": "自訂你的名字。",
+      "show_server_prefix": "顯示伺服器前綴",
+      "show_server_prefix_desc": "顯示其他玩家所在的伺服器。",
+      "emoji_unlock": "解鎖表情",
+      "emoji_unlock_desc": "解鎖角色全部表情，不建議開啟。",
+      "anti_replace_nickname": "防止覆蓋暱稱",
+      "anti_replace_nickname_desc": "避免把外服玩家顯示成預設名稱。",
+      "convenience_hint": "便捷提示",
+      "convenience_hint_desc": "強制啟用便捷提示，用於部分場次沒有寶牌指示或和牌指示等情況。",
+      "auto_update_resource": "自動更新資源",
+      "auto_update_resource_desc": "自動更新雀魂資源資料。",
+      "random_character_enabled": "啟用隨機角色",
+      "random_character_enabled_desc": "對局中隨機使用角色與皮膚。",
+      "saved": "雀魂 Mod 設定已儲存。",
+      "save_error": "儲存雀魂 Mod 設定失敗。",
+      "load_error": "載入雀魂 Mod 設定失敗。",
+      "reset_success": "雀魂 Mod 設定已重設。",
+      "reset_error": "重設雀魂 Mod 設定失敗。"
+    },
+    "saved_success": "設定已更新，請在頁面中確認",
+    "status_saved": "所有變更已儲存",
     "status_saving": "正在儲存…",
     "status_error": "儲存失敗",
     "restart_required": "設定已變更，請重新啟動應用程式以套用變更",
     "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更",
     "loading": "正在載入設定…",
-    "load_error_desc": "無法載入設定。"
+    "load_error_desc": "無法載入設定，請確認應用程式已正確啟動"
   },
   "common": {
     "enabled": "已啟用",
@@ -68,8 +96,7 @@
     "cancel": "取消",
     "error": "發生錯誤",
     "connection_failed": "連線失敗",
-    "close": "關閉",
-    "exit_app": "退出應用程式"
+    "close": "關閉"
   },
   "app": {
     "title": "Akagi Next-Generation",
@@ -122,6 +149,7 @@
     "bot_switch_failed": "AI 模型切換失敗",
     "bot_runtime_error": "AI 模型運行異常",
     "state_tracker_error": "對局狀態異常",
+    "max_retries_exceeded": "連線失敗次數過多，請檢查網路或重新啟動應用程式。",
     "lib_missing": "本地核心組件 (lib) 缺失或不完整。程式無法正常運作。",
     "models_missing": "本地模型檔案 (models) 缺失。若未設定線上模型，程式將無法運作。"
   }

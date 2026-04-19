@@ -45,7 +45,7 @@
       "mode_selection": "模型选择",
       "online_mode": "在线模型",
       "server_url": "服务器地址",
-      "api_key": "API 密钥",
+      "api_key": "API Key",
       "local_mode": "本地模型",
       "model_4p": "四麻模型",
       "model_3p": "三麻模型",
@@ -53,13 +53,41 @@
       "temperature_desc": "调整各推荐选项之间的信心差距。较低的温度会使最高概率的选项更加突出，较高的温度会使各选项概率更接近。",
       "no_models_found": "未找到本地模型"
     },
-    "status_saved": "保存成功",
+    "majsoul_mod": {
+      "title": "雀魂 Mod",
+      "description": "在这里管理雀魂大厅 Mod 功能。",
+      "reset": "重置",
+      "enable_mod": "启用 Mod",
+      "safe_mode": "安全模式",
+      "safe_mode_desc": "把除了你之外的玩家都显示成安全默认角色。",
+      "nickname": "昵称",
+      "nickname_desc": "自定义你的名字。",
+      "show_server_prefix": "显示服务器前缀",
+      "show_server_prefix_desc": "显示其他玩家所在的服务器。",
+      "emoji_unlock": "解锁表情",
+      "emoji_unlock_desc": "解锁角色全部表情，不建议开启。",
+      "anti_replace_nickname": "防止覆盖昵称",
+      "anti_replace_nickname_desc": "避免把外服玩家显示成默认名称。",
+      "convenience_hint": "便捷提示",
+      "convenience_hint_desc": "强制启用便捷提示，用于部分场没有宝牌指示或和牌指示等情况。",
+      "auto_update_resource": "自动更新资源",
+      "auto_update_resource_desc": "自动更新雀魂资源数据。",
+      "random_character_enabled": "启用随机角色",
+      "random_character_enabled_desc": "对局中随机使用角色与皮肤。",
+      "saved": "雀魂 Mod 设置已保存。",
+      "save_error": "保存雀魂 Mod 设置失败。",
+      "load_error": "加载雀魂 Mod 设置失败。",
+      "reset_success": "雀魂 Mod 设置已重置。",
+      "reset_error": "重置雀魂 Mod 设置失败。"
+    },
+    "saved_success": "设置已更新，请在页面中确认",
+    "status_saved": "所有更改已保存",
     "status_saving": "正在保存…",
     "status_error": "保存失败",
     "restart_required": "设置已更改，请重新启动应用以使更改生效",
     "restored_success": "设置已恢复为默认值，请重新启动应用以使更改生效",
     "loading": "正在加载设置…",
-    "load_error_desc": "无法加载设置。"
+    "load_error_desc": "无法加载设置，请确认应用已正确启动"
   },
   "common": {
     "enabled": "已启用",
@@ -68,8 +96,7 @@
     "cancel": "取消",
     "error": "发生错误",
     "connection_failed": "连接失败",
-    "close": "关闭",
-    "exit_app": "退出应用"
+    "close": "关闭"
   },
   "app": {
     "title": "Akagi Next-Generation",
@@ -122,6 +149,7 @@
     "bot_switch_failed": "AI 模型切换失败",
     "bot_runtime_error": "AI 模型运行异常",
     "state_tracker_error": "对局状态异常",
+    "max_retries_exceeded": "连接失败次数过多，请检查网络或重新启动应用。",
     "lib_missing": "本地核心组件 (lib) 缺失或不完整，程序无法正常运行。",
     "models_missing": "本地模型文件 (models) 缺失。如果未配置在线模型，程序将无法运行。"
   }

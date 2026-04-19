@@ -7,7 +7,7 @@ from google.protobuf import descriptor_pb2 as _descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import message_factory as _message_factory
-from google.protobuf.json_format import MessageToDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 
 from akagi_ng.bridge.logger import logger
 from akagi_ng.bridge.majsoul.consts import LiqiProtocolConstants
@@ -19,6 +19,9 @@ class MsgType(IntEnum):
     Notify = 1
     Req = 2
     Res = 3
+
+
+RPC_METHOD_PARTS = 4
 
 
 keys = [0x84, 0x5E, 0x4E, 0x42, 0x39, 0xA2, 0x1F, 0x60, 0x1C]
@@ -169,6 +172,78 @@ class LiqiProto:
         except KeyError:
             logger.warning(f"Message type {name} not found in protocol")
             return None
+
+    def get_rpc_message_classes(
+        self, method_name: str
+    ) -> tuple[type[_message.Message] | None, type[_message.Message] | None]:
+        """Return request/response protobuf classes for an RPC method."""
+        parts = method_name.split(".")
+        if len(parts) < RPC_METHOD_PARTS:
+            return None, None
+
+        lq, service, rpc = parts[1:4]
+        try:
+            rpc_info = self.jsonProto["nested"][lq]["nested"][service]["methods"][rpc]
+        except KeyError:
+            logger.warning(f"RPC method {method_name} not found in protocol")
+            return None, None
+
+        req_cls = self.get_message_class(rpc_info["requestType"])
+        res_cls = self.get_message_class(rpc_info["responseType"])
+        return req_cls, res_cls
+
+    def set_pending_response(self, msg_id: int, method_name: str) -> None:
+        """Override the response type associated with a pending request."""
+        _, res_cls = self.get_rpc_message_classes(method_name)
+        self.res_type[msg_id] = (method_name, res_cls)
+
+    def drop_pending_response(self, msg_id: int) -> None:
+        self.res_type.pop(msg_id, None)
+
+    def build_message(self, message_name: str, data: dict | None) -> bytes:
+        """Serialize a protobuf message from a dict using dynamic descriptors."""
+        msg_cls = self.get_message_class(message_name)
+        if not msg_cls:
+            raise AttributeError(f"Unknown Message: {message_name}")
+
+        proto_obj = msg_cls()
+        ParseDict(data or {}, proto_obj, ignore_unknown_fields=False)
+        return proto_obj.SerializeToString()
+
+    def build_packet(self, msg_type: MsgType, method_name: str, data: dict | None, msg_id: int = -1) -> bytes:
+        """Serialize a Liqi packet back into its websocket binary form."""
+        if msg_type == MsgType.Notify:
+            message_name = method_name.split(".")[-1]
+        else:
+            req_cls, res_cls = self.get_rpc_message_classes(method_name)
+            target_cls = req_cls if msg_type == MsgType.Req else res_cls
+            if not target_cls:
+                raise AttributeError(f"Unknown RPC message class for {method_name}")
+            message_name = target_cls.DESCRIPTOR.name
+        payload = self.build_message(message_name, data)
+
+        if msg_type == MsgType.Notify:
+            blocks = [
+                {"id": 1, "type": "string", "data": method_name.encode()},
+                {"id": 2, "type": "string", "data": payload},
+            ]
+            return bytes([int(msg_type)]) + to_protobuf(blocks)
+
+        if msg_type == MsgType.Req:
+            blocks = [
+                {"id": 1, "type": "string", "data": method_name.encode()},
+                {"id": 2, "type": "string", "data": payload},
+            ]
+            return bytes([int(msg_type)]) + struct.pack("<H", msg_id) + to_protobuf(blocks)
+
+        if msg_type == MsgType.Res:
+            blocks = [
+                {"id": 1, "type": "string", "data": b""},
+                {"id": 2, "type": "string", "data": payload},
+            ]
+            return bytes([int(msg_type)]) + struct.pack("<H", msg_id) + to_protobuf(blocks)
+
+        raise ValueError(f"Unsupported message type: {msg_type}")
 
     def init(self):
         self.msg_id = 1
@@ -332,3 +407,43 @@ def from_protobuf(buf: bytes) -> list[dict]:
             raise ValueError(f"unknown pb block type: {block_type}")
         result.append({"id": block_id, "type": block_type, "data": data, "begin": block_begin})
     return result
+
+
+def encode_varint(value: int) -> bytes:
+    """Encode an integer using protobuf varint format."""
+    if value < 0:
+        raise ValueError("varint only supports non-negative integers")
+
+    out = bytearray()
+    while True:
+        to_write = value & 0x7F
+        value >>= 7
+        if value:
+            out.append(to_write | 0x80)
+        else:
+            out.append(to_write)
+            break
+    return bytes(out)
+
+
+def to_protobuf(blocks: list[dict]) -> bytes:
+    """Serialize the simplified block structure used by Liqi packets."""
+    out = bytearray()
+    type_map = {"varint": LiqiProtocolConstants.BLOCK_TYPE_VARINT, "string": LiqiProtocolConstants.BLOCK_TYPE_STRING}
+
+    for block in blocks:
+        field_id = int(block["id"])
+        block_type = block["type"]
+        wire_type = type_map[block_type]
+        out.append((field_id << 3) | wire_type)
+
+        if block_type == "varint":
+            out.extend(encode_varint(int(block["data"])))
+        elif block_type == "string":
+            data = block["data"]
+            out.extend(encode_varint(len(data)))
+            out.extend(data)
+        else:
+            raise ValueError(f"unknown pb block type: {block_type}")
+
+    return bytes(out)

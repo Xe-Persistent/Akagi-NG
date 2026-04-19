@@ -53,13 +53,41 @@
       "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make confidences closer.",
       "no_models_found": "No local models found"
     },
-    "status_saved": "Save success.",
+    "majsoul_mod": {
+      "title": "Majsoul Mod",
+      "description": "Manage the Majsoul lobby modifier here.",
+      "reset": "Reset",
+      "enable_mod": "Enable Mod",
+      "safe_mode": "Safe Mode",
+      "safe_mode_desc": "Turn everyone except you into a safe default avatar.",
+      "nickname": "Nickname",
+      "nickname_desc": "Customize your displayed name.",
+      "show_server_prefix": "Show Server Prefix",
+      "show_server_prefix_desc": "Show which server other players are from.",
+      "emoji_unlock": "Emoji Unlock",
+      "emoji_unlock_desc": "Unlock all character emojis. Not recommended.",
+      "anti_replace_nickname": "Anti Replace Nickname",
+      "anti_replace_nickname_desc": "Prevent overseas players from being replaced with default names.",
+      "convenience_hint": "Convenience Hint",
+      "convenience_hint_desc": "Force-enable convenience hints for modes that do not normally show dora or win indicators.",
+      "auto_update_resource": "Auto Update Resource",
+      "auto_update_resource_desc": "Automatically update Majsoul resource data.",
+      "random_character_enabled": "Random Character Enabled",
+      "random_character_enabled_desc": "Randomly use character skins during matches.",
+      "saved": "Majsoul mod settings saved.",
+      "save_error": "Failed to save Majsoul mod settings.",
+      "load_error": "Failed to load Majsoul mod settings.",
+      "reset_success": "Majsoul mod settings reset.",
+      "reset_error": "Failed to reset Majsoul mod settings."
+    },
+    "saved_success": "Settings updated.",
+    "status_saved": "All changes saved.",
     "status_saving": "Saving…",
     "status_error": "Save failed.",
     "restart_required": "Settings changed, Please restart the application to apply the changes.",
     "restored_success": "Settings restored to defaults. Please restart the application to apply the changes.",
     "loading": "Loading settings…",
-    "load_error_desc": "Could not load settings."
+    "load_error_desc": "Could not load settings. Please make sure the application is running properly."
   },
   "common": {
     "enabled": "Enabled",
@@ -68,8 +96,7 @@
     "cancel": "Cancel",
     "error": "Error",
     "connection_failed": "Connection Failed",
-    "close": "Close",
-    "exit_app": "Exit Application"
+    "close": "Close"
   },
   "app": {
     "title": "Akagi Next-Generation",
@@ -122,6 +149,7 @@
     "bot_switch_failed": "Failed to switch AI model.",
     "bot_runtime_error": "AI model runtime error",
     "state_tracker_error": "Match state corrupted.",
+    "max_retries_exceeded": "Too many connection failures, please check your network or restart the application.",
     "lib_missing": "Local core components (lib) are missing or incomplete. The application cannot run properly.",
     "models_missing": "Local model files (models) are missing. The application cannot run without an online model configured."
   }

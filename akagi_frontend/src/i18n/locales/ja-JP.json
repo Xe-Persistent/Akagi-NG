@@ -53,13 +53,41 @@
       "temperature_desc": "推奨事項間の信頼度の差を調整します。温度が低いほどトップの選択肢が明確になり、温度が高いほど各選択肢の信頼度が近くなります。",
       "no_models_found": "ローカルモデルが見つかりません"
     },
+    "majsoul_mod": {
+      "title": "Majsoul Mod",
+      "description": "Majsoul ロビー Mod の機能をここで管理します。",
+      "reset": "リセット",
+      "enable_mod": "Mod を有効化",
+      "safe_mode": "安全モード",
+      "safe_mode_desc": "自分以外のプレイヤーを安全なデフォルトアバターで表示します。",
+      "nickname": "ニックネーム",
+      "nickname_desc": "表示名をカスタマイズします。",
+      "show_server_prefix": "サーバープレフィックスを表示",
+      "show_server_prefix_desc": "他プレイヤーの所属サーバーを表示します。",
+      "emoji_unlock": "絵文字を解放",
+      "emoji_unlock_desc": "全キャラクターの絵文字を解放します。非推奨です。",
+      "anti_replace_nickname": "ニックネーム上書きを防止",
+      "anti_replace_nickname_desc": "海外サーバープレイヤーがデフォルト名に置き換わるのを防ぎます。",
+      "convenience_hint": "便利ヒント",
+      "convenience_hint_desc": "通常はドラ表示や和了表示が出ない場でも便利ヒントを強制有効化します。",
+      "auto_update_resource": "リソースを自動更新",
+      "auto_update_resource_desc": "Majsoul のリソースデータを自動更新します。",
+      "random_character_enabled": "ランダムキャラクターを有効化",
+      "random_character_enabled_desc": "対局中にキャラクターとスキンをランダム使用します。",
+      "saved": "Majsoul Mod 設定を保存しました。",
+      "save_error": "Majsoul Mod 設定の保存に失敗しました。",
+      "load_error": "Majsoul Mod 設定の読み込みに失敗しました。",
+      "reset_success": "Majsoul Mod 設定をリセットしました。",
+      "reset_error": "Majsoul Mod 設定のリセットに失敗しました。"
+    },
+    "saved_success": "設定が更新されました。",
     "status_saved": "保存済み",
     "status_saving": "保存中…",
     "status_error": "保存に失敗しました。",
     "restart_required": "設定が変更されました。変更を反映するにはアプリを再起動してください。",
     "restored_success": "設定がデフォルトに戻されました。変更を反映するにはアプリを再起動してください。",
     "loading": "設定を読み込み中…",
-    "load_error_desc": "設定を読み込めませんでした。"
+    "load_error_desc": "設定を読み込めませんでした。アプリが正しく起動しているか確認してください。"
   },
   "common": {
     "enabled": "有効",
@@ -68,8 +96,7 @@
     "cancel": "キャンセル",
     "error": "エラー",
     "connection_failed": "接続失敗",
-    "close": "閉じる",
-    "exit_app": "アプリを終了"
+    "close": "閉じる"
   },
   "app": {
     "title": "Akagi Next-Generation",
@@ -122,6 +149,7 @@
     "bot_switch_failed": "AIモデルの切り替えに失敗しました。",
     "bot_runtime_error": "AIモデルの実行異常",
     "state_tracker_error": "対局状態に異常が発生しました。",
+    "max_retries_exceeded": "接続失敗が多すぎます。ネットワークを確認するか、アプリケーションを再起動してください。",
     "lib_missing": "コアコンポーネントファイル (lib) が不足しているか不完全です。アプリケーションは正常に動作しません。",
     "models_missing": "ローカルモデルファイル (models) が不足しています。オンラインモデルが設定されていない場合、アプリケーションは動作しません。"
   }

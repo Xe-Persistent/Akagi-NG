@@ -9,21 +9,51 @@
 - 修改配置时触发的资源缓存清理逻辑。
 """
 
+import importlib
 import queue
+import sys
+from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from akagi_ng.dataserver.api import _is_allowed_origin, cors_middleware, setup_routes
+# 這裡先注入假的 mjai_bot.engine，避免單元測試在 import API 時依賴原生 libriichi。
+mock_engine = ModuleType("akagi_ng.mjai_bot.engine")
 from akagi_ng.schema.types import SystemShutdownEvent, WebSocketClosedMessage
+
+type DataserverApiModule = ModuleType
+
+
+def load_dataserver_api_module() -> DataserverApiModule:
+    if "akagi_ng.dataserver.api" in sys.modules:
+        return sys.modules["akagi_ng.dataserver.api"]
+
+    mock_engine = ModuleType("akagi_ng.mjai_bot.engine")
+    mock_engine.clear_resource_cache = MagicMock()
+    mock_package = ModuleType("akagi_ng.mjai_bot")
+    mock_package.engine = mock_engine
+
+    with patch.dict(
+        sys.modules,
+        {
+            "akagi_ng.mjai_bot": mock_package,
+            "akagi_ng.mjai_bot.engine": mock_engine,
+        },
+    ):
+        return importlib.import_module("akagi_ng.dataserver.api")
+
+
+def get_dataserver_api_module() -> DataserverApiModule:
+    return load_dataserver_api_module()
 
 
 @pytest.fixture
 async def cli():
-    app = web.Application(middlewares=[cors_middleware])
-    setup_routes(app)
+    api_module = get_dataserver_api_module()
+    app = web.Application(middlewares=[api_module.cors_middleware])
+    api_module.setup_routes(app)
     server = TestServer(app)
     client = TestClient(server)
     await client.start_server()
@@ -32,10 +62,12 @@ async def cli():
 
 
 def test_is_allowed_origin():
-    assert _is_allowed_origin(None) is True
-    assert _is_allowed_origin("http://localhost:3000") is True
-    assert _is_allowed_origin("http://127.0.0.1:8080") is True
-    assert _is_allowed_origin("http://malicious.com") is False
+    api_module = get_dataserver_api_module()
+    assert api_module._is_allowed_origin(None) is True
+    assert api_module._is_allowed_origin("http://localhost:3000") is True
+    assert api_module._is_allowed_origin("http://127.0.0.1:8080") is True
+    assert api_module._is_allowed_origin("https://game.maj-soul.com") is True
+    assert api_module._is_allowed_origin("http://malicious.com") is False
 
 
 async def test_cors_middleware_allowed(cli):
@@ -49,13 +81,136 @@ async def test_cors_middleware_forbidden(cli):
     assert resp.status == 403
 
 
+async def test_cors_middleware_options_allowed(cli):
+    resp = await cli.options("/api/settings", headers={"Origin": "http://localhost:3000"})
+    assert resp.status == 204
+    assert resp.headers["Access-Control-Allow-Origin"] == "http://localhost:3000"
+    assert resp.headers["Access-Control-Allow-Methods"] == "GET,POST,OPTIONS"
+
+
 async def test_get_settings(cli):
-    with patch("akagi_ng.dataserver.api.get_settings_dict", return_value={"test": "val"}):
-        resp = await cli.get("/api/settings")
+    resp = await cli.get("/api/settings")
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["ok"] is True
+    assert data["data"]["platform"] == "majsoul"
+    assert data["data"]["server"]["host"] == "127.0.0.1"
+    assert "model_config" in data["data"]
+
+
+async def test_get_models(cli):
+    resp = await cli.get("/api/models")
+    assert resp.status == 200
+    data = await resp.json()
+    assert "mortal.pth" in data["data"]
+    assert "mortal3p.pth" in data["data"]
+
+
+async def test_get_majsoul_mod_settings(cli):
+    resp = await cli.get("/api/majsoul-mod-settings")
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["data"]["enabled"] is True
+    assert "config" in data["data"]
+    assert "resource" in data["data"]
+
+
+async def test_save_majsoul_mod_settings_invalid_json(cli):
+    resp = await cli.post("/api/majsoul-mod-settings", data="not json")
+    assert resp.status == 400
+    data = await resp.json()
+    assert data["ok"] is False
+
+
+async def test_save_majsoul_mod_settings(cli):
+    resp = await cli.post("/api/majsoul-mod-settings", json={"enabled": True})
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["ok"] is True
+    assert data["data"]["enabled"] is True
+
+
+async def test_save_majsoul_mod_settings_internal_error(cli):
+    with patch("pathlib.Path.write_text", side_effect=RuntimeError("boom")):
+        resp = await cli.post("/api/majsoul-mod-settings", json={"enabled": True})
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False
+
+
+async def test_reset_majsoul_mod_settings(cli):
+    resp = await cli.post("/api/majsoul-mod-settings/reset")
+    assert resp.status == 200
+    data = await resp.json()
+    assert data["ok"] is True
+    assert data["data"]["enabled"] is True
+
+
+async def test_reset_majsoul_mod_settings_internal_error(cli):
+    with patch("pathlib.Path.write_text", side_effect=RuntimeError("boom")):
+        resp = await cli.post("/api/majsoul-mod-settings/reset")
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False
+
+
+async def test_get_majsoul_mod_settings_with_mocked_loader(cli):
+    with patch("akagi_ng.dataserver.api.load_mod_settings_dict", return_value={"enabled": True}):
+        resp = await cli.get("/api/majsoul-mod-settings")
         assert resp.status == 200
         data = await resp.json()
-        assert data["ok"] is True
-        assert data["data"] == {"test": "val"}
+        assert data["data"]["enabled"] is True
+
+
+async def test_save_majsoul_mod_settings_invalid_json_repeated(cli):
+    resp = await cli.post("/api/majsoul-mod-settings", data="not json")
+    assert resp.status == 400
+    data = await resp.json()
+    assert data["ok"] is False
+
+
+async def test_save_majsoul_mod_settings_with_mocked_storage(cli):
+    with (
+        patch("akagi_ng.dataserver.api.verify_mod_settings_dict", return_value=True),
+        patch("akagi_ng.dataserver.api.load_mod_settings_dict", return_value={"enabled": False}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict") as mock_save,
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings", json={"enabled": True})
+        assert resp.status == 200
+        mock_save.assert_called_once()
+
+
+async def test_save_majsoul_mod_settings_internal_error_with_mocked_storage(cli):
+    with (
+        patch("akagi_ng.dataserver.api.verify_mod_settings_dict", return_value=True),
+        patch("akagi_ng.dataserver.api.load_mod_settings_dict", return_value={"enabled": False}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict", side_effect=RuntimeError("boom")),
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings", json={"enabled": True})
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False
+
+
+async def test_reset_majsoul_mod_settings_with_mocked_storage(cli):
+    with (
+        patch("akagi_ng.dataserver.api.get_default_mod_settings_dict", return_value={"enabled": True}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict") as mock_save,
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings/reset")
+        assert resp.status == 200
+        mock_save.assert_called_once_with({"enabled": True})
+
+
+async def test_reset_majsoul_mod_settings_internal_error_with_mocked_storage(cli):
+    with (
+        patch("akagi_ng.dataserver.api.get_default_mod_settings_dict", return_value={"enabled": True}),
+        patch("akagi_ng.dataserver.api.save_mod_settings_dict", side_effect=RuntimeError("boom")),
+    ):
+        resp = await cli.post("/api/majsoul-mod-settings/reset")
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False
 
 
 async def test_save_settings_invalid_json(cli):
@@ -109,6 +264,32 @@ async def test_ingest_mjai_success(cli):
         mock_app.electron_client.push_message.assert_called_once_with(WebSocketClosedMessage())
 
 
+async def test_ingest_mjai_returns_mutation(cli):
+    mock_app = MagicMock()
+    mock_app.electron_client = MagicMock()
+    mock_app.electron_client.push_message.return_value = {"drop": False, "data": "abc", "injectedMessages": []}
+
+    with patch("akagi_ng.dataserver.api.get_app_context", return_value=mock_app):
+        resp = await cli.post("/api/ingest", json={"type": "websocket_closed"})
+        assert resp.status == 200
+        data = await resp.json()
+        assert data["mutation"]["data"] == "abc"
+
+
+async def test_ingest_mjai_invalid_json(cli):
+    resp = await cli.post("/api/ingest", data="not json")
+    assert resp.status == 400
+    data = await resp.json()
+    assert data["ok"] is False
+
+
+async def test_ingest_mjai_invalid_payload(cli):
+    resp = await cli.post("/api/ingest", json={"type": "unknown_type"})
+    assert resp.status == 400
+    data = await resp.json()
+    assert data["ok"] is False
+
+
 async def test_ingest_mjai_no_client(cli):
     mock_app = MagicMock()
     mock_app.electron_client = None
@@ -116,6 +297,18 @@ async def test_ingest_mjai_no_client(cli):
     with patch("akagi_ng.dataserver.api.get_app_context", return_value=mock_app):
         resp = await cli.post("/api/ingest", json={"type": "websocket_closed"})
         assert resp.status == 503
+
+
+async def test_ingest_mjai_internal_error(cli):
+    mock_app = MagicMock()
+    mock_app.electron_client = MagicMock()
+    mock_app.electron_client.push_message.side_effect = RuntimeError("boom")
+
+    with patch("akagi_ng.dataserver.api.get_app_context", return_value=mock_app):
+        resp = await cli.post("/api/ingest", json={"type": "websocket_closed"})
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False
 
 
 async def test_shutdown_no_message_queue(cli):
@@ -208,3 +401,11 @@ async def test_shutdown_queue_full(cli):
         data = await resp.json()
         assert data["ok"] is False
         assert data["error"] == "Message queue is full"
+
+
+async def test_shutdown_internal_error(cli):
+    with patch("akagi_ng.dataserver.api.get_app_context", side_effect=RuntimeError("boom")):
+        resp = await cli.post("/api/shutdown")
+        assert resp.status == 500
+        data = await resp.json()
+        assert data["ok"] is False

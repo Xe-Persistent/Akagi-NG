@@ -10,9 +10,12 @@
 """
 
 import unittest
+from unittest.mock import patch
 
 from akagi_ng.bridge.majsoul import MajsoulBridge
+from akagi_ng.bridge.majsoul.modifier import PacketMutation
 from akagi_ng.bridge.majsoul.tile_mapping import MS_TILE_2_MJAI_TILE
+from akagi_ng.schema.notifications import NotificationCode
 
 
 class TestMajsoulBridge(unittest.TestCase):
@@ -21,6 +24,46 @@ class TestMajsoulBridge(unittest.TestCase):
     def setUp(self):
         """每个测试前重置 Bridge 实例"""
         self.bridge = MajsoulBridge()
+
+    def test_parse_returns_system_event_when_liqi_parser_raises(self):
+        with patch.object(self.bridge.liqi_proto, "parse", side_effect=RuntimeError("boom")):
+            result = self.bridge.parse(b"broken")
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].type, "system_event")
+        self.assertEqual(result[0].code, NotificationCode.PARSE_ERROR)
+
+    def test_process_message_returns_default_mutation_when_parser_raises(self):
+        with patch.object(self.bridge.liqi_proto, "parse", side_effect=RuntimeError("boom")):
+            parsed, mutation = self.bridge.process_message(b"broken", from_client=True)
+
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0].type, "system_event")
+        self.assertEqual(parsed[0].code, NotificationCode.PARSE_ERROR)
+        self.assertIsInstance(mutation, PacketMutation)
+        self.assertFalse(mutation.drop)
+        self.assertEqual(mutation.injected_messages, [])
+
+    def test_parse_sync_game_action_item_returns_empty_when_wrapper_decode_fails(self):
+        action = {"name": "ActionNewRound", "data": ""}
+
+        with patch.object(self.bridge.liqi_proto, "parse_wrapper", return_value=None):
+            result = self.bridge._parse_sync_game_action_item(action)
+
+        self.assertEqual(result, {})
+
+    def test_action_deal_tile_empty_tile_returns_unknown_marker(self):
+        liqi_message = {
+            "method": ".lq.ActionPrototype",
+            "type": 1,
+            "data": {"name": "ActionDealTile", "data": {"seat": 1, "tile": "", "leftTileCount": 60}},
+        }
+
+        result = self.bridge.parse_liqi(liqi_message)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].type, "tsumo")
+        self.assertEqual(result[0].pai, "?")
 
     # ========== start_game 相关测试 ==========
 

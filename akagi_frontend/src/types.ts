@@ -59,6 +59,48 @@ export interface Settings {
   };
 }
 
+export interface MajsoulModSavedView {
+  slot?: number;
+  item_id?: number;
+  itemId?: number;
+  type?: number;
+  item_id_list?: number[];
+  itemIdList?: number[];
+}
+
+export interface MajsoulRandomCharacterEntry {
+  character_id: number;
+  skin_id: number;
+}
+
+export interface MajsoulModSettings {
+  enabled: boolean;
+  config: {
+    character: number;
+    characters: Record<string, number>;
+    nickname: string;
+    star_chars: number[];
+    bianjietishi: boolean;
+    title: number;
+    loading_image: number[];
+    emoji: boolean;
+    views: Record<string, MajsoulModSavedView[]>;
+    views_index: number;
+    show_server: boolean;
+    verified: number;
+    anti_replace_nickname: boolean;
+    random_character: {
+      enabled: boolean;
+      pool: MajsoulRandomCharacterEntry[];
+    };
+    safe_mode: boolean;
+  };
+  resource: {
+    auto_update: boolean;
+    lqc_lqbin_version: string;
+  };
+}
+
 export interface SaveSettingsResponse extends ApiResponse {
   restartRequired?: boolean;
 }
@@ -85,7 +127,11 @@ export type PathValue<T, P extends readonly unknown[]> = P extends [infer K]
 
 export type Theme = 'light' | 'dark' | 'system';
 
-export type SSEErrorCode = 'config_error' | 'service_disconnected';
+export type SSEErrorCode =
+  | 'max_retries_exceeded'
+  | 'online_service_reconnecting'
+  | 'config_error'
+  | 'service_disconnected';
 
 export interface ResourceStatus {
   lib: boolean;

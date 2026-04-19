@@ -144,7 +144,27 @@ class BridgeAddon:
                     return
                 bridge = self.bridges[flow.id]
                 self.last_activity[flow.id] = time.time()
-                msgs = bridge.parse(msg.content)
+                if hasattr(bridge, "process_message"):
+                    msgs, mutation = bridge.process_message(msg.content, from_client=msg.from_client)
+                else:
+                    msgs = bridge.parse(msg.content)
+                    mutation = None
+
+            if mutation:
+                if mutation.drop:
+                    msg.drop()
+                if mutation.content is not None:
+                    msg.content = mutation.content
+                if mutation.injected_messages:
+                    for payload in mutation.injected_messages:
+                        flow.websocket.messages.append(
+                            mitmproxy.websocket.WebSocketMessage(
+                                msg.type,
+                                False,
+                                payload,
+                                injected=True,
+                            )
+                        )
 
             if msgs:
                 for m in msgs:

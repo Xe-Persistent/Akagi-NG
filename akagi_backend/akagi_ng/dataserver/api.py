@@ -4,6 +4,12 @@ from collections.abc import Callable
 
 from aiohttp import web
 
+from akagi_ng.bridge.majsoul.modifier import (
+    get_default_mod_settings_dict,
+    load_mod_settings_dict,
+    save_mod_settings_dict,
+    verify_mod_settings_dict,
+)
 from akagi_ng.core.context import get_app_context
 from akagi_ng.core.logging import configure_logging
 from akagi_ng.core.paths import get_models_dir
@@ -24,8 +30,6 @@ from akagi_ng.settings import (
     verify_settings,
 )
 
-# CORS 响应头配置
-# 桌面端仅允许本机来源访问
 CORS_HEADERS = {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -33,23 +37,19 @@ CORS_HEADERS = {
 
 
 def _is_allowed_origin(origin: str | None) -> bool:
-    """检查来源是否为 localhost/127.0.0.1。"""
     if not origin:
-        return True  # 允许无 Origin 的本地请求（如 EventSource）
-    return "localhost" in origin or "127.0.0.1" in origin
+        return True
+    return any(token in origin for token in ("localhost", "127.0.0.1", "maj-soul", "majsoul", "mahjongsoul"))
 
 
 @web.middleware
 async def cors_middleware(request: web.Request, handler: Callable[[web.Request], web.StreamResponse]) -> web.Response:
-    """为响应添加 CORS 头，仅允许本机来源。"""
     origin = request.headers.get("Origin")
 
-    # 仅允许 localhost/127.0.0.1 或无 Origin 的本地请求
     if not _is_allowed_origin(origin):
         logger.warning(f"Blocked CORS request from unauthorized origin: {origin}")
         return web.Response(status=403, text="Forbidden: Invalid origin")
 
-    # 设置允许来源（有 Origin 时回显，否则使用 *）
     allow_origin = origin if origin else "*"
 
     if request.method == "OPTIONS":
@@ -63,7 +63,6 @@ async def cors_middleware(request: web.Request, handler: Callable[[web.Request],
 
 
 def _json_response(data: dict, status: int = 200) -> web.Response:
-    """构造 ensure_ascii=False 的 JSON 响应。"""
     return web.json_response(
         data,
         status=status,
@@ -81,11 +80,8 @@ async def save_settings_handler(request: web.Request) -> web.Response:
     except Exception:
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
-    match payload:
-        case dict():
-            pass
-        case _:
-            return _json_response({"ok": False, "error": "Settings payload must be a JSON object"}, status=400)
+    if not isinstance(payload, dict):
+        return _json_response({"ok": False, "error": "Settings payload must be a JSON object"}, status=400)
 
     if not verify_settings(payload):
         return _json_response({"ok": False, "error": "Settings validation failed (schema mismatch)"}, status=400)
@@ -96,7 +92,6 @@ async def save_settings_handler(request: web.Request) -> web.Response:
         local_settings.save()
 
         restart_required = False
-
         if payload.get("log_level") != old_settings.get("log_level"):
             new_level = payload.get("log_level", "INFO")
             logger.info(f"Log level changed to {new_level}, updating...")
@@ -108,8 +103,7 @@ async def save_settings_handler(request: web.Request) -> web.Response:
             or payload.get("mitm") != old_settings.get("mitm")
             or payload.get("server") != old_settings.get("server")
             or payload.get("ot") != old_settings.get("ot")
-            or payload.get("model_config", {}).get("model_4p") != old_settings.get("model_config", {}).get("model_4p")
-            or payload.get("model_config", {}).get("model_3p") != old_settings.get("model_config", {}).get("model_3p")
+            or payload.get("model_config", {}).get("device") != old_settings.get("model_config", {}).get("device")
         ):
             restart_required = True
 
@@ -144,15 +138,46 @@ async def get_models_handler(_request: web.Request) -> web.Response:
     return _json_response({"ok": True, "data": models})
 
 
+async def get_majsoul_mod_settings_handler(_request: web.Request) -> web.Response:
+    return _json_response({"ok": True, "data": load_mod_settings_dict()})
+
+
+async def save_majsoul_mod_settings_handler(request: web.Request) -> web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
+
+    if not verify_mod_settings_dict(payload):
+        return _json_response({"ok": False, "error": "Majsoul mod settings validation failed"}, status=400)
+
+    try:
+        current = load_mod_settings_dict()
+        current.update({k: v for k, v in payload.items() if k in ("enabled", "config", "resource")})
+        save_mod_settings_dict(current)
+        return _json_response({"ok": True, "data": current})
+    except Exception:
+        logger.exception("Failed to save Majsoul mod settings")
+        return _json_response({"ok": False, "error": "Internal server error"}, status=500)
+
+
+async def reset_majsoul_mod_settings_handler(_request: web.Request) -> web.Response:
+    try:
+        default_settings = get_default_mod_settings_dict()
+        save_mod_settings_dict(default_settings)
+        return _json_response({"ok": True, "data": default_settings})
+    except Exception:
+        logger.exception("Failed to reset Majsoul mod settings")
+        return _json_response({"ok": False, "error": "Internal server error"}, status=500)
+
+
 async def ingest_mjai_handler(request: web.Request) -> web.Response:
-    """接收 Electron 发送的 MJAI 消息"""
     try:
         payload = await request.json()
     except Exception as e:
         logger.error(f"Ingest JSON error: {e}")
         return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
 
-    msg = None
     try:
         match payload:
             case {"type": "websocket_created", "url": url}:
@@ -175,8 +200,11 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
     try:
         app = get_app_context()
         if app.electron_client:
-            app.electron_client.push_message(msg)
-            return _json_response({"ok": True})
+            result = app.electron_client.push_message(msg)
+            response = {"ok": True}
+            if isinstance(result, dict):
+                response["mutation"] = result
+            return _json_response(response)
 
         logger.warning("ElectronClient is not active")
         return _json_response({"ok": False, "error": "ElectronClient not active"}, status=503)
@@ -186,15 +214,10 @@ async def ingest_mjai_handler(request: web.Request) -> web.Response:
 
 
 async def shutdown_handler(_request: web.Request) -> web.Response:
-    """触发后端关闭
-
-    通过共享消息队列发送关闭信号，由主循环统一处理。
-    """
     logger.info("Received shutdown request from api.")
 
     try:
         app = get_app_context()
-
         if hasattr(app, "shared_queue") and app.shared_queue:
             shutdown_message = SystemShutdownEvent()
             try:
@@ -207,7 +230,6 @@ async def shutdown_handler(_request: web.Request) -> web.Response:
 
         logger.warning("Message queue not available, shutdown failed")
         return _json_response({"ok": False, "error": "Message queue not available"}, status=503)
-
     except Exception as e:
         logger.error(f"Shutdown handler error: {e}")
         return _json_response({"ok": False, "error": "Internal server error"}, status=500)
@@ -218,5 +240,8 @@ def setup_routes(app: web.Application):
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
     app.router.add_get("/api/models", get_models_handler)
+    app.router.add_get("/api/majsoul-mod-settings", get_majsoul_mod_settings_handler)
+    app.router.add_post("/api/majsoul-mod-settings", save_majsoul_mod_settings_handler)
+    app.router.add_post("/api/majsoul-mod-settings/reset", reset_majsoul_mod_settings_handler)
     app.router.add_post("/api/ingest", ingest_mjai_handler)
     app.router.add_post("/api/shutdown", shutdown_handler)

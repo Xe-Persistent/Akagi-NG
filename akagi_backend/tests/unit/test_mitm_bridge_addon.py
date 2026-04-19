@@ -13,6 +13,7 @@ import queue
 from unittest.mock import MagicMock, patch
 
 import pytest
+from mitmproxy.websocket import WebSocketMessage
 
 from akagi_ng.bridge import (
     AmatsukiBridge,
@@ -146,6 +147,30 @@ def test_bridge_addon_websocket_lifecycle(addon, shared_queue) -> None:
     assert flow.id not in addon.activated_flows
 
 
+def test_bridge_addon_websocket_mutation(addon):
+    flow = MagicMock()
+    flow.id = "flow1"
+    flow.request.url = "http://majsoul.com/socket"
+    flow.websocket.messages = [WebSocketMessage(2, True, b"orig")]
+
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = "majsoul"
+        addon.websocket_start(flow)
+
+    bridge = addon.bridges[flow.id]
+    mutation = MagicMock()
+    mutation.drop = False
+    mutation.content = b"patched"
+    mutation.injected_messages = [b"injected"]
+
+    with patch.object(bridge, "process_message", return_value=([{"type": "hello"}], mutation)):
+        addon.websocket_message(flow)
+
+    assert flow.websocket.messages[0].content == b"patched"
+    assert flow.websocket.messages[-1].content == b"injected"
+    assert flow.websocket.messages[-1].injected is True
+
+
 def test_bridge_addon_http_hooks_dispatch(addon) -> None:
     flow = MagicMock()
     flow.id = "flow1"
@@ -203,3 +228,99 @@ def test_bridge_addon_queue_full_drops_system_event():
     addon._on_connection_established()
     assert addon._active_connections == 1
     assert shared_queue.qsize() == 1
+
+
+def test_bridge_addon_unsupported_platform_is_ignored(addon):
+    flow = MagicMock()
+    flow.id = "unsupported"
+    flow.request.url = "wss://example.com/socket"
+
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = "unsupported"
+        addon.websocket_start(flow)
+
+    assert flow.id in addon.activated_flows
+    assert flow.id not in addon.bridges
+    assert flow.id not in addon.last_activity
+
+
+def test_bridge_addon_is_target_platform(addon):
+    flow = MagicMock()
+    flow.request.url = "https://mahjong-jp.city/socket"
+
+    assert addon._is_target_platform(flow, "riichi_city") is True
+    assert addon._is_target_platform(flow, "majsoul") is False
+
+
+def test_bridge_addon_websocket_message_ignores_inactive_flow(addon):
+    flow = MagicMock()
+    flow.id = "inactive"
+
+    addon.websocket_message(flow)
+    assert addon.mjai_messages.empty()
+
+
+def test_bridge_addon_websocket_message_uses_parse_when_process_message_missing(addon, shared_queue):
+    flow = MagicMock()
+    flow.id = "fallback"
+    flow.request.url = "http://tenhou.net/socket"
+    msg = WebSocketMessage(2, False, b"raw")
+    flow.websocket.messages = [msg]
+
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = "tenhou"
+        addon.websocket_start(flow)
+
+    bridge = addon.bridges[flow.id]
+
+    with patch.object(bridge, "parse", return_value=[{"type": "fallback"}]):
+        addon.websocket_message(flow)
+
+    event = shared_queue.get(timeout=1)
+    assert event.type == "system_event"
+    parsed = shared_queue.get(timeout=1)
+    assert parsed["type"] == "fallback"
+
+
+def test_bridge_addon_websocket_message_drop_and_exception(addon):
+    flow = MagicMock()
+    flow.id = "flow-drop"
+    flow.request.url = "http://majsoul.com/socket"
+    msg = MagicMock()
+    msg.content = b"orig"
+    msg.from_client = True
+    flow.websocket.messages = [msg]
+
+    with patch("akagi_ng.mitm_client.bridge_addon.local_settings") as mock_settings:
+        mock_settings.platform = "majsoul"
+        addon.websocket_start(flow)
+
+    bridge = addon.bridges[flow.id]
+    mutation = MagicMock()
+    mutation.drop = True
+    mutation.content = None
+    mutation.injected_messages = []
+
+    with patch.object(bridge, "process_message", return_value=([], mutation)):
+        addon.websocket_message(flow)
+
+    msg.drop.assert_called_once()
+
+    with patch.object(bridge, "process_message", side_effect=RuntimeError("boom")):
+        addon.websocket_message(flow)
+
+
+def test_bridge_addon_connection_events_only_fire_on_edges(addon, shared_queue):
+    addon._on_connection_established()
+    first = shared_queue.get(timeout=1)
+    assert first.code == "client_connected"
+
+    addon._on_connection_established()
+    assert shared_queue.empty()
+
+    addon._on_connection_closed(game_ended=False)
+    assert shared_queue.empty()
+
+    addon._on_connection_closed(game_ended=True)
+    last = shared_queue.get(timeout=1)
+    assert last.code == "return_lobby"

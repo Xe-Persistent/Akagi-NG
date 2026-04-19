@@ -27,6 +27,7 @@ import { useSettings } from '@/hooks/useSettings';
 
 import { ConnectionSection } from './settings/ConnectionSection';
 import { GeneralSection } from './settings/GeneralSection';
+import { MajsoulModSection } from './settings/MajsoulModSection';
 import { ModelConfigSection } from './settings/ModelConfigSection';
 import { ServiceSection } from './settings/ServiceSection';
 
@@ -91,8 +92,6 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 </p>
 
                 <Button onClick={onClose}>{t('common.close')}</Button>
-              </div>
-            )}
           >
             <div className='grid grid-cols-2 gap-x-6 gap-y-8'>
               <GeneralSection
@@ -109,6 +108,12 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               <div className='col-span-2'>
                 <ModelConfigSection settings={settings} updateSetting={updateSetting} />
               </div>
+
+              {['majsoul', 'auto'].includes(settings.platform) && settings.mitm.enabled && (
+                <div className='col-span-2'>
+                  <MajsoulModSection open={open} />
+                </div>
+              )}
 
               <div className='col-span-2 flex flex-col pt-2'>
                 <Separator className='my-6' />

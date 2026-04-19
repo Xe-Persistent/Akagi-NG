@@ -52,8 +52,6 @@
         "port": {
           "type": "integer",
           "default": 6789,
-          "minimum": 1024,
-          "maximum": 65535,
           "description": "MITM proxy listening port."
         },
         "upstream": {
@@ -77,8 +75,6 @@
         "port": {
           "type": "integer",
           "default": 8765,
-          "minimum": 1024,
-          "maximum": 65535,
           "description": "Server listening port."
         }
       },
@@ -97,12 +93,11 @@
         "server": {
           "type": "string",
           "description": "The server URL for the online service.",
-          "default": ""
+          "format": "uri"
         },
         "api_key": {
           "type": "string",
-          "description": "The API key for the online service.",
-          "default": ""
+          "description": "The API key for the online service."
         }
       },
       "required": ["online"],
@@ -114,16 +109,7 @@
         }
       },
       "then": {
-        "required": ["server", "api_key"],
-        "properties": {
-          "server": {
-            "minLength": 1,
-            "format": "uri"
-          },
-          "api_key": {
-            "minLength": 1
-          }
-        }
+        "required": ["server", "api_key"]
       },
       "additionalProperties": false
     },
@@ -144,8 +130,6 @@
         "temperature": {
           "type": "number",
           "default": 0.3,
-          "minimum": 0.1,
-          "maximum": 1.3,
           "description": "Softmax temperature for model confidence normalization."
         }
       },

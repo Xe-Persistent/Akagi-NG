@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.bridge.majsoul.liqi import LiqiProto
+from akagi_ng.bridge.majsoul.liqi import LiqiProto, MsgType, from_protobuf
 
 
 @pytest.fixture
@@ -347,3 +347,151 @@ def test_liqi_proto_init_method():
     lp.init()
     assert lp.msg_id == 1
     assert len(lp.res_type) == 0
+
+
+def test_liqi_proto_get_rpc_message_classes_invalid_method(proto):
+    req_cls, res_cls = proto.get_rpc_message_classes("invalid")
+    assert req_cls is None
+    assert res_cls is None
+
+
+def test_liqi_proto_set_and_drop_pending_response(proto):
+    req_cls = MagicMock()
+    res_cls = MagicMock()
+    with patch.object(proto, "get_rpc_message_classes", return_value=(req_cls, res_cls)):
+        proto.set_pending_response(9, ".lq.Lobby.login")
+
+    assert proto.res_type[9] == (".lq.Lobby.login", res_cls)
+    proto.drop_pending_response(9)
+    assert 9 not in proto.res_type
+
+
+def test_liqi_proto_build_message_unknown_message(proto):
+    with (
+        patch.object(proto, "get_message_class", return_value=None),
+        pytest.raises(AttributeError, match="Unknown Message"),
+    ):
+        proto.build_message("MissingMessage", {})
+
+
+def test_liqi_proto_build_message_uses_parse_dict(proto):
+    mock_cls = MagicMock()
+    mock_obj = MagicMock()
+    mock_cls.return_value = mock_obj
+    mock_obj.SerializeToString.return_value = b"serialized"
+
+    with (
+        patch.object(proto, "get_message_class", return_value=mock_cls),
+        patch("akagi_ng.bridge.majsoul.liqi.ParseDict") as mock_parse_dict,
+    ):
+        result = proto.build_message("Wrapper", {"foo": "bar"})
+
+    mock_parse_dict.assert_called_once_with({"foo": "bar"}, mock_obj, ignore_unknown_fields=False)
+    assert result == b"serialized"
+
+
+def test_liqi_proto_build_packet_notify(proto):
+    with patch.object(proto, "build_message", return_value=b"payload"):
+        packet = proto.build_packet(MsgType.Notify, ".lq.Notify", {"x": 1})
+
+    assert packet[0] == MsgType.Notify
+    blocks = from_protobuf(packet[1:])
+    assert blocks[0]["data"] == b".lq.Notify"
+    assert blocks[1]["data"] == b"payload"
+
+
+def test_liqi_proto_build_packet_req_and_res(proto):
+    req_cls = MagicMock()
+    req_cls.DESCRIPTOR.name = "Req"
+    res_cls = MagicMock()
+    res_cls.DESCRIPTOR.name = "Res"
+
+    with (
+        patch.object(proto, "get_rpc_message_classes", return_value=(req_cls, res_cls)),
+        patch.object(proto, "build_message", return_value=b"payload"),
+    ):
+        req_packet = proto.build_packet(MsgType.Req, ".lq.Lobby.fetchInfo", {"a": 1}, msg_id=7)
+        res_packet = proto.build_packet(MsgType.Res, ".lq.Lobby.fetchInfo", {"b": 2}, msg_id=8)
+
+    assert req_packet[:3] == bytes([MsgType.Req]) + struct.pack("<H", 7)
+    assert res_packet[:3] == bytes([MsgType.Res]) + struct.pack("<H", 8)
+    req_blocks = from_protobuf(req_packet[3:])
+    res_blocks = from_protobuf(res_packet[3:])
+    assert req_blocks[0]["data"] == b".lq.Lobby.fetchInfo"
+    assert req_blocks[1]["data"] == b"payload"
+    assert res_blocks[0]["data"] == b""
+    assert res_blocks[1]["data"] == b"payload"
+
+
+def test_liqi_proto_build_packet_unknown_rpc_message(proto):
+    with (
+        patch.object(proto, "get_rpc_message_classes", return_value=(None, None)),
+        pytest.raises(AttributeError, match="Unknown RPC message class"),
+    ):
+        proto.build_packet(MsgType.Req, ".lq.Lobby.fetchInfo", {})
+
+
+def test_liqi_proto_build_packet_unsupported_msg_type(proto):
+    req_cls = MagicMock()
+    req_cls.DESCRIPTOR.name = "Req"
+    res_cls = MagicMock()
+    res_cls.DESCRIPTOR.name = "Res"
+
+    with (
+        patch.object(proto, "get_rpc_message_classes", return_value=(req_cls, res_cls)),
+        patch.object(proto, "build_message", return_value=b"payload"),
+        pytest.raises(ValueError, match="Unsupported message type"),
+    ):
+        proto.build_packet(99, ".lq.Lobby.fetchInfo", {})
+
+
+def test_liqi_proto_parse_wrapper_unknown_message(proto):
+    with patch.object(proto, "get_message_class", return_value=None):
+        assert proto.parse_wrapper("Missing", b"data") is None
+
+
+def test_liqi_proto_parse_notify_generic_path(proto):
+    msg_cls = MagicMock()
+    proto_obj = object()
+    msg_cls.FromString.return_value = proto_obj
+    with (
+        patch.object(proto, "get_message_class", return_value=msg_cls),
+        patch("akagi_ng.bridge.majsoul.liqi.MessageToDict", return_value={"ok": True}),
+    ):
+        method, payload = proto._parse_notify([{"data": b".lq.Lobby.notifySomething"}, {"data": b"raw"}])
+
+    assert method == ".lq.Lobby.notifySomething"
+    assert payload == {"ok": True}
+
+
+def test_liqi_proto_parse_request_invalid_msg_block_size(proto):
+    with pytest.raises(ValueError, match="Invalid msg_block size"):
+        proto._parse_request(1, [{"data": b".lq.Lobby.fetchInfo"}])
+
+
+def test_liqi_proto_parse_request_msg_id_too_large(proto):
+    with pytest.raises(ValueError, match="exceeds max value"):
+        proto._parse_request(1 << 16, [{"data": b".lq.Lobby.fetchInfo"}, {"data": b""}])
+
+
+def test_liqi_proto_parse_response_first_block_not_empty(proto):
+    proto.res_type[1] = (".lq.Lobby.fetchInfo", MagicMock())
+    with pytest.raises(ValueError, match="Response first block not empty"):
+        proto._parse_response(1, [{"data": b"x"}, {"data": b""}])
+
+
+def test_liqi_proto_parse_response_without_pending_request(proto):
+    with pytest.raises(ValueError, match="not found in pending requests"):
+        proto._parse_response(999, [{"data": b""}, {"data": b""}])
+
+
+def test_liqi_proto_parse_unknown_msg_type_returns_empty(proto):
+    result = proto.parse(bytes([9, 0, 0]))
+    assert result == {}
+
+
+def test_to_protobuf_unknown_block_type():
+    from akagi_ng.bridge.majsoul.liqi import to_protobuf
+
+    with pytest.raises(KeyError, match="unknown"):
+        to_protobuf([{"id": 1, "type": "unknown", "data": b""}])

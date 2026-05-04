@@ -31,13 +31,13 @@
     "typecheck": "npm exec --workspaces -- tsc --noEmit --pretty"
   },
   "devDependencies": {
-    "@eslint-react/eslint-plugin": "^5.6.0",
+    "@eslint-react/eslint-plugin": "^5.7.1",
     "@eslint/js": "^10.0.1",
     "concurrently": "^9.2.1",
-    "eslint": "^10.2.1",
+    "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^13.0.0",
-    "globals": "^17.5.0",
+    "globals": "^17.6.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tsx": "^4.21.0",

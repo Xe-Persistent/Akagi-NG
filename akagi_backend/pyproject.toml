@@ -20,7 +20,7 @@ classifiers = [
 dependencies = [
     # Basic
     "loguru~=0.7.3",
-    "requests~=2.33.1",
+    "requests>=2.33.1,<2.35.0",
     "jsonschema~=4.26.0",
     # Majsoul
     "protobuf~=7.34.1",

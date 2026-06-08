@@ -30,7 +30,7 @@ dependencies = [
     # MITM
     "mitmproxy~=12.2.2",
     # DataServer
-    "aiohttp~=3.13.5",
+    "aiohttp>=3.13.5,<3.15.0",
 ]
 
 [project.optional-dependencies]

@@ -13,9 +13,9 @@
     "package": "electron-builder --publish never"
   },
   "devDependencies": {
-    "electron": "41.3.0",
-    "electron-builder": "^26.8.1",
-    "wait-on": "^9.0.5"
+    "electron": "41.7.1",
+    "electron-builder": "^26.15.2",
+    "wait-on": "^9.0.10"
   },
   "build": {
     "appId": "me.akagi.ng",

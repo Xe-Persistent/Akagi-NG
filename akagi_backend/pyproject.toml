@@ -26,7 +26,7 @@ dependencies = [
     "protobuf~=7.34.1",
     # PyTorch
     "torch~=2.11.0",
-    "numpy~=2.4.4",
+    "numpy>=2.4.4,<2.6.0",
     # MITM
     "mitmproxy~=12.2.2",
     # DataServer

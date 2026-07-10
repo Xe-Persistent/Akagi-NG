@@ -58,7 +58,16 @@
       "model_3p": "三麻モデル",
       "temperature": "温度パラメータ",
       "temperature_desc": "推奨事項間の信頼度の差を調整します。温度が低いほどトップの選択肢が明確になり、温度が高いほど各選択肢の信頼度が近くなります。",
-      "no_models_found": "ローカルモデルが見つかりません"
+      "no_models_found": "ローカルモデルが見つかりません",
+      "api_model_4p": "クラウド四人モデル",
+      "api_model_3p": "クラウド三人モデル",
+      "server_default": "サーバーのデフォルト",
+      "check_health": "ヘルス確認",
+      "check_key": "キー確認",
+      "fetch_api_models": "モデル取得",
+      "health_ok": "API サーバーは正常です",
+      "key_ok": "API キーは有効です",
+      "api_error": "クラウド API リクエストに失敗しました"
     },
     "status_saved": "保存済み",
     "status_saving": "保存中…",

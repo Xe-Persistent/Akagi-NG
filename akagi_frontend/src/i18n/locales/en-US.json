@@ -58,7 +58,16 @@
       "model_3p": "3-Player Model",
       "temperature": "Temperature",
       "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make confidences closer.",
-      "no_models_found": "No local models found"
+      "no_models_found": "No local models found",
+      "api_model_4p": "Cloud 4-Player Model",
+      "api_model_3p": "Cloud 3-Player Model",
+      "server_default": "Server default",
+      "check_health": "Check Health",
+      "check_key": "Check Key",
+      "fetch_api_models": "Fetch Models",
+      "health_ok": "API server is healthy",
+      "key_ok": "API key is valid",
+      "api_error": "Cloud API request failed"
     },
     "status_saved": "Save success.",
     "status_saving": "Saving…",

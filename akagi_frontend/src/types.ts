@@ -13,7 +13,36 @@ export interface Recommendation {
   tile?: string;
 }
 
-export type EngineType = 'mortal' | 'akagiot' | 'unknown' | 'null';
+export type EngineType = 'mortal' | 'akagiapi' | 'akagiot' | 'unknown' | 'null';
+
+export interface ApiModelInfo {
+  id: string;
+  game: string;
+  desc: string;
+}
+
+export interface ApiKeyStatus {
+  plan: string;
+  expires_at: string;
+  usage_today: number;
+  rpd: number;
+  rpm: number;
+  topk: number;
+}
+
+export interface ApiHealth {
+  status: string;
+  models: string[];
+  queue_depth: Record<string, number>;
+}
+
+export interface ApiRedeemResponse {
+  key?: string;
+  key_last4: string;
+  plan: string;
+  expires_at: string;
+  extended: boolean;
+}
 
 export interface FullRecommendationData {
   recommendations: Recommendation[];
@@ -54,6 +83,13 @@ export interface Settings {
     online: boolean;
     server: string;
     api_key: string;
+  };
+  api: {
+    enabled: boolean;
+    base_url: string;
+    key: string;
+    model_4p: string;
+    model_3p: string;
   };
   model_config: {
     model_4p: string;

@@ -6,7 +6,6 @@ from typing import Self
 import numpy as np
 
 from akagi_ng.core.paths import get_models_dir
-from akagi_ng.mjai_bot.engine.akagi_ot import AkagiOTClient, AkagiOTEngine
 from akagi_ng.mjai_bot.engine.base import BaseEngine
 from akagi_ng.mjai_bot.engine.provider import EngineProvider
 from akagi_ng.mjai_bot.logger import logger
@@ -17,8 +16,9 @@ from akagi_ng.schema.types import MortalModelResource
 from akagi_ng.settings import local_settings
 
 # 资源缓存
-# Key: (is_3p, server_url) for Network / (model_path) for Model
-_RESOURCE_CACHE: dict[str, MortalModelResource | AkagiOTClient] = {}
+# Key: model path. V3 cloud inference is event-level and is managed by
+# MortalBot, not by the tensor-level EngineProtocol.
+_RESOURCE_CACHE: dict[str, MortalModelResource] = {}
 _CACHE_LOCK = threading.Lock()
 
 
@@ -132,16 +132,6 @@ def _get_or_load_model_resource(model_path: Path, consts: ModuleType, is_3p: boo
         return _RESOURCE_CACHE[cache_key]
 
 
-def _get_or_create_ot_client(url: str, api_key: str) -> AkagiOTClient:
-    """获取或创建 AkagiOTClient 缓存。"""
-    cache_key = f"network:{url}"
-    with _CACHE_LOCK:
-        if cache_key not in _RESOURCE_CACHE:
-            logger.debug(f"Factory: Creating new AkagiOTClient for {url}")
-            _RESOURCE_CACHE[cache_key] = AkagiOTClient(url, api_key)
-        return _RESOURCE_CACHE[cache_key]
-
-
 def load_bot_and_engine(
     status: BotStatusContext, player_id: int, is_3p: bool = False
 ) -> tuple[MJAIBotProtocol, EngineProtocol]:
@@ -161,15 +151,10 @@ def load_bot_and_engine(
     # 1. 准备 Lazy Local Engine (持有资源引用，按需加载)
     local_engine = LazyLocalEngine(status, model_path, consts, is_3p)
 
-    # 2. 准备 Online Engine (如果启用)
-    online_engine = None
-    if local_settings.ot.online:
-        client = _get_or_create_ot_client(local_settings.ot.server, local_settings.ot.api_key)
-        # 创建全新的 Engine 实例，共享 client
-        online_engine = AkagiOTEngine(status, is_3p, client)
-
-    # 3. 组装 Provider (全新的实例)
-    provider = EngineProvider(status, online_engine, local_engine, is_3p)
+    # V3 cloud inference consumes the MJAI stream and returns an MJAI action,
+    # so it sits one layer above libriichi's tensor engine. The provider remains
+    # local and supplies both the legal-action gate and automatic fallback.
+    provider = EngineProvider(status, None, local_engine, is_3p)
 
     bot = libs.mjai.Bot(provider, player_id)
 

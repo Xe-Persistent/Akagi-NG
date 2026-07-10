@@ -79,6 +79,7 @@ export function GeneralSection({
             <SelectValue placeholder='Select level' />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value='OFF'>OFF</SelectItem>
             <SelectItem value='TRACE'>TRACE</SelectItem>
             <SelectItem value='DEBUG'>DEBUG</SelectItem>
             <SelectItem value='INFO'>INFO</SelectItem>

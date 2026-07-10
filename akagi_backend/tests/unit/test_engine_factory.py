@@ -8,6 +8,7 @@
 - 根据在线/本地配置加载 EngineProvider 及其组合逻辑。
 """
 
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -44,14 +45,16 @@ def test_lazy_local_engine_ensure_engine(mock_consts) -> None:
     path = Path("mortal.pth")
     engine = LazyLocalEngine(BotStatusContext(), path, mock_consts, is_3p=False)
 
-    with patch("akagi_ng.mjai_bot.engine.mortal.load_mortal_resource") as mock_load:
+    mock_mortal = MagicMock()
+    with patch.dict(sys.modules, {"akagi_ng.mjai_bot.engine.mortal": mock_mortal}):
         mock_resource = MagicMock()
-        mock_load.return_value = mock_resource
+        mock_mortal.load_mortal_resource.return_value = mock_resource
+        mock_mortal.MortalEngine.return_value = MagicMock()
 
         # 第一次触发加载
         real = engine._ensure_engine()
         assert real is not None
-        mock_load.assert_called_once()
+        mock_mortal.load_mortal_resource.assert_called_once()
 
 
 def test_lazy_local_engine_delegation(mock_consts) -> None:
@@ -95,21 +98,14 @@ def test_load_bot_and_engine_3p(mock_lib_loader_module) -> None:
         assert engine.is_3p is True
 
 
-def test_load_bot_and_engine_online(mock_lib_loader_module) -> None:
-    """测试加载包含在线引擎的 Provider。"""
-    with (
-        patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings,
-        patch("akagi_ng.mjai_bot.engine.factory.AkagiOTEngine") as mock_ot,
-    ):
-        mock_settings.ot.online = True
-        mock_settings.ot.server = "http://localhost"
-        mock_settings.ot.api_key = "key"
+def test_v3_online_api_stays_above_tensor_engine(mock_lib_loader_module) -> None:
+    """V3 API returns MJAI actions, so the tensor provider remains local."""
+    with patch("akagi_ng.mjai_bot.engine.factory.local_settings") as mock_settings:
         mock_settings.model_config.model_4p = "mortal_4p.pth"
 
         mock_lib_loader_module.libriichi.mjai.Bot = MagicMock()
 
         _, engine = load_bot_and_engine(BotStatusContext(), player_id=0, is_3p=False)
 
-        # 应该创建了 AkagiOTEngine
-        mock_ot.assert_called_once()
         assert engine.name.startswith("Provider")
+        assert engine.online_engine is None

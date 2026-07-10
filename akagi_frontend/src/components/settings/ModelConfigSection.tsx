@@ -1,6 +1,9 @@
+import { Activity, KeyRound, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,8 +15,13 @@ import {
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { Slider } from '@/components/ui/slider';
-import { useSettings } from '@/hooks/useSettings';
-import type { Paths, PathValue, Settings } from '@/types';
+import {
+  checkCloudHealth,
+  checkCloudKey,
+  fetchCloudModels,
+  useSettings,
+} from '@/hooks/useSettings';
+import type { ApiHealth, ApiKeyStatus, ApiModelInfo, Paths, PathValue, Settings } from '@/types';
 
 interface ModelConfigSectionProps {
   settings: Settings;
@@ -30,6 +38,44 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
   const [tempInput, setTempInput] = useState(settings.model_config.temperature.toString());
   const [isEditingTemp, setIsEditingTemp] = useState(false);
   const displayTemp = isEditingTemp ? tempInput : settings.model_config.temperature.toString();
+  const [cloudModels, setCloudModels] = useState<ApiModelInfo[]>([]);
+  const [keyStatus, setKeyStatus] = useState<ApiKeyStatus | null>(null);
+  const [health, setHealth] = useState<ApiHealth | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<'health' | 'key' | 'models' | null>(null);
+
+  const apiReady = settings.api.base_url.trim() !== '' && settings.api.key.trim() !== '';
+
+  const runApiAction = async <T,>(kind: 'health' | 'key' | 'models', action: () => Promise<T>) => {
+    setBusy(kind);
+    setApiError(null);
+    try {
+      return await action();
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : String(error));
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const loadCloudModels = async () => {
+    const models = await runApiAction('models', () =>
+      fetchCloudModels(settings.api.base_url, settings.api.key),
+    );
+    if (models) {
+      setCloudModels(models);
+      const model4p = models.find((model) => model.game === '4p');
+      const model3p = models.find((model) => model.game === '3p');
+      if (!settings.api.model_4p && model4p) updateSetting(['api', 'model_4p'], model4p.id);
+      if (!settings.api.model_3p && model3p) updateSetting(['api', 'model_3p'], model3p.id);
+    }
+  };
+
+  const toggleCloudApi = (enabled: boolean) => {
+    updateSetting(['api', 'enabled'], enabled);
+    if (enabled && apiReady) void loadCloudModels();
+  };
 
   return (
     <div className='space-y-4'>
@@ -40,36 +86,145 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         <div className='space-y-4'>
           <SettingsItem label={t('settings.model_config.mode_selection')}>
             <CapsuleSwitch
-              checked={settings.ot.online}
-              onCheckedChange={(val) => updateSetting(['ot', 'online'], val)}
+              checked={settings.api.enabled}
+              onCheckedChange={toggleCloudApi}
               labelOn={t('settings.model_config.online_mode')}
               labelOff={t('settings.model_config.local_mode')}
             />
           </SettingsItem>
 
-          {settings.ot.online ? (
+          {settings.api.enabled ? (
             <>
               <SettingsItem label={t('settings.model_config.server_url')}>
                 <Input
                   className={
-                    !settings.ot.server ? 'border-destructive focus-visible:ring-destructive' : ''
+                    !settings.api.base_url
+                      ? 'border-destructive focus-visible:ring-destructive'
+                      : ''
                   }
-                  value={settings.ot.server}
-                  onChange={(e) => updateSetting(['ot', 'server'], e.target.value)}
-                  placeholder='http://[IP_ADDRESS]'
+                  value={settings.api.base_url}
+                  onChange={(e) => updateSetting(['api', 'base_url'], e.target.value)}
+                  placeholder='https://mjapi.shinkuan.me'
                 />
               </SettingsItem>
               <SettingsItem label={t('settings.model_config.api_key')}>
                 <Input
                   type='password'
                   className={
-                    !settings.ot.api_key ? 'border-destructive focus-visible:ring-destructive' : ''
+                    !settings.api.key ? 'border-destructive focus-visible:ring-destructive' : ''
                   }
-                  value={settings.ot.api_key}
-                  onChange={(e) => updateSetting(['ot', 'api_key'], e.target.value)}
+                  value={settings.api.key}
+                  onChange={(e) => updateSetting(['api', 'key'], e.target.value)}
                   placeholder='<YOUR_API_KEY>'
                 />
               </SettingsItem>
+              <SettingsItem label={t('settings.model_config.api_model_4p')}>
+                <Input
+                  value={settings.api.model_4p}
+                  onChange={(e) => updateSetting(['api', 'model_4p'], e.target.value)}
+                  placeholder={t('settings.model_config.server_default')}
+                />
+              </SettingsItem>
+              <SettingsItem label={t('settings.model_config.api_model_3p')}>
+                <Input
+                  value={settings.api.model_3p}
+                  onChange={(e) => updateSetting(['api', 'model_3p'], e.target.value)}
+                  placeholder={t('settings.model_config.server_default')}
+                />
+              </SettingsItem>
+
+              <div className='flex flex-wrap gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={busy !== null || !settings.api.base_url}
+                  onClick={async () => {
+                    const result = await runApiAction('health', () =>
+                      checkCloudHealth(settings.api.base_url),
+                    );
+                    if (result) setHealth(result);
+                  }}
+                >
+                  <Activity className={busy === 'health' ? 'animate-spin' : ''} />
+                  {t('settings.model_config.check_health')}
+                </Button>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={busy !== null || !apiReady}
+                  onClick={async () => {
+                    const result = await runApiAction('key', () =>
+                      checkCloudKey(settings.api.base_url, settings.api.key),
+                    );
+                    if (result) setKeyStatus(result);
+                  }}
+                >
+                  <KeyRound className={busy === 'key' ? 'animate-spin' : ''} />
+                  {t('settings.model_config.check_key')}
+                </Button>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  disabled={busy !== null || !apiReady}
+                  onClick={loadCloudModels}
+                >
+                  <RefreshCw className={busy === 'models' ? 'animate-spin' : ''} />
+                  {t('settings.model_config.fetch_api_models')}
+                </Button>
+              </div>
+
+              {cloudModels.length > 0 && (
+                <div className='flex flex-wrap gap-2'>
+                  {cloudModels.map((model) => (
+                    <Button
+                      key={model.id}
+                      type='button'
+                      variant='secondary'
+                      size='sm'
+                      title={model.desc}
+                      onClick={() =>
+                        updateSetting(
+                          ['api', model.game === '3p' ? 'model_3p' : 'model_4p'],
+                          model.id,
+                        )
+                      }
+                    >
+                      {model.game.toUpperCase()} · {model.id}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {health && (
+                <Alert variant='success'>
+                  <Activity />
+                  <AlertTitle>{t('settings.model_config.health_ok')}</AlertTitle>
+                  <AlertDescription>
+                    {health.status} · {health.models.join(', ') || '—'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {keyStatus && (
+                <Alert variant='info'>
+                  <KeyRound />
+                  <AlertTitle>{t('settings.model_config.key_ok')}</AlertTitle>
+                  <AlertDescription>
+                    {keyStatus.plan || '—'} · {keyStatus.usage_today}/{keyStatus.rpd} · RPM{' '}
+                    {keyStatus.rpm} · Top-K {keyStatus.topk} · {keyStatus.expires_at || '—'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {apiError && (
+                <Alert variant='error'>
+                  <AlertTitle>{t('settings.model_config.api_error')}</AlertTitle>
+                  <AlertDescription>{apiError}</AlertDescription>
+                </Alert>
+              )}
             </>
           ) : (
             <>

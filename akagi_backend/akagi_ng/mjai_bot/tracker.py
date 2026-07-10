@@ -129,7 +129,7 @@ class StateTracker(StateTrackerProtocol):
             self.meta = meta
 
             # 1. 生成标准推荐
-            recommendations = self._process_standard_recommendations()
+            recommendations = self._process_standard_recommendations(response)
 
             # 2. 如果适用，附加立直前瞻信息
             self._attach_riichi_lookahead(recommendations)
@@ -247,8 +247,98 @@ class StateTracker(StateTrackerProtocol):
             if last_kawa := self.last_kawa_tile:
                 base_item["tile"] = last_kawa
 
-    def _process_standard_recommendations(self) -> list[Recommendation]:
+    def _api_reach_candidates(self, response: MJAIResponse) -> list[SimCandidate]:
+        result = [
+            SimCandidate(
+                tile=candidate["action"].removeprefix("dahai:"),
+                confidence=candidate.get("prob", 0.0),
+            )
+            for candidate in self.meta.get("api_reach_candidates", [])
+            if candidate.get("action", "").startswith("dahai:")
+        ]
+        if not result and (pai := response.get("pai")):
+            result.append(SimCandidate(tile=pai, confidence=1.0))
+        return result
+
+    def _exact_api_recommendation(  # noqa: C901, PLR0911, PLR0912
+        self, response: MJAIResponse, confidence: float
+    ) -> Recommendation | None:
+        reaction_type = response.get("type")
+        match reaction_type:
+            case "dahai" if pai := response.get("pai"):
+                return {"action": pai, "confidence": confidence}
+            case "reach":
+                item: Recommendation = {"action": "reach", "confidence": confidence}
+                if candidates := self._api_reach_candidates(response):
+                    item["sim_candidates"] = candidates
+                return item
+            case "chi" | "pon":
+                item = {"action": reaction_type, "confidence": confidence}
+                if pai := response.get("pai"):
+                    item["tile"] = pai
+                if consumed := response.get("consumed"):
+                    item["consumed"] = consumed
+                return item
+            case "daiminkan" | "ankan" | "kakan":
+                item = {"action": "kan", "confidence": confidence}
+                if pai := response.get("pai"):
+                    item["tile"] = pai
+                if consumed := response.get("consumed"):
+                    item["consumed"] = consumed
+                return item
+            case "hora":
+                item = {"action": "hora", "confidence": confidence}
+                self._handle_hora_action(item)
+                return item
+            case "ryukyoku" | "none":
+                return {"action": reaction_type, "confidence": confidence}
+            case "nukidora":
+                return {"action": "nukidora", "confidence": confidence, "tile": "N"}
+            case _:
+                return None
+
+    def _coarse_api_recommendation(  # noqa: PLR0911
+        self, action: str, confidence: float
+    ) -> Recommendation | None:
+        if action.startswith("dahai:"):
+            return {"action": action.removeprefix("dahai:"), "confidence": confidence}
+        match action:
+            case "chi_low" | "chi_mid" | "chi_high":
+                return {"action": "chi", "confidence": confidence}
+            case "kan":
+                return {"action": "kan", "confidence": confidence}
+            case "hora":
+                item: Recommendation = {"action": "hora", "confidence": confidence}
+                self._handle_hora_action(item)
+                return item
+            case "reach" | "pon" | "ryukyoku" | "none":
+                return {"action": action, "confidence": confidence}
+            case "nukidora":
+                return {"action": "nukidora", "confidence": confidence, "tile": "N"}
+            case _:
+                return None
+
+    def _process_api_recommendations(self, response: MJAIResponse) -> list[Recommendation]:
+        candidates = self.meta.get("api_candidates", [])
+        top_probability = candidates[0].get("prob", 1.0) if candidates else 1.0
+        exact = self._exact_api_recommendation(response, top_probability)
+        recommendations = [exact] if exact else []
+
+        # candidates[0] is the exact reaction rendered above. Remaining rows
+        # are intentionally coarse, matching Akagi v3.3's HUD behavior.
+        for candidate in candidates[1:] if exact else candidates:
+            item = self._coarse_api_recommendation(
+                candidate.get("action", ""),
+                candidate.get("prob", 0.0),
+            )
+            if item:
+                recommendations.append(item)
+        return recommendations[:3]
+
+    def _process_standard_recommendations(self, response: MJAIResponse) -> list[Recommendation]:
         recommendations: list[Recommendation] = []
+        if "api_candidates" in self.meta:
+            return self._process_api_recommendations(response)
         if "q_values" not in self.meta or "mask_bits" not in self.meta:
             return recommendations
 

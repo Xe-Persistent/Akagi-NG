@@ -10,7 +10,14 @@ from akagi_ng.schema.notifications import NotificationCode
 # 业务类型
 
 
-type EngineType = Literal["mortal", "akagiot", "unknown", "null"]
+type EngineType = Literal["mortal", "akagiapi", "akagiot", "unknown", "null"]
+
+
+class ApiCandidate(TypedDict):
+    """One ranked coarse action returned by Akagi's V3 API."""
+
+    action: str
+    prob: float
 
 
 class EngineAdditionalMeta(TypedDict, total=False):
@@ -94,6 +101,7 @@ type MJAIActionType = Literal[
     "daiminkan",
     "ankan",
     "kakan",
+    "nukidora",
     "tsumo",
     "hora",
     "ryukyoku",
@@ -122,6 +130,9 @@ class MJAIMetadata(TypedDict, total=False):
     engine_type: EngineType
     fallback_used: bool
     online_service_reconnecting: bool  # 熔断器状态
+    api_candidates: list[ApiCandidate]
+    api_reach_candidates: list[ApiCandidate]
+    api_model: str
 
     # 嵌套前瞻结果
     riichi_lookahead: Self

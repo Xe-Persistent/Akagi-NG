@@ -1,3 +1,4 @@
+import asyncio
 import json
 import queue
 from collections.abc import Callable
@@ -8,6 +9,7 @@ from akagi_ng.core.context import get_app_context
 from akagi_ng.core.logging import configure_logging
 from akagi_ng.core.paths import ensure_dir, get_assets_dir, get_models_dir
 from akagi_ng.dataserver.logger import logger
+from akagi_ng.mjai_bot.cloud_api import AkagiApiClient, CloudApiError
 from akagi_ng.mjai_bot.engine import clear_resource_cache
 from akagi_ng.schema.types import (
     DebuggerDetachedMessage,
@@ -98,8 +100,8 @@ async def save_settings_handler(request: web.Request) -> web.Response:
 
         if payload.get("log_level") != old_settings.get("log_level"):
             new_level = payload.get("log_level", "INFO")
-            logger.info(f"Log level changed to {new_level}, updating...")
             configure_logging(new_level)
+            logger.info(f"Log level changed to {new_level}, updating...")
 
         if (
             payload.get("platform") != old_settings.get("platform")
@@ -141,6 +143,84 @@ async def get_models_handler(_request: web.Request) -> web.Response:
 
     models = [f.name for f in models_dir.glob("*.pth") if f.is_file()]
     return _json_response({"ok": True, "data": models})
+
+
+async def _cloud_payload(request: web.Request) -> dict | web.Response:
+    try:
+        payload = await request.json()
+    except Exception:
+        return _json_response({"ok": False, "error": "Invalid JSON"}, status=400)
+    if not isinstance(payload, dict):
+        return _json_response({"ok": False, "error": "Payload must be a JSON object"}, status=400)
+    return payload
+
+
+def _cloud_client(payload: dict) -> AkagiApiClient:
+    base_url = str(payload.get("base_url", ""))
+    key = str(payload.get("key", ""))
+    if not base_url.strip() or not key.strip():
+        raise CloudApiError("API base URL and key are required")
+    return AkagiApiClient(base_url, key)
+
+
+async def cloud_health_handler(request: web.Request) -> web.Response:
+    payload = await _cloud_payload(request)
+    if isinstance(payload, web.Response):
+        return payload
+    try:
+        base_url = str(payload.get("base_url", ""))
+        data = await asyncio.to_thread(AkagiApiClient.health, base_url)
+        return _json_response({"ok": True, "data": data})
+    except Exception as exc:
+        logger.warning(f"Cloud API health check failed: {exc}")
+        return _json_response({"ok": False, "error": str(exc)}, status=502)
+
+
+async def cloud_key_status_handler(request: web.Request) -> web.Response:
+    payload = await _cloud_payload(request)
+    if isinstance(payload, web.Response):
+        return payload
+    try:
+        client = _cloud_client(payload)
+        data = await asyncio.to_thread(client.key_status)
+        return _json_response({"ok": True, "data": data})
+    except Exception as exc:
+        logger.warning(f"Cloud API key check failed: {exc}")
+        return _json_response({"ok": False, "error": str(exc)}, status=502)
+
+
+async def cloud_models_handler(request: web.Request) -> web.Response:
+    payload = await _cloud_payload(request)
+    if isinstance(payload, web.Response):
+        return payload
+    try:
+        client = _cloud_client(payload)
+        data = await asyncio.to_thread(client.models)
+        return _json_response({"ok": True, "data": data})
+    except Exception as exc:
+        logger.warning(f"Cloud API model query failed: {exc}")
+        return _json_response({"ok": False, "error": str(exc)}, status=502)
+
+
+async def cloud_redeem_handler(request: web.Request) -> web.Response:
+    payload = await _cloud_payload(request)
+    if isinstance(payload, web.Response):
+        return payload
+    try:
+        code = str(payload.get("code", "")).strip()
+        if not code:
+            return _json_response({"ok": False, "error": "Redeem code is required"}, status=400)
+        data = await asyncio.to_thread(
+            AkagiApiClient.redeem,
+            str(payload.get("base_url", "")),
+            code,
+            str(payload.get("email", "")) or None,
+            str(payload.get("renew_key", "")) or None,
+        )
+        return _json_response({"ok": True, "data": data})
+    except Exception as exc:
+        logger.warning(f"Cloud API redeem failed: {exc}")
+        return _json_response({"ok": False, "error": str(exc)}, status=502)
 
 
 async def update_protocol_handler(request: web.Request) -> web.Response:
@@ -267,6 +347,10 @@ def setup_routes(app: web.Application):
     app.router.add_post("/api/settings", save_settings_handler)
     app.router.add_post("/api/settings/reset", reset_settings_handler)
     app.router.add_get("/api/models", get_models_handler)
+    app.router.add_post("/api/cloud/health", cloud_health_handler)
+    app.router.add_post("/api/cloud/key-status", cloud_key_status_handler)
+    app.router.add_post("/api/cloud/models", cloud_models_handler)
+    app.router.add_post("/api/cloud/redeem", cloud_redeem_handler)
     app.router.add_post("/api/ingest", ingest_mjai_handler)
     app.router.add_post("/api/protocol/update", update_protocol_handler)
     app.router.add_post("/api/shutdown", shutdown_handler)

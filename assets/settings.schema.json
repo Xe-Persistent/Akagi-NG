@@ -10,12 +10,13 @@
     "mitm",
     "server",
     "ot",
+    "api",
     "model_config"
   ],
   "properties": {
     "log_level": {
       "type": "string",
-      "enum": ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"],
+      "enum": ["OFF", "TRACE", "DEBUG", "INFO", "WARNING", "ERROR"],
       "default": "INFO",
       "description": "Logging level."
     },
@@ -94,7 +95,7 @@
       "additionalProperties": false
     },
     "ot": {
-      "description": "Online service configuration.",
+      "description": "Deprecated pre-V3 online tensor-service configuration.",
       "type": "object",
       "properties": {
         "online": {
@@ -129,6 +130,58 @@
             "format": "uri"
           },
           "api_key": {
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "api": {
+      "description": "Akagi V3 cloud-inference API configuration.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Route decisions through the V3 cloud API."
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri",
+          "default": "https://mjapi.shinkuan.me",
+          "description": "Cloud API base URL."
+        },
+        "key": {
+          "type": "string",
+          "default": "",
+          "description": "Bearer API key."
+        },
+        "model_4p": {
+          "type": "string",
+          "default": "",
+          "description": "V3 model id for 4-player games; empty uses the server default."
+        },
+        "model_3p": {
+          "type": "string",
+          "default": "",
+          "description": "V3 model id for 3-player games; empty uses the server default."
+        }
+      },
+      "required": ["enabled", "base_url", "key", "model_4p", "model_3p"],
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "base_url": {
+            "minLength": 1,
+            "format": "uri"
+          },
+          "key": {
             "minLength": 1
           }
         }

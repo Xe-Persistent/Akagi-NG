@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 
 const rootDir = resolve(__dirname, '../');
 const extraDir = join(rootDir, 'build', 'extra');
+const silentRelease = process.env.AKAGI_NO_LOGS === '1';
 
 // 0. Ensure extraDir exists
 if (existsSync(extraDir)) {
@@ -71,5 +72,32 @@ if (existsSync(libLicense)) {
 ['logs', 'config'].forEach((folder) => {
   writeFileSync(join(extraDir, folder, '_placeholder'), '');
 });
+
+if (silentRelease) {
+  const settings = {
+    log_level: 'OFF',
+    locale: 'en-US',
+    game_url: 'https://game.maj-soul.com/1/',
+    majsoul_server: 'cn',
+    platform: 'majsoul',
+    mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
+    server: { host: '127.0.0.1', port: 8765 },
+    ot: { online: false, server: '', api_key: '' },
+    api: {
+      enabled: false,
+      base_url: 'https://mjapi.shinkuan.me',
+      key: '',
+      model_4p: '',
+      model_3p: '',
+    },
+    model_config: { model_4p: 'mortal.pth', model_3p: 'mortal3p.pth', temperature: 0.3 },
+  };
+  writeFileSync(join(extraDir, '.no-logs'), 'Akagi-NG silent release\n');
+  writeFileSync(
+    join(extraDir, 'config', 'settings.json'),
+    JSON.stringify(settings, null, 2) + '\n',
+  );
+  console.log('   ✅ Disabled Electron, Chromium, and backend file logging for this release');
+}
 
 console.log('✅ Release assets prepared in build/extra');

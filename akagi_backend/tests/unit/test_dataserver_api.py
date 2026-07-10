@@ -58,6 +58,43 @@ async def test_get_settings(cli):
         assert data["data"] == {"test": "val"}
 
 
+async def test_cloud_health(cli):
+    with patch("akagi_ng.dataserver.api.AkagiApiClient.health", return_value={"status": "ok"}) as health:
+        resp = await cli.post("/api/cloud/health", json={"base_url": "https://api.example"})
+        assert resp.status == 200
+        data = await resp.json()
+        assert data["data"]["status"] == "ok"
+        health.assert_called_once_with("https://api.example")
+
+
+async def test_cloud_key_status_and_models(cli):
+    client = MagicMock()
+    client.key_status.return_value = {"plan": "basic"}
+    client.models.return_value = [{"id": "4p-x", "game": "4p", "desc": "test"}]
+    with patch("akagi_ng.dataserver.api.AkagiApiClient", return_value=client) as api_client:
+        status_resp = await cli.post(
+            "/api/cloud/key-status",
+            json={"base_url": "https://api.example", "key": "secret"},
+        )
+        models_resp = await cli.post(
+            "/api/cloud/models",
+            json={"base_url": "https://api.example", "key": "secret"},
+        )
+
+    assert status_resp.status == 200
+    assert (await status_resp.json())["data"]["plan"] == "basic"
+    assert models_resp.status == 200
+    assert (await models_resp.json())["data"][0]["id"] == "4p-x"
+    api_client.assert_called_with("https://api.example", "secret")
+
+
+async def test_cloud_management_error_is_reported(cli):
+    with patch("akagi_ng.dataserver.api.AkagiApiClient.health", side_effect=RuntimeError("offline")):
+        resp = await cli.post("/api/cloud/health", json={"base_url": "https://api.example"})
+    assert resp.status == 502
+    assert "offline" in (await resp.json())["error"]
+
+
 async def test_save_settings_invalid_json(cli):
     resp = await cli.post("/api/settings", data="not json")
     assert resp.status == 400

@@ -73,8 +73,14 @@ Core Philosophy of Akagi-NG:
   - Multi-language support - Simplified Chinese / Traditional Chinese / Japanese / English
 
 - 🤖 **AI Models**
-  - Mortal (Mortal 4p / Mortal 3p)
-  - AkagiOT (AkagiOT 4p / AkagiOT 3p)
+  - Mortal (Mortal 4p / Mortal 3p), always loaded as the offline fallback
+  - Akagi V3 cloud inference (`/v3/react`) with separate 4P/3P model selection
+  - API health, key limits, expiry, and available models can be checked directly in Settings
+
+Cloud inference defaults to `https://mjapi.shinkuan.me` and stays disabled until a key is configured. Each
+decision uploads the current seat-censored MJAI kyoku stream. A 2-second live timeout and exponential
+5–120 second circuit breaker ensure an unreachable, rate-limited, or invalid-key service immediately falls
+back to the bundled Mortal model. API URL, key, enabled state, and model changes apply to the next decision.
 
 > [!NOTE]
 > **Riichi Lookahead** is a core feature in Akagi-NG, designed to solve the question: "When AI suggests Riichi, which tile should I discard?"
@@ -95,13 +101,13 @@ Core Philosophy of Akagi-NG:
 > 1. **Trigger Lookahead**: In the current situation, after inference, the AI engine considers "Riichi" to be ranked among the top 3 recommended actions.
 > 2. **Start Simulation**: Akagi-NG creates a new, temporary `Lookahead Bot`.
 > 3. **History Replay**:
->    - To let the AI engine's internal state reach the current game state, we need to feed it all events (drawing, discarding, melding, etc.) that have occurred since the start of the game once more. When replaying each move of "one's own actions", the Bot would foolishly ask the AI engine: "What should I do now?". This leads to a situation where, when a game progresses to the 15th turn, the Lookahead would need to perform more than 15 AI inferences. For online models, these are 15 HTTP requests, which would instantly trigger a 429 rate-limit ban.
->    - Therefore, we introduced a "Shadow" Lookahead Bot. During the replay phase, we explicitly know it's just "restating history", so when the AI engine asks "What should I do now?", the Lookahead Bot **completely skips AI inference** by setting `can_act=False`. This makes the replay process almost instantaneous with zero network consumption.
+>    - Local lookahead replays history with `can_act=False`, so replay performs no inference.
+>    - The V3 cloud API is stateless and receives the already-censored current-kyoku history once per decision, avoiding one request per replayed action.
 > 4. **Branch Convergence**:
 >    - Once the state is fully restored to "now", we manually send a "Riichi" event to the AI engine.
->    - At this point, the AI engine's internal state becomes: "Player has just declared Riichi and is waiting for a discard".
+>    - For V3 cloud inference, Akagi-NG appends the selected `reach` event to the uploaded stream.
 > 5. **Final Inference**:
->    - In this new "Declared Riichi" state, we initiate a **real** inference request to the AI engine: "What is the best discard tile now?"
+>    - In this new "Declared Riichi" state, we initiate one follow-up inference request: "What is the best discard tile now?"
 >    - The engine analyzes the situation and returns the specific discard action (e.g., `discard 6m`).
 > 6. **Result Display**: The frontend UI receives this `6m` information. On the interface, it will both highlight the Riichi and other discard recommendations (like "Damaten"), and also display the suggested `6m` in a sub-item of the Riichi recommendation. If there is more than one Riichi discard candidate, all will be displayed with their respective confidence levels.
 >
@@ -410,6 +416,10 @@ npm run build
 ```
 
 The build artifacts will be generated in the `dist/release` directory.
+
+For a portable build that writes no Electron, Chromium, or Python log files, set
+`AKAGI_NO_LOGS=1` before running the build. The release will include a `.no-logs`
+marker and start with the backend log level set to `OFF`.
 
 ---
 

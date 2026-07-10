@@ -16,6 +16,7 @@ let fileStream: WriteStream | null = null;
 let logFilePath: string = '';
 let currentBytesWritten = 0;
 let currentLogsDir = '';
+let loggingEnabled = true;
 
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -170,7 +171,17 @@ async function cleanupOldLogs(logsDir: string) {
 /**
  * 初始化日志系统（必须在应用程序生命周期尽早调用）
  */
-export function initializeLogger(logsDir: string) {
+export function initializeLogger(logsDir: string, enabled: boolean = true) {
+  loggingEnabled = enabled;
+  if (!enabled) {
+    console.log = () => {};
+    console.info = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+    console.debug = () => {};
+    return;
+  }
+
   currentLogsDir = logsDir;
   rotateLogFile(); // 初始化第一个文件
 
@@ -195,18 +206,22 @@ export function initializeLogger(logsDir: string) {
 export function createLogger(module: string): Logger {
   return {
     debug: (message: string, ...args: unknown[]) => {
+      if (!loggingEnabled) return;
       originalConsole.debug(`[${module}] ${message}`, ...args);
       writeToFile(formatLogLine('DEBUG', module, message, args));
     },
     info: (message: string, ...args: unknown[]) => {
+      if (!loggingEnabled) return;
       originalConsole.info(`[${module}] ${message}`, ...args);
       writeToFile(formatLogLine('INFO', module, message, args));
     },
     warn: (message: string, ...args: unknown[]) => {
+      if (!loggingEnabled) return;
       originalConsole.warn(`[${module}] ${message}`, ...args);
       writeToFile(formatLogLine('WARN', module, message, args));
     },
     error: (message: string, ...args: unknown[]) => {
+      if (!loggingEnabled) return;
       originalConsole.error(`[${module}] ${message}`, ...args);
       writeToFile(formatLogLine('ERROR', module, message, args));
     },

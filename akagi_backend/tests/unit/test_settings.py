@@ -17,6 +17,7 @@ import pytest
 
 from akagi_ng.settings.settings import (
     SETTINGS_JSON_PATH,
+    APIConfig,
     MITMConfig,
     ModelConfig,
     OTConfig,
@@ -27,6 +28,7 @@ from akagi_ng.settings.settings import (
     _detect_locale_windows,
     _get_schema,
     _load_settings,
+    _migrate_legacy_settings,
     detect_system_locale,
     get_default_settings_dict,
     verify_settings,
@@ -41,6 +43,14 @@ class TestSettingsDataclasses(unittest.TestCase):
         self.assertFalse(config.online)
         self.assertEqual(config.server, "")
         self.assertEqual(config.api_key, "")
+
+    def test_api_config_defaults(self):
+        config = APIConfig()
+        self.assertFalse(config.is_active())
+        self.assertEqual(config.base_url, "https://mjapi.shinkuan.me")
+        config.enabled = True
+        config.key = "key"
+        self.assertTrue(config.is_active())
 
     def test_mitm_config_creation(self):
         config = MITMConfig(enabled=True, host="127.0.0.1", port=6789, upstream="")
@@ -138,6 +148,20 @@ class TestSettingsLifecycle(unittest.TestCase):
         self.assertEqual(defaults["log_level"], "INFO")
         self.assertEqual(defaults["majsoul_server"], "cn")
         self.assertEqual(defaults["game_url"], "https://game.maj-soul.com/1/")
+        self.assertEqual(defaults["api"]["base_url"], "https://mjapi.shinkuan.me")
+
+    def test_legacy_ot_settings_add_disabled_v3_api(self):
+        legacy = get_default_settings_dict()
+        legacy.pop("api")
+        legacy["ot"] = {"online": True, "server": "https://api.example", "api_key": "secret"}
+
+        migrated, changed = _migrate_legacy_settings(legacy)
+
+        self.assertTrue(changed)
+        self.assertEqual(migrated["api"]["base_url"], "https://mjapi.shinkuan.me")
+        self.assertEqual(migrated["api"]["key"], "")
+        self.assertFalse(migrated["api"]["enabled"])
+        self.assertEqual(migrated["ot"]["server"], "https://api.example")
 
     def test_verify_settings_valid(self):
         valid_data = get_default_settings_dict()

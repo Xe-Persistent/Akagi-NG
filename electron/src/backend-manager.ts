@@ -29,7 +29,7 @@ import {
 } from './constants.js';
 import type { ResourceStatus } from './resource-validator.js';
 import { ResourceValidator } from './resource-validator.js';
-import { getAssetPath, getProjectRoot } from './utils.js';
+import { getAssetPath, getProjectRoot, isLoggingDisabled } from './utils.js';
 
 const logger = createLogger('BackendManager');
 
@@ -178,6 +178,7 @@ export class BackendManager {
           ...process.env,
           PYTHONPATH: join(bundleDir, 'app_packages'),
           PYTHONUNBUFFERED: '1',
+          AKAGI_NO_LOGS: isLoggingDisabled() ? '1' : process.env.AKAGI_NO_LOGS,
         },
       });
 

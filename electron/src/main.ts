@@ -7,7 +7,7 @@ import { BackendManager } from './backend-manager.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { createLogger, initializeLogger } from './logger.js';
 import { UpdaterManager } from './updater.js';
-import { getProjectRoot } from './utils.js';
+import { getProjectRoot, isLoggingDisabled } from './utils.js';
 import { WindowManager } from './window-manager.js';
 
 // Single Instance Lock
@@ -16,7 +16,9 @@ if (!gotTheLock) {
   app.exit(0);
 }
 
-initializeLogger(join(getProjectRoot(), 'logs'));
+const loggingEnabled = !isLoggingDisabled();
+if (!loggingEnabled) app.commandLine.appendSwitch('disable-logging');
+initializeLogger(join(getProjectRoot(), 'logs'), loggingEnabled);
 
 const logger = createLogger('Main');
 

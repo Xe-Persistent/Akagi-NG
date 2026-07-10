@@ -58,7 +58,16 @@
       "model_3p": "三麻模型",
       "temperature": "温度参数",
       "temperature_desc": "调整各推荐选项之间的信心差距。较低的温度会使最高概率的选项更加突出，较高的温度会使各选项概率更接近。",
-      "no_models_found": "未找到本地模型"
+      "no_models_found": "未找到本地模型",
+      "api_model_4p": "云端四麻模型",
+      "api_model_3p": "云端三麻模型",
+      "server_default": "使用服务器默认模型",
+      "check_health": "检查服务",
+      "check_key": "检查密钥",
+      "fetch_api_models": "获取模型",
+      "health_ok": "API 服务运行正常",
+      "key_ok": "API 密钥有效",
+      "api_error": "云端 API 请求失败"
     },
     "status_saved": "保存成功",
     "status_saving": "正在保存…",

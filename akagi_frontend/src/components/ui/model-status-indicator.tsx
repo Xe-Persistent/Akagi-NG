@@ -46,7 +46,7 @@ export function ModelStatusIndicator({ isConnected, className }: ModelStatusIndi
 
     // 3. 正常：在线/本地/空引擎
     if (data.engine_type === 'null') return 'nullEngine';
-    return data.engine_type === 'akagiot' ? 'online' : 'local';
+    return data.engine_type === 'akagiapi' || data.engine_type === 'akagiot' ? 'online' : 'local';
   })();
 
   if (currentStatus === 'hidden') return null;

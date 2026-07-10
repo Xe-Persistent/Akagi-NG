@@ -1,4 +1,5 @@
 from akagi_ng.settings.settings import (
+    APIConfig,
     Settings,
     get_default_settings_dict,
     get_settings_dict,
@@ -7,6 +8,7 @@ from akagi_ng.settings.settings import (
 )
 
 __all__ = [
+    "APIConfig",
     "Settings",
     "get_default_settings_dict",
     "get_settings_dict",

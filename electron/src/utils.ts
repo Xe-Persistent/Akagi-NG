@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { app } from 'electron';
@@ -16,6 +17,10 @@ export function getProjectRoot(): string {
  */
 export function getAssetPath(...paths: string[]): string {
   return join(getProjectRoot(), ...paths);
+}
+
+export function isLoggingDisabled(): boolean {
+  return existsSync(getAssetPath('.no-logs'));
 }
 
 /**

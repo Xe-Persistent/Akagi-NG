@@ -58,7 +58,16 @@
       "model_3p": "三麻模型",
       "temperature": "溫度參數",
       "temperature_desc": "調整各推薦選項之間的信心差距。較低的溫度會使最高概率的選項更加突出，較高的溫度會使各選項概率更接近。",
-      "no_models_found": "未找到本地模型"
+      "no_models_found": "未找到本地模型",
+      "api_model_4p": "雲端四麻模型",
+      "api_model_3p": "雲端三麻模型",
+      "server_default": "使用伺服器預設模型",
+      "check_health": "檢查服務",
+      "check_key": "檢查金鑰",
+      "fetch_api_models": "取得模型",
+      "health_ok": "API 服務運作正常",
+      "key_ok": "API 金鑰有效",
+      "api_error": "雲端 API 請求失敗"
     },
     "status_saved": "儲存成功",
     "status_saving": "正在儲存…",

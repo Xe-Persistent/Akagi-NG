@@ -14,11 +14,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akagi_ng.mjai_bot.bot import MortalBot
+from akagi_ng.mjai_bot.bot import MortalBot, build_api_events
+from akagi_ng.mjai_bot.cloud_api import CloudApiError
 from akagi_ng.mjai_bot.status import BotStatusContext
 from akagi_ng.mjai_bot.utils import mask_unicode_3p
 from akagi_ng.schema.notifications import NotificationCode
-from akagi_ng.schema.types import DahaiEvent, StartGameEvent, TsumoEvent
+from akagi_ng.schema.types import DahaiEvent, StartGameEvent, StartKyokuEvent, TsumoEvent
+from akagi_ng.settings import APIConfig, local_settings
 
 # 自动应用 mock_lib_loader_module fixture（定义在 unit/conftest.py 中）
 pytestmark = pytest.mark.usefixtures("mock_lib_loader_module")
@@ -245,3 +247,140 @@ def test_notification_flags_persistency(mock_engine_setup) -> None:
 
     # 验证标志依然存在
     assert NotificationCode.GAME_CONNECTED in status.flags
+
+
+def test_v3_api_replaces_local_decision_and_sends_censored_history() -> None:
+    status = BotStatusContext()
+    bot = MortalBot(status=status, is_3p=False)
+    bot.player_id = 0
+    bot.game_start_event = StartGameEvent(id=0, is_3p=False)
+    bot.history = [bot.game_start_event]
+    bot.bot = MagicMock()
+    bot.bot.react.return_value = json.dumps(
+        {"type": "dahai", "actor": 0, "pai": "1m", "meta": {"q_values": [1.0], "mask_bits": 1}}
+    )
+
+    api_config = APIConfig(enabled=True, base_url="https://api.example", key="secret", model_4p="4p-x")
+    client = MagicMock()
+    client.react.return_value = {
+        "reaction": {"type": "dahai", "actor": 3, "pai": "9p", "tsumogiri": False},
+        "candidates": [{"action": "dahai:9p", "prob": 0.8}],
+        "model": "4p-x",
+    }
+
+    with (
+        patch.object(local_settings, "api", api_config),
+        patch("akagi_ng.mjai_bot.bot.AkagiApiClient", return_value=client),
+    ):
+        response = bot.react(TsumoEvent(actor=0, pai="9p"))
+
+    assert response["type"] == "dahai"
+    assert response["actor"] == 0
+    assert response["pai"] == "9p"
+    assert response["meta"]["engine_type"] == "akagiapi"
+    model, player_id, events = client.react.call_args.args
+    assert model == "4p-x"
+    assert player_id == 0
+    assert events[0] == {"type": "start_game", "names": ["", "", "", ""]}
+    assert events[-1] == {"type": "tsumo", "actor": 0, "pai": "9p"}
+
+
+def test_v3_api_failure_falls_back_to_local_decision() -> None:
+    status = BotStatusContext()
+    bot = MortalBot(status=status, is_3p=False)
+    bot.player_id = 0
+    bot.history = [StartGameEvent(id=0, is_3p=False)]
+    bot.bot = MagicMock()
+    bot.bot.react.return_value = json.dumps(
+        {"type": "dahai", "actor": 0, "pai": "1m", "meta": {"q_values": [1.0], "mask_bits": 1}}
+    )
+
+    api_config = APIConfig(enabled=True, base_url="https://api.example", key="secret")
+    client = MagicMock()
+    client.react.side_effect = CloudApiError("offline")
+    with (
+        patch.object(local_settings, "api", api_config),
+        patch("akagi_ng.mjai_bot.bot.AkagiApiClient", return_value=client),
+    ):
+        response = bot.react(TsumoEvent(actor=0, pai="1m"))
+
+    assert response["pai"] == "1m"
+    assert response["meta"]["fallback_used"] is True
+    assert response["meta"]["online_service_reconnecting"] is True
+
+
+def test_v3_api_reach_followup_failure_uses_local_reach_discard() -> None:
+    status = BotStatusContext()
+    bot = MortalBot(status=status, is_3p=False)
+    bot.player_id = 0
+    bot.history = [StartGameEvent(id=0, is_3p=False)]
+    bot.bot = MagicMock()
+    bot.bot.react.return_value = json.dumps(
+        {"type": "dahai", "actor": 0, "pai": "1m", "meta": {"q_values": [1.0], "mask_bits": 1}}
+    )
+
+    api_config = APIConfig(enabled=True, base_url="https://api.example", key="secret")
+    client = MagicMock()
+    client.react.side_effect = [
+        {
+            "reaction": {"type": "reach", "actor": 0},
+            "candidates": [{"action": "reach", "prob": 0.8}],
+        },
+        CloudApiError("follow-up offline"),
+    ]
+    with (
+        patch.object(local_settings, "api", api_config),
+        patch("akagi_ng.mjai_bot.bot.AkagiApiClient", return_value=client),
+        patch.object(bot, "_local_reach_discard", return_value="9m"),
+    ):
+        response = bot.react(TsumoEvent(actor=0, pai="1m"))
+
+    assert response["type"] == "reach"
+    assert response["pai"] == "9m"
+    assert response["meta"]["fallback_used"] is True
+    assert client.react.call_count == 2
+
+
+def test_local_reach_lookahead_does_not_replay_start_game_twice() -> None:
+    status = BotStatusContext()
+    bot = MortalBot(status=status, is_3p=False)
+    start_game = StartGameEvent(id=0, is_3p=False)
+    draw = TsumoEvent(actor=0, pai="1m")
+    bot.player_id = 0
+    bot.game_start_event = start_game
+    bot.history = [start_game, draw]
+    bot.engine = MagicMock()
+
+    with patch("akagi_ng.mjai_bot.bot.LookaheadBot") as lookahead_cls:
+        lookahead_cls.return_value.simulate_reach.return_value = {"q_values": [1.0], "mask_bits": 1}
+        result = bot._run_riichi_lookahead()
+
+    assert result is not None
+    args = lookahead_cls.return_value.simulate_reach.call_args
+    assert args.args[0] == [draw]
+    assert args.kwargs["game_start_event"] == start_game
+
+
+def test_v3_api_event_shaping_censors_hidden_information_and_pads_three_player() -> None:
+    events = [
+        StartGameEvent(id=1, is_3p=True),
+        StartKyokuEvent(
+            bakaze="E",
+            dora_marker="1m",
+            kyoku=1,
+            honba=0,
+            kyotaku=0,
+            oya=0,
+            scores=[35000, 35000, 35000],
+            tehais=[["1m"] * 13, ["2m"] * 13, ["3m"] * 13],
+        ),
+        TsumoEvent(actor=2, pai="9p"),
+    ]
+
+    shaped = build_api_events(events, player_id=1, is_3p=True)
+
+    assert shaped[1]["scores"] == [35000, 35000, 35000, 0]
+    assert shaped[1]["tehais"][1] == ["2m"] * 13
+    assert shaped[1]["tehais"][0] == ["?"] * 13
+    assert shaped[1]["tehais"][3] == ["?"] * 13
+    assert shaped[2]["pai"] == "?"

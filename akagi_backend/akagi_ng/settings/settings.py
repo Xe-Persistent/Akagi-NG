@@ -2,7 +2,7 @@ import ctypes
 import json
 import locale
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Self
 
@@ -10,6 +10,7 @@ import jsonschema
 from jsonschema.exceptions import ValidationError
 
 from akagi_ng.core.paths import ensure_dir, get_assets_dir, get_settings_dir
+from akagi_ng.schema.api import DEFAULT_API_BASE_URL
 from akagi_ng.schema.constants import MajsoulServer, Platform, get_game_url
 from akagi_ng.settings.logger import logger
 
@@ -28,9 +29,26 @@ LCID_JA_JP = 1041  # 日文 (0x0411)
 
 @dataclass(slots=True)
 class OTConfig:
+    """Deprecated pre-V3 tensor-inference service settings."""
+
     online: bool
     server: str = ""
     api_key: str = ""
+
+
+@dataclass(slots=True)
+class APIConfig:
+    enabled: bool = False
+    base_url: str = DEFAULT_API_BASE_URL
+    key: str = ""
+    model_4p: str = ""
+    model_3p: str = ""
+
+    def is_active(self) -> bool:
+        return self.enabled and bool(self.base_url.strip()) and bool(self.key.strip())
+
+    def model_for(self, is_3p: bool) -> str:
+        return self.model_3p if is_3p else self.model_4p
 
 
 @dataclass(slots=True)
@@ -65,6 +83,7 @@ class Settings:
     server: ServerConfig
     ot: OTConfig
     model_config: ModelConfig
+    api: APIConfig = field(default_factory=APIConfig)
 
     def update(self, data: dict):
         """从字典更新设置"""
@@ -90,6 +109,7 @@ class Settings:
         server_data = data.get("server", {})
         model_config_data = data.get("model_config", {})
         ot_data = data.get("ot", {})
+        api_data = data.get("api", {})
         game_url = data.get("game_url", "")
 
         platform_val = data.get("platform")
@@ -122,6 +142,13 @@ class Settings:
                 model_4p=model_config_data.get("model_4p", "mortal.pth"),
                 model_3p=model_config_data.get("model_3p", "mortal3p.pth"),
                 temperature=model_config_data.get("temperature", 0.3),
+            ),
+            api=APIConfig(
+                enabled=api_data.get("enabled", False),
+                base_url=api_data.get("base_url", DEFAULT_API_BASE_URL),
+                key=api_data.get("key", ""),
+                model_4p=api_data.get("model_4p", ""),
+                model_3p=api_data.get("model_3p", ""),
             ),
         )
 
@@ -194,6 +221,13 @@ def get_default_settings_dict() -> dict:
         },
         "server": {"host": "127.0.0.1", "port": 8765},
         "ot": {"online": False, "server": "", "api_key": ""},
+        "api": {
+            "enabled": False,
+            "base_url": DEFAULT_API_BASE_URL,
+            "key": "",
+            "model_4p": "",
+            "model_3p": "",
+        },
         "model_config": {
             "model_4p": "mortal.pth",
             "model_3p": "mortal3p.pth",
@@ -245,7 +279,13 @@ def _load_settings() -> Settings:
 
     try:
         loaded_settings = json.loads(SETTINGS_JSON_PATH.read_text(encoding="utf-8"))
+        loaded_settings, migrated = _migrate_legacy_settings(loaded_settings)
         jsonschema.validate(loaded_settings, schema)
+        if migrated:
+            SETTINGS_JSON_PATH.write_text(
+                json.dumps(loaded_settings, indent=4, ensure_ascii=False),
+                encoding="utf-8",
+            )
     except json.JSONDecodeError as e:
         loaded_settings = _backup_and_reset_settings(f"settings.json corrupted: {e}")
     except ValidationError as e:
@@ -259,6 +299,22 @@ def _get_schema() -> dict:
     if not SCHEMA_PATH.exists():
         raise FileNotFoundError(f"settings.schema.json not found at {SCHEMA_PATH}")
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def _migrate_legacy_settings(data: dict) -> tuple[dict, bool]:
+    """Add disabled V3 settings without treating a legacy OT URL as V3."""
+    if "api" in data:
+        return data, False
+
+    migrated = dict(data)
+    migrated["api"] = {
+        "enabled": False,
+        "base_url": DEFAULT_API_BASE_URL,
+        "key": "",
+        "model_4p": "",
+        "model_3p": "",
+    }
+    return migrated, True
 
 
 def _update_settings(settings: Settings, data: dict):
@@ -288,6 +344,13 @@ def _update_settings(settings: Settings, data: dict):
     settings.ot.online = ot_data.get("online", False)
     settings.ot.server = ot_data.get("server", "")
     settings.ot.api_key = ot_data.get("api_key", "")
+
+    api_data = data.get("api", {})
+    settings.api.enabled = api_data.get("enabled", False)
+    settings.api.base_url = api_data.get("base_url", DEFAULT_API_BASE_URL)
+    settings.api.key = api_data.get("key", "")
+    settings.api.model_4p = api_data.get("model_4p", "")
+    settings.api.model_3p = api_data.get("model_3p", "")
 
 
 def _save_settings(data: dict):

@@ -33,7 +33,7 @@
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.6.0",
     "@eslint/js": "^10.0.1",
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.4",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^13.0.0",

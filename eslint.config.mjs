@@ -8,7 +8,14 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/build/**', '**/venv/**', '**/.venv/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/build/**',
+      '**/target/**',
+      'packages/rust_engine/index.js',
+      'packages/rust_engine/index.d.ts',
+    ],
   },
 
   // ─── 基础规则（所有 TS/JS 文件） ───
@@ -42,7 +49,7 @@ export default defineConfig([
 
   // ─── Electron & Scripts（Node 环境） ───
   {
-    files: ['electron/**/*.{ts,tsx,mjs,js}', 'scripts/**/*.{ts,mjs,js}'],
+    files: ['packages/main/**/*.{ts,js}', 'scripts/**/*.{ts,mjs,js}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: { ...globals.node },
@@ -55,7 +62,7 @@ export default defineConfig([
 
   // ─── Frontend（React + Browser 环境） ───
   {
-    files: ['akagi_frontend/**/*.{ts,tsx}'],
+    files: ['packages/frontend/**/*.{ts,tsx}'],
     ...eslintReact.configs['recommended-typescript'],
     languageOptions: {
       ecmaVersion: 'latest',

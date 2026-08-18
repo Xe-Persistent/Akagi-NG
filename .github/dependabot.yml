@@ -26,30 +26,6 @@ updates:
           - minor
           - patch
 
-  # Python 后端依赖更新
-  - package-ecosystem: pip
-    directory: /akagi_backend
-    schedule:
-      interval: weekly
-      day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
-    labels:
-      - dependencies
-      - python
-    commit-message:
-      prefix: deps
-      include: scope
-    open-pull-requests-limit: 10
-    # 分组合并次要和补丁版本更新
-    groups:
-      python-dependencies:
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
-
   # Node.js 依赖更新
   - package-ecosystem: npm
     directory: /

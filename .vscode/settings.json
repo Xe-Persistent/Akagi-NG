@@ -5,11 +5,5 @@
     "source.fixAll.eslint": "explicit"
   },
   "eslint.workingDirectories": [{ "mode": "auto" }],
-  "css.lint.unknownAtRules": "ignore",
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    }
-  }
+  "css.lint.unknownAtRules": "ignore"
 }

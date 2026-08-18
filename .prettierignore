@@ -9,7 +9,7 @@ public/
 tmp/
 .env
 .env.*
-.venv/
-__pycache__/
-*.pth
+target/
+packages/rust_engine/index.js
+packages/rust_engine/index.d.ts
 package-lock.json

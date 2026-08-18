@@ -1,0 +1,197 @@
+import type { WebContents } from 'electron';
+
+import type { BackendManager } from './backend-manager.js';
+import { bridgeManager } from './bridge/manager.js';
+import { createLogger } from './logger.js';
+import type { AkagiEvent } from './schema/mjai.js';
+
+const logger = createLogger('GameHandler');
+
+export interface WebSocketCreatedEvent {
+  requestId: string;
+  url: string;
+}
+export interface WebSocketClosedEvent {
+  requestId: string;
+}
+export interface WebSocketFrameReceivedEvent {
+  requestId: string;
+  response?: {
+    payloadData?: string;
+    opcode?: number;
+  };
+}
+export interface WebSocketFrameSentEvent {
+  requestId: string;
+  response?: {
+    payloadData?: string;
+    opcode?: number;
+  };
+}
+
+export type BackendIngestPayload =
+  | {
+      source: 'electron';
+      type: 'debugger_detached';
+      reason: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket_created';
+      requestId: string;
+      url: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket_closed';
+      requestId: string;
+      time: number;
+    }
+  | {
+      source: 'electron';
+      type: 'websocket';
+      requestId: string;
+      direction: 'inbound' | 'outbound';
+      data: string;
+      opcode: number;
+      time: number;
+    };
+
+export class GameHandler {
+  private attached = false;
+  constructor(
+    private webContents: WebContents,
+    private backendManager: BackendManager,
+  ) {}
+
+  public async attach() {
+    if (this.attached || this.webContents.isDestroyed()) return;
+
+    try {
+      // 1. Listen for process issues
+      this.webContents.on('render-process-gone', (_event, details) => {
+        logger.error(`Renderer process gone: ${details.reason} (${details.exitCode})`);
+        this.attached = false;
+      });
+
+      this.webContents.on('did-start-navigation', (_event, url, isInPlace, isMainFrame) => {
+        if (isMainFrame && !isInPlace) {
+          logger.info(`Main frame navigating to: ${url}`);
+        }
+      });
+
+      // 2. Auto re-attach when page reloads or navigates
+      this.webContents.on('did-finish-load', async () => {
+        if (!this.attached && !this.webContents.isDestroyed()) {
+          setTimeout(() => this.tryAttach(), 500);
+        }
+      });
+
+      // 3. Initial attachment
+      await this.tryAttach();
+    } catch (err) {
+      logger.error('Failed to initialize GameHandler:', err);
+    }
+  }
+
+  private async tryAttach() {
+    if (this.attached || this.webContents.isDestroyed()) return;
+
+    try {
+      if (this.webContents.debugger.isAttached()) {
+        this.attached = true;
+        return;
+      }
+
+      this.webContents.debugger.attach('1.3');
+      this.attached = true;
+
+      this.webContents.debugger.removeAllListeners('detach');
+      this.webContents.debugger.removeAllListeners('message');
+
+      this.webContents.debugger.on('detach', (_event, reason) => {
+        logger.warn('Web debugger detached:', reason);
+        this.attached = false;
+      });
+
+      this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));
+
+      // Wrap command in try-catch to avoid crashing if target closes mid-flight
+      try {
+        await this.webContents.debugger.sendCommand('Network.enable');
+      } catch (cmdErr) {
+        logger.warn('Failed to enable network inspection for game window:', cmdErr);
+      }
+    } catch (e) {
+      const error = e as Error;
+      logger.error('Failed to attach web debugger to game window:', error.message);
+      this.attached = false;
+    }
+  }
+
+  public detach() {
+    if (this.attached) {
+      this.attached = false;
+      if (!this.webContents.isDestroyed()) {
+        try {
+          this.webContents.debugger.detach();
+        } catch {
+          // Ignore detach errors if target is already closed
+        }
+      }
+    }
+  }
+
+  private readonly cdpHandlers: ReadonlyMap<string, (params: never) => void> = new Map([
+    [
+      'Network.webSocketCreated',
+      (params: WebSocketCreatedEvent) => {
+        // Just calling getBridgeForUrl to initialize/switch the correct bridge internally
+        bridgeManager.getBridgeForUrl(params.url);
+      },
+    ],
+    ['Network.webSocketClosed', (_params: WebSocketClosedEvent) => {}],
+    [
+      'Network.webSocketFrameReceived',
+      (params: WebSocketFrameReceivedEvent) => {
+        this.handleWebSocketFrame(params);
+      },
+    ],
+    [
+      'Network.webSocketFrameSent',
+      (params: WebSocketFrameSentEvent) => {
+        this.handleWebSocketFrame(params);
+      },
+    ],
+  ] as Array<[string, (params: never) => void]>);
+
+  private async handleDebuggerMessage(_event: unknown, method: string, params: unknown) {
+    this.cdpHandlers.get(method)?.(params as never);
+  }
+
+  private handleWebSocketFrame(params: WebSocketFrameReceivedEvent | WebSocketFrameSentEvent) {
+    const { response } = params;
+
+    if (!response || !response.payloadData) {
+      return;
+    }
+
+    const bridge = bridgeManager.getCurrentBridge();
+    let parsedEvents: AkagiEvent[] = [];
+
+    if (bridge) {
+      try {
+        const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
+        parsedEvents = bridge.parse(buffer);
+      } catch (err) {
+        logger.error('Error parsing via TS bridge', err);
+      }
+    }
+
+    if (parsedEvents.length > 0) {
+      this.backendManager.ingest(parsedEvents);
+    }
+  }
+}

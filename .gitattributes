@@ -1,9 +1,6 @@
 # 强制所有文本文件使用 LF 行尾
 * text=auto eol=lf
 
-# Python 文件明确使用 LF
-*.py text eol=lf
-
 # 前端代码使用 LF
 *.js text eol=lf
 *.jsx text eol=lf
@@ -42,13 +39,12 @@
 *.zip binary
 *.gz binary
 *.tar binary
-*.whl binary
+*.node binary
 *.so binary
 *.dll binary
 *.dylib binary
 
 # 自动生成的文件
-*pb2.py linguist-generated=true
 package-lock.json linguist-generated=true
 
 # Git 配置文件在导出时忽略

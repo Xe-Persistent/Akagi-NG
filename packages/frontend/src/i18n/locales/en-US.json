@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "save": "Save Changes",
+    "discard": "Discard Changes",
+    "update_protocol": "Update Protocol",
+    "restore": "Restore Defaults",
+    "restore_confirm_title": "Restore Default Settings",
+    "restore_confirm_desc": "Are you sure you want to restore all settings to default values? This action cannot be undone.",
+    "general": {
+      "title": "General",
+      "locale": "Language",
+      "theme": "Theme",
+      "theme_system": "System",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
+      "log_level": "Log Level"
+    },
+    "connection": {
+      "title": "Game Connection",
+      "mode": "Connection Mode",
+      "mode_browser": "Internal Browser",
+      "game_url": "Game URL",
+      "majsoul_server": "Majsoul Server",
+      "majsoul_servers": {
+        "cn": "Chinese Server",
+        "jp": "Japanese Server",
+        "en": "English Server"
+      },
+      "mode_mitm": "External Proxy",
+      "mitm": {
+        "host": "Listen Address",
+        "port": "Listen Port",
+        "upstream": "Upstream Proxy (Optional)"
+      }
+    },
+    "server": {
+      "title": "Background Service",
+      "host": "Service Address",
+      "port": "Port"
+    },
+    "model_config": {
+      "title": "AI Model",
+      "mode_selection": "Model Select",
+      "model_4p": "4-Player Model",
+      "model_3p": "3-Player Model",
+      "temperature": "Temperature",
+      "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make confidences closer.",
+      "no_models_found": "No local models found",
+      "select_model": "Select Model"
+    },
+    "status_saved": "Save success.",
+    "status_saving": "Saving…",
+    "status_error": "Save failed.",
+    "restart_required": "Settings changed, Please restart the application to apply the changes.",
+    "restored_success": "Settings restored to defaults. Please restart the application to apply the changes.",
+    "loading": "Loading settings…",
+    "load_error_desc": "Could not load settings."
+  },
+  "common": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "error": "Error",
+    "connection_failed": "Connection Failed",
+    "close": "Close",
+    "exit_app": "Exit Application"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_game": "Launch Game",
+    "startup_failed": "Application startup failed",
+    "launch_error": "Could not retrieve game URL. Please check settings.",
+    "settings_title": "Akagi NG Settings",
+    "settings_desc": "Application Configuration Panel",
+    "standby": "Standby",
+    "standby_desc": "Waiting for game data, ready to provide play suggestions",
+    "hud_active": "HUD Mode Active",
+    "hud_desc": "AI play suggestions are shown in a dedicated HUD window",
+    "shutdown_confirm_title": "Confirm Shutdown",
+    "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
+    "stopped_title": "Application Stopped",
+    "stopped_desc": "Thank you for using Akagi NG."
+  },
+  "actions": {
+    "reach": "Reach",
+    "chi": "Chi",
+    "pon": "Pon",
+    "kan": "Kan",
+    "ron": "Ron",
+    "tsumo": "Tsumo",
+    "ryukyoku": "Draw",
+    "nukidora": "Kita",
+    "none": "Skip",
+    "discard": "Discard"
+  },
+  "status_messages": {
+    "client_connected": "Game connected.",
+    "game_connected": "Match connected. AI is ready.",
+    "model_loaded_local": "Local model loaded.",
+    "game_syncing": "Syncing match data…",
+    "majsoul_proto_updated": "Majsoul protocol updated successfully.",
+    "majsoul_proto_update_failed": "Failed to update Majsoul protocol.",
+    "riichi_simulation_failed": "Riichi simulation failed.",
+    "game_data_parse_failed": "Failed to parse match data.",
+    "game_disconnected": "Game connection lost. Check your network or refresh the page.",
+    "service_disconnected": "Service connection lost.",
+    "return_lobby": "Left the current match.",
+    "json_decode_error": "Failed to decode JSON data.",
+    "config_error": "Configuration Error",
+    "no_bot_loaded": "AI model not loaded.",
+    "model_load_failed": "Failed to load AI model.",
+    "bot_switch_failed": "Failed to switch AI model.",
+    "bot_runtime_error": "AI model runtime error",
+    "state_tracker_error": "Match state corrupted.",
+    "models_missing": "Local model files (models) are missing. The application cannot run without them."
+  }
+}

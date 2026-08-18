@@ -1,33 +1,19 @@
 .DS_Store
 Thumbs.db
 
-.aiassistant/
 .idea/
 .venv/
 build/
 /config/
 dist/
-lib/*
-!lib/LICENSE
-!lib/*-*.so
-!lib/*-*.pyd
 logs/
-models/*
-!models/LICENSE
-!models/mortal.pth
-!models/mortal3p.pth
 node_modules/
+target/
 tmp/
-
-__pycache__/
-*$py.class
-*.egg-info/
+*.node
 
 .coverage
 .coverage.*
 coverage.xml
 htmlcov/
 *.cover
-.hypothesis/
-.pytest_cache/
-.ruff_cache/

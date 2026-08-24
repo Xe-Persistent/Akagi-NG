@@ -23,7 +23,7 @@ dependencies = [
     "requests~=2.33.1",
     "jsonschema~=4.26.0",
     # Majsoul
-    "protobuf~=7.34.1",
+    "protobuf>=7.34.1,<7.37.0",
     # PyTorch
     "torch~=2.11.0",
     "numpy~=2.4.4",

@@ -20,22 +20,18 @@ import type {
 } from '../schema/mjai.js';
 
 export abstract class BaseBridge {
-  public seat: number = 0;
+  /** True while a reconnect replay is in progress; stamped on emitted events. */
   public syncing: boolean = false;
 
-  /**
-   * 重置 Bridge 状态。
-   */
   public reset(): void {
-    this.seat = 0;
     this.syncing = false;
   }
 
   /**
-   * 解析平台消息并返回 MJAI 指令列表。
+   * Parses a platform frame and returns the resulting mjai events.
    *
-   * @param content - 平台原始消息内容
-   * @returns MJAI 指令数组
+   * @param content - raw frame payload received from the game client
+   * @returns mjai events, possibly empty when the frame carries no game state
    */
   public abstract parse(content: Buffer): AkagiEvent[];
 

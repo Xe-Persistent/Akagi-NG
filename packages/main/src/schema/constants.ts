@@ -96,7 +96,4 @@ export const MahjongConstants = {
   DAIMINKAN_CONSUMED: 3, // 大明杠消耗的牌数
   ANKAN_TILES: 4, // 暗杠牌数
   KAKAN_CONSUMED: 3, // 加杠消耗的牌数
-
-  // 特殊状态
-  MIN_RIICHI_CANDIDATES: 5, // 立直前瞻候选数
 } as const;

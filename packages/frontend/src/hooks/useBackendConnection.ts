@@ -38,13 +38,7 @@ export function useBackendConnection(): UseBackendConnectionResult {
 
     const unsubStatus = window.electron.on('backend:status', (payload: unknown) => {
       const { status } = payload as { status: string };
-      if (status === 'disconnected' || status === 'error') {
-        setIsConnected(false);
-        setError('service_disconnected');
-      } else if (status === 'connected') {
-        setIsConnected(true);
-        setError(null);
-      }
+      setIsConnected(status === 'connected');
     });
 
     return () => {

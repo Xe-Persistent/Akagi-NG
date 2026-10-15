@@ -1,12 +1,16 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 
 import type { BackendManager } from './backend-manager.js';
+import { bridgeManager } from './bridge/manager.js';
 import { EXIT_ANIMATION_DELAY_MS } from './constants.js';
-import { createLogger } from './logger.js';
+import { createLogger, setLogLevel } from './logger.js';
 import type { MitmProxyManager } from './mitm-proxy.js';
 import type { AppSettings } from './settings-manager.js';
 import { settingsManager } from './settings-manager.js';
-import { isSafeWindow, safeSend } from './utils.js';
+import { getAssetPath, isSafeWindow, safeSend } from './utils.js';
 import type { WindowManager } from './window-manager.js';
 
 const logger = createLogger('IPC');
@@ -37,6 +41,10 @@ export function registerIpcHandlers(
         if (updates.mitm.enabled) {
           await mitmProxyManager.start();
         }
+      }
+
+      if (updates.log_level) {
+        setLogLevel(updates.log_level);
       }
 
       return { success: true };
@@ -103,16 +111,12 @@ export function registerIpcHandlers(
       const liqiText = await liqiRes.text();
 
       // Save liqi.json locally to assets/liqi.json
-      const { getAssetPath } = await import('./utils.js');
-      const { writeFile } = await import('node:fs/promises');
-      const { join } = await import('node:path');
       const assetsDir = getAssetPath('assets');
       const parsedLiqi = JSON.parse(liqiText);
       const prettyLiqiText = JSON.stringify(parsedLiqi, null, 2);
       await writeFile(join(assetsDir, 'liqi.json'), prettyLiqiText, 'utf8');
 
-      // Call bridgeManager to hot reload
-      const { bridgeManager } = await import('./bridge/manager.js');
+      // Reload the protocol inside the active bridge
       bridgeManager.hotReloadLiqi();
 
       logger.info('Updated liqi.json successfully.');

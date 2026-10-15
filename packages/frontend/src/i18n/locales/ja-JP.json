@@ -101,18 +101,12 @@
     "game_syncing": "対局データを同期中…",
     "majsoul_proto_updated": "雀魂プロトコルファイルの更新に成功しました。",
     "majsoul_proto_update_failed": "雀魂プロトコルファイルの更新に失敗しました。",
-    "riichi_simulation_failed": "立直シミュレーションに失敗しました。",
     "game_data_parse_failed": "対局データの解析に失敗しました。",
     "game_disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください。",
-    "service_disconnected": "サービスとの接続が切れました。",
     "return_lobby": "対局から退出しました。",
-    "json_decode_error": "JSONデータの解析に失敗しました。",
     "config_error": "設定エラー",
-    "no_bot_loaded": "AIモデルが読み込まれていません。",
     "model_load_failed": "AIモデルの読み込みに失敗しました。",
-    "bot_switch_failed": "AIモデルの切り替えに失敗しました。",
     "bot_runtime_error": "AIモデルの実行異常",
-    "state_tracker_error": "対局状態に異常が発生しました。",
     "models_missing": "ローカルモデルファイル (models) がありません。アプリケーションは動作できません。"
   }
 }

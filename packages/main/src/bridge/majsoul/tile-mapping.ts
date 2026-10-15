@@ -47,6 +47,20 @@ for (const [k, v] of Object.entries(MS_TILE_2_MJAI_TILE)) {
   MJAI_TILE_2_MS_TILE[v] = k;
 }
 
+/**
+ * 将雀魂牌码转换为 MJAI 牌码。
+ *
+ * 未知牌码会抛出异常 —— 雀魂协议里没有对应映射的牌是数据异常，
+ * 静默丢弃会让引擎拿到缺字段的事件并从此错位。
+ */
+export function toMjaiTile(tile: string): string {
+  const mapped = MS_TILE_2_MJAI_TILE[tile];
+  if (mapped === undefined) {
+    throw new Error(`Unknown Majsoul tile code: ${JSON.stringify(tile)}`);
+  }
+  return mapped;
+}
+
 // 优化排序查找字典
 export const PAI_ORDER_INDEX: Record<string, number> = {};
 MahjongConstants.PAI_ORDER.forEach((pai: string, i: number) => {

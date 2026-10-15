@@ -5,8 +5,9 @@ import { app, dialog } from 'electron';
 
 import { BackendManager } from './backend-manager.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
-import { createLogger, initializeLogger } from './logger.js';
+import { createLogger, flushLogs, initializeLogger } from './logger.js';
 import { MitmProxyManager } from './mitm-proxy.js';
+import { settingsManager } from './settings-manager.js';
 import { UpdaterManager } from './updater.js';
 import { getProjectRoot } from './utils.js';
 import { WindowManager } from './window-manager.js';
@@ -17,7 +18,7 @@ if (!gotTheLock) {
   app.exit(0);
 }
 
-initializeLogger(join(getProjectRoot(), 'logs'));
+initializeLogger(join(getProjectRoot(), 'logs'), settingsManager.getSettings().log_level);
 
 const logger = createLogger('Main');
 
@@ -94,6 +95,7 @@ app.on('before-quit', async (event) => {
     try {
       await mitmProxyManager.stop();
       await backendManager.stop();
+      await flushLogs();
     } catch (err) {
       logger.error('Error during shutdown:', err);
     } finally {

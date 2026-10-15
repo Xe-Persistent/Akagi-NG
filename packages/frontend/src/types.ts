@@ -66,7 +66,7 @@ export type PathValue<T, P extends readonly unknown[]> = P extends [infer K]
 
 export type Theme = 'light' | 'dark' | 'system';
 
-export type ConnectionErrorCode = 'config_error' | 'service_disconnected';
+export type ConnectionErrorCode = 'config_error';
 
 export interface ResourceStatus {
   models: boolean;

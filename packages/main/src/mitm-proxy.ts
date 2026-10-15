@@ -7,6 +7,7 @@ import * as mockttp from 'mockttp';
 
 import type { BackendManager } from './backend-manager.js';
 import { bridgeManager } from './bridge/manager.js';
+import { ConnectionTracker } from './connection-tracker.js';
 import { createLogger } from './logger.js';
 import type { AkagiEvent } from './schema/mjai.js';
 import { settingsManager } from './settings-manager.js';
@@ -17,10 +18,10 @@ const logger = createLogger('MITMProxy');
 export class MitmProxyManager {
   private server: Mockttp | null = null;
   private isRunning: boolean = false;
-  private backendManager: BackendManager;
+  private readonly connectionTracker: ConnectionTracker;
 
-  constructor(backendManager: BackendManager) {
-    this.backendManager = backendManager;
+  constructor(private backendManager: BackendManager) {
+    this.connectionTracker = new ConnectionTracker(backendManager);
   }
 
   /**
@@ -73,19 +74,29 @@ export class MitmProxyManager {
         cors: true,
       });
 
+      // Optionally chain game traffic through a user-configured upstream proxy
+      const upstream = settings.mitm.upstream?.trim();
+      const passThroughOptions = upstream
+        ? { proxyConfig: { proxyUrl: upstream, noProxy: ['127.0.0.1', 'localhost'] } }
+        : undefined;
+      if (upstream) {
+        logger.info(`Forwarding traffic through upstream proxy: ${upstream}`);
+      }
+
       // Pass through and hook all websockets
-      this.server.forAnyWebSocket().thenPassThrough();
+      this.server.forAnyWebSocket().thenPassThrough(passThroughOptions);
 
       this.server.on('websocket-request', async (req) => {
-        const isGame = this.isGameUrl(req.url);
-        if (isGame) {
-          logger.info(`[MITM] WebSocket connection requested: ${req.url}`);
-          bridgeManager.getBridgeForUrl(req.url);
-        }
+        if (!bridgeManager.isMajsoulUrl(req.url)) return;
+
+        logger.info(`[MITM] WebSocket connection requested: ${req.url}`);
+        bridgeManager.getBridgeForUrl(req.url);
+        this.connectionTracker.onConnectionOpened(req.id);
       });
 
-      this.server.on('websocket-close', async () => {
-        logger.info(`[MITM] WebSocket connection closed`);
+      this.server.on('websocket-close', async (close) => {
+        logger.info(`[MITM] WebSocket connection closed (${close.streamId})`);
+        this.connectionTracker.onConnectionClosed(close.streamId);
       });
 
       this.server.on('websocket-message-received', async (msg) => {
@@ -99,7 +110,7 @@ export class MitmProxyManager {
       });
 
       // Pass through other HTTP requests without interception
-      this.server.forAnyRequest().thenPassThrough();
+      this.server.forAnyRequest().thenPassThrough(passThroughOptions);
 
       await this.server.start(settings.mitm.port);
       this.isRunning = true;
@@ -113,33 +124,19 @@ export class MitmProxyManager {
     }
   }
 
-  private isGameUrl(url: string): boolean {
-    const lower = url.toLowerCase();
-    return lower.includes('majsoul') || lower.includes('maj-soul') || lower.includes('mahjongsoul');
-  }
-
   private async handleMessage(msg: mockttp.WebSocketMessage) {
     try {
-      let dataBuffer: Buffer;
-      if (typeof msg.content === 'string') {
-        dataBuffer = Buffer.from(msg.content, 'utf8');
-      } else {
-        dataBuffer = Buffer.from(msg.content);
-      }
-
       const bridge = bridgeManager.getCurrentBridge();
-      let parsedEvents: AkagiEvent[] = [];
+      if (!bridge) return;
 
-      if (bridge) {
-        try {
-          parsedEvents = bridge.parse(dataBuffer);
-        } catch (err) {
-          logger.error('Error parsing via TS bridge', err);
-        }
-      }
+      const dataBuffer =
+        typeof msg.content === 'string'
+          ? Buffer.from(msg.content, 'utf8')
+          : Buffer.from(msg.content);
 
+      const parsedEvents: AkagiEvent[] = bridge.parse(dataBuffer);
       if (parsedEvents.length > 0) {
-        this.backendManager.ingest(parsedEvents);
+        await this.backendManager.ingest(parsedEvents);
       }
     } catch (err) {
       logger.error('Failed to process WebSocket message:', err);
@@ -149,6 +146,7 @@ export class MitmProxyManager {
   public async stop() {
     if (!this.isRunning || !this.server) return;
     logger.info('Stopping MITM Proxy...');
+    this.connectionTracker.forceDisconnect();
     try {
       await this.server.stop();
       this.server = null;

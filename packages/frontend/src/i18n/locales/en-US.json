@@ -101,18 +101,12 @@
     "game_syncing": "Syncing match data…",
     "majsoul_proto_updated": "Majsoul protocol updated successfully.",
     "majsoul_proto_update_failed": "Failed to update Majsoul protocol.",
-    "riichi_simulation_failed": "Riichi simulation failed.",
     "game_data_parse_failed": "Failed to parse match data.",
     "game_disconnected": "Game connection lost. Check your network or refresh the page.",
-    "service_disconnected": "Service connection lost.",
     "return_lobby": "Left the current match.",
-    "json_decode_error": "Failed to decode JSON data.",
     "config_error": "Configuration Error",
-    "no_bot_loaded": "AI model not loaded.",
     "model_load_failed": "Failed to load AI model.",
-    "bot_switch_failed": "Failed to switch AI model.",
     "bot_runtime_error": "AI model runtime error",
-    "state_tracker_error": "Match state corrupted.",
     "models_missing": "Local model files (models) are missing. The application cannot run without them."
   }
 }

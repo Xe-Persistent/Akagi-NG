@@ -21,97 +21,129 @@ export interface LiqiMessage {
   data: Record<string, unknown>;
 }
 
-export interface ProtoJSON {
+/** A decoded top-level protobuf field of a liqi frame payload. */
+export type LiqiBlock =
+  | { kind: 'varint'; id: number; begin: number; value: number }
+  | { kind: 'bytes'; id: number; begin: number; bytes: Buffer };
+
+interface LiqiRpcDescriptor {
+  requestType: string;
+  responseType?: string;
+}
+
+/** Shape of the protobuf-JS descriptor tree shipped as `assets/liqi.json`. */
+interface LiqiJson {
   nested: Record<
     string,
     {
       nested: Record<
         string,
         {
-          methods: Record<
-            string,
-            {
-              requestType: string;
-              responseType: string;
-            }
-          >;
+          methods: Record<string, LiqiRpcDescriptor>;
         }
       >;
     }
   >;
 }
 
-const keys = [0x84, 0x5e, 0x4e, 0x42, 0x39, 0xa2, 0x1f, 0x60, 0x1c];
+/**
+ * XOR key schedule used by the Majsoul client to scramble protobuf payloads.
+ * Mirrors the client's own obfuscation; do not reorder.
+ */
+const WRAPPER_XOR_KEYS = [0x84, 0x5e, 0x4e, 0x42, 0x39, 0xa2, 0x1f, 0x60, 0x1c];
 
 export function decodeWrapper(data: Uint8Array): Uint8Array {
   const result = new Uint8Array(data.length);
   for (let i = 0; i < data.length; i++) {
-    const u = ((23 ^ data.length) + 5 * i + keys[i % keys.length]) & 255;
+    const u = ((23 ^ data.length) + 5 * i + WRAPPER_XOR_KEYS[i % WRAPPER_XOR_KEYS.length]) & 255;
     result[i] = data[i] ^ u;
   }
   return result;
 }
 
-export function parseVarint(buf: Buffer, p: number): [number, number] {
-  let data = 0;
-  let base = 0;
+export function parseVarint(buf: Buffer, position: number): [number, number] {
+  let value = 0;
+  let multiplier = 1;
+  let p = position;
+
   while (p < buf.length) {
-    data += (buf[p] & 127) << base;
-    base += 7;
+    const byte = buf[p];
+    // Arithmetic instead of `<<` so varints wider than 28 bits stay exact
+    // (JS bitwise operators are 32-bit, Python's are arbitrary precision).
+    value += (byte & 0x7f) * multiplier;
+    multiplier *= 128;
     p++;
-    if (buf[p - 1] >> 7 === 0) {
-      break;
-    }
+    if ((byte & 0x80) === 0) break;
   }
-  return [data, p];
+
+  return [value, p];
 }
 
-export function fromProtobuf(
-  buf: Buffer,
-): Array<{ id: number; type: string; data: unknown; begin: number }> {
+export function fromProtobuf(buf: Buffer): LiqiBlock[] {
+  const blocks: LiqiBlock[] = [];
   let p = 0;
-  const result = [];
+
   while (p < buf.length) {
-    const blockBegin = p;
+    const begin = p;
     const blockType = buf[p] & 7;
     const blockId = buf[p] >> 3;
     p++;
 
-    let blockTypeStr: string;
-    let data: unknown;
     if (blockType === LiqiProtocolConstants.BLOCK_TYPE_VARINT) {
-      blockTypeStr = 'varint';
-      const parsed = parseVarint(buf, p);
-      data = parsed[0];
-      p = parsed[1];
+      const [value, nextPosition] = parseVarint(buf, p);
+      blocks.push({ kind: 'varint', id: blockId, begin, value });
+      p = nextPosition;
     } else if (blockType === LiqiProtocolConstants.BLOCK_TYPE_STRING) {
-      blockTypeStr = 'string';
-      const parsed = parseVarint(buf, p);
-      const sLen = parsed[0];
-      p = parsed[1];
-      data = buf.subarray(p, p + sLen);
-      p += sLen;
+      const [length, nextPosition] = parseVarint(buf, p);
+      const bytes = buf.subarray(nextPosition, nextPosition + length);
+      blocks.push({ kind: 'bytes', id: blockId, begin, bytes });
+      p = nextPosition + length;
     } else {
-      throw new Error(`unknown pb block type: ${blockType}`);
+      throw new Error(`Unknown protobuf block type: ${blockType}`);
     }
-
-    result.push({
-      id: blockId,
-      type: blockTypeStr,
-      data,
-      begin: blockBegin,
-    });
   }
-  return result;
+
+  return blocks;
+}
+
+/**
+ * Recursively converts `snake_case` object keys to `camelCase`.
+ *
+ * `protobufjs`'s `toObject` returns the descriptor field names (`is_liqi`,
+ * `seat_list`, ...) while the game logic is written against the camelCase JSON
+ * names the Python reference implementation received; normalizing here keeps
+ * that contract in one place.
+ */
+function toCamelCase(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => toCamelCase(item));
+  }
+
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Buffer.isBuffer(value) &&
+    !(value instanceof Uint8Array)
+  ) {
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      result[key.replace(/_([a-z0-9])/g, (_, char: string) => char.toUpperCase())] =
+        toCamelCase(item);
+    }
+    return result;
+  }
+
+  return value;
 }
 
 export class LiqiProto {
   private root!: protobuf.Root;
-  private resType: Record<number, [string, protobuf.Type]> = {};
-  public msgId = 1;
-  public parsedMsgCount = 0;
-  public lastHeartbeatTime = 0;
-  private jsonProto!: ProtoJSON;
+  private jsonProto!: LiqiJson;
+  /** msg_id of in-flight requests, needed to find the response type. */
+  private readonly pendingRequests = new Map<
+    number,
+    { method: string; responseType: protobuf.Type | null }
+  >();
 
   constructor() {
     this.reloadLiqi();
@@ -119,161 +151,159 @@ export class LiqiProto {
 
   public reloadLiqi() {
     const liqiPath = getAssetPath('assets', 'liqi.json');
-    const content = readFileSync(liqiPath, 'utf-8');
-    this.jsonProto = JSON.parse(content);
-    this.root = protobuf.Root.fromJSON(this.jsonProto);
-    this.init();
+    this.jsonProto = JSON.parse(readFileSync(liqiPath, 'utf-8')) as LiqiJson;
+    this.root = protobuf.Root.fromJSON(this.jsonProto as protobuf.INamespace);
+    this.pendingRequests.clear();
     logger.info('Liqi protocol successfully loaded/reloaded.');
   }
 
-  public init() {
-    this.msgId = 1;
-    this.resType = {};
-  }
-
   public getMessageClass(name: string): protobuf.Type | null {
-    try {
-      return this.root.lookupType(`lq.${name}`);
-    } catch {
-      logger.warn(`Message type ${name} not found in protocol`);
-      return null;
+    const found = this.root.lookup(`lq.${name}`);
+    if (found instanceof protobuf.Type) {
+      return found;
     }
+
+    logger.warn(`Message type ${name} not found in protocol`);
+    return null;
   }
 
   public parseWrapper(
     name: string,
-    data: Uint8Array | Buffer,
+    data: Uint8Array,
     useXor = true,
   ): Record<string, unknown> | null {
     const cls = this.getMessageClass(name);
     if (!cls) return null;
 
-    const rawData = useXor ? decodeWrapper(data as Uint8Array) : (data as Uint8Array);
-    const msg = cls.decode(rawData);
-    return cls.toObject(msg, { defaults: true, arrays: true, objects: true });
+    const rawData = useXor ? decodeWrapper(data) : data;
+    return this.decodeMessage(cls, rawData);
   }
 
-  private parseNotify(
-    msgBlock: Array<{ id: number; type: string; data: unknown; begin: number }>,
-  ): [string, Record<string, unknown>] {
-    const methodName = (msgBlock[0].data as Buffer).toString('utf8');
-    const parts = methodName.split('.');
-    const messageName = parts[parts.length - 1];
-
-    const msgCls = this.getMessageClass(messageName);
-    if (!msgCls) {
-      throw new Error(`Unknown Notify Message: ${messageName}`);
-    }
-
-    const msg = msgCls.decode(msgBlock[1].data as Uint8Array);
-
-    if (messageName === 'ActionPrototype' || (msg.name && msg.data)) {
-      const innerName = msg.name as string;
-      const innerDict = this.parseWrapper(innerName, msg.data as Uint8Array, true);
-      if (innerDict !== null) {
-        const resDict: Record<string, unknown> = { name: innerName, data: innerDict };
-        if (msg.step !== undefined) resDict.step = msg.step;
-        return [methodName, resDict];
-      }
-    }
-
-    return [methodName, msgCls.toObject(msg, { defaults: true, arrays: true, objects: true })];
-  }
-
-  private parseRequest(
-    msgId: number,
-    msgBlock: Array<{ id: number; type: string; data: unknown; begin: number }>,
-  ): [string, Record<string, unknown>] {
-    if (msgId >= 1 << 16) throw new Error(`msg_id ${msgId} exceeds max value`);
-    if (msgBlock.length !== LiqiProtocolConstants.MSG_BLOCK_SIZE) {
-      throw new Error(`Invalid msg_block size: ${msgBlock.length}`);
-    }
-
-    if (this.resType[msgId]) {
-      logger.debug(`Duplicate msg_id ${msgId}, overwriting previous request`);
-      delete this.resType[msgId];
-    }
-
-    const methodName = (msgBlock[0].data as Buffer).toString('utf8');
-    const parts = methodName.split('.');
-    const lq = parts[1];
-    const service = parts[2];
-    const rpc = parts[3];
-
-    if (service === 'Route' && rpc === 'heartbeat') {
-      this.lastHeartbeatTime = Date.now() / 1000;
-    }
-
-    const protoDomain = this.jsonProto.nested[lq].nested[service].methods[rpc];
-    const reqCls = this.getMessageClass(protoDomain.requestType);
-    if (!reqCls) {
-      throw new Error(`Unknown Request Message: ${protoDomain.requestType}`);
-    }
-
-    const msg = reqCls.decode(msgBlock[1].data as Uint8Array);
-    const dictObj = reqCls.toObject(msg, { defaults: true, arrays: true, objects: true });
-
-    const resCls = this.getMessageClass(protoDomain.responseType);
-    if (resCls) {
-      this.resType[msgId] = [methodName, resCls];
-    }
-    this.msgId = msgId;
-    return [methodName, dictObj];
-  }
-
-  private parseResponse(
-    msgId: number,
-    msgBlock: Array<{ id: number; type: string; data: unknown; begin: number }>,
-  ): [string, Record<string, unknown>] {
-    if ((msgBlock[0].data as Buffer).length !== LiqiProtocolConstants.EMPTY_DATA_LEN) {
-      throw new Error(
-        `Response first block not empty, got ${(msgBlock[0].data as Buffer).length} bytes`,
-      );
-    }
-    if (!this.resType[msgId]) {
-      throw new Error(`Response msg_id ${msgId} not found in pending requests`);
-    }
-
-    const [methodName, resCls] = this.resType[msgId];
-    delete this.resType[msgId];
-
-    const msg = resCls.decode(msgBlock[1].data as Uint8Array);
-    const dictObj = resCls.toObject(msg, { defaults: true, arrays: true, objects: true });
-    return [methodName, dictObj];
+  /** Decodes a message into a plain object with camelCase keys. */
+  private decodeMessage(type: protobuf.Type, bytes: Uint8Array): Record<string, unknown> {
+    const message = type.decode(bytes);
+    const plain = type.toObject(message, { defaults: true, arrays: true, objects: true });
+    return toCamelCase(plain) as Record<string, unknown>;
   }
 
   public parse(buf: Buffer): LiqiMessage | null {
     let msgId = -1;
+
     try {
       const msgType = buf[0] as MsgType;
-      let methodName = '';
-      let dictObj: Record<string, unknown> = {};
+      let method: string;
+      let data: Record<string, unknown>;
 
       if (msgType === MsgType.Notify) {
-        const msgBlock = fromProtobuf(buf.subarray(1));
-        [methodName, dictObj] = this.parseNotify(msgBlock);
-        msgId = -1;
-      } else {
+        [method, data] = this.parseNotify(fromProtobuf(buf.subarray(1)));
+      } else if (msgType === MsgType.Req || msgType === MsgType.Res) {
         msgId = buf.readUInt16LE(1);
-        const msgBlock = fromProtobuf(buf.subarray(3));
-        if (msgType === MsgType.Req) {
-          this.msgId = msgId;
-          [methodName, dictObj] = this.parseRequest(msgId, msgBlock);
-        } else if (msgType === MsgType.Res) {
-          [methodName, dictObj] = this.parseResponse(msgId, msgBlock);
-        } else {
-          logger.warn(`unknown msg type: ${msgType}`);
-          return null;
-        }
+        const blocks = fromProtobuf(buf.subarray(3));
+        [method, data] =
+          msgType === MsgType.Req
+            ? this.parseRequest(msgId, blocks)
+            : this.parseResponse(msgId, blocks);
+      } else {
+        logger.warn(`Unknown liqi msg type: ${msgType}`);
+        return null;
       }
 
-      this.parsedMsgCount++;
-      return { id: msgId, type: msgType, method: methodName, data: dictObj };
+      return { id: msgId, type: msgType, method, data };
     } catch (e) {
       logger.debug(
         `Decode skipped: ${e instanceof Error ? e.message : String(e)} (msg_id: ${msgId}, type: ${buf[0]})`,
       );
       return null;
     }
+  }
+
+  private parseNotify(blocks: LiqiBlock[]): [string, Record<string, unknown>] {
+    const methodName = this.readBytes(blocks, 0).toString('utf8');
+    const messageName = methodName.split('.').pop() ?? methodName;
+
+    const msgCls = this.getMessageClass(messageName);
+    if (!msgCls) {
+      throw new Error(`Unknown Notify Message: ${messageName}`);
+    }
+
+    const payload = this.readBytes(blocks, 1);
+    const msg = msgCls.decode(payload);
+
+    // ActionPrototype wraps the real action in a (name, data) pair.
+    if (messageName === 'ActionPrototype' || (msg.name && msg.data)) {
+      const innerName = msg.name as string;
+      const innerDict = this.parseWrapper(innerName, msg.data as Uint8Array);
+      if (innerDict !== null) {
+        const result: Record<string, unknown> = { name: innerName, data: innerDict };
+        if (msg.step !== undefined) result.step = msg.step;
+        return [methodName, result];
+      }
+    }
+
+    return [methodName, this.decodeMessage(msgCls, payload)];
+  }
+
+  private parseRequest(msgId: number, blocks: LiqiBlock[]): [string, Record<string, unknown>] {
+    if (msgId >= 1 << 16) throw new Error(`msg_id ${msgId} exceeds max value`);
+    if (blocks.length !== LiqiProtocolConstants.MSG_BLOCK_SIZE) {
+      throw new Error(`Invalid msg_block size: ${blocks.length}`);
+    }
+
+    const methodName = this.readBytes(blocks, 0).toString('utf8');
+    const descriptor = this.lookupRpc(methodName);
+    if (!descriptor) {
+      throw new Error(`Unknown RPC method: ${methodName}`);
+    }
+
+    if (this.pendingRequests.has(msgId)) {
+      logger.debug(`Duplicate msg_id ${msgId}, overwriting previous request`);
+    }
+
+    const requestType = this.getMessageClass(descriptor.requestType);
+    if (!requestType) {
+      throw new Error(`Unknown Request Message: ${descriptor.requestType}`);
+    }
+
+    const data = this.decodeMessage(requestType, this.readBytes(blocks, 1));
+
+    this.pendingRequests.set(msgId, {
+      method: methodName,
+      responseType: descriptor.responseType ? this.getMessageClass(descriptor.responseType) : null,
+    });
+
+    return [methodName, data];
+  }
+
+  private parseResponse(msgId: number, blocks: LiqiBlock[]): [string, Record<string, unknown>] {
+    if (this.readBytes(blocks, 0).length !== LiqiProtocolConstants.EMPTY_DATA_LEN) {
+      throw new Error('Response first block not empty');
+    }
+
+    const pending = this.pendingRequests.get(msgId);
+    if (!pending) {
+      throw new Error(`Response msg_id ${msgId} not found in pending requests`);
+    }
+    this.pendingRequests.delete(msgId);
+
+    if (!pending.responseType) {
+      throw new Error(`Unknown Response Message: ${pending.method}`);
+    }
+
+    const data = this.decodeMessage(pending.responseType, this.readBytes(blocks, 1));
+    return [pending.method, data];
+  }
+
+  private lookupRpc(methodName: string): LiqiRpcDescriptor | null {
+    // RPC names look like '.lq.FastTest.authGame'
+    const [, namespace, service, rpc] = methodName.split('.');
+    return this.jsonProto.nested[namespace]?.nested[service]?.methods[rpc] ?? null;
+  }
+
+  private readBytes(blocks: LiqiBlock[], index: number): Buffer {
+    const block = blocks[index];
+    if (!block || block.kind !== 'bytes') {
+      throw new Error(`Expected bytes block at index ${index}`);
+    }
+    return block.bytes;
   }
 }

@@ -2,6 +2,7 @@ import type { WebContents } from 'electron';
 
 import type { BackendManager } from './backend-manager.js';
 import { bridgeManager } from './bridge/manager.js';
+import { ConnectionTracker } from './connection-tracker.js';
 import { createLogger } from './logger.js';
 import type { AkagiEvent } from './schema/mjai.js';
 
@@ -61,10 +62,14 @@ export type BackendIngestPayload =
 
 export class GameHandler {
   private attached = false;
+  private readonly connectionTracker: ConnectionTracker;
+
   constructor(
     private webContents: WebContents,
     private backendManager: BackendManager,
-  ) {}
+  ) {
+    this.connectionTracker = new ConnectionTracker(backendManager);
+  }
 
   public async attach() {
     if (this.attached || this.webContents.isDestroyed()) return;
@@ -74,6 +79,7 @@ export class GameHandler {
       this.webContents.on('render-process-gone', (_event, details) => {
         logger.error(`Renderer process gone: ${details.reason} (${details.exitCode})`);
         this.attached = false;
+        this.connectionTracker.forceDisconnect();
       });
 
       this.webContents.on('did-start-navigation', (_event, url, isInPlace, isMainFrame) => {
@@ -132,6 +138,7 @@ export class GameHandler {
   }
 
   public detach() {
+    this.connectionTracker.forceDisconnect();
     if (this.attached) {
       this.attached = false;
       if (!this.webContents.isDestroyed()) {
@@ -148,11 +155,17 @@ export class GameHandler {
     [
       'Network.webSocketCreated',
       (params: WebSocketCreatedEvent) => {
-        // Just calling getBridgeForUrl to initialize/switch the correct bridge internally
-        bridgeManager.getBridgeForUrl(params.url);
+        // Only Majsoul sockets are tracked; other page sockets are ignored.
+        if (!bridgeManager.getBridgeForUrl(params.url)) return;
+        this.connectionTracker.onConnectionOpened(params.requestId);
       },
     ],
-    ['Network.webSocketClosed', (_params: WebSocketClosedEvent) => {}],
+    [
+      'Network.webSocketClosed',
+      (params: WebSocketClosedEvent) => {
+        this.connectionTracker.onConnectionClosed(params.requestId);
+      },
+    ],
     [
       'Network.webSocketFrameReceived',
       (params: WebSocketFrameReceivedEvent) => {
@@ -179,19 +192,18 @@ export class GameHandler {
     }
 
     const bridge = bridgeManager.getCurrentBridge();
-    let parsedEvents: AkagiEvent[] = [];
+    if (!bridge) return;
 
-    if (bridge) {
-      try {
-        const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
-        parsedEvents = bridge.parse(buffer);
-      } catch (err) {
-        logger.error('Error parsing via TS bridge', err);
-      }
-    }
+    try {
+      const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
+      const parsedEvents: AkagiEvent[] = bridge.parse(buffer);
+      if (parsedEvents.length === 0) return;
 
-    if (parsedEvents.length > 0) {
-      this.backendManager.ingest(parsedEvents);
+      this.backendManager.ingest(parsedEvents).catch((err: unknown) => {
+        logger.error('Failed to ingest parsed events:', err);
+      });
+    } catch (err) {
+      logger.error('Error parsing via TS bridge', err);
     }
   }
 }

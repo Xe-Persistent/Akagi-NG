@@ -39,28 +39,12 @@ type ReplaceableConfig = BaseStatusUIConfig & {
 export type StatusUIConfig = EphemeralConfig | PersistentConfig | ReplaceableConfig;
 
 export const STATUS_UI_MAP = {
-  // JSON数据解析错误
-  json_decode_error: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.RUNTIME,
-    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
-    autoHide: TOAST_DURATION_DEFAULT,
-  },
-
-  // Bot 错误
-  no_bot_loaded: {
+  // 引擎错误
+  model_load_failed: {
     level: STATUS_LEVEL.ERROR,
     placement: STATUS_PLACEMENT.TOAST,
     domain: STATUS_DOMAIN.MODEL,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
-  },
-  bot_switch_failed: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.MODEL,
-    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
-    autoHide: TOAST_DURATION_DEFAULT,
   },
   bot_runtime_error: {
     level: STATUS_LEVEL.ERROR,
@@ -69,21 +53,6 @@ export const STATUS_UI_MAP = {
     lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
     autoHide: TOAST_DURATION_DEFAULT,
   },
-  state_tracker_error: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.RUNTIME,
-    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
-    autoHide: TOAST_DURATION_DEFAULT,
-  },
-
-  // 模型加载失败
-  model_load_failed: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.MODEL,
-    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
-  },
   // 配置文件错误
   config_error: {
     level: STATUS_LEVEL.ERROR,
@@ -91,21 +60,8 @@ export const STATUS_UI_MAP = {
     domain: STATUS_DOMAIN.RUNTIME,
     lifecycle: STATUS_LIFECYCLE.PERSISTENT,
   },
-  // 服务断开连接
-  service_disconnected: {
-    level: STATUS_LEVEL.ERROR,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.CONNECTION,
-    lifecycle: STATUS_LIFECYCLE.PERSISTENT,
-  },
+
   // 警告
-  riichi_simulation_failed: {
-    level: STATUS_LEVEL.WARNING,
-    placement: STATUS_PLACEMENT.TOAST,
-    domain: STATUS_DOMAIN.GAME,
-    lifecycle: STATUS_LIFECYCLE.EPHEMERAL,
-    autoHide: TOAST_DURATION_SHORT,
-  },
   game_data_parse_failed: {
     level: STATUS_LEVEL.WARNING,
     placement: STATUS_PLACEMENT.TOAST,

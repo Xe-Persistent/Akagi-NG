@@ -3,9 +3,20 @@ import { appendFileSync, createWriteStream, existsSync, mkdirSync } from 'node:f
 import { readdir, stat, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
-type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+type LogLevel = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+
+/** Accepts the level names used by the settings file (WARNING == WARN). */
+const LEVEL_RANKS: Record<string, number> = {
+  TRACE: 10,
+  DEBUG: 20,
+  INFO: 30,
+  WARN: 40,
+  WARNING: 40,
+  ERROR: 50,
+};
 
 export interface Logger {
+  trace(message: string, ...args: unknown[]): void;
   debug(message: string, ...args: unknown[]): void;
   info(message: string, ...args: unknown[]): void;
   warn(message: string, ...args: unknown[]): void;
@@ -16,8 +27,24 @@ let fileStream: WriteStream | null = null;
 let logFilePath: string = '';
 let currentBytesWritten = 0;
 let currentLogsDir = '';
+let currentLevelRank = LEVEL_RANKS.INFO;
 
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Sets the minimum level written to the log file. Mirrors the `log_level`
+ * setting; unknown values keep the current level.
+ */
+export function setLogLevel(level: string) {
+  const rank = LEVEL_RANKS[level?.toUpperCase?.() ?? ''];
+  if (rank !== undefined) {
+    currentLevelRank = rank;
+  }
+}
+
+function isLevelEnabled(level: LogLevel): boolean {
+  return LEVEL_RANKS[level] >= currentLevelRank;
+}
 
 // 保存原始的 console 方法引用
 const originalConsole = {
@@ -64,7 +91,9 @@ function formatLogLine(level: LogLevel, module: string, message: string, args: u
   return `${timeStr} | ${level.padEnd(5)} | ${module} | ${message}${formattedArgs}\n`;
 }
 
-function writeToFile(line: string) {
+function writeToFile(level: LogLevel, line: string) {
+  if (!isLevelEnabled(level)) return;
+
   if (fileStream) {
     fileStream.write(line);
     currentBytesWritten += Buffer.byteLength(line, 'utf8');
@@ -114,33 +143,38 @@ function patchConsole() {
   };
 
   console.log = (message?: unknown, ...args: unknown[]) => {
+    if (!isLevelEnabled('INFO')) return;
     originalConsole.log(message, ...args);
     const { module, cleanMsg } = parseModule(message, 'Electron');
-    writeToFile(formatLogLine('INFO', module, cleanMsg, args));
+    writeToFile('INFO', formatLogLine('INFO', module, cleanMsg, args));
   };
 
   console.info = (message?: unknown, ...args: unknown[]) => {
+    if (!isLevelEnabled('INFO')) return;
     originalConsole.info(message, ...args);
     const { module, cleanMsg } = parseModule(message, 'Electron');
-    writeToFile(formatLogLine('INFO', module, cleanMsg, args));
+    writeToFile('INFO', formatLogLine('INFO', module, cleanMsg, args));
   };
 
   console.warn = (message?: unknown, ...args: unknown[]) => {
+    if (!isLevelEnabled('WARN')) return;
     originalConsole.warn(message, ...args);
     const { module, cleanMsg } = parseModule(message, 'Electron');
-    writeToFile(formatLogLine('WARN', module, cleanMsg, args));
+    writeToFile('WARN', formatLogLine('WARN', module, cleanMsg, args));
   };
 
   console.error = (message?: unknown, ...args: unknown[]) => {
+    if (!isLevelEnabled('ERROR')) return;
     originalConsole.error(message, ...args);
     const { module, cleanMsg } = parseModule(message, 'Electron');
-    writeToFile(formatLogLine('ERROR', module, cleanMsg, args));
+    writeToFile('ERROR', formatLogLine('ERROR', module, cleanMsg, args));
   };
 
   console.debug = (message?: unknown, ...args: unknown[]) => {
+    if (!isLevelEnabled('DEBUG')) return;
     originalConsole.debug(message, ...args);
     const { module, cleanMsg } = parseModule(message, 'Electron');
-    writeToFile(formatLogLine('DEBUG', module, cleanMsg, args));
+    writeToFile('DEBUG', formatLogLine('DEBUG', module, cleanMsg, args));
   };
 }
 
@@ -170,9 +204,13 @@ async function cleanupOldLogs(logsDir: string) {
 /**
  * 初始化日志系统（必须在应用程序生命周期尽早调用）
  */
-export function initializeLogger(logsDir: string) {
+export function initializeLogger(logsDir: string, level?: string) {
   if (!existsSync(logsDir)) {
     mkdirSync(logsDir, { recursive: true });
+  }
+
+  if (level) {
+    setLogLevel(level);
   }
 
   currentLogsDir = logsDir;
@@ -181,16 +219,26 @@ export function initializeLogger(logsDir: string) {
   // 1. 注入补丁
   patchConsole();
 
-  // 2. 注册优雅退出处理器
+  // 2. 注册优雅退出处理器（beforeExit 里可以等待 flush，exit 只作兜底）
+  process.on('beforeExit', () => {
+    void flushLogs();
+  });
   process.on('exit', () => {
-    if (fileStream) {
-      fileStream.end();
-      fileStream = null;
-    }
+    fileStream?.end();
+    fileStream = null;
   });
 
   // 3. 异步清理旧日志
   cleanupOldLogs(logsDir);
+}
+
+/** Closes the log stream, waiting for buffered lines to be flushed. */
+export async function flushLogs(): Promise<void> {
+  const stream = fileStream;
+  if (!stream) return;
+
+  fileStream = null;
+  await new Promise<void>((resolve) => stream.end(() => resolve()));
 }
 
 /**
@@ -198,21 +246,30 @@ export function initializeLogger(logsDir: string) {
  */
 export function createLogger(module: string): Logger {
   return {
-    debug: (message: string, ...args: unknown[]) => {
+    trace: (message: string, ...args: unknown[]) => {
+      if (!isLevelEnabled('TRACE')) return;
       originalConsole.debug(`[${module}] ${message}`, ...args);
-      writeToFile(formatLogLine('DEBUG', module, message, args));
+      writeToFile('TRACE', formatLogLine('TRACE', module, message, args));
+    },
+    debug: (message: string, ...args: unknown[]) => {
+      if (!isLevelEnabled('DEBUG')) return;
+      originalConsole.debug(`[${module}] ${message}`, ...args);
+      writeToFile('DEBUG', formatLogLine('DEBUG', module, message, args));
     },
     info: (message: string, ...args: unknown[]) => {
+      if (!isLevelEnabled('INFO')) return;
       originalConsole.info(`[${module}] ${message}`, ...args);
-      writeToFile(formatLogLine('INFO', module, message, args));
+      writeToFile('INFO', formatLogLine('INFO', module, message, args));
     },
     warn: (message: string, ...args: unknown[]) => {
+      if (!isLevelEnabled('WARN')) return;
       originalConsole.warn(`[${module}] ${message}`, ...args);
-      writeToFile(formatLogLine('WARN', module, message, args));
+      writeToFile('WARN', formatLogLine('WARN', module, message, args));
     },
     error: (message: string, ...args: unknown[]) => {
+      if (!isLevelEnabled('ERROR')) return;
       originalConsole.error(`[${module}] ${message}`, ...args);
-      writeToFile(formatLogLine('ERROR', module, message, args));
+      writeToFile('ERROR', formatLogLine('ERROR', module, message, args));
     },
   };
 }

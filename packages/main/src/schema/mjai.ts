@@ -2,13 +2,6 @@
  * 通知代码常量定义。
  */
 export enum NotificationCode {
-  // 引擎元数据
-  ENGINE_TYPE = 'engine_type',
-  MODEL_LOADED_LOCAL = 'model_loaded_local',
-
-  // Bot 功能状态通知
-  RIICHI_SIM_FAILED = 'riichi_simulation_failed',
-
   // 游戏事件通知
   CLIENT_CONNECTED = 'client_connected',
   GAME_CONNECTED = 'game_connected',
@@ -18,14 +11,11 @@ export enum NotificationCode {
 
   // 数据处理错误
   PARSE_ERROR = 'game_data_parse_failed',
-  JSON_DECODE_ERROR = 'json_decode_error',
 
-  // Bot 错误
-  NO_BOT_LOADED = 'no_bot_loaded',
-  BOT_SWITCH_FAILED = 'bot_switch_failed',
+  // 引擎错误
+  MODEL_LOADED_LOCAL = 'model_loaded_local',
   MODEL_LOAD_FAILED = 'model_load_failed',
   BOT_RUNTIME_ERROR = 'bot_runtime_error',
-  STATE_TRACKER_ERROR = 'state_tracker_error',
 }
 
 export type Actor = number;

@@ -102,6 +102,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::needless_range_loop)] // the point of the test is the position in the table
     fn compact_map_drops_manzu_2_to_8() {
         assert_eq!(TILE34_TO_COMPACT[0], Some(0)); // 1m
         for t in 1..=7 {

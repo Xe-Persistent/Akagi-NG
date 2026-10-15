@@ -114,6 +114,9 @@ pub struct EncInput {
 
 impl EncInput {
     /// Encode into a channel-major `[C, T]` f32 buffer.
+    // The redundant casts below are upstream's; the attribute keeps this file
+    // byte-comparable with Akagi's `native_bot`.
+    #[allow(clippy::unnecessary_cast)]
     pub fn encode(&self) -> Vec<f32> {
         let np = self.num_players;
         let t = tile_dim(np);

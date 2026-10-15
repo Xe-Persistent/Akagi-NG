@@ -27,7 +27,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "typecheck": "npm exec --workspaces -- tsc --noEmit --pretty"
+    "typecheck": "tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.26.5",

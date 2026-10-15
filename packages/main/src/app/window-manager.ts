@@ -3,6 +3,7 @@ import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from
 import { createLogger } from '../logging/index.js';
 import type { BackendManager } from '../services/backend-manager.js';
 import { GameHandler } from '../services/capture/game-handler.js';
+import { forwardRendererConsole } from '../services/renderer-console.js';
 import {
   DASHBOARD_WINDOW_HEIGHT,
   DASHBOARD_WINDOW_MIN_HEIGHT,
@@ -146,6 +147,8 @@ export class WindowManager {
       this.dashboardWindow?.show();
     });
 
+    forwardRendererConsole(this.dashboardWindow, 'Dashboard');
+
     const isDev = !app.isPackaged;
 
     if (isDev) {
@@ -252,6 +255,8 @@ export class WindowManager {
 
     // Enforce 16:9 aspect ratio natively
     this.hudWindow.setAspectRatio(16 / 9);
+
+    forwardRendererConsole(this.hudWindow, 'HUD');
 
     // Save position whenever user moves it
     this.hudWindow.on('moved', () => {

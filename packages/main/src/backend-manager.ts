@@ -196,6 +196,10 @@ export class BackendManager {
   private isDecisionPoint(ev: AkagiEvent): boolean {
     if (ev.type === 'tsumo' && ev.actor === this.playerId) return true;
     if (ev.type === 'dahai' && ev.actor !== this.playerId) return true;
+    // A chi/pon leaves us on turn with no draw, so the discard has to be
+    // recommended right away; no later event triggers it.
+    if (ev.type === 'chi' || ev.type === 'pon') return true;
+    // Someone else's kakan can be robbed; after our own we draw and discard.
     if (ev.type === 'kakan' || ev.type === 'nukidora') return true;
     return false;
   }

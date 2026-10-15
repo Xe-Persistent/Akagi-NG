@@ -1,0 +1,10 @@
+{
+  "issuer": "chs_t",
+  "productVersion": "4.0.47",
+  "bundleHash": "32a94aec59119f2bc06bb675989674a810cdeaa7",
+  "modules": 11,
+  "messages": 1123,
+  "enums": 2,
+  "methods": 443,
+  "extractedAt": "2026-10-15T12:31:21.347Z"
+}

@@ -19,7 +19,7 @@ use riichienv_core::rule::GameRule;
 use riichienv_core::state::GameState;
 use riichienv_core::state_3p::GameState3P;
 
-use crate::action_codec::{pick_by_logits, rank_by_logits};
+use crate::action_codec::rank_by_logits;
 use crate::adapt::{obs_and_legal_3p, obs_and_legal_4p};
 use crate::mjai_compat::{parse_line, sanitize_3p};
 use crate::model::Model;
@@ -27,6 +27,10 @@ use crate::model::Model;
 /// How many ranked candidates the engine surfaces for the HUD's multi-row
 /// recommendation card (top-N by policy probability).
 const SHOW_TOP_N: usize = 3;
+
+/// How many riichi-discard candidates the lookahead surfaces. Mirrors the
+/// candidate row the HUD renders under a `reach` recommendation.
+const LOOKAHEAD_TOP_N: usize = 5;
 
 /// A schema-agnostic bot reply, ready to be mapped to Akagi's `MjaiEvent`.
 /// All tiles are mjai strings (e.g. `"5mr"`, `"P"`).
@@ -90,6 +94,20 @@ pub struct Decision {
     pub candidates: Vec<(BotAction, f32)>,
     /// Raw action logits (indexed by the mode's action space).
     pub logits: Vec<f32>,
+    /// Riichi lookahead: the discards the model would pick right after
+    /// declaring riichi, best first. Only filled when riichi is one of
+    /// `candidates`, so the extra forward pass is never paid otherwise.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub riichi_lookahead: Vec<LookaheadCandidate>,
+}
+
+/// A tile the model would discard if it declared riichi right now.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LookaheadCandidate {
+    /// mjai tile string, e.g. `"5mr"`.
+    pub pai: String,
+    /// Policy probability of that discard, softmaxed over the riichi discards.
+    pub prob: f32,
 }
 
 enum Backend {
@@ -197,47 +215,78 @@ impl Engine {
     /// legal action (not our turn / nothing to respond to).
     pub fn decide(&mut self) -> Result<Option<Decision>> {
         let seat = self.seat;
-        let (mut ranked, logits, last_discarder, drawn, reach_pai) = match &mut self.backend {
-            Backend::Four { state, model } => {
-                // `last_discard` is `(discarder_pid, tile)`.
-                let last_discarder = state.last_discard.map(|(pid, _tile)| pid);
-                let drawn = state.drawn_tile;
-                let (obs, legal) = obs_and_legal_4p(state, seat);
-                if legal.is_empty() {
-                    return Ok(None);
+        let (mut ranked, logits, last_discarder, drawn, reach_pai, reach_ranked) =
+            match &mut self.backend {
+                Backend::Four { state, model } => {
+                    // `last_discard` is `(discarder_pid, tile)`.
+                    let last_discarder = state.last_discard.map(|(pid, _tile)| pid);
+                    let drawn = state.drawn_tile;
+                    let (obs, legal) = obs_and_legal_4p(state, seat);
+                    if legal.is_empty() {
+                        return Ok(None);
+                    }
+                    let logits = model.forward_logits(&obs)?;
+                    let ranked = rank_by_logits(&legal, &logits, 4, SHOW_TOP_N);
+                    let Some((top, _)) = ranked.first() else {
+                        return Ok(None);
+                    };
+                    let offers_reach = ranked
+                        .iter()
+                        .any(|(a, _)| a.action_type == ActionType::Riichi);
+                    let reach_ranked = if offers_reach {
+                        rank_reach_discards(state, model, seat, 4)
+                    } else {
+                        Vec::new()
+                    };
+                    let reach_pai = if top.action_type == ActionType::Riichi {
+                        reach_ranked.first().map(|(tile, _)| *tile)
+                    } else {
+                        None
+                    };
+                    (
+                        ranked,
+                        logits,
+                        last_discarder,
+                        drawn,
+                        reach_pai,
+                        reach_ranked,
+                    )
                 }
-                let logits = model.forward_logits(&obs)?;
-                let ranked = rank_by_logits(&legal, &logits, 4, SHOW_TOP_N);
-                let Some((top, _)) = ranked.first() else {
-                    return Ok(None);
-                };
-                let reach_pai = if top.action_type == ActionType::Riichi {
-                    predict_reach_discard(state, model, seat, 4)
-                } else {
-                    None
-                };
-                (ranked, logits, last_discarder, drawn, reach_pai)
-            }
-            Backend::Three { state, model } => {
-                let last_discarder = state.last_discard.map(|(pid, _tile)| pid);
-                let drawn = state.drawn_tile;
-                let (obs, legal) = obs_and_legal_3p(state, seat);
-                if legal.is_empty() {
-                    return Ok(None);
+                Backend::Three { state, model } => {
+                    let last_discarder = state.last_discard.map(|(pid, _tile)| pid);
+                    let drawn = state.drawn_tile;
+                    let (obs, legal) = obs_and_legal_3p(state, seat);
+                    if legal.is_empty() {
+                        return Ok(None);
+                    }
+                    let logits = model.forward_logits(&obs)?;
+                    let ranked = rank_by_logits(&legal, &logits, 3, SHOW_TOP_N);
+                    let Some((top, _)) = ranked.first() else {
+                        return Ok(None);
+                    };
+                    let offers_reach = ranked
+                        .iter()
+                        .any(|(a, _)| a.action_type == ActionType::Riichi);
+                    let reach_ranked = if offers_reach {
+                        rank_reach_discards_3p(state, model, seat)
+                    } else {
+                        Vec::new()
+                    };
+                    let reach_pai = if top.action_type == ActionType::Riichi {
+                        reach_ranked.first().map(|(tile, _)| *tile)
+                    } else {
+                        None
+                    };
+                    (
+                        ranked,
+                        logits,
+                        last_discarder,
+                        drawn,
+                        reach_pai,
+                        reach_ranked,
+                    )
                 }
-                let logits = model.forward_logits(&obs)?;
-                let ranked = rank_by_logits(&legal, &logits, 3, SHOW_TOP_N);
-                let Some((top, _)) = ranked.first() else {
-                    return Ok(None);
-                };
-                let reach_pai = if top.action_type == ActionType::Riichi {
-                    predict_reach_discard_3p(state, model, seat)
-                } else {
-                    None
-                };
-                (ranked, logits, last_discarder, drawn, reach_pai)
-            }
-        };
+            };
 
         // An mjai `reach` must name the discard or autoplay stalls (Majsoul fuses
         // declaring and discarding into one click). If the riichi-discard
@@ -258,6 +307,13 @@ impl Engine {
             action,
             candidates,
             logits,
+            riichi_lookahead: reach_ranked
+                .into_iter()
+                .map(|(tile, prob)| LookaheadCandidate {
+                    pai: tid_to_mjai(tile),
+                    prob,
+                })
+                .collect(),
         }))
     }
 
@@ -268,12 +324,12 @@ impl Engine {
     pub fn reach_discard(&mut self) -> Option<String> {
         let seat = self.seat;
         match &mut self.backend {
-            Backend::Four { state, model } => {
-                predict_reach_discard(state, model, seat, 4).map(tid_to_mjai)
-            }
-            Backend::Three { state, model } => {
-                predict_reach_discard_3p(state, model, seat).map(tid_to_mjai)
-            }
+            Backend::Four { state, model } => rank_reach_discards(state, model, seat, 4)
+                .first()
+                .map(|(tile, _)| tid_to_mjai(*tile)),
+            Backend::Three { state, model } => rank_reach_discards_3p(state, model, seat)
+                .first()
+                .map(|(tile, _)| tid_to_mjai(*tile)),
         }
     }
 }
@@ -299,34 +355,56 @@ fn build_candidates(
         .collect()
 }
 
-/// Predict the tile we'd discard on a riichi declaration, by advancing a clone
-/// past the reach and asking the model for the (riichi-legal) discard.
-fn predict_reach_discard(state: &GameState, model: &Model, seat: u8, np: u8) -> Option<u8> {
+/// Rank the discards the model would pick **right after declaring riichi**, best
+/// first. The reach is applied to a clone, so the live game state is untouched
+/// and one forward pass is all this costs — the engine equivalent of Akagi-NG's
+/// old LookaheadBot, which forked a bot and replayed the whole hand to get here.
+fn rank_reach_discards(state: &GameState, model: &Model, seat: u8, np: u8) -> Vec<(u8, f32)> {
     let mut clone = state.clone();
     clone.apply_mjai_event(MjaiEvent::Reach {
         actor: seat as usize,
     });
     let (obs, legal) = obs_and_legal_4p(&mut clone, seat);
     if legal.is_empty() {
-        return None;
+        return Vec::new();
     }
-    let logits = model.forward_logits(&obs).ok()?;
-    let a = pick_by_logits(&legal, &logits, np)?;
-    a.tile
+    match model.forward_logits(&obs) {
+        Ok(logits) => lookahead_from_ranked(rank_all_legal(&legal, &logits, np)),
+        Err(_) => Vec::new(),
+    }
 }
 
-fn predict_reach_discard_3p(state: &GameState3P, model: &Model, seat: u8) -> Option<u8> {
+fn rank_reach_discards_3p(state: &GameState3P, model: &Model, seat: u8) -> Vec<(u8, f32)> {
     let mut clone = state.clone();
     clone.apply_mjai_event(MjaiEvent::Reach {
         actor: seat as usize,
     });
     let (obs, legal) = obs_and_legal_3p(&mut clone, seat);
     if legal.is_empty() {
-        return None;
+        return Vec::new();
     }
-    let logits = model.forward_logits(&obs).ok()?;
-    let a = pick_by_logits(&legal, &logits, 3)?;
-    a.tile
+    match model.forward_logits(&obs) {
+        Ok(logits) => lookahead_from_ranked(rank_all_legal(&legal, &logits, 3)),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Every legal action of the post-reach state, ranked by policy probability.
+fn rank_all_legal(legal: &[Action], logits: &[f32], num_players: u8) -> Vec<(Action, f32)> {
+    rank_by_logits(legal, logits, num_players, legal.len())
+}
+
+/// Keep the actual discards, best first: a riichi turn can also offer a pass or
+/// a call in principle, and those are not tiles the HUD can render.
+fn lookahead_from_ranked(ranked: Vec<(Action, f32)>) -> Vec<(u8, f32)> {
+    ranked
+        .into_iter()
+        .filter_map(|(a, prob)| match a.action_type {
+            ActionType::Discard => a.tile.map(|tile| (tile, prob)),
+            _ => None,
+        })
+        .take(LOOKAHEAD_TOP_N)
+        .collect()
 }
 
 /// Turn a riichienv `Action` (plus the little bit of table context the reply
@@ -579,19 +657,18 @@ mod tests {
 
         let mut saw_pon = false;
         for (a, _) in &d.candidates {
-            match a {
-                BotAction::Pon { target, .. }
-                | BotAction::Chi { target, .. }
-                | BotAction::Daiminkan { target, .. }
-                | BotAction::Hora { target } => {
-                    assert_eq!(
-                        *target, 1,
-                        "target must be the discarder's seat, got {target}"
-                    );
-                    saw_pon |= matches!(a, BotAction::Pon { .. });
-                }
-                _ => {}
-            }
+            let (action, target) = match a {
+                BotAction::Pon { target, .. } => ("pon", *target),
+                BotAction::Chi { target, .. } => ("chi", *target),
+                BotAction::Daiminkan { target, .. } => ("daiminkan", *target),
+                BotAction::Hora { target } => ("hora", *target),
+                _ => continue,
+            };
+            assert_eq!(
+                target, 1,
+                "{action} target must be the discarder's seat, got {target}"
+            );
+            saw_pon |= action == "pon";
         }
         assert!(
             saw_pon,
@@ -642,5 +719,145 @@ mod tests {
         eng.feed(ev(r#"{"type":"tsumo","actor":0,"pai":"9p"}"#));
         let d = eng.decide().expect("forward pass");
         assert!(d.is_some(), "our own draw is a decision point");
+    }
+
+    // ---------- riichi lookahead ----------
+
+    /// The lookahead row only ever holds discards, in rank order, capped at
+    /// `LOOKAHEAD_TOP_N`: the HUD renders tiles, never passes or calls.
+    #[test]
+    fn lookahead_keeps_the_best_discards() {
+        let ranked = vec![
+            (act(ActionType::Discard, Some(4), vec![]), 0.30),
+            (act(ActionType::Pass, None, vec![]), 0.20),
+            (act(ActionType::Discard, Some(8), vec![]), 0.15),
+            (act(ActionType::Ankan, None, vec![0, 1, 2, 3]), 0.10),
+            (act(ActionType::Discard, Some(12), vec![]), 0.08),
+        ];
+        assert_eq!(
+            lookahead_from_ranked(ranked),
+            vec![(4, 0.30), (8, 0.15), (12, 0.08)]
+        );
+
+        let many: Vec<(Action, f32)> = (0..10u8)
+            .map(|tile| (act(ActionType::Discard, Some(tile), vec![]), 0.1))
+            .collect();
+        assert_eq!(lookahead_from_ranked(many).len(), LOOKAHEAD_TOP_N);
+    }
+
+    /// Riichi lookahead end to end: when riichi is on offer, the decision also
+    /// carries the ranked discards the model would make *after* declaring it —
+    /// computed on a state clone, so the live game must stay untouched (applying
+    /// the reach for real would corrupt the table).
+    #[test]
+    fn riichi_lookahead_matches_the_predicted_discard() {
+        // 4 sets + tanki on 6p: drawing 9p leaves a hand where riichi is a
+        // natural option, and the discard choice is what the lookahead ranks.
+        let ours = r#"["1m","2m","3m","4m","5m","6m","7m","8m","9m","2p","3p","4p","6p"]"#;
+        let other = r#"["1m","2m","3m","4m","5m","6m","7m","8m","9m","1p","2p","3p","4p"]"#;
+        let mut eng = crate::defaults::engine(4, 0).expect("bundled 4p weights");
+        eng.feed(ev(r#"{"type":"start_game","names":["a","b","c","d"]}"#));
+        eng.feed(ev(&format!(
+            r#"{{"type":"start_kyoku","bakaze":"E","dora_marker":"2m","kyoku":1,"honba":0,
+                 "kyotaku":0,"oya":1,"scores":[25000,25000,25000,25000],
+                 "tehais":[{ours},{other},{other},{other}]}}"#
+        )));
+        eng.feed(ev(r#"{"type":"tsumo","actor":0,"pai":"9p"}"#));
+
+        let first = eng
+            .decide()
+            .expect("forward pass")
+            .expect("our own draw is a decision point");
+        let offers_reach = first
+            .candidates
+            .iter()
+            .any(|(a, _)| matches!(a, BotAction::Reach { .. }));
+        assert!(
+            offers_reach,
+            "fixture invalid: the model offers no riichi here ({:?})",
+            first.candidates.iter().map(|(a, _)| a).collect::<Vec<_>>()
+        );
+
+        assert!(
+            !first.riichi_lookahead.is_empty(),
+            "a reach whose discard cannot be named would have been dropped"
+        );
+        assert!(
+            first.riichi_lookahead.len() <= LOOKAHEAD_TOP_N,
+            "the lookahead row must respect the HUD's candidate count"
+        );
+        assert!(
+            first
+                .riichi_lookahead
+                .windows(2)
+                .all(|w| w[0].prob >= w[1].prob),
+            "lookahead candidates must be ranked by probability: {:?}",
+            first.riichi_lookahead
+        );
+        // Every candidate has to be a tile we actually hold.
+        let hand: Vec<String> = serde_json::from_str::<Vec<String>>(ours)
+            .expect("valid hand")
+            .into_iter()
+            .chain(std::iter::once("9p".to_string()))
+            .collect();
+        for candidate in &first.riichi_lookahead {
+            assert!(
+                hand.contains(&candidate.pai),
+                "lookahead suggests {} which is not in hand {hand:?}",
+                candidate.pai
+            );
+        }
+
+        // A top-ranked reach names the discard the lookahead ranked first.
+        if let Some((BotAction::Reach { pai }, _)) = first.candidates.first() {
+            assert_eq!(*pai, first.riichi_lookahead[0].pai);
+            assert_eq!(eng.reach_discard().as_deref(), Some(pai.as_str()));
+        }
+
+        // `decide()` is read-only: simulating the reach on a clone must not have
+        // applied it to the live state.
+        let second = eng.decide().expect("forward pass").expect("still our turn");
+        assert_eq!(second.action, first.action);
+        assert_eq!(
+            second
+                .riichi_lookahead
+                .iter()
+                .map(|c| c.pai.clone())
+                .collect::<Vec<_>>(),
+            first
+                .riichi_lookahead
+                .iter()
+                .map(|c| c.pai.clone())
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    /// The lookahead costs a forward pass, so it must stay empty whenever riichi
+    /// is not offered — e.g. on an opponent's discard we can only call or pass.
+    #[test]
+    fn no_lookahead_without_a_reach_candidate() {
+        let ours = r#"["9s","9s","1m","2m","3m","4m","5m","6m","7m","8m","9m","1p","2p"]"#;
+        let other = r#"["1m","2m","3m","4m","5m","6m","7m","8m","9m","1p","2p","3p","4p"]"#;
+        let mut eng = crate::defaults::engine(4, 0).expect("bundled 4p weights");
+        eng.feed(ev(r#"{"type":"start_game","names":["a","b","c","d"]}"#));
+        eng.feed(ev(&format!(
+            r#"{{"type":"start_kyoku","bakaze":"E","dora_marker":"2m","kyoku":1,"honba":0,
+                 "kyotaku":0,"oya":0,"scores":[25000,25000,25000,25000],
+                 "tehais":[{ours},{other},{other},{other}]}}"#
+        )));
+        eng.feed(ev(r#"{"type":"tsumo","actor":1,"pai":"9s"}"#));
+        eng.feed(ev(
+            r#"{"type":"dahai","actor":1,"pai":"9s","tsumogiri":true}"#,
+        ));
+
+        let d = eng
+            .decide()
+            .expect("forward pass")
+            .expect("a pon window is a decision point");
+        assert!(
+            d.riichi_lookahead.is_empty(),
+            "no reach on offer, yet the lookahead was computed: {:?}",
+            d.riichi_lookahead
+        );
     }
 }

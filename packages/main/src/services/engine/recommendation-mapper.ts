@@ -2,6 +2,12 @@ import { createLogger } from '../../logging/index.js';
 
 const logger = createLogger('Recommendation');
 
+/**
+ * How many riichi-lookahead tiles the HUD shows. The engine ranks more, but the
+ * candidate row is sized for this many tiles.
+ */
+const RIICHI_LOOKAHEAD_CANDIDATES = 5;
+
 /** An engine action as serialized by the Rust `BotAction` enum. */
 export interface EngineAction {
   type: string;
@@ -11,10 +17,18 @@ export interface EngineAction {
   tsumogiri?: boolean;
 }
 
+/** A tile the engine would discard right after declaring riichi. */
+export interface RiichiLookaheadCandidate {
+  pai: string;
+  prob: number;
+}
+
 export interface EngineDecision {
   action: EngineAction;
   candidates: [EngineAction, number][];
   logits: number[];
+  /** Present only when riichi is one of the candidates. */
+  riichi_lookahead?: RiichiLookaheadCandidate[];
 }
 
 /**
@@ -26,6 +40,14 @@ export interface Recommendation {
   action: string;
   tile?: string;
   consumed?: string[];
+  confidence: number;
+  /** Riichi lookahead: the discards the model would pick after declaring. */
+  sim_candidates?: SimCandidate[];
+}
+
+/** One entry of the riichi lookahead row the HUD renders under `reach`. */
+export interface SimCandidate {
+  tile: string;
   confidence: number;
 }
 
@@ -42,8 +64,39 @@ export function mapDecisionToRecommendations(
   decision: EngineDecision,
   context: DecisionContext,
 ): Recommendation[] {
-  return decision.candidates.map(([action, confidence]) =>
+  const recommendations = decision.candidates.map(([action, confidence]) =>
     toRecommendation(action, confidence, context),
+  );
+
+  attachRiichiLookahead(recommendations, decision.riichi_lookahead);
+  return recommendations;
+}
+
+/**
+ * Riichi lookahead: a `reach` recommendation carries the discards the model
+ * would pick after declaring riichi, so the HUD can show what the hand becomes
+ * instead of only naming the declaration.
+ */
+function attachRiichiLookahead(
+  recommendations: Recommendation[],
+  lookahead: RiichiLookaheadCandidate[] | undefined,
+): void {
+  if (!lookahead || lookahead.length === 0) return;
+
+  const candidates = lookahead
+    .filter((candidate) => candidate.pai)
+    .slice(0, RIICHI_LOOKAHEAD_CANDIDATES)
+    .map((candidate) => ({ tile: candidate.pai, confidence: candidate.prob }));
+  if (candidates.length === 0) return;
+
+  const reach = recommendations.find((recommendation) => recommendation.action === 'reach');
+  if (!reach) return;
+
+  reach.sim_candidates = candidates;
+  logger.debug(
+    `Riichi lookahead: ${candidates
+      .map((candidate) => `${candidate.tile}(${candidate.confidence.toFixed(3)})`)
+      .join(' ')}`,
   );
 }
 

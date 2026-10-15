@@ -12,6 +12,9 @@ pub mod obs;
 pub mod replay;
 pub mod tiles;
 
+#[cfg(test)]
+pub mod defaults;
+
 use napi::bindgen_prelude::*;
 
 /// Feature-plane and action-space geometry for a given player count.

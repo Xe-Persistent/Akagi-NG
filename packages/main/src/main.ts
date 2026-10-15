@@ -5,7 +5,7 @@ import { app, dialog } from 'electron';
 
 import { BackendManager } from './backend-manager.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
-import { createLogger, flushLogs, initializeLogger } from './logger.js';
+import { createLogger, initializeLogger } from './logger.js';
 import { MitmProxyManager } from './mitm-proxy.js';
 import { settingsManager } from './settings-manager.js';
 import { UpdaterManager } from './updater.js';
@@ -95,7 +95,6 @@ app.on('before-quit', async (event) => {
     try {
       await mitmProxyManager.stop();
       await backendManager.stop();
-      await flushLogs();
     } catch (err) {
       logger.error('Error during shutdown:', err);
     } finally {

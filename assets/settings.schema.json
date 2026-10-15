@@ -12,9 +12,9 @@
   "properties": {
     "log_level": {
       "type": "string",
-      "enum": ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"],
-      "default": "INFO",
-      "description": "Logging level."
+      "enum": ["verbose", "debug", "info", "warn", "error"],
+      "default": "info",
+      "description": "Logging level, using electron-log's level names."
     },
     "locale": {
       "type": "string",

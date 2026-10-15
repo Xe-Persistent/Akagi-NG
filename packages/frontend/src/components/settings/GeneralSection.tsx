@@ -70,11 +70,11 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
             <SelectValue placeholder='Select level' />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value='TRACE'>TRACE</SelectItem>
-            <SelectItem value='DEBUG'>DEBUG</SelectItem>
-            <SelectItem value='INFO'>INFO</SelectItem>
-            <SelectItem value='WARNING'>WARNING</SelectItem>
-            <SelectItem value='ERROR'>ERROR</SelectItem>
+            <SelectItem value='verbose'>VERBOSE</SelectItem>
+            <SelectItem value='debug'>DEBUG</SelectItem>
+            <SelectItem value='info'>INFO</SelectItem>
+            <SelectItem value='warn'>WARN</SelectItem>
+            <SelectItem value='error'>ERROR</SelectItem>
           </SelectContent>
         </Select>
       </SettingsItem>

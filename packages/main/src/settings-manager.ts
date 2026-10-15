@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -12,11 +12,6 @@ import { getGameUrl, MAJSOUL_SERVERS } from './schema/platforms.js';
 import { getProjectRoot } from './utils.js';
 
 const logger = createLogger('Settings');
-
-const LEGACY_MODEL_NAMES: Record<string, string> = {
-  'mortal.pth': 'akagi4p.safetensors',
-  'mortal3p.pth': 'akagi3p.safetensors',
-};
 
 export interface MITMConfig {
   enabled: boolean;
@@ -48,55 +43,9 @@ function detectSystemLocale(): string {
   return 'en-US';
 }
 
-/**
- * Drops keys that are no longer in the schema (previously `platform`, `ot`,
- * Python-era `server`, ...) and remaps legacy Mortal model filenames, so that
- * electron-store's `additionalProperties: false` validation accepts config
- * files written by older versions.
- */
-function migrateLegacyConfigFile(
-  configDir: string,
-  schemaProperties: Record<string, unknown> | undefined,
-) {
-  const configPath = join(configDir, 'settings.json');
-  if (!existsSync(configPath)) return;
-
-  try {
-    const raw = JSON.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
-    let changed = false;
-
-    if (schemaProperties) {
-      for (const key of Object.keys(raw)) {
-        if (!(key in schemaProperties)) {
-          delete raw[key];
-          changed = true;
-        }
-      }
-    }
-
-    const modelConfig = raw.model_config as Record<string, unknown> | undefined;
-    if (modelConfig) {
-      for (const key of ['model_4p', 'model_3p']) {
-        const value = modelConfig[key];
-        if (typeof value === 'string' && value in LEGACY_MODEL_NAMES) {
-          modelConfig[key] = LEGACY_MODEL_NAMES[value];
-          changed = true;
-        }
-      }
-    }
-
-    if (changed) {
-      writeFileSync(configPath, JSON.stringify(raw, null, '\t') + '\n');
-      logger.info('Migrated legacy settings file to the current schema');
-    }
-  } catch (err) {
-    logger.error('Failed to migrate legacy settings file:', err);
-  }
-}
-
 function getDefaultSettings(): AppSettings {
   return {
-    log_level: 'INFO',
+    log_level: 'info',
     locale: detectSystemLocale(),
     game_url: getGameUrl(MAJSOUL_SERVERS.CN),
     majsoul_server: MAJSOUL_SERVERS.CN,
@@ -131,13 +80,12 @@ export class SettingsManager {
     }
 
     const configDir = join(getProjectRoot(), 'config');
-    migrateLegacyConfigFile(configDir, schemaOptions);
 
     try {
       this.store = this.createStore(configDir, schemaOptions);
     } catch (err) {
-      // A config file that still fails validation (e.g. hand-edited) would
-      // crash the app on boot; back it up and regenerate from defaults.
+      // An unreadable config (hand-edited, or written by another version)
+      // would crash the app on boot; back it up and start from defaults.
       logger.error('Invalid settings file, regenerating from defaults:', err);
       const configPath = join(configDir, 'settings.json');
       if (existsSync(configPath)) {

@@ -27,6 +27,8 @@ export interface EngineDecision {
   action: EngineAction;
   candidates: [EngineAction, number][];
   logits: number[];
+  /** True when the legal set held a single action, i.e. the decision is forced. */
+  forced?: boolean;
   /** Present only when riichi is one of the candidates. */
   riichi_lookahead?: RiichiLookaheadCandidate[];
 }

@@ -41,7 +41,7 @@ app.on('second-instance', () => {
     if (!mainWindow.isVisible()) mainWindow.show();
     mainWindow.focus();
   } else {
-    windowManager.createDashboardWindow();
+    void windowManager.createDashboardWindow();
   }
 });
 
@@ -65,13 +65,13 @@ app.whenReady().then(async () => {
   windowManager.setupTray(() => updaterManager.checkForUpdates());
 
   // 3. Create Dashboard Window
-  windowManager.createDashboardWindow();
+  void windowManager.createDashboardWindow();
 
   // 4. Setup Auto Updater
   updaterManager.checkForUpdates();
 
   app.on('activate', () => {
-    windowManager.createDashboardWindow();
+    void windowManager.createDashboardWindow();
   });
 });
 

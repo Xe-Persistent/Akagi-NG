@@ -1,12 +1,15 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { getProjectRoot } from '../shared/paths.js';
+
 export interface ResourceStatus {
   models: boolean;
   missingCritical: string[];
   missingOptional: string[];
 }
 
+/** Checks that the model files the app needs are present next to the executable. */
 export class ResourceValidator {
   constructor(private projectRoot: string) {}
 
@@ -29,3 +32,5 @@ export class ResourceValidator {
     }
   }
 }
+
+export const resourceValidator = new ResourceValidator(getProjectRoot());

@@ -3,7 +3,7 @@ import type { WebContents } from 'electron';
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import type { AkagiEvent } from '../../shared/schema/mjai.js';
-import type { BackendManager } from '../backend-manager.js';
+import type { EngineService } from '../engine/engine-service.js';
 import { ConnectionTracker } from './connection-tracker.js';
 
 const logger = createLogger('GameHandler');
@@ -30,45 +30,15 @@ export interface WebSocketFrameSentEvent {
   };
 }
 
-export type BackendIngestPayload =
-  | {
-      source: 'electron';
-      type: 'debugger_detached';
-      reason: string;
-      time: number;
-    }
-  | {
-      source: 'electron';
-      type: 'websocket_created';
-      requestId: string;
-      url: string;
-      time: number;
-    }
-  | {
-      source: 'electron';
-      type: 'websocket_closed';
-      requestId: string;
-      time: number;
-    }
-  | {
-      source: 'electron';
-      type: 'websocket';
-      requestId: string;
-      direction: 'inbound' | 'outbound';
-      data: string;
-      opcode: number;
-      time: number;
-    };
-
 export class GameHandler {
   private attached = false;
   private readonly connectionTracker: ConnectionTracker;
 
   constructor(
     private webContents: WebContents,
-    private backendManager: BackendManager,
+    private engine: EngineService,
   ) {
-    this.connectionTracker = new ConnectionTracker(backendManager);
+    this.connectionTracker = new ConnectionTracker(engine);
   }
 
   public async attach() {
@@ -199,7 +169,7 @@ export class GameHandler {
       const parsedEvents: AkagiEvent[] = bridge.parse(buffer);
       if (parsedEvents.length === 0) return;
 
-      this.backendManager.ingest(parsedEvents).catch((err: unknown) => {
+      this.engine.ingest(parsedEvents).catch((err: unknown) => {
         logger.error('Failed to ingest parsed events:', err);
       });
     } catch (err) {

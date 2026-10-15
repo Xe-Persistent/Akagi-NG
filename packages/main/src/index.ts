@@ -7,8 +7,8 @@ import { registerIpcHandlers } from './app/ipc-handlers.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
 import { createLogger, initializeLogger } from './logging/index.js';
-import { BackendManager } from './services/backend-manager.js';
 import { MitmProxyManager } from './services/capture/mitm-proxy.js';
+import { EngineService } from './services/engine/engine-service.js';
 import { settingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
 
@@ -26,10 +26,12 @@ logger.info(`Starting Akagi-NG Desktop v${app.getVersion()}...`);
 logger.info(`System: ${os.type()} ${os.release()} (${os.arch()})`);
 logger.info(`Node.js: ${process.versions.node} | Electron: ${process.versions.electron}`);
 
-const backendManager = new BackendManager();
-const mitmProxyManager = new MitmProxyManager(backendManager);
-const windowManager = new WindowManager(backendManager);
+const engineService = new EngineService();
+const mitmProxyManager = new MitmProxyManager(engineService);
+const windowManager = new WindowManager(engineService);
 const updaterManager = new UpdaterManager(windowManager);
+
+engineService.setMockMode(process.argv.includes('--mock'));
 
 app.on('second-instance', () => {
   logger.info('Second instance detected. Focusing existing window...');
@@ -54,12 +56,9 @@ process.on('unhandledRejection', (reason) => {
 
 app.whenReady().then(async () => {
   // 0. Register all IPC handlers
-  registerIpcHandlers(windowManager, backendManager, mitmProxyManager);
+  registerIpcHandlers(windowManager, engineService, mitmProxyManager);
 
-  // 1. Start the local inference engine
-  backendManager.start();
-
-  // 2. Start MITM Proxy
+  // 1. Start MITM Proxy
   await mitmProxyManager.start();
 
   // 2. Setup Tray
@@ -88,17 +87,15 @@ app.on('before-quit', async (event) => {
   windowManager.setQuitting(true);
   if (isQuitting) return;
 
-  if (backendManager.isRunning()) {
-    event.preventDefault();
-    isQuitting = true;
+  event.preventDefault();
+  isQuitting = true;
 
-    try {
-      await mitmProxyManager.stop();
-      await backendManager.stop();
-    } catch (err) {
-      logger.error('Error during shutdown:', err);
-    } finally {
-      app.quit();
-    }
+  try {
+    await mitmProxyManager.stop();
+    engineService.stop();
+  } catch (err) {
+    logger.error('Error during shutdown:', err);
+  } finally {
+    app.quit();
   }
 });

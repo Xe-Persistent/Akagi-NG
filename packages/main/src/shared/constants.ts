@@ -29,6 +29,3 @@ export const GITHUB_RELEASES_API = `https://api.github.com/repos/${GITHUB_OWNER}
 
 // 退出动画等待时间（ExitOverlay fade-in 动画 500ms + 展示缓冲）
 export const EXIT_ANIMATION_DELAY_MS = 800;
-
-// 后端就绪检查默认超时
-export const BACKEND_READY_TIMEOUT_MS = 20000;

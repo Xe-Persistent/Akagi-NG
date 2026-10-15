@@ -1,9 +1,10 @@
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from 'electron';
 
 import { createLogger } from '../logging/index.js';
-import type { BackendManager } from '../services/backend-manager.js';
 import { GameHandler } from '../services/capture/game-handler.js';
+import type { EngineService } from '../services/engine/engine-service.js';
 import { forwardRendererConsole } from '../services/renderer-console.js';
+import { getMitmConfig } from '../services/settings-manager.js';
 import {
   DASHBOARD_WINDOW_HEIGHT,
   DASHBOARD_WINDOW_MIN_HEIGHT,
@@ -35,7 +36,7 @@ export class WindowManager {
   private lastHudPosition: { x: number; y: number } | null = null;
   private isQuitting: boolean = false;
 
-  constructor(private backendManager: BackendManager) {}
+  constructor(private engine: EngineService) {}
 
   public setQuitting(quitting: boolean) {
     this.isQuitting = quitting;
@@ -345,7 +346,7 @@ export class WindowManager {
 
     // Set up proxy if using MITM
     if (useMitm) {
-      const mitm = await this.backendManager.getMitmConfig();
+      const mitm = getMitmConfig();
       const proxyRules = `http://${mitm.host}:${mitm.port}`;
       logger.info(`Routing game traffic through MITM proxy: ${proxyRules}`);
       await this.gameWindow.webContents.session.setProxy({
@@ -357,7 +358,7 @@ export class WindowManager {
       // MUST attach before loading URL to capture early WebSocket traffic and avoid crash
       try {
         if (isSafeWindow(this.gameWindow) && !this.gameWindow.webContents.isDestroyed()) {
-          this.gameHandler = new GameHandler(this.gameWindow.webContents, this.backendManager);
+          this.gameHandler = new GameHandler(this.gameWindow.webContents, this.engine);
           this.gameHandler.attach(); // Do not await, let it happen in parallel with loadURL
         }
       } catch (e) {

@@ -143,3 +143,12 @@ export class SettingsManager {
 }
 
 export const settingsManager = new SettingsManager();
+
+/** Where the game window should send its traffic when it goes through our proxy. */
+export function getMitmConfig(): { host: string; port: number } {
+  const settings = settingsManager.getSettings();
+  return {
+    host: settings.mitm?.host ?? '127.0.0.1',
+    port: settings.mitm?.port ?? 6789,
+  };
+}

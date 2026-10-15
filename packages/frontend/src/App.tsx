@@ -34,7 +34,6 @@ const initApp = async () => {
   if (!window.electron) {
     throw new Error('Akagi-NG requires Electron environment to boot.');
   }
-  await window.electron.invoke('wait-for-backend');
   const settings = await fetchSettingsApi();
   return { settings };
 };

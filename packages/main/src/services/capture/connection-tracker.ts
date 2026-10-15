@@ -1,6 +1,6 @@
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
-import type { BackendManager } from '../backend-manager.js';
+import type { EngineService } from '../engine/engine-service.js';
 
 const logger = createLogger('ConnectionTracker');
 
@@ -12,7 +12,7 @@ const logger = createLogger('ConnectionTracker');
 export class ConnectionTracker {
   private readonly activeConnections = new Set<string>();
 
-  constructor(private readonly backendManager: BackendManager) {}
+  constructor(private readonly engine: EngineService) {}
 
   public onConnectionOpened(id: string) {
     if (this.activeConnections.has(id)) return;
@@ -22,7 +22,7 @@ export class ConnectionTracker {
 
     if (isFirstConnection) {
       logger.info(`Game client connected (${id})`);
-      this.backendManager.notifyClientConnected();
+      this.engine.clientConnected();
     }
   }
 
@@ -32,7 +32,7 @@ export class ConnectionTracker {
 
     const gameEnded = bridgeManager.getCurrentBridge()?.gameEnded ?? false;
     logger.info(`All game connections closed (game ended: ${gameEnded})`);
-    this.backendManager.notifyGameDisconnected(gameEnded);
+    this.engine.gameDisconnected(gameEnded);
   }
 
   /**
@@ -44,6 +44,6 @@ export class ConnectionTracker {
 
     this.activeConnections.clear();
     const gameEnded = bridgeManager.getCurrentBridge()?.gameEnded ?? false;
-    this.backendManager.notifyGameDisconnected(gameEnded);
+    this.engine.gameDisconnected(gameEnded);
   }
 }

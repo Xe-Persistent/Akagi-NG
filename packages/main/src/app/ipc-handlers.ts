@@ -5,8 +5,9 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 
 import { createLogger, setLogLevel } from '../logging/index.js';
 import { bridgeManager } from '../protocol/bridge-manager.js';
-import type { BackendManager } from '../services/backend-manager.js';
 import type { MitmProxyManager } from '../services/capture/mitm-proxy.js';
+import type { EngineService } from '../services/engine/engine-service.js';
+import { resourceValidator } from '../services/resource-validator.js';
 import type { AppSettings } from '../services/settings-manager.js';
 import { settingsManager } from '../services/settings-manager.js';
 import { EXIT_ANIMATION_DELAY_MS } from '../shared/constants.js';
@@ -18,7 +19,7 @@ const logger = createLogger('IPC');
 
 export function registerIpcHandlers(
   windowManager: WindowManager,
-  backendManager: BackendManager,
+  engine: EngineService,
   mitmProxyManager: MitmProxyManager,
 ) {
   // Toggle HUD Window
@@ -75,10 +76,12 @@ export function registerIpcHandlers(
     safeSend(windowManager.getMainWindow(), 'exit-animation-start');
     safeSend(windowManager.getGameWindow(), 'exit-animation-start');
 
-    // Run exit animation and backend shutdown in parallel
+    // Run exit animation and engine shutdown in parallel
     await Promise.all([
       new Promise((resolve) => setTimeout(resolve, EXIT_ANIMATION_DELAY_MS)),
-      backendManager.stop().catch((err: unknown) => logger.error('Backend stop error:', err)),
+      Promise.resolve(engine.stop()).catch((err: unknown) =>
+        logger.error('Engine shutdown error:', err),
+      ),
     ]);
 
     app.quit();
@@ -181,16 +184,9 @@ export function registerIpcHandlers(
     return isSafeWindow(win) ? win.isMaximized() : false;
   });
 
-  // Check resource status (lib/models)
+  // Check that the model files the engine needs are present
   ipcMain.handle('check-resource-status', async () => {
-    return backendManager.getResourceStatus();
-  });
-
-  // Wait for backend to be ready
-  ipcMain.handle('wait-for-backend', async (_event, timeoutMs?: number) => {
-    const isReady = await backendManager.waitForReady(timeoutMs);
-    if (!isReady) throw new Error('Backend failed to start');
-    return true;
+    return await resourceValidator.validate();
   });
 
   // Sync locale across windows

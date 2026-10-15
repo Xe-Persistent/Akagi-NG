@@ -9,7 +9,7 @@ import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import { getAssetPath } from '../../shared/paths.js';
 import type { AkagiEvent } from '../../shared/schema/mjai.js';
-import type { BackendManager } from '../backend-manager.js';
+import type { EngineService } from '../engine/engine-service.js';
 import { settingsManager } from '../settings-manager.js';
 import { ConnectionTracker } from './connection-tracker.js';
 
@@ -20,8 +20,8 @@ export class MitmProxyManager {
   private isRunning: boolean = false;
   private readonly connectionTracker: ConnectionTracker;
 
-  constructor(private backendManager: BackendManager) {
-    this.connectionTracker = new ConnectionTracker(backendManager);
+  constructor(private engine: EngineService) {
+    this.connectionTracker = new ConnectionTracker(engine);
   }
 
   /**
@@ -136,7 +136,7 @@ export class MitmProxyManager {
 
       const parsedEvents: AkagiEvent[] = bridge.parse(dataBuffer);
       if (parsedEvents.length > 0) {
-        await this.backendManager.ingest(parsedEvents);
+        await this.engine.ingest(parsedEvents);
       }
     } catch (err) {
       logger.error('Failed to process WebSocket message:', err);

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { app, dialog } from 'electron';
 
-import { registerIpcHandlers } from './app/ipc-handlers.js';
+import { registerIpcHandlers } from './app/ipc/index.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
 import { createLogger, initializeLogger } from './logging/index.js';

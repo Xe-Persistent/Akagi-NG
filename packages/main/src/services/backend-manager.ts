@@ -4,16 +4,16 @@ import { join } from 'node:path';
 import type { AkagiEngine } from '@akagi-ng/rust-engine';
 import { BrowserWindow } from 'electron';
 
-import { BACKEND_READY_TIMEOUT_MS } from './constants.js';
-import { createLogger } from './logger.js';
+import { createLogger } from '../logging/index.js';
+import { BACKEND_READY_TIMEOUT_MS } from '../shared/constants.js';
+import { getProjectRoot } from '../shared/paths.js';
+import type { AkagiEvent, StartGameEvent, SystemEvent } from '../shared/schema/mjai.js';
+import { NotificationCode } from '../shared/schema/mjai.js';
 import type { EngineDecision, Recommendation } from './recommendation-mapper.js';
 import { mapDecisionToRecommendations } from './recommendation-mapper.js';
 import type { ResourceStatus } from './resource-validator.js';
 import { ResourceValidator } from './resource-validator.js';
-import type { AkagiEvent, StartGameEvent, SystemEvent } from './schema/mjai.js';
-import { NotificationCode } from './schema/mjai.js';
 import { settingsManager } from './settings-manager.js';
-import { getProjectRoot } from './utils.js';
 
 const logger = createLogger('BackendManager');
 

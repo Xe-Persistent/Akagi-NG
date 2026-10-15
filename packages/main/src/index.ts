@@ -3,14 +3,14 @@ import { join } from 'node:path';
 
 import { app, dialog } from 'electron';
 
-import { BackendManager } from './backend-manager.js';
-import { registerIpcHandlers } from './ipc-handlers.js';
-import { createLogger, initializeLogger } from './logger.js';
-import { MitmProxyManager } from './mitm-proxy.js';
-import { settingsManager } from './settings-manager.js';
-import { UpdaterManager } from './updater.js';
-import { getProjectRoot } from './utils.js';
-import { WindowManager } from './window-manager.js';
+import { registerIpcHandlers } from './app/ipc-handlers.js';
+import { UpdaterManager } from './app/updater.js';
+import { WindowManager } from './app/window-manager.js';
+import { createLogger, initializeLogger } from './logging/index.js';
+import { BackendManager } from './services/backend-manager.js';
+import { MitmProxyManager } from './services/capture/mitm-proxy.js';
+import { settingsManager } from './services/settings-manager.js';
+import { getProjectRoot } from './shared/paths.js';
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();

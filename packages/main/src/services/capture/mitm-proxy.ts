@@ -5,13 +5,13 @@ import { join } from 'node:path';
 import type { Mockttp } from 'mockttp';
 import * as mockttp from 'mockttp';
 
-import type { BackendManager } from './backend-manager.js';
-import { bridgeManager } from './bridge/manager.js';
+import { createLogger } from '../../logging/index.js';
+import { bridgeManager } from '../../protocol/bridge-manager.js';
+import { getAssetPath } from '../../shared/paths.js';
+import type { AkagiEvent } from '../../shared/schema/mjai.js';
+import type { BackendManager } from '../backend-manager.js';
+import { settingsManager } from '../settings-manager.js';
 import { ConnectionTracker } from './connection-tracker.js';
-import { createLogger } from './logger.js';
-import type { AkagiEvent } from './schema/mjai.js';
-import { settingsManager } from './settings-manager.js';
-import { getAssetPath } from './utils.js';
 
 const logger = createLogger('MITMProxy');
 

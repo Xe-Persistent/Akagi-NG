@@ -3,14 +3,15 @@ import { join } from 'node:path';
 
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 
-import type { BackendManager } from './backend-manager.js';
-import { bridgeManager } from './bridge/manager.js';
-import { EXIT_ANIMATION_DELAY_MS } from './constants.js';
-import { createLogger, setLogLevel } from './logger.js';
-import type { MitmProxyManager } from './mitm-proxy.js';
-import type { AppSettings } from './settings-manager.js';
-import { settingsManager } from './settings-manager.js';
-import { getAssetPath, isSafeWindow, safeSend } from './utils.js';
+import { createLogger, setLogLevel } from '../logging/index.js';
+import { bridgeManager } from '../protocol/bridge-manager.js';
+import type { BackendManager } from '../services/backend-manager.js';
+import type { MitmProxyManager } from '../services/capture/mitm-proxy.js';
+import type { AppSettings } from '../services/settings-manager.js';
+import { settingsManager } from '../services/settings-manager.js';
+import { EXIT_ANIMATION_DELAY_MS } from '../shared/constants.js';
+import { getAssetPath } from '../shared/paths.js';
+import { isSafeWindow, safeSend } from '../shared/utils.js';
 import type { WindowManager } from './window-manager.js';
 
 const logger = createLogger('IPC');

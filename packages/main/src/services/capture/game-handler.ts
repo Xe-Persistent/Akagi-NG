@@ -1,10 +1,10 @@
 import type { WebContents } from 'electron';
 
-import type { BackendManager } from './backend-manager.js';
-import { bridgeManager } from './bridge/manager.js';
+import { createLogger } from '../../logging/index.js';
+import { bridgeManager } from '../../protocol/bridge-manager.js';
+import type { AkagiEvent } from '../../shared/schema/mjai.js';
+import type { BackendManager } from '../backend-manager.js';
 import { ConnectionTracker } from './connection-tracker.js';
-import { createLogger } from './logger.js';
-import type { AkagiEvent } from './schema/mjai.js';
 
 const logger = createLogger('GameHandler');
 

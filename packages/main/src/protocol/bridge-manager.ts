@@ -1,4 +1,4 @@
-import { MajsoulBridge } from './majsoul/majsoul-bridge.js';
+import { MajsoulBridge } from './majsoul/bridge.js';
 
 const MAJSOUL_URL_MARKERS = ['majsoul', 'maj-soul', 'mahjongsoul'];
 

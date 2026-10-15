@@ -17,7 +17,7 @@ import type {
   StartKyokuEvent,
   SystemEvent,
   TsumoEvent,
-} from '../schema/mjai.js';
+} from '../shared/schema/mjai.js';
 
 export abstract class BaseBridge {
   /** True while a reconnect replay is in progress; stamped on emitted events. */

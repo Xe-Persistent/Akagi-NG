@@ -1,6 +1,6 @@
-import type { BackendManager } from './backend-manager.js';
-import { bridgeManager } from './bridge/manager.js';
-import { createLogger } from './logger.js';
+import { createLogger } from '../../logging/index.js';
+import { bridgeManager } from '../../protocol/bridge-manager.js';
+import type { BackendManager } from '../backend-manager.js';
 
 const logger = createLogger('ConnectionTracker');
 

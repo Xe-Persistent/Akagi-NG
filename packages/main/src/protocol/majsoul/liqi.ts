@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import * as protobuf from 'protobufjs';
 
-import { createLogger } from '../../logger.js';
-import { getAssetPath } from '../../utils.js';
+import { createLogger } from '../../logging/index.js';
+import { getAssetPath } from '../../shared/paths.js';
 import { LiqiProtocolConstants } from './consts.js';
 
 const logger = createLogger('Liqi');

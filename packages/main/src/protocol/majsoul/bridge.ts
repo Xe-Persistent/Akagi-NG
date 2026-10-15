@@ -1,8 +1,8 @@
-import { createLogger } from '../../logger.js';
-import { MahjongConstants } from '../../schema/constants.js';
-import type { AkagiEvent } from '../../schema/mjai.js';
-import { NotificationCode } from '../../schema/mjai.js';
-import { BaseBridge } from '../base.js';
+import { createLogger } from '../../logging/index.js';
+import { MahjongConstants } from '../../shared/schema/mahjong.js';
+import type { AkagiEvent } from '../../shared/schema/mjai.js';
+import { NotificationCode } from '../../shared/schema/mjai.js';
+import { BaseBridge } from '../base-bridge.js';
 import { OperationAnGangAddGang, OperationChiPengGang } from './consts.js';
 import type { LiqiMessage } from './liqi.js';
 import { LiqiProto, MsgType } from './liqi.js';

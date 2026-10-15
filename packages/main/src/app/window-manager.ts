@@ -1,12 +1,8 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from 'electron';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-import type { BackendManager } from './backend-manager.js';
+import { createLogger } from '../logging/index.js';
+import type { BackendManager } from '../services/backend-manager.js';
+import { GameHandler } from '../services/capture/game-handler.js';
 import {
   DASHBOARD_WINDOW_HEIGHT,
   DASHBOARD_WINDOW_MIN_HEIGHT,
@@ -22,10 +18,10 @@ import {
   HUD_MIN_WIDTH,
   HUD_WINDOW_HEIGHT,
   HUD_WINDOW_WIDTH,
-} from './constants.js';
-import { GameHandler } from './game-handler.js';
-import { createLogger } from './logger.js';
-import { getAssetPath, isSafeWindow, safeSend } from './utils.js';
+} from '../shared/constants.js';
+import { getPreloadPath, getRendererPath } from '../shared/paths.js';
+import { getAssetPath } from '../shared/paths.js';
+import { isSafeWindow, safeSend } from '../shared/utils.js';
 
 const logger = createLogger('WindowManager');
 
@@ -140,7 +136,7 @@ export class WindowManager {
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
       show: false,
       webPreferences: {
-        preload: join(__dirname, 'preload.cjs'),
+        preload: getPreloadPath(),
         nodeIntegration: false,
         contextIsolation: true,
       },
@@ -160,7 +156,7 @@ export class WindowManager {
         this.dashboardWindow.webContents.openDevTools();
       }
     } else {
-      const indexPath = join(__dirname, '../renderer/index.html');
+      const indexPath = getRendererPath('index.html');
       await this.dashboardWindow.loadFile(indexPath).catch((err) => {
         logger.error(`Failed to load Dashboard: ${err.message}`);
       });
@@ -242,7 +238,7 @@ export class WindowManager {
       hasShadow: false,
       resizable: true,
       webPreferences: {
-        preload: join(__dirname, 'preload.cjs'),
+        preload: getPreloadPath(),
         nodeIntegration: false,
         contextIsolation: true,
       },
@@ -268,7 +264,7 @@ export class WindowManager {
     const isDev = !app.isPackaged;
     const loadPromise = isDev
       ? this.hudWindow.loadURL(DEV_HUD_URL)
-      : this.hudWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: '/hud' });
+      : this.hudWindow.loadFile(getRendererPath('index.html'), { hash: '/hud' });
 
     await loadPromise.catch((err) => logger.error('Failed to load HUD:', err));
 

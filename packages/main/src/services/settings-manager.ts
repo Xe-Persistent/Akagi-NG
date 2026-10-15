@@ -6,10 +6,10 @@ import { app } from 'electron';
 import type { Schema } from 'electron-store';
 import Store from 'electron-store';
 
-import { createLogger } from './logger.js';
-import type { MajsoulServer } from './schema/platforms.js';
-import { getGameUrl, MAJSOUL_SERVERS } from './schema/platforms.js';
-import { getProjectRoot } from './utils.js';
+import { createLogger } from '../logging/index.js';
+import { getProjectRoot } from '../shared/paths.js';
+import type { MajsoulServer } from '../shared/schema/platforms.js';
+import { getGameUrl, MAJSOUL_SERVERS } from '../shared/schema/platforms.js';
 
 const logger = createLogger('Settings');
 

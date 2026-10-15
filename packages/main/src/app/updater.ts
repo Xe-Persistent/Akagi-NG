@@ -1,8 +1,8 @@
 import { app, net } from 'electron';
 
-import { GITHUB_RELEASES_API } from './constants.js';
-import { createLogger } from './logger.js';
-import { safeSend } from './utils.js';
+import { createLogger } from '../logging/index.js';
+import { GITHUB_RELEASES_API } from '../shared/constants.js';
+import { safeSend } from '../shared/utils.js';
 import type { WindowManager } from './window-manager.js';
 
 const logger = createLogger('Updater');

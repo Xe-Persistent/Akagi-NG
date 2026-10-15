@@ -1,4 +1,4 @@
-import { MahjongConstants } from '../../schema/constants.js';
+import { MahjongConstants } from '../../shared/schema/mahjong.js';
 
 // 雀魂 -> MJAI 牌面映射
 export const MS_TILE_2_MJAI_TILE: Record<string, string> = {

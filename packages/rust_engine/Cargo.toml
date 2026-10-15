@@ -1,10 +1,14 @@
+# The inference code under src/ (tiles, model, obs, action_codec, adapt, mjai_compat,
+# replay, chankan) is ported from Akagi's `native_bot` crate so that the bundled weights
+# are evaluated exactly like upstream. `native_bot` is licensed under Apache-2.0.
+
 [package]
 edition = "2021"
 name = "rust_engine"
 version = "0.1.0"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 napi = { version = "3.14", default-features = false, features = ["napi4", "serde-json"] }

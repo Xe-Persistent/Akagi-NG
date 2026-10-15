@@ -5,6 +5,7 @@ extern crate napi_derive;
 
 pub mod action_codec;
 pub mod adapt;
+pub mod chankan;
 pub mod engine;
 pub mod mjai_compat;
 pub mod model;
@@ -37,7 +38,6 @@ impl Geometry {
     }
 }
 
-
 #[napi(js_name = "AkagiEngine")]
 pub struct JsAkagiEngine {
     inner: engine::Engine,
@@ -69,7 +69,9 @@ impl JsAkagiEngine {
 
     #[napi]
     pub fn decide(&mut self) -> Result<Option<String>> {
-        let decision = self.inner.decide()
+        let decision = self
+            .inner
+            .decide()
             .map_err(|e| Error::from_reason(format!("Decide failed: {}", e)))?;
         match decision {
             Some(d) => {
@@ -77,7 +79,7 @@ impl JsAkagiEngine {
                     .map_err(|e| Error::from_reason(format!("Serialize failed: {}", e)))?;
                 Ok(Some(s))
             }
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 }

@@ -94,6 +94,10 @@ pub struct Decision {
     pub candidates: Vec<(BotAction, f32)>,
     /// Raw action logits (indexed by the mode's action space).
     pub logits: Vec<f32>,
+    /// The full legal set (before the top-N cut in `candidates`) held exactly
+    /// one action, so this "decision" is forced — any policy, local or remote,
+    /// can only play `action`.
+    pub forced: bool,
     /// Riichi lookahead: the discards the model would pick right after
     /// declaring riichi, best first. Only filled when riichi is one of
     /// `candidates`, so the extra forward pass is never paid otherwise.
@@ -187,12 +191,28 @@ impl Engine {
     /// log's `nukidora` has to be renamed to `kita` *before* serde sees it, or
     /// it deserializes into `MjaiEvent::Other` and the event is lost.
     pub fn feed(&mut self, ev: MjaiEvent) {
+        // The chankan check needs the kakan's actor/tile after the event is
+        // applied — `apply_mjai_event` consumes it.
+        let opponent_kakan = match &ev {
+            MjaiEvent::Kakan { actor, pai } if *actor as u8 != self.seat => {
+                Some((*actor as u8, pai.clone()))
+            }
+            _ => None,
+        };
         match &mut self.backend {
-            Backend::Four { state, .. } => state.apply_mjai_event(ev),
+            Backend::Four { state, .. } => {
+                state.apply_mjai_event(ev);
+                if let Some((actor, pai)) = opponent_kakan {
+                    crate::chankan::open_on_kakan(state, actor, &pai, self.seat);
+                }
+            }
             Backend::Three { state, .. } => {
                 let mut ev = ev;
                 sanitize_3p(&mut ev);
-                state.apply_mjai_event(ev)
+                state.apply_mjai_event(ev);
+                if let Some((actor, pai)) = opponent_kakan {
+                    crate::chankan::open_on_kakan_3p(state, actor, &pai, self.seat);
+                }
             }
         }
     }
@@ -215,7 +235,7 @@ impl Engine {
     /// legal action (not our turn / nothing to respond to).
     pub fn decide(&mut self) -> Result<Option<Decision>> {
         let seat = self.seat;
-        let (mut ranked, logits, last_discarder, drawn, reach_pai, reach_ranked) =
+        let (mut ranked, logits, last_discarder, drawn, reach_pai, reach_ranked, forced) =
             match &mut self.backend {
                 Backend::Four { state, model } => {
                     // `last_discard` is `(discarder_pid, tile)`.
@@ -225,6 +245,9 @@ impl Engine {
                     if legal.is_empty() {
                         return Ok(None);
                     }
+                    // Forced ⇔ the *legal* set is a singleton — `ranked` is cut
+                    // to SHOW_TOP_N below, so its length can't be used for this.
+                    let forced = legal.len() == 1;
                     let logits = model.forward_logits(&obs)?;
                     let ranked = rank_by_logits(&legal, &logits, 4, SHOW_TOP_N);
                     let Some((top, _)) = ranked.first() else {
@@ -250,6 +273,7 @@ impl Engine {
                         drawn,
                         reach_pai,
                         reach_ranked,
+                        forced,
                     )
                 }
                 Backend::Three { state, model } => {
@@ -259,6 +283,7 @@ impl Engine {
                     if legal.is_empty() {
                         return Ok(None);
                     }
+                    let forced = legal.len() == 1;
                     let logits = model.forward_logits(&obs)?;
                     let ranked = rank_by_logits(&legal, &logits, 3, SHOW_TOP_N);
                     let Some((top, _)) = ranked.first() else {
@@ -284,6 +309,7 @@ impl Engine {
                         drawn,
                         reach_pai,
                         reach_ranked,
+                        forced,
                     )
                 }
             };
@@ -307,6 +333,7 @@ impl Engine {
             action,
             candidates,
             logits,
+            forced,
             riichi_lookahead: reach_ranked
                 .into_iter()
                 .map(|(tile, prob)| LookaheadCandidate {

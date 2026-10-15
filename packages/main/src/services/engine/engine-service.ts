@@ -23,6 +23,8 @@ export class EngineService {
   private isMockMode = false;
   private playerId = -1;
   private isReacting = false;
+  /** True once our own declared riichi was accepted by the table. */
+  private riichiAccepted = false;
   /** Last tile contexts, used to decorate win recommendations. */
   private lastDrawnTile: string | null = null;
   private lastDiscardTile: string | null = null;
@@ -44,6 +46,7 @@ export class EngineService {
       }
 
       this.trackTileContext(ev);
+      this.trackRiichiState(ev);
 
       if (ev.type === 'start_game') {
         await this.startGame(ev as StartGameEvent);
@@ -138,13 +141,24 @@ export class EngineService {
     }
   }
 
+  private trackRiichiState(ev: AkagiEvent) {
+    if (ev.type === 'start_game' || ev.type === 'start_kyoku') {
+      this.riichiAccepted = false;
+    } else if (ev.type === 'reach_accepted' && ev.actor === this.playerId) {
+      this.riichiAccepted = true;
+    }
+  }
+
   private react() {
     if (this.isReacting) return;
     this.isReacting = true;
 
     try {
       const recommendations = this.buildRecommendations();
-      if (recommendations.length === 0) return;
+      // No decision at all means there is nothing to say; an empty list is a
+      // decision whose suggestions the HUD must not show, and it still has to be
+      // published so the previous (now illegal) one disappears.
+      if (!recommendations) return;
 
       broadcastToWindows('engine:recommendations', {
         recommendations,
@@ -155,23 +169,24 @@ export class EngineService {
     }
   }
 
-  private buildRecommendations(): Recommendation[] {
+  private buildRecommendations(): Recommendation[] | null {
     if (this.isMockMode) return [MOCK_RECOMMENDATION];
-    if (!this.runner.loaded) return [];
+    if (!this.runner.loaded) return null;
 
     try {
       const decision = this.runner.decide();
-      if (!decision) return [];
+      if (!decision) return null;
 
       return mapDecisionToRecommendations(decision, {
         playerId: this.playerId,
         lastDrawnTile: this.lastDrawnTile,
         lastDiscardTile: this.lastDiscardTile,
+        riichiAccepted: this.riichiAccepted,
       });
     } catch (err) {
       logger.error('Engine inference failed:', err);
       this.notifications.show('error', NotificationCode.BOT_RUNTIME_ERROR);
-      return [];
+      return null;
     }
   }
 

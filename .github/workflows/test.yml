@@ -38,3 +38,22 @@ jobs:
 
       - name: Run TypeScript check
         run: npm run typecheck
+
+  rust:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rust_engine
+
+      - name: Check the inference engine
+        working-directory: packages/rust_engine
+        run: cargo check --locked

@@ -48,6 +48,17 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rust_engine
+
+      - name: Build native inference engine
+        run: npm run build -w @akagi-ng/rust-engine
+
       - name: Build Electron App
         run: npm run build
         env:

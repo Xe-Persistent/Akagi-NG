@@ -5,12 +5,13 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "akagi-engine",
-    "triples": {
-      "defaults": true,
-      "additional": []
-    }
+    "binaryName": "akagi-engine"
   },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
   "scripts": {
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release",

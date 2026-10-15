@@ -55,7 +55,12 @@
         "to": "dist/renderer"
       },
       "package.json",
-      "!**/*.map"
+      "!**/*.map",
+      "!**/rust-engine/{src,target}/**",
+      "!**/rust-engine/{Cargo.toml,Cargo.lock,build.rs}"
+    ],
+    "asarUnpack": [
+      "**/*.node"
     ],
     "extraMetadata": {
       "main": "dist/main/main.js"

@@ -82,6 +82,14 @@ export class MajsoulBridge extends BaseBridge {
     try {
       this.replayed = false;
       const liqiMessage = this.liqiProto.parse(content);
+
+      // The frame's own bytes, one level deeper than the decoded line: what a
+      // decode this build gets wrong needs to reproduce. The keep-alive stays out
+      // of both, and a frame that failed to decode still leaves its bytes behind.
+      if (liqiMessage?.method !== HEARTBEAT_METHOD) {
+        logger.debug(`${source ? `[${source}] ` : ''}raw ${content.toString('hex')}`);
+      }
+
       if (!liqiMessage) return { events: [], replayed: this.replayed };
 
       // The complete decoded message: a capture kept at `verbose` is what makes
@@ -493,7 +501,7 @@ export class MajsoulBridge extends BaseBridge {
 
     if (players) {
       this.state.is3p = players.length === MahjongConstants.SEATS_3P;
-      logger.debug(`Pre-scanned mode from snapshot: is_3p=${this.state.is3p}`);
+      logger.verbose(`Pre-scanned mode from snapshot: is_3p=${this.state.is3p}`);
     }
   }
 

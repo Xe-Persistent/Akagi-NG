@@ -12,9 +12,9 @@
   "properties": {
     "log_level": {
       "type": "string",
-      "enum": ["verbose", "debug", "info", "warn", "error"],
+      "enum": ["error", "warn", "info", "verbose", "debug"],
       "default": "info",
-      "description": "Logging level, using electron-log's level names."
+      "description": "Logging detail, using electron-log's level names, least detailed first. `verbose` records the per-item game detail (decoded packets, engine decisions, HUD payloads) and is what to use when reporting a problem; `debug` adds the raw frames."
     },
     "locale": {
       "type": "string",

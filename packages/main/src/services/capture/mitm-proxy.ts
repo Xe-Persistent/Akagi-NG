@@ -89,13 +89,13 @@ export class MitmProxyManager {
       this.server.on('websocket-request', async (req) => {
         if (!bridgeManager.isMajsoulUrl(req.url)) return;
 
-        logger.info(`[MITM] WebSocket connection requested: ${req.url}`);
+        logger.verbose(`[MITM] WebSocket connection requested: ${req.url}`);
         bridgeManager.getBridgeForUrl(req.url);
         this.connectionTracker.onConnectionOpened(req.id);
       });
 
       this.server.on('websocket-close', async (close) => {
-        logger.info(`[MITM] WebSocket connection closed (${close.streamId})`);
+        logger.verbose(`[MITM] WebSocket connection closed (${close.streamId})`);
         this.connectionTracker.onConnectionClosed(close.streamId);
       });
 

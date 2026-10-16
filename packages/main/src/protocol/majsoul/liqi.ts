@@ -258,7 +258,7 @@ export class LiqiProto {
     }
 
     if (this.pendingRequests.has(msgId)) {
-      logger.debug(`Duplicate msg_id ${msgId}, overwriting previous request`);
+      logger.verbose(`Duplicate msg_id ${msgId}, overwriting previous request`);
     }
 
     const requestType = this.getMessageClass(descriptor.requestType);

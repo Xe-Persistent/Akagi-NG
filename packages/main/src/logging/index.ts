@@ -8,16 +8,21 @@ import log from 'electron-log/main';
 
 export type { Logger } from 'electron-log';
 
-/** The electron-log levels the `log_level` setting accepts, most severe first. */
-const LEVELS: readonly LogLevel[] = ['error', 'warn', 'info', 'debug', 'verbose'];
+/**
+ * The electron-log levels the `log_level` setting accepts, least detailed first.
+ * electron-log numbers them `error=0 … verbose=3, debug=4, silly=5` and writes a
+ * message once its level is at or below the transport's, so a later entry here
+ * keeps strictly more: `verbose` is the per-item game detail (packets, decisions,
+ * HUD payloads) and `debug` adds the raw frames and internal noise. `silly` is
+ * deliberately not offered.
+ */
+const LEVELS: readonly LogLevel[] = ['error', 'warn', 'info', 'verbose', 'debug'];
 const DEFAULT_LEVEL: LogLevel = 'info';
 
 const FALLBACK_SCOPE = 'App';
 const LOG_FILE_PREFIX = 'akagi_';
 const MAX_LOG_SIZE = 10 * 1024 * 1024;
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-/** Width of the level column; the widest name is `verbose`. */
-const LEVEL_COLUMN = 7;
 
 function pad(value: number): string {
   return value.toString().padStart(2, '0');
@@ -48,7 +53,7 @@ function formatArg(value: unknown): string {
  * readable and keeps both sinks byte-identical.
  */
 function formatLine({ data, message }: { data: unknown[]; message: LogMessage }): string[] {
-  const level = message.level.toUpperCase().padEnd(LEVEL_COLUMN);
+  const level = message.level.toUpperCase();
   const scope = message.scope || FALLBACK_SCOPE;
   const text = data.map(formatArg).join(' ');
   return [`${formatDate(message.date)} | ${level} | ${scope} | ${text}`];

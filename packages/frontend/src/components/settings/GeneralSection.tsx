@@ -61,7 +61,10 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
         </Select>
       </SettingsItem>
 
-      <SettingsItem label={t('settings.general.log_level')}>
+      <SettingsItem
+        label={t('settings.general.log_level')}
+        description={t('settings.general.log_level_hint')}
+      >
         <Select
           value={settings.log_level}
           onValueChange={(val) => updateSetting(['log_level'], val)}
@@ -70,11 +73,11 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
             <SelectValue placeholder='Select level' />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value='error'>ERROR</SelectItem>
+            <SelectItem value='warn'>WARN</SelectItem>
+            <SelectItem value='info'>INFO</SelectItem>
             <SelectItem value='verbose'>VERBOSE</SelectItem>
             <SelectItem value='debug'>DEBUG</SelectItem>
-            <SelectItem value='info'>INFO</SelectItem>
-            <SelectItem value='warn'>WARN</SelectItem>
-            <SelectItem value='error'>ERROR</SelectItem>
           </SelectContent>
         </Select>
       </SettingsItem>

@@ -13,7 +13,8 @@
       "theme_system": "跟隨系統",
       "theme_light": "淺色",
       "theme_dark": "深色",
-      "log_level": "紀錄層級"
+      "log_level": "紀錄層級",
+      "log_level_hint": "越靠下記錄得越詳細。VERBOSE 記錄逐條對局細節（解碼封包、引擎決策、HUD 推送），回報問題時請選它；DEBUG 額外記錄原始封包位元組。"
     },
     "connection": {
       "title": "遊戲連線",

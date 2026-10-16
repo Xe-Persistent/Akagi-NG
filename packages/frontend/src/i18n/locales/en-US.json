@@ -13,7 +13,8 @@
       "theme_system": "System",
       "theme_light": "Light",
       "theme_dark": "Dark",
-      "log_level": "Log Level"
+      "log_level": "Log Level",
+      "log_level_hint": "Lower entries keep more. VERBOSE records the per-item game detail (decoded packets, engine decisions, HUD payloads) — use it when reporting a problem; DEBUG also keeps the raw frames."
     },
     "connection": {
       "title": "Game Connection",

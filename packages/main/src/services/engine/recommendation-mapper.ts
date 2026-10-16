@@ -79,6 +79,22 @@ export function mapDecisionToRecommendations(
   return recommendations;
 }
 
+/** How a recommendation reads in the HUD log line: `5s@0.62`, `pon:5s(5s5s)@0.21`. */
+export function describeRecommendation(recommendation: Recommendation): string {
+  const tile =
+    recommendation.tile && recommendation.tile !== recommendation.action
+      ? `:${recommendation.tile}`
+      : '';
+  const consumed = recommendation.consumed?.length ? `(${recommendation.consumed.join('')})` : '';
+  return `${recommendation.action}${tile}${consumed}@${recommendation.confidence.toFixed(2)}`;
+}
+
+/** How an engine action reads in the decision log line: `dahai:5s`, `ankan(5s5s5s5s)`. */
+export function describeAction(action: EngineAction): string {
+  const consumed = action.consumed?.length ? `(${action.consumed.join('')})` : '';
+  return `${action.type}${action.pai ? `:${action.pai}` : ''}${consumed}`;
+}
+
 /**
  * Riichi lookahead: a `reach` recommendation carries the discards the model
  * would pick after declaring riichi, so the HUD can show what the hand becomes
@@ -100,7 +116,13 @@ function attachRiichiLookahead(
   if (!reach) return;
 
   reach.sim_candidates = candidates;
-  logger.debug(
+  // A summary a human can scan at the default level, the full row one level down
+  // for the numbers behind it.
+  const best = candidates[0];
+  logger.info(
+    `Riichi lookahead: ${candidates.length} candidate(s), best ${best.tile} (${best.confidence.toFixed(3)})`,
+  );
+  logger.verbose(
     `Riichi lookahead: ${candidates
       .map((candidate) => `${candidate.tile}(${candidate.confidence.toFixed(3)})`)
       .join(' ')}`,

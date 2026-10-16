@@ -4,7 +4,11 @@ import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
 import { engineStatus } from '../engine-status.js';
 import { ModelRunner } from './model-runner.js';
 import type { Recommendation, RecommendationData } from './recommendation-mapper.js';
-import { mapDecisionToRecommendations } from './recommendation-mapper.js';
+import {
+  describeAction,
+  describeRecommendation,
+  mapDecisionToRecommendations,
+} from './recommendation-mapper.js';
 
 const logger = createLogger('EngineService');
 
@@ -152,6 +156,9 @@ export class EngineService {
       if (!recommendations) return;
 
       const payload: RecommendationData = { recommendations };
+      // What the HUD is about to show, so a capture says what was recommended
+      // and not only what the table did.
+      logger.verbose(`HUD: ${recommendations.map(describeRecommendation).join(' ')}`);
       broadcastToWindows('engine:recommendations', payload);
     } finally {
       this.isReacting = false;
@@ -164,6 +171,13 @@ export class EngineService {
     try {
       const decision = this.runner.decide();
       if (!decision) return null;
+      // The engine's own answer, including the candidates it ranked below the
+      // published row, so a capture shows what it thought at every decision.
+      logger.verbose(
+        `Decision:${decision.forced ? ' (forced)' : ''} ${decision.candidates
+          .map(([action, confidence]) => `${describeAction(action)}@${confidence.toFixed(2)}`)
+          .join(' ')}${decision.riichi_lookahead?.length ? ' +lookahead' : ''}`,
+      );
       // A single legal action is not a choice. riichienv narrows a hand in riichi
       // to the tile just drawn, so those turns are forced and stay unpublished —
       // the HUD keeps what it showed rather than a row nobody can act on.

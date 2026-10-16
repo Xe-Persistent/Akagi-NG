@@ -134,7 +134,7 @@ export class MitmProxyManager {
           ? Buffer.from(msg.content, 'utf8')
           : Buffer.from(msg.content);
 
-      const parsedEvents: AkagiEvent[] = bridge.parse(dataBuffer);
+      const parsedEvents: AkagiEvent[] = bridge.parse(dataBuffer, 'MITM');
       if (parsedEvents.length > 0) {
         await this.engine.ingest(parsedEvents);
       }

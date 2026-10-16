@@ -166,7 +166,7 @@ export class GameHandler {
 
     try {
       const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
-      const parsedEvents: AkagiEvent[] = bridge.parse(buffer);
+      const parsedEvents: AkagiEvent[] = bridge.parse(buffer, 'CDP');
       if (parsedEvents.length === 0) return;
 
       this.engine.ingest(parsedEvents).catch((err: unknown) => {

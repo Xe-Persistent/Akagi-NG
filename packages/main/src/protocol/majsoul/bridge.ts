@@ -40,10 +40,19 @@ export class MajsoulBridge extends BaseBridge {
     this.state.reset();
   }
 
-  public parse(content: Buffer): AkagiEvent[] {
+  /**
+   * Turns one captured frame into mjai events. `source` names the capture path
+   * that saw it (`CDP` or `MITM`) and only shows up in the verbose capture log.
+   */
+  public parse(content: Buffer, source?: string): AkagiEvent[] {
     try {
       const liqiMessage = this.liqiProto.parse(content);
       if (!liqiMessage) return [];
+
+      // The complete decoded message: a capture kept at `verbose` is what makes
+      // a real game inspectable offline, and every field is logged as decoded.
+      const tag = source ? `[${source}] ` : '';
+      logger.verbose(`${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`, liqiMessage.data);
 
       return this.parseLiqi(liqiMessage);
     } catch (e) {

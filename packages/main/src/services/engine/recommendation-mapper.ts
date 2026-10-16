@@ -65,37 +65,18 @@ export interface DecisionContext {
   lastDrawnTile?: string | null;
   /** Last tile an opponent discarded, shown next to a ron recommendation. */
   lastDiscardTile?: string | null;
-  /** True once our own riichi was accepted, which narrows the legal actions. */
-  riichiAccepted?: boolean;
 }
-
-/**
- * The only actions left once our riichi is accepted: a closed kan, a tsumo, a
- * ron, or — in sanma — a north draw. Everything else is a discard the rules no
- * longer allow, so the HUD must not suggest it.
- */
-const ACTIONS_ALLOWED_AFTER_RIICHI = new Set(['kan', 'tsumo', 'ron', 'nukidora']);
 
 export function mapDecisionToRecommendations(
   decision: EngineDecision,
   context: DecisionContext,
 ): Recommendation[] {
-  const recommendations = decision.candidates
-    .map(([action, confidence]) => toRecommendation(action, confidence, context))
-    .filter((recommendation) => isAllowedAfterRiichi(recommendation, context));
+  const recommendations = decision.candidates.map(([action, confidence]) =>
+    toRecommendation(action, confidence, context),
+  );
 
   attachRiichiLookahead(recommendations, decision.riichi_lookahead);
   return recommendations;
-}
-
-function isAllowedAfterRiichi(recommendation: Recommendation, context: DecisionContext): boolean {
-  if (!context.riichiAccepted) return true;
-
-  const allowed = ACTIONS_ALLOWED_AFTER_RIICHI.has(recommendation.action);
-  if (!allowed) {
-    logger.debug(`Riichi accepted: hiding the ${recommendation.action} recommendation`);
-  }
-  return allowed;
 }
 
 /**

@@ -20,8 +20,6 @@ export class EngineService {
   private isMockMode = false;
   private playerId = -1;
   private isReacting = false;
-  /** True once our own declared riichi was accepted by the table. */
-  private riichiAccepted = false;
   /** True once we have won the current round, which can happen before it ends. */
   private weWonThisRound = false;
   /** Last tile contexts, used to decorate win recommendations. */
@@ -133,13 +131,10 @@ export class EngineService {
     }
   }
 
-  /** Flags that only describe the round in progress, so both reset on a new one. */
+  /** A flag that only describes the round in progress, so it resets on a new one. */
   private trackRoundState(ev: MJAIEvent) {
     if (ev.type === 'start_game' || ev.type === 'start_kyoku') {
-      this.riichiAccepted = false;
       this.weWonThisRound = false;
-    } else if (ev.type === 'reach_accepted' && ev.actor === this.playerId) {
-      this.riichiAccepted = true;
     } else if (ev.type === 'hora' && ev.actor === this.playerId) {
       this.weWonThisRound = true;
     }
@@ -169,12 +164,15 @@ export class EngineService {
     try {
       const decision = this.runner.decide();
       if (!decision) return null;
+      // A single legal action is not a choice. riichienv narrows a hand in riichi
+      // to the tile just drawn, so those turns are forced and stay unpublished —
+      // the HUD keeps what it showed rather than a row nobody can act on.
+      if (decision.forced) return null;
 
       return mapDecisionToRecommendations(decision, {
         playerId: this.playerId,
         lastDrawnTile: this.lastDrawnTile,
         lastDiscardTile: this.lastDiscardTile,
-        riichiAccepted: this.riichiAccepted,
       });
     } catch (err) {
       logger.error('Engine inference failed:', err);

@@ -16,6 +16,13 @@ type ActionPayload = Record<string, unknown>;
 /** ActionPrototype names that end the current kyoku. */
 const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu']);
 
+/**
+ * The game websocket's keep-alive. It carries no game state and arrives as a
+ * Req/Res pair every few seconds, which at one capture line per frame would
+ * drown the game itself, so it is decoded but not recorded.
+ */
+const HEARTBEAT_METHOD = '.lq.Route.heartbeat';
+
 export class MajsoulBridge extends BaseBridge {
   public readonly liqiProto: LiqiProto = new LiqiProto();
   private readonly state = new MajsoulStateTracker();
@@ -54,8 +61,13 @@ export class MajsoulBridge extends BaseBridge {
 
       // The complete decoded message: a capture kept at `verbose` is what makes
       // a real game inspectable offline, and every field is logged as decoded.
-      const tag = source ? `[${source}] ` : '';
-      logger.verbose(`${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`, liqiMessage.data);
+      if (liqiMessage.method !== HEARTBEAT_METHOD) {
+        const tag = source ? `[${source}] ` : '';
+        logger.verbose(
+          `${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`,
+          liqiMessage.data,
+        );
+      }
 
       const events = this.parseLiqi(liqiMessage);
       return { events, replayed: this.replayed };

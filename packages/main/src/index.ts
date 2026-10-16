@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './app/ipc/index.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
 import { createLogger, initializeLogger } from './logging/index.js';
+import { startMockStream, stopMockStream } from './mock-stream.js';
 import { MitmProxyManager } from './services/capture/mitm-proxy.js';
 import { EngineService } from './services/engine/engine-service.js';
 import { settingsManager } from './services/settings-manager.js';
@@ -31,7 +32,10 @@ const mitmProxyManager = new MitmProxyManager(engineService);
 const windowManager = new WindowManager(engineService);
 const updaterManager = new UpdaterManager(windowManager);
 
-engineService.setMockMode(process.argv.includes('--mock'));
+/** `npm run dev:mock` plays canned scenarios instead of capturing a game. */
+const isMockRun = process.argv.includes('--mock');
+
+engineService.setMockMode(isMockRun);
 
 app.on('second-instance', () => {
   logger.info('Second instance detected. Focusing existing window...');
@@ -58,8 +62,10 @@ app.whenReady().then(async () => {
   // 0. Register all IPC handlers
   registerIpcHandlers(windowManager, engineService, mitmProxyManager);
 
-  // 1. Start MITM Proxy
-  await mitmProxyManager.start();
+  // 1. Start MITM Proxy (a mock run captures nothing)
+  if (!isMockRun) {
+    await mitmProxyManager.start();
+  }
 
   // 2. Setup Tray
   windowManager.setupTray(() => updaterManager.checkForUpdates());
@@ -67,7 +73,12 @@ app.whenReady().then(async () => {
   // 3. Create Dashboard Window
   void windowManager.createDashboardWindow();
 
-  // 4. Setup Auto Updater
+  // 4. Feed the HUD from the canned scenarios
+  if (isMockRun) {
+    startMockStream();
+  }
+
+  // 5. Setup Auto Updater
   updaterManager.checkForUpdates();
 
   app.on('activate', () => {
@@ -91,6 +102,7 @@ app.on('before-quit', async (event) => {
   isQuitting = true;
 
   try {
+    stopMockStream();
     await mitmProxyManager.stop();
     engineService.stop();
   } catch (err) {

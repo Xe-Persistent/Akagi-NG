@@ -1,12 +1,12 @@
 import { Bot } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import type { FullRecommendationData } from '@/types';
+import type { RecommendationData } from '@/types';
 
 import StreamRecommendation from './StreamRecommendation';
 
 interface StreamRenderComponentProps {
-  data: FullRecommendationData | null;
+  data: RecommendationData | null;
 }
 
 export default function StreamRenderComponent({ data }: StreamRenderComponentProps) {

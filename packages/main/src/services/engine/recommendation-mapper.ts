@@ -47,6 +47,11 @@ export interface Recommendation {
   sim_candidates?: SimCandidate[];
 }
 
+/** The payload of an `engine:recommendations` broadcast. */
+export interface RecommendationData {
+  recommendations: Recommendation[];
+}
+
 /** One entry of the riichi lookahead row the HUD renders under `reach`. */
 export interface SimCandidate {
   tile: string;

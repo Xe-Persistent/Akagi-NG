@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { EngineStatus, FullRecommendationData } from '@/types';
+import type { EngineStatus, RecommendationData } from '@/types';
 
 interface UseEngineConnectionResult {
-  data: FullRecommendationData | null;
+  data: RecommendationData | null;
   status: EngineStatus | null;
   error: string | null;
 }
@@ -14,7 +14,7 @@ interface UseEngineConnectionResult {
  * opens mid-session does not have to wait for the next change.
  */
 export function useEngineConnection(): UseEngineConnectionResult {
-  const [data, setData] = useState<FullRecommendationData | null>(null);
+  const [data, setData] = useState<RecommendationData | null>(null);
   const [status, setStatus] = useState<EngineStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -30,7 +30,7 @@ export function useEngineConnection(): UseEngineConnectionResult {
     const unsubRecommendations = window.electron.on(
       'engine:recommendations',
       (payload: unknown) => {
-        setData(payload as FullRecommendationData);
+        setData(payload as RecommendationData);
       },
     );
 

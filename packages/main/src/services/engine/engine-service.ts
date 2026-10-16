@@ -3,17 +3,16 @@ import { broadcastToWindows } from '../../shared/broadcast.js';
 import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
 import { engineStatus } from '../engine-status.js';
 import { ModelRunner } from './model-runner.js';
-import type { Recommendation } from './recommendation-mapper.js';
+import type { Recommendation, RecommendationData } from './recommendation-mapper.js';
 import { mapDecisionToRecommendations } from './recommendation-mapper.js';
 
 const logger = createLogger('EngineService');
 
-const MOCK_RECOMMENDATION: Recommendation = { action: '1m', tile: '1m', confidence: 0.99 };
-
 /**
  * Turns the mjai event stream of a captured game into HUD recommendations: it
  * owns the model runner, knows when the local player has to act, and publishes
- * everything the renderer needs.
+ * everything the renderer needs. Under `--mock` it stays out of the way, because
+ * `mock-stream` owns the HUD for as long as it runs.
  */
 export class EngineService {
   private readonly runner = new ModelRunner();
@@ -27,7 +26,7 @@ export class EngineService {
   private lastDrawnTile: string | null = null;
   private lastDiscardTile: string | null = null;
 
-  /** Replaces inference with a canned recommendation, used by `npm run dev:mock`. */
+  /** Lets the mock stream own the HUD, used by `npm run dev:mock`. */
   public setMockMode(enabled: boolean) {
     this.isMockMode = enabled;
   }
@@ -37,6 +36,10 @@ export class EngineService {
    * the engine and answers at decision points.
    */
   public async ingest(events: MJAIEvent[]) {
+    // The mock stream publishes on its own; a captured game interleaving with it
+    // would make the HUD flicker between two sources. No model is loaded either.
+    if (this.isMockMode) return;
+
     for (const ev of events) {
       this.trackTileContext(ev);
       this.trackRiichiState(ev);
@@ -75,8 +78,6 @@ export class EngineService {
 
   private async startGame(start: StartGameEvent) {
     this.playerId = start.id;
-
-    if (this.isMockMode) return;
 
     engineStatus.set({ model: 'loading' });
     const outcome = await this.runner.load(start.id, start.is_3p);
@@ -146,17 +147,14 @@ export class EngineService {
       // published so the previous (now illegal) one disappears.
       if (!recommendations) return;
 
-      broadcastToWindows('engine:recommendations', {
-        recommendations,
-        engine_type: this.runner.loaded || this.isMockMode ? 'local' : 'null',
-      });
+      const payload: RecommendationData = { recommendations };
+      broadcastToWindows('engine:recommendations', payload);
     } finally {
       this.isReacting = false;
     }
   }
 
   private buildRecommendations(): Recommendation[] | null {
-    if (this.isMockMode) return [MOCK_RECOMMENDATION];
     if (!this.runner.loaded) return null;
 
     try {

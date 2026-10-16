@@ -13,11 +13,9 @@ export interface Recommendation {
   tile?: string;
 }
 
-export type EngineType = 'local' | 'null';
-
-export interface FullRecommendationData {
+/** The payload of an `engine:recommendations` broadcast. */
+export interface RecommendationData {
   recommendations: Recommendation[];
-  engine_type: EngineType;
 }
 
 /** Whether a game client websocket is currently open. */

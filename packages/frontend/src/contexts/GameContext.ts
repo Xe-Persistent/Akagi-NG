@@ -1,9 +1,9 @@
 import { createContext } from 'react';
 
-import type { EngineStatus, FullRecommendationData } from '@/types';
+import type { EngineStatus, RecommendationData } from '@/types';
 
 export interface GameContextType {
-  data: FullRecommendationData | null;
+  data: RecommendationData | null;
   status: EngineStatus | null;
   error: string | null;
   isHudActive: boolean;

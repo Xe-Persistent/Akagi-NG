@@ -22,6 +22,8 @@ export class EngineService {
   private isReacting = false;
   /** True once our own declared riichi was accepted by the table. */
   private riichiAccepted = false;
+  /** True once we have won the current round, which can happen before it ends. */
+  private weWonThisRound = false;
   /** Last tile contexts, used to decorate win recommendations. */
   private lastDrawnTile: string | null = null;
   private lastDiscardTile: string | null = null;
@@ -42,7 +44,7 @@ export class EngineService {
 
     for (const ev of events) {
       this.trackTileContext(ev);
-      this.trackRiichiState(ev);
+      this.trackRoundState(ev);
 
       if (ev.type === 'start_game') {
         await this.startGame(ev as StartGameEvent);
@@ -110,6 +112,9 @@ export class EngineService {
   }
 
   private isDecisionPoint(ev: MJAIEvent): boolean {
+    // A won round is over for us: in xuezhan it carries on without us, and there
+    // is nothing left to recommend with a hand that no longer gets drawn to.
+    if (this.weWonThisRound) return false;
     if (ev.type === 'tsumo' && ev.actor === this.playerId) return true;
     if (ev.type === 'dahai' && ev.actor !== this.playerId) return true;
     // A chi/pon leaves us on turn with no draw, so the discard has to be
@@ -128,11 +133,15 @@ export class EngineService {
     }
   }
 
-  private trackRiichiState(ev: MJAIEvent) {
+  /** Flags that only describe the round in progress, so both reset on a new one. */
+  private trackRoundState(ev: MJAIEvent) {
     if (ev.type === 'start_game' || ev.type === 'start_kyoku') {
       this.riichiAccepted = false;
+      this.weWonThisRound = false;
     } else if (ev.type === 'reach_accepted' && ev.actor === this.playerId) {
       this.riichiAccepted = true;
+    } else if (ev.type === 'hora' && ev.actor === this.playerId) {
+      this.weWonThisRound = true;
     }
   }
 

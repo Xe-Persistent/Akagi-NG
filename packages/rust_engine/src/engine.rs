@@ -129,6 +129,10 @@ pub struct Engine {
     backend: Backend,
     seat: u8,
     num_players: u8,
+    /// Whether the event applied last was a win. The next event decides whether
+    /// that win ended the hand or was a mid-hand settlement (`crate::xuezhan`),
+    /// which the mjai stream only tells apart by what follows it.
+    after_hora: bool,
 }
 
 impl Engine {
@@ -151,6 +155,7 @@ impl Engine {
             backend,
             seat,
             num_players,
+            after_hora: false,
         })
     }
 
@@ -161,6 +166,7 @@ impl Engine {
             Backend::Four { state, .. } => **state = GameState::new(0, true, None, 0, rule),
             Backend::Three { state, .. } => **state = GameState3P::new(0, true, None, 0, rule),
         }
+        self.after_hora = false;
     }
 
     pub fn seat(&self) -> u8 {
@@ -195,9 +201,23 @@ impl Engine {
             }
             _ => None,
         };
+        // A win only sets "the hand is over"; whether that is true is decided by
+        // the event that follows, so the previous win is reviewed here.
+        let resumes = std::mem::take(&mut self.after_hora) && !crate::xuezhan::ends_round(&ev);
+        let (hora_scores, is_hora) = match &ev {
+            MjaiEvent::Hora { scores, .. } => (scores.clone(), true),
+            _ => (None, false),
+        };
+        self.after_hora = is_hora;
         match &mut self.backend {
             Backend::Four { state, .. } => {
+                if resumes {
+                    crate::xuezhan::resume_after_hora(state);
+                }
                 state.apply_mjai_event(ev);
+                // A win's scores are the table's own, and the crate ignores them
+                // whether or not the hand goes on.
+                crate::xuezhan::apply_hora_scores(state, hora_scores.as_deref());
                 if let Some((actor, pai)) = opponent_kakan {
                     crate::chankan::open_on_kakan(state, actor, &pai, self.seat);
                 }
@@ -742,6 +762,59 @@ mod tests {
         eng.feed(ev(r#"{"type":"tsumo","actor":0,"pai":"9p"}"#));
         let d = eng.decide().expect("forward pass");
         assert!(d.is_some(), "our own draw is a decision point");
+    }
+
+    // ---------- xuezhan: a win that does not end the hand ----------
+
+    /// A blood battle settles up to three wins inside one hand and plays on
+    /// after the first two. riichienv ends the hand on every `hora`, so the
+    /// engine has to undo that when the hand keeps going — otherwise it goes
+    /// silent (every legal set is empty while `is_done` is set) from the first
+    /// win until the next `start_kyoku`.
+    #[test]
+    fn a_mid_hand_win_keeps_the_engine_in_the_round() {
+        let h = r#"["1m","1m","2m","3m","4m","5p","6p","7p","8p","9p","1s","2s","3s"]"#;
+        let mut eng = crate::defaults::engine(4, 0).expect("bundled 4p weights");
+        eng.feed(ev(r#"{"type":"start_game","names":["a","b","c","d"]}"#));
+        eng.feed(ev(&format!(
+            r#"{{"type":"start_kyoku","bakaze":"E","dora_marker":"1s","kyoku":1,"honba":0,
+                 "kyotaku":0,"oya":0,"scores":[25000,25000,25000,25000],
+                 "tehais":[{h},{h},{h},{h}]}}"#
+        )));
+        // Seat 1 draws its winning tile and wins; two seats are still playing.
+        eng.feed(ev(r#"{"type":"tsumo","actor":1,"pai":"9s"}"#));
+        eng.feed(ev(r#"{"type":"hora","actor":1,"target":1,"pai":"9s",
+                "scores":[25000,27000,24000,24000],"deltas":[0,2000,-1000,-1000]}"#));
+        eng.feed(ev(r#"{"type":"tsumo","actor":0,"pai":"4s"}"#));
+
+        assert!(
+            eng.decide().expect("forward pass").is_some(),
+            "the hand carries on after a mid-hand win, so our draw is still a decision"
+        );
+    }
+
+    /// The other half of the same rule: when a win *does* end the hand, the next
+    /// event must not revive it. `end_kyoku` is what tells the two apart.
+    #[test]
+    fn a_win_that_ends_the_hand_stays_over() {
+        let h = r#"["1m","1m","2m","3m","4m","5p","6p","7p","8p","9p","1s","2s","3s"]"#;
+        let mut eng = crate::defaults::engine(4, 0).expect("bundled 4p weights");
+        eng.feed(ev(r#"{"type":"start_game","names":["a","b","c","d"]}"#));
+        eng.feed(ev(&format!(
+            r#"{{"type":"start_kyoku","bakaze":"E","dora_marker":"1s","kyoku":1,"honba":0,
+                 "kyotaku":0,"oya":0,"scores":[25000,25000,25000,25000],
+                 "tehais":[{h},{h},{h},{h}]}}"#
+        )));
+        eng.feed(ev(r#"{"type":"tsumo","actor":1,"pai":"9s"}"#));
+        eng.feed(ev(r#"{"type":"hora","actor":1,"target":1,"pai":"9s",
+                "scores":[25000,27000,24000,24000],"deltas":[0,2000,-1000,-1000]}"#));
+        eng.feed(ev(r#"{"type":"end_kyoku"}"#));
+        eng.feed(ev(r#"{"type":"tsumo","actor":0,"pai":"4s"}"#));
+
+        assert!(
+            eng.decide().expect("forward pass").is_none(),
+            "a finished hand must stay finished"
+        );
     }
 
     // ---------- riichi lookahead ----------

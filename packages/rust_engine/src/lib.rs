@@ -12,6 +12,7 @@ pub mod model;
 pub mod obs;
 pub mod replay;
 pub mod tiles;
+pub mod xuezhan;
 
 #[cfg(test)]
 pub mod defaults;

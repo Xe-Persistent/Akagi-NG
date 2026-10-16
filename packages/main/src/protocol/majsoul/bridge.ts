@@ -17,6 +17,14 @@ type ActionPayload = Record<string, unknown>;
 /** ActionPrototype names that end the current kyoku. */
 const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu']);
 
+/** Round-level actions that mean a swap will never arrive for a held deal. */
+const STALE_DEAL_ACTIONS = new Set([
+  ...END_ROUND_ACTIONS,
+  'ActionNewRound',
+  'ActionHuleXueZhanMid',
+  'ActionHuleXueZhanEnd',
+]);
+
 /**
  * The game websocket's keep-alive. It carries no game state and arrives as a
  * Req/Res pair every few seconds, which at one capture line per frame would
@@ -142,6 +150,8 @@ export class MajsoulBridge extends BaseBridge {
     const actionData = liqiMessage.data as ActionPayload;
     const actionName = actionData.name as string;
 
+    this.dropUnswappedDeal(actionName);
+
     if (END_ROUND_ACTIONS.has(actionName)) {
       const roundEnd = actionName === 'ActionNoTile' ? this.handleNoTile(actionData) : [];
       return [...roundEnd, this.makeEndKyoku()];
@@ -163,6 +173,18 @@ export class MajsoulBridge extends BaseBridge {
 
     events.push(...this.handleDoraUpdate(actionData));
     return events;
+  }
+
+  /**
+   * A held deal is completed by the swap that follows it, and by nothing else.
+   * If a round-level action arrives first the swap never came, and keeping the
+   * deal would leave the round unopened for the rest of the game.
+   */
+  private dropUnswappedDeal(actionName: string) {
+    if (!this.pendingDeal || !STALE_DEAL_ACTIONS.has(actionName)) return;
+
+    logger.warn(`Dropping a dealt round that never swapped (${actionName} arrived first)`);
+    this.pendingDeal = null;
   }
 
   private handleNewRound(actionData: ActionPayload): MJAIEvent[] {

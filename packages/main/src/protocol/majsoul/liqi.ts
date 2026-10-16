@@ -210,7 +210,9 @@ export class LiqiProto {
 
       return { id: msgId, type: msgType, method, data };
     } catch (e) {
-      logger.debug(
+      // Recorded at the capture level, so a survey of a log can tell how many
+      // frames were dropped and why.
+      logger.verbose(
         `Decode skipped: ${e instanceof Error ? e.message : String(e)} (msg_id: ${msgId}, type: ${buf[0]})`,
       );
       return null;

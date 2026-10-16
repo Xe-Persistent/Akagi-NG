@@ -130,7 +130,9 @@ export class MajsoulBridge extends BaseBridge {
 
     const handler = this.actionHandlers[actionName];
     if (!handler) {
-      logger.debug(`Unhandled ActionPrototype: ${actionName}`);
+      // Recorded at the capture level, so a survey of a log can tell which
+      // actions the bridge has no mapping for.
+      logger.verbose(`Unhandled ActionPrototype: ${actionName}`);
     }
 
     const events = handler ? handler(actionData) : [];
@@ -147,8 +149,15 @@ export class MajsoulBridge extends BaseBridge {
   private handleNewRound(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const bakaze = ['E', 'S', 'W', 'N'][data.chang as number];
-    const doraMarker = toMjaiTile((data.doras as string[])[0]);
-    this.state.doras = [doraMarker];
+    const doras = data.doras as string[];
+
+    // Xuezhan deals without a dora indicator: its marker arrives with the
+    // three-tile swap instead, so the round opens with an unknown one.
+    if (doras.length === 0) {
+      logger.verbose('ActionNewRound without a dora indicator');
+    }
+    const doraMarker = doras.length > 0 ? toMjaiTile(doras[0]) : '?';
+    this.state.doras = doras.length > 0 ? [doraMarker] : [];
 
     const honba = data.ben as number;
     const oya = data.ju as number;

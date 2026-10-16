@@ -1,9 +1,8 @@
 import { createLogger } from '../../logging/index.js';
 import { broadcastToWindows } from '../../shared/broadcast.js';
-import type { AkagiEvent, StartGameEvent, SystemEvent } from '../../shared/schema/mjai.js';
-import { NotificationCode } from '../../shared/schema/mjai.js';
+import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
+import { engineStatus } from '../engine-status.js';
 import { ModelRunner } from './model-runner.js';
-import { NotificationCenter } from './notifications.js';
 import type { Recommendation } from './recommendation-mapper.js';
 import { mapDecisionToRecommendations } from './recommendation-mapper.js';
 
@@ -12,13 +11,12 @@ const logger = createLogger('EngineService');
 const MOCK_RECOMMENDATION: Recommendation = { action: '1m', tile: '1m', confidence: 0.99 };
 
 /**
- * Turns the mjai event stream of a captured game into HUD recommendations and
- * notifications: it owns the model runner, knows when the local player has to
- * act, and publishes everything the renderer needs.
+ * Turns the mjai event stream of a captured game into HUD recommendations: it
+ * owns the model runner, knows when the local player has to act, and publishes
+ * everything the renderer needs.
  */
 export class EngineService {
   private readonly runner = new ModelRunner();
-  private readonly notifications = new NotificationCenter();
 
   private isMockMode = false;
   private playerId = -1;
@@ -38,13 +36,8 @@ export class EngineService {
    * Feeds a batch of mjai events (already converted from the game protocol) into
    * the engine and answers at decision points.
    */
-  public async ingest(events: AkagiEvent[]) {
+  public async ingest(events: MJAIEvent[]) {
     for (const ev of events) {
-      if (ev.type === 'system_event') {
-        this.notifications.forwardSystemEvent(ev as SystemEvent);
-        continue;
-      }
-
       this.trackTileContext(ev);
       this.trackRiichiState(ev);
 
@@ -54,7 +47,9 @@ export class EngineService {
         this.feed(ev);
       }
 
-      if (this.isDecisionPoint(ev)) {
+      // A reconnect replay feeds history back in: reacting to it would broadcast
+      // one stale recommendation per historical decision point.
+      if (ev.sync !== true && this.isDecisionPoint(ev)) {
         this.react();
       }
     }
@@ -62,26 +57,18 @@ export class EngineService {
 
   public stop() {
     this.runner.reset();
-    this.notifications.clearAll();
+    engineStatus.reset();
   }
 
   // ===== Connection lifecycle, reported by the capture layer =====
 
   public clientConnected() {
-    this.notifications.clear(NotificationCode.GAME_DISCONNECTED);
-    this.notifications.show('success', NotificationCode.CLIENT_CONNECTED);
-    this.publishStatus(true);
+    engineStatus.set({ connection: 'connected' });
   }
 
   public gameDisconnected(gameEnded: boolean) {
-    this.notifications.clear(NotificationCode.GAME_SYNCING);
-    this.notifications.show(
-      gameEnded ? 'info' : 'error',
-      gameEnded ? NotificationCode.RETURN_LOBBY : NotificationCode.GAME_DISCONNECTED,
-    );
-    if (!gameEnded) {
-      this.publishStatus(false);
-    }
+    engineStatus.set({ connection: 'idle' });
+    engineStatus.notice(gameEnded ? 'lobby_return' : 'game_dropped');
   }
 
   // ===== Engine =====
@@ -91,38 +78,37 @@ export class EngineService {
 
     if (this.isMockMode) return;
 
+    engineStatus.set({ model: 'loading' });
     const outcome = await this.runner.load(start.id, start.is_3p);
 
     switch (outcome.status) {
       case 'missing':
         logger.error('Local model not found at path:', outcome.modelPath);
-        this.notifications.show('error', NotificationCode.MODEL_LOAD_FAILED);
+        engineStatus.set({ model: 'failed' });
         return;
       case 'failed':
         logger.error('Failed to initialize the local engine:', outcome.error);
-        this.notifications.show('error', NotificationCode.MODEL_LOAD_FAILED);
+        engineStatus.set({ model: 'failed' });
         return;
       default:
         logger.info(`Loaded model ${outcome.modelName} (${start.is_3p ? '3p' : '4p'})`);
-        this.notifications.clear(NotificationCode.MODEL_LOAD_FAILED);
-        this.notifications.show('success', NotificationCode.MODEL_LOADED_LOCAL);
-        this.notifications.show('success', NotificationCode.GAME_CONNECTED);
+        engineStatus.set({ model: 'ready', modelName: outcome.modelName });
     }
 
     // A fresh engine needs the game context only; there is nothing to replay.
     this.feed(start);
   }
 
-  private feed(ev: AkagiEvent) {
+  private feed(ev: MJAIEvent) {
     try {
       this.runner.feed(ev);
     } catch (err) {
       logger.error('Engine rejected event:', err);
-      this.notifications.show('error', NotificationCode.BOT_RUNTIME_ERROR);
+      engineStatus.notice('runtime_error');
     }
   }
 
-  private isDecisionPoint(ev: AkagiEvent): boolean {
+  private isDecisionPoint(ev: MJAIEvent): boolean {
     if (ev.type === 'tsumo' && ev.actor === this.playerId) return true;
     if (ev.type === 'dahai' && ev.actor !== this.playerId) return true;
     // A chi/pon leaves us on turn with no draw, so the discard has to be
@@ -133,7 +119,7 @@ export class EngineService {
     return false;
   }
 
-  private trackTileContext(ev: AkagiEvent) {
+  private trackTileContext(ev: MJAIEvent) {
     if (ev.type === 'tsumo' && ev.actor === this.playerId) {
       this.lastDrawnTile = (ev as { pai?: string }).pai ?? null;
     } else if (ev.type === 'dahai' && ev.actor !== this.playerId) {
@@ -141,7 +127,7 @@ export class EngineService {
     }
   }
 
-  private trackRiichiState(ev: AkagiEvent) {
+  private trackRiichiState(ev: MJAIEvent) {
     if (ev.type === 'start_game' || ev.type === 'start_kyoku') {
       this.riichiAccepted = false;
     } else if (ev.type === 'reach_accepted' && ev.actor === this.playerId) {
@@ -185,12 +171,8 @@ export class EngineService {
       });
     } catch (err) {
       logger.error('Engine inference failed:', err);
-      this.notifications.show('error', NotificationCode.BOT_RUNTIME_ERROR);
+      engineStatus.notice('runtime_error');
       return null;
     }
-  }
-
-  private publishStatus(connected: boolean) {
-    broadcastToWindows('engine:status', { status: connected ? 'connected' : 'disconnected' });
   }
 }

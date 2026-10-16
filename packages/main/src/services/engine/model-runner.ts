@@ -5,7 +5,7 @@ import type { AkagiEngine } from '@akagi-ng/rust-engine';
 
 import { createLogger } from '../../logging/index.js';
 import { getProjectRoot } from '../../shared/paths.js';
-import type { AkagiEvent } from '../../shared/schema/mjai.js';
+import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import { settingsManager } from '../settings-manager.js';
 import type { EngineDecision } from './recommendation-mapper.js';
 
@@ -55,7 +55,7 @@ export class ModelRunner {
    * Feeds one mjai event. Events the engine has no use for are ignored here;
    * a broken engine throws so the caller can surface it.
    */
-  public feed(ev: AkagiEvent): boolean {
+  public feed(ev: MJAIEvent): boolean {
     if (!this.engine) return false;
 
     const accepted = this.engine.feedLine(JSON.stringify(ev));

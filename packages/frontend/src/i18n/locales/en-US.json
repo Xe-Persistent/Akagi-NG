@@ -94,19 +94,19 @@
     "none": "Skip",
     "discard": "Discard"
   },
-  "status_messages": {
+  "status": {
     "client_connected": "Game connected.",
-    "game_connected": "Match connected. AI is ready.",
-    "model_loaded_local": "Local model loaded.",
-    "game_syncing": "Syncing match data…",
-    "majsoul_proto_updated": "Majsoul protocol updated successfully.",
-    "majsoul_proto_update_failed": "Failed to update Majsoul protocol.",
-    "game_data_parse_failed": "Failed to parse match data.",
-    "game_disconnected": "Game connection lost. Check your network or refresh the page.",
-    "return_lobby": "Left the current match.",
-    "config_error": "Configuration Error",
-    "model_load_failed": "Failed to load AI model.",
-    "bot_runtime_error": "AI model runtime error",
+    "game_ready": "Match connected. AI is ready.",
+    "model_loaded": "Local model loaded.",
+    "syncing": "Syncing match data…",
+    "proto_updated": "Majsoul protocol updated successfully.",
+    "proto_update_failed": "Failed to update Majsoul protocol.",
+    "parse_failed": "Failed to parse match data.",
+    "disconnected": "Game connection lost. Check your network or refresh the page.",
+    "left_game": "Left the current match.",
+    "bridge_unavailable": "Configuration Error",
+    "model_failed": "Failed to load AI model.",
+    "runtime_error": "AI model runtime error",
     "models_missing": "Local model files (models) are missing. The application cannot run without them."
   }
 }

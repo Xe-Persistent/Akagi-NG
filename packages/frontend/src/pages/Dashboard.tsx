@@ -89,7 +89,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     if (!resourceStatus) return;
 
     if (!resourceStatus.models) {
-      notify.warn(t('status_messages.models_missing'), {
+      notify.warn(t('status.models_missing'), {
         toastId: 'models_missing',
         autoClose: false,
       });

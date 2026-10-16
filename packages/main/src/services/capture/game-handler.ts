@@ -2,8 +2,8 @@ import type { WebContents } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
-import type { AkagiEvent } from '../../shared/schema/mjai.js';
 import type { EngineService } from '../engine/engine-service.js';
+import { engineStatus } from '../engine-status.js';
 import { ConnectionTracker } from './connection-tracker.js';
 
 const logger = createLogger('GameHandler');
@@ -166,10 +166,18 @@ export class GameHandler {
 
     try {
       const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
-      const parsedEvents: AkagiEvent[] = bridge.parse(buffer, 'CDP');
-      if (parsedEvents.length === 0) return;
+      const output = bridge.parse(buffer, 'CDP');
 
-      this.engine.ingest(parsedEvents).catch((err: unknown) => {
+      if (output.parseFailed) {
+        engineStatus.notice('parse_error');
+      }
+      if (output.replayed) {
+        engineStatus.notice('replay');
+      }
+
+      if (output.events.length === 0) return;
+
+      this.engine.ingest(output.events).catch((err: unknown) => {
         logger.error('Failed to ingest parsed events:', err);
       });
     } catch (err) {

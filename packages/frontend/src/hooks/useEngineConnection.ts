@@ -1,23 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { ConnectionErrorCode, FullRecommendationData, NotificationItem } from '@/types';
+import type { EngineStatus, FullRecommendationData } from '@/types';
 
 interface UseEngineConnectionResult {
   data: FullRecommendationData | null;
-  notifications: NotificationItem[];
-  isConnected: boolean;
-  error: ConnectionErrorCode | string | null;
+  status: EngineStatus | null;
+  error: string | null;
 }
 
+/**
+ * Subscribes to what the main process broadcasts: the engine's status and the
+ * recommendations to render. The status is fetched once on mount so a window that
+ * opens mid-session does not have to wait for the next change.
+ */
 export function useEngineConnection(): UseEngineConnectionResult {
   const [data, setData] = useState<FullRecommendationData | null>(null);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isConnected, setIsConnected] = useState(true);
-  const [error, setError] = useState<ConnectionErrorCode | string | null>(null);
+  const [status, setStatus] = useState<EngineStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!window.electron) {
-      // 在下一次渲染周期更新
       queueMicrotask(() => setError('config_error'));
       return;
     }
@@ -29,27 +34,25 @@ export function useEngineConnection(): UseEngineConnectionResult {
       },
     );
 
-    const unsubNotification = window.electron.on('engine:notification', (payload: unknown) => {
-      const parsed = payload as { list?: NotificationItem[] };
-      if (parsed.list) {
-        setNotifications(parsed.list);
-      }
+    const unsubStatus = window.electron.on('engine:status', (payload: unknown) => {
+      if (mountedRef.current) setStatus(payload as EngineStatus);
     });
 
-    const unsubStatus = window.electron.on('engine:status', (payload: unknown) => {
-      const { status } = payload as { status: string };
-      setIsConnected(status === 'connected');
-    });
+    window.electron
+      .invoke<EngineStatus>('engine:status:get')
+      .then((snapshot) => {
+        if (mountedRef.current && snapshot) setStatus(snapshot);
+      })
+      .catch(() => {
+        // Without a handler the first broadcast still arrives on change.
+      });
 
     return () => {
+      mountedRef.current = false;
       unsubRecommendations();
-      unsubNotification();
       unsubStatus();
     };
   }, []);
 
-  return useMemo(
-    () => ({ data, notifications, isConnected, error }),
-    [data, notifications, isConnected, error],
-  );
+  return useMemo(() => ({ data, status, error }), [data, status, error]);
 }

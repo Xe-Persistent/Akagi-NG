@@ -6,8 +6,8 @@ const logger = createLogger('ConnectionTracker');
 
 /**
  * Tracks the lifecycle of game websockets for a single capture path (CDP or MITM)
- * and emits `client_connected` / `game_disconnected` / `return_lobby` on the
- * first open and the last close, mirroring the legacy electron_client behaviour.
+ * and reports the first open and the last close to the engine service, which owns
+ * the connection state.
  */
 export class ConnectionTracker {
   private readonly activeConnections = new Set<string>();

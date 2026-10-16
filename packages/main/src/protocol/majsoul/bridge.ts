@@ -1,7 +1,7 @@
 import { createLogger } from '../../logging/index.js';
 import { MahjongConstants } from '../../shared/schema/mahjong.js';
-import type { AkagiEvent } from '../../shared/schema/mjai.js';
-import { NotificationCode } from '../../shared/schema/mjai.js';
+import type { MJAIEvent } from '../../shared/schema/mjai.js';
+import type { BridgeOutput } from '../base-bridge.js';
 import { BaseBridge } from '../base-bridge.js';
 import { OperationAnGangAddGang, OperationChiPengGang } from './consts.js';
 import type { LiqiMessage } from './liqi.js';
@@ -19,9 +19,11 @@ const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu'])
 export class MajsoulBridge extends BaseBridge {
   public readonly liqiProto: LiqiProto = new LiqiProto();
   private readonly state = new MajsoulStateTracker();
+  /** Set while the frame being parsed is a reconnect replay. */
+  private replayed = false;
 
   private readonly actionHandlers: Readonly<
-    Record<string, (actionData: ActionPayload) => AkagiEvent[]>
+    Record<string, (actionData: ActionPayload) => MJAIEvent[]>
   > = {
     ActionNewRound: (actionData) => this.handleNewRound(actionData),
     ActionDealTile: (actionData) => this.handleDealTile(actionData),
@@ -44,26 +46,28 @@ export class MajsoulBridge extends BaseBridge {
    * Turns one captured frame into mjai events. `source` names the capture path
    * that saw it (`CDP` or `MITM`) and only shows up in the verbose capture log.
    */
-  public parse(content: Buffer, source?: string): AkagiEvent[] {
+  public parse(content: Buffer, source?: string): BridgeOutput {
     try {
+      this.replayed = false;
       const liqiMessage = this.liqiProto.parse(content);
-      if (!liqiMessage) return [];
+      if (!liqiMessage) return { events: [], replayed: this.replayed };
 
       // The complete decoded message: a capture kept at `verbose` is what makes
       // a real game inspectable offline, and every field is logged as decoded.
       const tag = source ? `[${source}] ` : '';
       logger.verbose(`${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`, liqiMessage.data);
 
-      return this.parseLiqi(liqiMessage);
+      const events = this.parseLiqi(liqiMessage);
+      return { events, replayed: this.replayed };
     } catch (e) {
       logger.error(`Error parsing Majsoul message: ${e instanceof Error ? e.message : String(e)}`);
-      return [this.makeSystemEvent(NotificationCode.PARSE_ERROR)];
+      return { events: [], parseFailed: true, replayed: this.replayed };
     }
   }
 
   // ===== liqi method dispatch =====
 
-  private parseLiqi(liqiMessage: LiqiMessage): AkagiEvent[] {
+  private parseLiqi(liqiMessage: LiqiMessage): MJAIEvent[] {
     const { method, type } = liqiMessage;
 
     switch (method) {
@@ -83,7 +87,7 @@ export class MajsoulBridge extends BaseBridge {
     }
   }
 
-  private handleAuthGame(liqiMessage: LiqiMessage, msgType: MsgType): AkagiEvent[] {
+  private handleAuthGame(liqiMessage: LiqiMessage, msgType: MsgType): MJAIEvent[] {
     if (msgType === MsgType.Req) {
       // The request only carries our account id; the real state arrives with the response.
       this.reset();
@@ -104,7 +108,7 @@ export class MajsoulBridge extends BaseBridge {
 
   // ===== ActionPrototype handling =====
 
-  private handleActionPrototype(liqiMessage: LiqiMessage): AkagiEvent[] {
+  private handleActionPrototype(liqiMessage: LiqiMessage): MJAIEvent[] {
     const actionData = liqiMessage.data as ActionPayload;
     const actionName = actionData.name as string;
 
@@ -128,7 +132,7 @@ export class MajsoulBridge extends BaseBridge {
     return events;
   }
 
-  private handleNewRound(actionData: ActionPayload): AkagiEvent[] {
+  private handleNewRound(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const bakaze = ['E', 'S', 'W', 'N'][data.chang as number];
     const doraMarker = toMjaiTile((data.doras as string[])[0]);
@@ -146,7 +150,7 @@ export class MajsoulBridge extends BaseBridge {
     const round = this.state.setupNewRound(data.tiles as string[]);
     if (!round) return [];
 
-    const events: AkagiEvent[] = [
+    const events: MJAIEvent[] = [
       this.makeStartKyoku(bakaze, kyoku, honba, kyotaku, oya, doraMarker, scores, round.tehais),
     ];
 
@@ -157,7 +161,7 @@ export class MajsoulBridge extends BaseBridge {
     return events;
   }
 
-  private handleDealTile(actionData: ActionPayload): AkagiEvent[] {
+  private handleDealTile(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const actor = data.seat as number;
 
@@ -172,7 +176,7 @@ export class MajsoulBridge extends BaseBridge {
     return [this.makeTsumo(actor, pai)];
   }
 
-  private handleDiscardTile(actionData: ActionPayload): AkagiEvent[] {
+  private handleDiscardTile(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const actor = data.seat as number;
     this.state.lastDiscard = actor;
@@ -180,7 +184,7 @@ export class MajsoulBridge extends BaseBridge {
     const pai = toMjaiTile(data.tile as string);
     const tsumogiri = data.moqie as boolean;
 
-    const events: AkagiEvent[] = [];
+    const events: MJAIEvent[] = [];
     if (data.isLiqi) {
       events.push(this.makeReach(actor));
     }
@@ -197,7 +201,7 @@ export class MajsoulBridge extends BaseBridge {
     return events;
   }
 
-  private handleChiPengGang(actionData: ActionPayload): AkagiEvent[] {
+  private handleChiPengGang(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const actor = data.seat as number;
     const froms = data.froms as number[];
@@ -247,7 +251,7 @@ export class MajsoulBridge extends BaseBridge {
     }
   }
 
-  private handleAnGangAddGang(actionData: ActionPayload): AkagiEvent[] {
+  private handleAnGangAddGang(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const actor = data.seat as number;
     const pai = toMjaiTile(data.tiles as string);
@@ -284,14 +288,14 @@ export class MajsoulBridge extends BaseBridge {
     return consumed;
   }
 
-  private handleBaBei(actionData: ActionPayload): AkagiEvent[] {
+  private handleBaBei(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
     const actor = data.seat as number;
     this.state.onNukidora(actor);
     return [this.makeNukidora(actor)];
   }
 
-  private handleDoraUpdate(actionData: ActionPayload): AkagiEvent[] {
+  private handleDoraUpdate(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload | undefined;
     const doras = data?.doras as string[] | undefined;
 
@@ -303,21 +307,24 @@ export class MajsoulBridge extends BaseBridge {
     return [];
   }
 
-  private handleGameEnd(): AkagiEvent[] {
+  private handleGameEnd(): MJAIEvent[] {
     this.state.gameEnded = true;
     return [this.makeEndGame()];
   }
 
   // ===== Reconnect / sync replay =====
 
-  private parseSyncGame(liqiMessage: LiqiMessage): AkagiEvent[] {
+  private parseSyncGame(liqiMessage: LiqiMessage): MJAIEvent[] {
     this.preScanModeFromSyncMsg(liqiMessage);
 
     const syncGameMsgs = this.parseSyncGameRaw(liqiMessage);
-    const parsedList: AkagiEvent[] = [this.makeSystemEvent(NotificationCode.GAME_SYNCING)];
+    const parsedList: MJAIEvent[] = [];
+    this.replayed = true;
 
     try {
       for (let i = 0; i < syncGameMsgs.length; i++) {
+        // The last replayed frame is not historical: it is the state the game is
+        // in now, so it must be allowed to produce a recommendation.
         this.syncing = i !== syncGameMsgs.length - 1;
         parsedList.push(...this.handleActionPrototype(syncGameMsgs[i]));
       }
@@ -328,11 +335,11 @@ export class MajsoulBridge extends BaseBridge {
     return parsedList;
   }
 
-  private parseEnterGame(liqiMessage: LiqiMessage): AkagiEvent[] {
+  private parseEnterGame(liqiMessage: LiqiMessage): MJAIEvent[] {
     this.syncing = false;
     this.preScanModeFromSyncMsg(liqiMessage);
 
-    const parsedList: AkagiEvent[] = [];
+    const parsedList: MJAIEvent[] = [];
     for (const msg of this.parseSyncGameRaw(liqiMessage)) {
       parsedList.push(...this.handleActionPrototype(msg));
     }

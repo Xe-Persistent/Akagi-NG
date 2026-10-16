@@ -54,10 +54,10 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     setIsUpdatingProtocol(true);
     try {
       await window.electron.invoke('update-liqi');
-      toast.success(t('status_messages.majsoul_proto_updated'));
+      toast.success(t('status.proto_updated'));
     } catch (error) {
       toast.error(
-        `${t('status_messages.majsoul_proto_update_failed')}: ${error instanceof Error ? error.message : String(error)}`,
+        `${t('status.proto_update_failed')}: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
       setIsUpdatingProtocol(false);

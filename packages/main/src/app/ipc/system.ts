@@ -2,6 +2,7 @@ import { app, ipcMain, shell } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
 import type { EngineService } from '../../services/engine/engine-service.js';
+import { engineStatus } from '../../services/engine-status.js';
 import { updateMajsoulProtocol } from '../../services/protocol-updater.js';
 import { resourceValidator } from '../../services/resource-validator.js';
 import { EXIT_ANIMATION_DELAY_MS } from '../../shared/constants.js';
@@ -30,6 +31,12 @@ export function registerSystemHandlers(windowManager: WindowManager, engine: Eng
 
   ipcMain.handle('check-resource-status', async () => {
     return await resourceValidator.validate();
+  });
+
+  // A window that opens mid-session asks for the current status instead of
+  // waiting for the next change.
+  ipcMain.handle('engine:status:get', () => {
+    return engineStatus.get();
   });
 
   ipcMain.handle('update-liqi', async () => {

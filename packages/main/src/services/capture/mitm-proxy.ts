@@ -8,8 +8,8 @@ import * as mockttp from 'mockttp';
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import { getAssetPath } from '../../shared/paths.js';
-import type { AkagiEvent } from '../../shared/schema/mjai.js';
 import type { EngineService } from '../engine/engine-service.js';
+import { engineStatus } from '../engine-status.js';
 import { settingsManager } from '../settings-manager.js';
 import { ConnectionTracker } from './connection-tracker.js';
 
@@ -134,9 +134,17 @@ export class MitmProxyManager {
           ? Buffer.from(msg.content, 'utf8')
           : Buffer.from(msg.content);
 
-      const parsedEvents: AkagiEvent[] = bridge.parse(dataBuffer, 'MITM');
-      if (parsedEvents.length > 0) {
-        await this.engine.ingest(parsedEvents);
+      const output = bridge.parse(dataBuffer, 'MITM');
+
+      if (output.parseFailed) {
+        engineStatus.notice('parse_error');
+      }
+      if (output.replayed) {
+        engineStatus.notice('replay');
+      }
+
+      if (output.events.length > 0) {
+        await this.engine.ingest(output.events);
       }
     } catch (err) {
       logger.error('Failed to process WebSocket message:', err);

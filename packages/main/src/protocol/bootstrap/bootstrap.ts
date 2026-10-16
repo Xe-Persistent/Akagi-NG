@@ -18,7 +18,6 @@ import { findTextAsset, MajsoulAssetClient } from './majsoul-client.js';
  */
 export const PROTOL_ASSET_PREFIX = 'LuaByte/Lua/Protol/';
 export const PROTO_CONFIG_ASSET = 'MyAssets/docs/proto_config.bytes';
-export const PROTO_CONFIG_MODULE = 'proto_config';
 const LUA_ASSET_SUFFIX = '.lua.bytes';
 
 export interface ProtocolSources {

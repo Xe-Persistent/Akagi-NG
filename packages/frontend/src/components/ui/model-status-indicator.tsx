@@ -10,33 +10,27 @@ const DOT_BASE_CLASS =
 const STATUS_VARIANTS = {
   hidden: 'hidden',
   disconnected: 'animate-pulse bg-rose-500 shadow-rose-500/50',
-  local: 'bg-blue-500 shadow-blue-500/50',
-  nullEngine: 'bg-zinc-500 shadow-zinc-500/50',
+  loading: 'animate-pulse bg-amber-500 shadow-amber-500/50',
+  failed: 'bg-rose-600 shadow-rose-600/50',
+  ready: 'bg-blue-500 shadow-blue-500/50',
 } as const;
 
 type StatusType = keyof typeof STATUS_VARIANTS;
 
 interface ModelStatusIndicatorProps {
-  isConnected?: boolean;
   className?: string;
 }
 
-export function ModelStatusIndicator({ isConnected, className }: ModelStatusIndicatorProps) {
+export function ModelStatusIndicator({ className }: ModelStatusIndicatorProps) {
   const context = use(GameContext);
-  const data = context?.data;
-
-  // 优先使用传入的 isConnected，否则退回到上下文
-  // 当上下文缺失时，默认视为断开连接
-  const connected = isConnected ?? context?.isConnected ?? false;
+  const status = context?.status;
 
   const currentStatus: StatusType = (() => {
-    // 0. 断开连接（最高优先级）
-    if (!connected) return 'disconnected';
-
-    if (!data) return 'hidden';
-
-    // 1. 本地引擎 / 空引擎
-    return data.engine_type === 'null' ? 'nullEngine' : 'local';
+    if (!status || status.connection === 'idle') return 'disconnected';
+    if (status.model === 'failed') return 'failed';
+    if (status.model === 'loading') return 'loading';
+    if (status.model !== 'ready') return 'hidden';
+    return 'ready';
   })();
 
   if (currentStatus === 'hidden') return null;

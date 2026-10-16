@@ -94,19 +94,19 @@
     "none": "跳過",
     "discard": "打"
   },
-  "status_messages": {
+  "status": {
     "client_connected": "遊戲已連線",
-    "game_connected": "對局已連線，AI 已就緒",
-    "model_loaded_local": "已載入本地模型",
-    "game_syncing": "正在同步對局數據…",
-    "majsoul_proto_updated": "雀魂協定檔案更新成功",
-    "majsoul_proto_update_failed": "雀魂協定檔案更新失敗",
-    "game_data_parse_failed": "遊戲數據解析異常",
-    "game_disconnected": "遊戲連線中斷，請檢查網路或重新整理頁面",
-    "return_lobby": "已離開當前對局",
-    "config_error": "配置錯誤",
-    "model_load_failed": "AI 模型載入失敗",
-    "bot_runtime_error": "AI 模型運行異常",
+    "game_ready": "對局已連線，AI 已就緒",
+    "model_loaded": "已載入本地模型",
+    "syncing": "正在同步對局數據…",
+    "proto_updated": "雀魂協定檔案更新成功",
+    "proto_update_failed": "雀魂協定檔案更新失敗",
+    "parse_failed": "遊戲數據解析異常",
+    "disconnected": "遊戲連線中斷，請檢查網路或重新整理頁面",
+    "left_game": "已離開當前對局",
+    "bridge_unavailable": "配置錯誤",
+    "model_failed": "AI 模型載入失敗",
+    "runtime_error": "AI 模型運行異常",
     "models_missing": "本地模型檔案 (models) 缺失，程式將無法執行。"
   }
 }

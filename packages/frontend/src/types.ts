@@ -20,10 +20,27 @@ export interface FullRecommendationData {
   engine_type: EngineType;
 }
 
-export interface NotificationItem {
-  level?: string;
-  code: string;
-  msg?: string;
+/** Whether a game client websocket is currently open. */
+export type ConnectionState = 'idle' | 'connected';
+
+/** Whether the inference engine has usable weights. */
+export type ModelState = 'idle' | 'loading' | 'ready' | 'failed';
+
+/**
+ * Things that happened once and leave no state behind. The sequence number lets
+ * the renderer tell a repeat from the still-visible previous occurrence.
+ */
+export interface EngineNotice {
+  kind: 'parse_error' | 'runtime_error' | 'replay' | 'lobby_return' | 'game_dropped';
+  seq: number;
+}
+
+/** The engine's state as the main process reports it. */
+export interface EngineStatus {
+  connection: ConnectionState;
+  model: ModelState;
+  modelName: string | null;
+  notice: EngineNotice | null;
 }
 
 export interface Settings {
@@ -65,8 +82,6 @@ export type PathValue<T, P extends readonly unknown[]> = P extends [infer K]
     : never;
 
 export type Theme = 'light' | 'dark' | 'system';
-
-export type ConnectionErrorCode = 'config_error';
 
 export interface ResourceStatus {
   models: boolean;

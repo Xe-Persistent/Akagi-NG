@@ -9,7 +9,7 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import { NavbarActionButton as HeaderIconButton } from '@/components/ui/navbar-a
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { SUPPORTED_LOCALES } from '@/config/locales';
-import { GameContext } from '@/contexts/GameContext';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +30,6 @@ interface HeaderProps {
   onShutdown?: () => void;
   onToggleHud?: (show: boolean) => void;
   isHudActive?: boolean;
-  isConnected: boolean;
 }
 
 function HeaderContent({
@@ -43,7 +41,6 @@ function HeaderContent({
   onShutdown,
   onToggleHud,
   isHudActive = false,
-  isConnected,
 }: HeaderProps) {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
@@ -66,7 +63,7 @@ function HeaderContent({
         <div className='flex items-center gap-3'>
           {/* Status Indicator */}
           <div className='relative flex h-2.5 w-2.5 items-center justify-center'>
-            <ModelStatusIndicator isConnected={isConnected} className='static' />
+            <ModelStatusIndicator className='static' />
           </div>
           <h1 className='bg-linear-to-r from-pink-600 to-violet-600 bg-clip-text text-xl font-bold text-transparent dark:from-pink-400 dark:to-violet-400'>
             {t('app.title')}
@@ -159,10 +156,6 @@ function HeaderContent({
   );
 }
 
-export function Header(props: Omit<HeaderProps, 'isConnected'>) {
-  const gameContext = use(GameContext);
-  if (!gameContext) throw new Error('GameContext not found');
-  const { isConnected } = gameContext;
-
-  return <HeaderContent {...props} isConnected={isConnected} />;
+export function Header(props: HeaderProps) {
+  return <HeaderContent {...props} />;
 }

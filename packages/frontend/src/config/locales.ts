@@ -7,5 +7,3 @@ export const SUPPORTED_LOCALES = [
   { value: 'ja-JP', label: '日本語' },
   { value: 'en-US', label: 'English' },
 ] as const;
-
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]['value'];

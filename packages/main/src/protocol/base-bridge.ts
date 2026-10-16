@@ -1,5 +1,4 @@
 import type {
-  AkagiEvent,
   AnkanEvent,
   ChiEvent,
   DahaiEvent,
@@ -8,16 +7,31 @@ import type {
   EndGameEvent,
   EndKyokuEvent,
   KakanEvent,
-  NotificationCode,
+  MJAIEvent,
   NukidoraEvent,
   PonEvent,
   ReachAcceptedEvent,
   ReachEvent,
   StartGameEvent,
   StartKyokuEvent,
-  SystemEvent,
   TsumoEvent,
 } from '../shared/schema/mjai.js';
+
+/**
+ * What one captured frame produced: the game events it carried, plus the two
+ * facts the session status needs (a frame that could not be decoded, and whether
+ * the events are part of a reconnect replay).
+ */
+export interface BridgeOutput {
+  events: MJAIEvent[];
+  /**
+   * A frame that was understood as a game message but could not be turned into
+   * events. A frame that carries no liqi message at all is not a failure.
+   */
+  parseFailed?: boolean;
+  /** The frame carried a reconnect replay, i.e. the events are history being re-fed. */
+  replayed?: boolean;
+}
 
 export abstract class BaseBridge {
   /** True while a reconnect replay is in progress; stamped on emitted events. */
@@ -31,9 +45,10 @@ export abstract class BaseBridge {
    * Parses a platform frame and returns the resulting mjai events.
    *
    * @param content - raw frame payload received from the game client
-   * @returns mjai events, possibly empty when the frame carries no game state
+   * @param source - capture path that saw the frame, for the verbose capture log
+   * @returns the events plus the session facts the frame implies
    */
-  public abstract parse(content: Buffer): AkagiEvent[];
+  public abstract parse(content: Buffer, source?: string): BridgeOutput;
 
   // ===== MJAI 消息构建器 =====
 
@@ -218,13 +233,6 @@ export abstract class BaseBridge {
     return {
       type: 'end_game',
       sync: this.resolveSync(sync),
-    };
-  }
-
-  public makeSystemEvent(code: NotificationCode): SystemEvent {
-    return {
-      type: 'system_event',
-      code,
     };
   }
 }

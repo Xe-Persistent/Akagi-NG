@@ -8,6 +8,7 @@ import type { LiqiMessage } from './liqi.js';
 import { LiqiProto, MsgType } from './liqi.js';
 import { MajsoulStateTracker } from './state-tracker.js';
 import { toMjaiTile } from './tile-mapping.js';
+import { applySwap, isXuezhanRule, parseXuezhanWins } from './xuezhan.js';
 
 const logger = createLogger('MajsoulBridge');
 
@@ -22,6 +23,12 @@ const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu'])
  * drown the game itself, so it is decoded but not recorded.
  */
 const HEARTBEAT_METHOD = '.lq.Route.heartbeat';
+
+/** The round's first dora marker, before any indicator has been reported. */
+function toMjaiTileOrUnknown(doras: string[] | undefined): string {
+  const first = doras?.[0];
+  return first ? toMjaiTile(first) : '?';
+}
 
 export class MajsoulBridge extends BaseBridge {
   public readonly liqiProto: LiqiProto = new LiqiProto();
@@ -38,7 +45,16 @@ export class MajsoulBridge extends BaseBridge {
     ActionChiPengGang: (actionData) => this.handleChiPengGang(actionData),
     ActionAnGangAddGang: (actionData) => this.handleAnGangAddGang(actionData),
     ActionBaBei: (actionData) => this.handleBaBei(actionData),
+    ActionChangeTile: (actionData) => this.handleChangeTile(actionData),
+    ActionHuleXueZhanMid: (actionData) => this.handleXuezhanHule(actionData, false),
+    ActionHuleXueZhanEnd: (actionData) => this.handleXuezhanHule(actionData, true),
   };
+
+  /**
+   * In xuezhan the deal is not finished when it arrives: the round only starts
+   * once the three-tile swap has been applied, so it is held here until then.
+   */
+  private pendingDeal: ActionPayload | null = null;
 
   public get gameEnded(): boolean {
     return this.state.gameEnded;
@@ -47,6 +63,7 @@ export class MajsoulBridge extends BaseBridge {
   public override reset() {
     super.reset();
     this.state.reset();
+    this.pendingDeal = null;
   }
 
   /**
@@ -112,6 +129,7 @@ export class MajsoulBridge extends BaseBridge {
       const seatList = data.seatList as number[];
       this.state.is3p = seatList.length === MahjongConstants.SEATS_3P;
       this.state.seat = seatList.indexOf(this.state.accountId);
+      this.state.isXuezhan = isXuezhanRule(data.gameConfig);
       return [this.makeStartGame(this.state.seat, this.state.is3p)];
     }
 
@@ -125,7 +143,8 @@ export class MajsoulBridge extends BaseBridge {
     const actionName = actionData.name as string;
 
     if (END_ROUND_ACTIONS.has(actionName)) {
-      return [this.makeEndKyoku()];
+      const roundEnd = actionName === 'ActionNoTile' ? this.handleNoTile(actionData) : [];
+      return [...roundEnd, this.makeEndKyoku()];
     }
 
     const handler = this.actionHandlers[actionName];
@@ -148,16 +167,24 @@ export class MajsoulBridge extends BaseBridge {
 
   private handleNewRound(actionData: ActionPayload): MJAIEvent[] {
     const data = actionData.data as ActionPayload;
-    const bakaze = ['E', 'S', 'W', 'N'][data.chang as number];
-    const doras = data.doras as string[];
 
-    // Xuezhan deals without a dora indicator: its marker arrives with the
-    // three-tile swap instead, so the round opens with an unknown one.
-    if (doras.length === 0) {
-      logger.verbose('ActionNewRound without a dora indicator');
+    // Xuezhan deals before the swap, so the round cannot open yet: the hand is
+    // still going to lose three tiles and gain three. `handleChangeTile` opens it.
+    if (this.state.isXuezhan) {
+      this.pendingDeal = data;
+      return [];
     }
-    const doraMarker = doras.length > 0 ? toMjaiTile(doras[0]) : '?';
-    this.state.doras = doras.length > 0 ? [doraMarker] : [];
+
+    return this.openRound(data, toMjaiTileOrUnknown(data.doras as string[]));
+  }
+
+  /**
+   * Opens the round from a deal whose hand is final: the plain deal, or a
+   * xuezhan deal with its swap already applied.
+   */
+  private openRound(data: ActionPayload, doraMarker: string): MJAIEvent[] {
+    const bakaze = ['E', 'S', 'W', 'N'][data.chang as number];
+    this.state.doras = doraMarker === '?' ? [] : [doraMarker];
 
     const honba = data.ben as number;
     const oya = data.ju as number;
@@ -180,6 +207,73 @@ export class MajsoulBridge extends BaseBridge {
     }
 
     return events;
+  }
+
+  /**
+   * The three-tile swap that opens every xuezhan round. The hand it reports is
+   * not complete (the payload only lists what moved), so the held deal is
+   * corrected here — tiles leave, tiles arrive — and only then does the round
+   * open together with the dora indicator the swap carries.
+   */
+  private handleChangeTile(actionData: ActionPayload): MJAIEvent[] {
+    const data = actionData.data as ActionPayload;
+    const deal = this.pendingDeal;
+    this.pendingDeal = null;
+
+    if (!deal) return [];
+
+    const out = (data.outTiles as string[] | undefined) ?? [];
+    const incoming = (data.inTiles as string[] | undefined) ?? [];
+    const { hand, missing } = applySwap(deal.tiles as string[], out, incoming);
+    if (missing.length > 0)
+      logger.warn(`Swapped-out tiles missing from the deal: ${missing.join(', ')}`);
+
+    logger.verbose(`Xuezhan swap: out ${out.join('+') || '-'}, in ${incoming.join('+') || '-'}`);
+
+    return this.openRound({ ...deal, tiles: hand }, toMjaiTileOrUnknown(data.doras as string[]));
+  }
+
+  /**
+   * A win in a blood battle. It settles immediately, but unlike `ActionHule` it
+   * does not end the round: the players who have already won stop drawing and
+   * the rest carry on. Only the third win ends it (`ActionHuleXueZhanEnd`).
+   */
+  private handleXuezhanHule(actionData: ActionPayload, endsRound: boolean): MJAIEvent[] {
+    const data = actionData.data as ActionPayload;
+    const scores = (data.scores as number[] | undefined) ?? [];
+    const deltas = (data.deltaScores as number[] | undefined) ?? [];
+    const events: MJAIEvent[] = [];
+
+    for (const win of parseXuezhanWins(data, endsRound)) {
+      // A ron is charged to whoever discarded last; a self-draw has no target.
+      if (!win.zimo && this.state.lastDiscard === null) {
+        logger.warn('Xuezhan ron without a discard to attribute it to');
+      }
+      const target = win.zimo ? win.seat : (this.state.lastDiscard ?? win.seat);
+      events.push(this.makeHora(win.seat, target, toMjaiTile(win.pai), scores, deltas));
+    }
+
+    // The final win ends the round. Its `hulesHistory` repeats what the Mid
+    // events already reported, so it is not converted again.
+    if (endsRound) events.push(this.makeEndKyoku());
+
+    return events;
+  }
+
+  /**
+   * An exhaustive draw. The payments come from the game because a mode may
+   * exclude players (a blood battle does not charge or pay those who already
+   * won), and `tenpais` reports only the players who were actually paid.
+   */
+  private handleNoTile(actionData: ActionPayload): MJAIEvent[] {
+    const data = actionData.data as ActionPayload;
+    const players = (data.players as ActionPayload[] | undefined) ?? [];
+    const settlement = ((data.scores as ActionPayload[] | undefined)?.[0] ?? {}) as ActionPayload;
+    const deltas = (settlement.deltaScores as number[] | undefined) ?? [];
+    const scores = (settlement.oldScores as number[] | undefined) ?? [];
+    const tenpais = players.map((player) => player.tingpai === true && player.alreadyHule !== true);
+
+    return [this.makeRyukyoku(scores, deltas, tenpais)];
   }
 
   private handleDealTile(actionData: ActionPayload): MJAIEvent[] {

@@ -17,6 +17,8 @@ export class MajsoulStateTracker {
 
   public lastDiscard: number | null = null;
   public doras: string[] = [];
+  /** The game reports `xuezhandaodi`: rounds swap three tiles and do not stop at the first win. */
+  public isXuezhan = false;
   public myTehais: string[] = [];
   public myTsumohai: string | null = null;
   /** `reach_accepted` event waiting to be appended after the current action. */
@@ -30,6 +32,7 @@ export class MajsoulStateTracker {
     this.accountId = 0;
     this.seat = 0;
     this.is3p = false;
+    this.isXuezhan = false;
     this.gameEnded = false;
     this.lastDiscard = null;
     this.doras = [];

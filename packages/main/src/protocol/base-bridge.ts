@@ -6,12 +6,14 @@ import type {
   DoraEvent,
   EndGameEvent,
   EndKyokuEvent,
+  HoraEvent,
   KakanEvent,
   MJAIEvent,
   NukidoraEvent,
   PonEvent,
   ReachAcceptedEvent,
   ReachEvent,
+  RyukyokuEvent,
   StartGameEvent,
   StartKyokuEvent,
   TsumoEvent,
@@ -225,6 +227,46 @@ export abstract class BaseBridge {
   public makeEndKyoku(sync?: boolean): EndKyokuEvent {
     return {
       type: 'end_kyoku',
+      sync: this.resolveSync(sync),
+    };
+  }
+
+  /**
+   * A win. `target` is the player who dealt in, or null for a self-draw. The
+   * deltas come from the game itself, because a mode may settle them its own way
+   * (xuezhan hands the winner the riichi pot, so they do not sum to zero).
+   */
+  public makeHora(
+    actor: number,
+    target: number,
+    pai: string,
+    scores: number[],
+    deltas: number[],
+    sync?: boolean,
+  ): HoraEvent {
+    return {
+      type: 'hora',
+      actor,
+      target,
+      pai,
+      scores,
+      deltas,
+      sync: this.resolveSync(sync),
+    };
+  }
+
+  /** An exhaustive draw, with the payments the game reported. */
+  public makeRyukyoku(
+    scores: number[],
+    deltas: number[],
+    tenpais: boolean[],
+    sync?: boolean,
+  ): RyukyokuEvent {
+    return {
+      type: 'ryukyoku',
+      scores,
+      deltas,
+      tenpais,
       sync: this.resolveSync(sync),
     };
   }

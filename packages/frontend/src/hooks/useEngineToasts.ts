@@ -1,34 +1,30 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast, type ToastOptions } from 'react-toastify';
 
 import { TOAST_DURATION_DEFAULT, TOAST_DURATION_SHORT } from '@/config/constants';
+import { notify } from '@/lib/notify';
 import type { EngineNotice, EngineStatus } from '@/types';
+
+/** The toast types this hook can raise; the label decides which one. */
+type ToastType = 'info' | 'success' | 'warning' | 'error';
 
 /** A message the user should see, derived from a status change. */
 interface Notice {
   /** Stable per occurrence, so a repeated event shows again. */
   id: string;
   messageKey: string;
-  type: ToastOptions['type'];
+  type: ToastType;
   autoClose: number | false;
 }
-
-const LEVEL_TYPE = {
-  success: 'success',
-  info: 'info',
-  warning: 'warning',
-  error: 'error',
-} as const;
 
 /** Messages for the one-shot events, keyed by the kind the main process sends. */
 const NOTICE_MESSAGES: Record<EngineNotice['kind'], { messageKey: string; type: Notice['type'] }> =
   {
-    parse_error: { messageKey: 'status.parse_failed', type: LEVEL_TYPE.warning },
-    runtime_error: { messageKey: 'status.runtime_error', type: LEVEL_TYPE.error },
-    replay: { messageKey: 'status.syncing', type: LEVEL_TYPE.info },
-    lobby_return: { messageKey: 'status.left_game', type: LEVEL_TYPE.info },
-    game_dropped: { messageKey: 'status.disconnected', type: LEVEL_TYPE.info },
+    parse_error: { messageKey: 'status.parse_failed', type: 'warning' },
+    runtime_error: { messageKey: 'status.runtime_error', type: 'error' },
+    replay: { messageKey: 'status.syncing', type: 'info' },
+    lobby_return: { messageKey: 'status.left_game', type: 'info' },
+    game_dropped: { messageKey: 'status.disconnected', type: 'info' },
   };
 
 /**
@@ -47,7 +43,7 @@ export function useEngineToasts(status: EngineStatus | null) {
     previousRef.current = status;
 
     for (const notice of notices) {
-      toast(t(notice.messageKey), {
+      notify.show(t(notice.messageKey), {
         toastId: notice.id,
         type: notice.type,
         autoClose: notice.autoClose,
@@ -66,7 +62,7 @@ function project(before: EngineStatus | null, now: EngineStatus): Notice[] {
           {
             id: 'model:failed',
             messageKey: 'status.model_failed',
-            type: LEVEL_TYPE.error,
+            type: 'error',
             autoClose: false,
           },
         ]
@@ -79,7 +75,7 @@ function project(before: EngineStatus | null, now: EngineStatus): Notice[] {
     notices.push({
       id: `connection:connected:${now.notice?.seq ?? 0}`,
       messageKey: 'status.client_connected',
-      type: LEVEL_TYPE.success,
+      type: 'success',
       autoClose: TOAST_DURATION_SHORT,
     });
   }
@@ -88,14 +84,14 @@ function project(before: EngineStatus | null, now: EngineStatus): Notice[] {
     notices.push({
       id: `model:ready:${now.modelName ?? ''}`,
       messageKey: 'status.model_loaded',
-      type: LEVEL_TYPE.success,
+      type: 'success',
       autoClose: TOAST_DURATION_SHORT,
     });
     if (now.connection === 'connected') {
       notices.push({
         id: `game:ready:${now.modelName ?? ''}`,
         messageKey: 'status.game_ready',
-        type: LEVEL_TYPE.success,
+        type: 'success',
         autoClose: TOAST_DURATION_SHORT,
       });
     }
@@ -105,7 +101,7 @@ function project(before: EngineStatus | null, now: EngineStatus): Notice[] {
     notices.push({
       id: 'model:failed',
       messageKey: 'status.model_failed',
-      type: LEVEL_TYPE.error,
+      type: 'error',
       autoClose: false,
     });
   }

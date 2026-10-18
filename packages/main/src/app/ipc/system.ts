@@ -13,7 +13,13 @@ const logger = createLogger('IPC');
 
 /** System-level requests: shutdown, bundled resources, protocol and external links. */
 export function registerSystemHandlers(windowManager: WindowManager, engine: EngineService) {
+  // Every window offers the same exit button, so a second click races the first.
+  let shuttingDown = false;
+
   ipcMain.handle('request-shutdown', async () => {
+    if (shuttingDown) return false;
+    shuttingDown = true;
+
     // Let the windows play their exit animation while the engine shuts down.
     safeSend(windowManager.getMainWindow(), 'exit-animation-start');
     safeSend(windowManager.getGameWindow(), 'exit-animation-start');

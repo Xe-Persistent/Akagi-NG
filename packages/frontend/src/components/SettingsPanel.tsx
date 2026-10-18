@@ -1,7 +1,6 @@
 import { AlertTriangle, CheckCircle2, Download, Loader2, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -25,6 +24,7 @@ import {
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/hooks/useSettings';
+import { notify } from '@/lib/notify';
 
 import { ConnectionSection } from './settings/ConnectionSection';
 import { GeneralSection } from './settings/GeneralSection';
@@ -53,9 +53,9 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     setIsUpdatingProtocol(true);
     try {
       await window.electron.invoke('update-liqi');
-      toast.success(t('status.proto_updated'));
+      notify.success(t('status.proto_updated'));
     } catch (error) {
-      toast.error(
+      notify.error(
         `${t('status.proto_update_failed')}: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {

@@ -11,6 +11,31 @@ interface GitHubRelease {
   tag_name: string;
 }
 
+function versionParts(version: string): number[] {
+  return version
+    .replace(/^v/, '')
+    .split('-')[0]
+    .split('.')
+    .map((part) => Number.parseInt(part, 10) || 0);
+}
+
+/**
+ * Numeric comparison, so a release older than the running build is not offered
+ * as an update. A pre-release suffix is ignored, which is the safe direction:
+ * the app only ever ships plain `x.y.z` tags.
+ */
+function isNewerVersion(candidate: string, current: string): boolean {
+  const a = versionParts(candidate);
+  const b = versionParts(current);
+
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    if (diff !== 0) return diff > 0;
+  }
+
+  return false;
+}
+
 export class UpdaterManager {
   constructor(private windowManager: WindowManager) {}
 
@@ -39,7 +64,7 @@ export class UpdaterManager {
     const latestVersion = data.tag_name.replace(/^v/, '');
     const currentVersion = app.getVersion();
 
-    if (latestVersion !== currentVersion) {
+    if (isNewerVersion(latestVersion, currentVersion)) {
       logger.info(`Update available: v${currentVersion} → v${latestVersion}`);
       this.notifyWindow('app:update-available', latestVersion);
     } else {

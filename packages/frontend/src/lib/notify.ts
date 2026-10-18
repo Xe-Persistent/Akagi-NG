@@ -28,6 +28,9 @@ export const notify = {
   loading: (message: string, options?: ToastOptions): Id => {
     return toast.loading(message, { ...defaultOptions, ...options });
   },
+  show: (message: string, options?: ToastOptions): Id => {
+    return toast(message, { ...defaultOptions, ...options });
+  },
   update: (id: string | number, options: UpdateOptions): void => {
     toast.update(id, { ...defaultOptions, ...options });
   },

@@ -1,6 +1,6 @@
 import { MahjongConstants } from '../../shared/schema/mahjong.js';
 
-// 雀魂 -> MJAI 牌面映射
+// Majsoul -> MJAI tile codes.
 export const MS_TILE_2_MJAI_TILE: Record<string, string> = {
   '0m': '5mr',
   '1m': '1m',
@@ -41,17 +41,18 @@ export const MS_TILE_2_MJAI_TILE: Record<string, string> = {
   '7z': 'C',
 };
 
-// 自动生成的反向映射: MJAI -> 雀魂
+// Reverse of the table above.
 export const MJAI_TILE_2_MS_TILE: Record<string, string> = {};
 for (const [k, v] of Object.entries(MS_TILE_2_MJAI_TILE)) {
   MJAI_TILE_2_MS_TILE[v] = k;
 }
 
 /**
- * 将雀魂牌码转换为 MJAI 牌码。
+ * Turns a Majsoul tile code into an MJAI one.
  *
- * 未知牌码会抛出异常 —— 雀魂协议里没有对应映射的牌是数据异常，
- * 静默丢弃会让引擎拿到缺字段的事件并从此错位。
+ * An unmapped code throws rather than returning something: a tile the protocol
+ * does not define is bad data, and dropping it silently would hand the engine an
+ * event with a missing field and skew every event after it.
  */
 export function toMjaiTile(tile: string): string {
   const mapped = MS_TILE_2_MJAI_TILE[tile];
@@ -61,7 +62,7 @@ export function toMjaiTile(tile: string): string {
   return mapped;
 }
 
-/** 排序查找字典，仅供本模块的排序函数使用。 */
+/** Sort-order lookup, private to this module. */
 const PAI_ORDER_INDEX: Record<string, number> = {};
 MahjongConstants.PAI_ORDER.forEach((pai: string, i: number) => {
   PAI_ORDER_INDEX[pai] = i;
@@ -71,14 +72,6 @@ export function getPaiSortKey(pai: string): number {
   return PAI_ORDER_INDEX[pai] ?? 999;
 }
 
-/**
- * 比较两张牌的大小,用于排序。
- *
- * 返回值:
- *  < 0: pai1 < pai2
- *  === 0: pai1 == pai2
- *  > 0: pai1 > pai2
- */
 export function comparePai(pai1: string, pai2: string): number {
   const idx1 = getPaiSortKey(pai1);
   const idx2 = getPaiSortKey(pai2);

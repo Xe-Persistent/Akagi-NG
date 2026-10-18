@@ -60,9 +60,7 @@ export function Header({
   return (
     <header className='draggable z-header bg-linear-to-b from-white/50 to-transparent dark:from-black/50 dark:to-transparent'>
       <div className='flex h-16 items-center justify-between px-6'>
-        {/* Logo & Title */}
         <div className='flex items-center gap-3'>
-          {/* Status Indicator */}
           <div className='relative flex h-2.5 w-2.5 items-center justify-center'>
             <ModelStatusIndicator className='static' />
           </div>
@@ -71,9 +69,7 @@ export function Header({
           </h1>
         </div>
 
-        {/* Actions - Control Group */}
         <div className='flex h-9 items-center gap-1'>
-          {/* Launch Button */}
           <Button
             variant='ghost'
             size='sm'
@@ -89,7 +85,6 @@ export function Header({
             {t('app.launch_game')}
           </Button>
 
-          {/* Language Switcher */}
           {locale && onLocaleChange && (
             <Select value={locale} onValueChange={onLocaleChange}>
               <SelectTrigger className='no-drag text-muted-foreground hover:bg-accent hover:text-foreground aspect-square h-full justify-center rounded-md border-none bg-transparent p-0 shadow-none transition-colors focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden'>
@@ -105,17 +100,14 @@ export function Header({
             </Select>
           )}
 
-          {/* Theme Toggle */}
           <ThemeToggle theme={theme} setTheme={setTheme} />
 
-          {/* Settings Button */}
           <HeaderIconButton
             icon={SettingsIcon}
             onClick={onOpenSettings}
             aria-label='Open settings'
           />
 
-          {/* HUD Toggle Button */}
           {onToggleHud && (
             <HeaderIconButton
               icon={PictureInPicture}
@@ -128,7 +120,6 @@ export function Header({
             />
           )}
 
-          {/* Window Controls */}
           <HeaderIconButton
             icon={Minus}
             onClick={() => window.electron.invoke('minimize-window')}
@@ -142,7 +133,6 @@ export function Header({
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           />
 
-          {/* Close Window Button */}
           {onCloseWindow && (
             <HeaderIconButton
               icon={X}

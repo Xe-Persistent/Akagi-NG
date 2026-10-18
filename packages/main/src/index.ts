@@ -13,7 +13,7 @@ import { EngineService } from './services/engine/engine-service.js';
 import { getSettingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
 
-// Single Instance Lock
+// A second launch must not add a second tray icon or a second capture session.
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit(0);
@@ -61,27 +61,22 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-  // 0. Load the settings before anything else reads them
+  // The settings own the log level and the proxy config, so they load first.
   setLogLevel(getSettingsManager().getSettings().log_level);
   registerIpcHandlers(windowManager, engineService, mitmProxyManager);
 
-  // 1. Start MITM Proxy (a mock run captures nothing)
+  // A mock run reads canned scenarios and captures nothing.
   if (!isMockRun) {
     await mitmProxyManager.start();
   }
 
-  // 2. Setup Tray
   windowManager.setupTray(() => updaterManager.checkForUpdates());
-
-  // 3. Create Dashboard Window
   void windowManager.createDashboardWindow();
 
-  // 4. Feed the HUD from the canned scenarios
   if (isMockRun) {
     startMockStream();
   }
 
-  // 5. Setup Auto Updater
   updaterManager.checkForUpdates();
 
   app.on('activate', () => {

@@ -52,7 +52,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
   const [resourceStatus, setResourceStatus] = useState<ResourceStatus | null>(null);
 
-  // 1. 业务副作用：资源检查与 HUD 监听
+  // The resource check and the two window signals are read once per mount.
   useEffect(() => {
     let cancelled = false;
 
@@ -80,7 +80,6 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     };
   }, [setIsHudActive]);
 
-  // 2. 资源状态通知
   useEffect(() => {
     if (!resourceStatus) return;
 

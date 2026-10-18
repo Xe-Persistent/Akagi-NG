@@ -52,7 +52,7 @@ export abstract class BaseBridge {
    */
   public abstract parse(content: Buffer, source?: string): BridgeOutput;
 
-  // ===== MJAI 消息构建器 =====
+  // ===== MJAI message builders =====
 
   private resolveSync(sync?: boolean): boolean {
     if (sync !== undefined) {

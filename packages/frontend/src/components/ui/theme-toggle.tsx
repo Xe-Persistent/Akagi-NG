@@ -45,7 +45,7 @@ export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
 
   return (
     <div className='no-drag relative inline-flex h-full rounded-full border border-zinc-500/20 p-0.5 dark:border-zinc-400/20'>
-      {/* 动画圆形滑块背景 - 弹性比例模式 */}
+      {/* The pill slides to the active option rather than jumping. */}
       <div
         className={cn(
           'ease-premium absolute inset-y-0.5 left-0.5 aspect-square rounded-full transition duration-500',

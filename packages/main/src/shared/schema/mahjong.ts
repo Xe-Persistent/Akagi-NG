@@ -1,5 +1,6 @@
 export const MahjongConstants = {
-  // 系统内所有理牌与比较牌的大小时的排序权重基准（共38种，含未知牌'?'）
+  // Sort weight for every tile the system handles: 38 entries, the unknown
+  // placeholder included.
   PAI_ORDER: [
     '1m',
     '2m',
@@ -41,21 +42,18 @@ export const MahjongConstants = {
     '?',
   ],
 
-  // 未知牌占位符（某张牌尚未公开时使用）
+  // Stand-in for a tile that has not been revealed yet.
   UNKNOWN_TILE: '?',
 
-  // 座位数
-  SEATS_3P: 3, // 三麻座位数
-  SEATS_4P: 4, // 四麻座位数
+  SEATS_3P: 3,
+  SEATS_4P: 4,
 
-  // 手牌数量
-  TEHAI_SIZE: 13, // 配牌/手牌数量
-  TSUMO_TEHAI_SIZE: 14, // 摸牌后手牌数量
+  TEHAI_SIZE: 13,
+  TSUMO_TEHAI_SIZE: 14,
 
-  // 副露消耗牌数
-  CHI_CONSUMED: 2, // 吃消耗的牌数
-  PON_CONSUMED: 2, // 碰消耗的牌数
-  DAIMINKAN_CONSUMED: 3, // 大明杠消耗的牌数
-  ANKAN_TILES: 4, // 暗杠牌数
-  KAKAN_CONSUMED: 3, // 加杠消耗的牌数
+  CHI_CONSUMED: 2,
+  PON_CONSUMED: 2,
+  DAIMINKAN_CONSUMED: 3,
+  ANKAN_TILES: 4,
+  KAKAN_CONSUMED: 3,
 } as const;

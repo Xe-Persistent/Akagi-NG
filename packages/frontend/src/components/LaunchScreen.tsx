@@ -6,7 +6,6 @@ export interface LaunchScreenProps {
 }
 
 export function LaunchScreen({ className, isStatic = false }: LaunchScreenProps) {
-  // 只有在非静态模式下才应用进场动画类
   const enterAnimation = !isStatic
     ? 'animate-in fade-in-0 slide-in-from-bottom-4 duration-1000'
     : '';
@@ -18,7 +17,6 @@ export function LaunchScreen({ className, isStatic = false }: LaunchScreenProps)
         className,
       )}
     >
-      {/* Logo Container with Glow Effect */}
       <div className='relative'>
         <div className='logo-glow-effect' />
         <img
@@ -32,7 +30,6 @@ export function LaunchScreen({ className, isStatic = false }: LaunchScreenProps)
         />
       </div>
 
-      {/* Text Content */}
       <div className='flex flex-col items-center gap-3'>
         <h1
           className={cn(

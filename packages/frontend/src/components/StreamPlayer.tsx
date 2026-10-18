@@ -13,9 +13,7 @@ interface StreamPlayerProps {
   className?: string;
 }
 
-/**
- * HUD 激活时的覆盖层组件
- */
+/** Stands in for the player while the HUD is in its own window. */
 function HudOverlay() {
   const { t } = useTranslation();
   return (
@@ -33,9 +31,6 @@ function HudOverlay() {
   );
 }
 
-/**
- * 视频流播放器组件
- */
 export default function StreamPlayer({ className }: StreamPlayerProps) {
   const context = use(GameContext);
   if (!context) throw new Error('GameContext not found');

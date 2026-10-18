@@ -2,7 +2,7 @@ name: Cache Cleanup
 
 on:
   schedule:
-    # 每周日 UTC 00:00 清理旧缓存
+    # Sundays, 00:00 UTC.
     - cron: 0 0 * * 0
   workflow_dispatch:
 
@@ -26,7 +26,6 @@ jobs:
 
             console.log(`Cleaning up caches for ${owner}/${repo}`);
 
-            // 获取所有缓存
             const caches = await github.rest.actions.getActionsCacheList({
               owner,
               repo,
@@ -38,7 +37,6 @@ jobs:
             let deletedCount = 0;
             let totalSize = 0;
 
-            // 删除超过 7 天的缓存
             for (const cache of caches.data.actions_caches) {
               const cacheAge = now - new Date(cache.created_at).getTime();
 

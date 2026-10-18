@@ -42,7 +42,8 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [isUpdatingProtocol, setIsUpdatingProtocol] = useState(false);
 
-  // 每次打开面板时从后端刷新，确保一致性
+  // Every open panel re-reads from the main process, so an edit made elsewhere
+  // cannot linger in the form.
   useEffect(() => {
     if (open) {
       refreshSettings();

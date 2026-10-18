@@ -47,7 +47,6 @@ export class GameHandler {
     if (this.attached || this.webContents.isDestroyed()) return;
 
     try {
-      // 1. Listen for process issues
       this.webContents.on('render-process-gone', (_event, details) => {
         logger.error(`Renderer process gone: ${details.reason} (${details.exitCode})`);
         this.attached = false;
@@ -61,14 +60,13 @@ export class GameHandler {
         }
       });
 
-      // 2. Auto re-attach when page reloads or navigates
+      // A reload drops the debugger session, so the new page needs re-attaching.
       this.webContents.on('did-finish-load', () => {
         if (!this.attached && !this.webContents.isDestroyed()) {
           setTimeout(() => this.tryAttach(), 500);
         }
       });
 
-      // 3. Initial attachment
       await this.tryAttach();
     } catch (err) {
       logger.error('Failed to initialize GameHandler:', err);
@@ -99,7 +97,7 @@ export class GameHandler {
 
       this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));
 
-      // Wrap command in try-catch to avoid crashing if target closes mid-flight
+      // The target can close between attaching and the first command.
       try {
         await this.webContents.debugger.sendCommand('Network.enable');
       } catch (cmdErr) {
@@ -121,7 +119,7 @@ export class GameHandler {
         try {
           this.webContents.debugger.detach();
         } catch {
-          // Ignore detach errors if target is already closed
+          // Already gone: nothing to detach.
         }
       }
     }

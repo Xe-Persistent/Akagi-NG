@@ -33,7 +33,7 @@ export const ConfidenceRing = memo(
     }, [currentPercentage]);
 
     useEffect(() => {
-      // 首次渲染时跳过动画
+      // Nothing to animate on the first render.
       if (isFirstRenderRef.current) {
         isFirstRenderRef.current = false;
         startValueRef.current = percentage;
@@ -41,7 +41,7 @@ export const ConfidenceRing = memo(
         return;
       }
 
-      // 目标变化时重置动画
+      // Start from wherever the ring currently is.
       startValueRef.current = currentPercentageRef.current;
       targetValueRef.current = percentage;
       startTimeRef.current = undefined;
@@ -51,9 +51,8 @@ export const ConfidenceRing = memo(
           startTimeRef.current = time;
         }
         const elapsed = time - startTimeRef.current;
-        const duration = 1000; // 1 秒动画
+        const duration = 1000;
 
-        // 缓动曲线
         const progress = Math.min(elapsed / duration, 1);
         const easeOut = 1 - Math.pow(1 - progress, 3);
 
@@ -75,19 +74,18 @@ export const ConfidenceRing = memo(
       };
     }, [percentage]);
 
-    // 光束效果动画循环
+    // The beam sweep runs for as long as the ring is mounted.
     useEffect(() => {
-      const duration = 1500; // 每次循环 1.5 秒
+      const duration = 1500;
 
       const loop = (time: number) => {
-        // 使用全局时间计算循环相位
+        // Phase comes from the clock, not an accumulator.
         const phase = (time % duration) / duration;
 
-        // 在 0-0.7 时进行动画，0.7-1.0 时暂停
+        // Sweep for the first 70% of the loop, rest for the last 30%.
         const activePhase = Math.min(phase / 0.7, 1);
 
-        // 缓动曲线
-        // 近似 cubic-bezier(0.4, 0, 0.2, 1)
+        // The same curve as cubic-bezier(0.4, 0, 0.2, 1).
         const eased = 1 - Math.pow(1 - activePhase, 3);
 
         setSprintPhase(eased);
@@ -103,21 +101,16 @@ export const ConfidenceRing = memo(
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - currentPercentage * circumference;
 
-    // 计算光束填充效果的进度
-    // portionFilled = currentPercentage * sprintPhase (循环期间 0 到 1)
+    // The beam tracks the value, scaled by the sweep phase.
     const currentBeamDashoffset = circumference * (1 - currentPercentage * sprintPhase);
 
     const fadeStart = 0.6;
     const opacity =
-      sprintPhase > fadeStart
-        ? 1 - Math.pow((sprintPhase - fadeStart) / (1 - fadeStart), 2) // 二次渐隐
-        : 1;
+      sprintPhase > fadeStart ? 1 - Math.pow((sprintPhase - fadeStart) / (1 - fadeStart), 2) : 1;
 
     return (
       <div style={{ width: size, height: size }} className='relative'>
-        {/* Background Ring */}
         <svg className='h-full w-full -rotate-90 transform overflow-visible'>
-          {/* Main Background Track */}
           <circle
             cx='50%'
             cy='50%'
@@ -128,7 +121,7 @@ export const ConfidenceRing = memo(
             className='text-zinc-300 dark:text-zinc-800'
           />
 
-          {/* Main Progress Ring (Static/Smooth) */}
+          {/* The value ring, drawn smoothly. */}
           <circle
             cx='50%'
             cy='50%'
@@ -145,12 +138,12 @@ export const ConfidenceRing = memo(
             className='transition-colors duration-300'
           />
 
-          {/* Sprinting Beam - Single On-Curve Beam */}
+          {/* A white beam sweeping around the ring. */}
           <circle
             cx='50%'
             cy='50%'
             r={radius}
-            stroke='white' // 使用白色作为高强度高亮
+            stroke='white'
             strokeWidth={stroke}
             fill='transparent'
             strokeDasharray={circumference}
@@ -163,7 +156,7 @@ export const ConfidenceRing = memo(
           />
         </svg>
 
-        {/* The "Light" Tip / Cursor - Main Tip follows actual value */}
+        {/* The tip sits at the end of the value ring. */}
         {currentPercentage > 0 && (
           <div
             className='z-content absolute inset-0'
@@ -192,8 +185,8 @@ export const ConfidenceRing = memo(
     );
   },
   (prevProps, nextProps) => {
-    // 自定义比较：由于界面仅显示整数百分比 (toFixed(0))
-    // 如果变化小于 0.01 (1%) 则认为无需重新启动动画，从而避免抖动
+    // The ring only prints whole percent (`toFixed(0)`), so a smaller change
+    // would restart the animation to no visible effect.
     return (
       Math.abs(prevProps.percentage - nextProps.percentage) < 0.01 &&
       prevProps.color === nextProps.color &&

@@ -10,11 +10,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-/**
- * 通用错误边界组件
- *
- * 用于捕获子组件渲染错误并显示备用 UI
- */
+/** Renders `fallback` instead of its children once a child throws. */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);

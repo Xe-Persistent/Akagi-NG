@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const rootDir = resolve(__dirname, '../');
 const extraDir = join(rootDir, 'build', 'extra');
 
-// 0. Ensure extraDir exists
+// Rebuild `build/extra` from scratch, so a stale asset cannot ship.
 if (existsSync(extraDir)) {
   rmSync(extraDir, { recursive: true, force: true });
 }
@@ -16,7 +16,6 @@ mkdirSync(extraDir, { recursive: true });
 
 console.log('📦 Preparing release assets...');
 
-// 1. Create target folders
 ['models', 'logs', 'config'].forEach((folder) => {
   const folderPath = join(extraDir, folder);
   if (!existsSync(folderPath)) {
@@ -24,7 +23,6 @@ console.log('📦 Preparing release assets...');
   }
 });
 
-// 2. Bundle Models
 ['akagi4p.safetensors', 'akagi3p.safetensors'].forEach((modelFile) => {
   const src = join(rootDir, 'models', modelFile);
   if (existsSync(src)) {
@@ -35,7 +33,7 @@ console.log('📦 Preparing release assets...');
   }
 });
 
-// 3. Config/Logs placeholders
+// Git cannot carry an empty directory into a release, hence the placeholders.
 ['logs', 'config'].forEach((folder) => {
   writeFileSync(join(extraDir, folder, '_placeholder'), '');
 });

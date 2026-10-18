@@ -1,7 +1,3 @@
-/**
- * 平台常量和配置
- */
-
 export const MAJSOUL_SERVERS = {
   CN: 'cn',
   JP: 'jp',

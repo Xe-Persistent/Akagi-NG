@@ -1,11 +1,8 @@
-/**
- * 麻将动作配置
- */
-
 export interface ActionConfigItem {
   label: string;
   color: string;
-  gradient: string; // 用于背景光晕和文字渐变
+  /** Drives both the glow behind the card and the label text. */
+  gradient: string;
 }
 
 export const ACTION_CONFIG: Record<string, ActionConfigItem> = {
@@ -61,5 +58,4 @@ export const ACTION_CONFIG: Record<string, ActionConfigItem> = {
   },
 };
 
-// 需要显示 consumed 牌的动作集合
 export const SHOW_CONSUMED_ACTIONS = new Set(['chi', 'pon', 'kan']);

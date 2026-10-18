@@ -28,7 +28,6 @@ function syncVersion() {
 
     console.log(`Master version declared as: ${version}`);
 
-    // Update electron/package.json
     const electronPackageJsonPath = join(projectRoot, 'packages', 'main', 'package.json');
     console.log(`Updating ${electronPackageJsonPath}...`);
     const electronPackageJson = JSON.parse(readFileSync(electronPackageJsonPath, 'utf-8'));
@@ -36,7 +35,6 @@ function syncVersion() {
     writeFileSync(electronPackageJsonPath, JSON.stringify(electronPackageJson, null, 2) + '\n');
     console.log(`✅ Synced to packages/main/package.json`);
 
-    // Update frontend/package.json
     const frontendPackageJsonPath = join(projectRoot, 'packages', 'frontend', 'package.json');
     console.log(`Updating ${frontendPackageJsonPath}...`);
     const frontendPackageJson = JSON.parse(readFileSync(frontendPackageJsonPath, 'utf-8'));

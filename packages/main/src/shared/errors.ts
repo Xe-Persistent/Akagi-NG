@@ -1,4 +1,4 @@
-/** 取出错误对象里适合写进日志/返回给渲染进程的消息 */
+/** Message from an error object that is safe to log or hand to the renderer. */
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

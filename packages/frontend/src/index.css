@@ -42,7 +42,7 @@
 
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* 语义化的 Z-Index */
+  /* Semantic z-index scale. */
   --z-index-base: 0;
   --z-index-content: 10;
   --z-index-tile: 10;
@@ -56,7 +56,7 @@
 }
 
 @layer components {
-  /* 麻将牌 */
+  /* ---- Mahjong tile ---- */
   .mahjong-tile-container {
     @apply ease-premium relative flex h-28 w-20 flex-col items-center transition-transform duration-500;
   }
@@ -73,7 +73,7 @@
     @apply h-full w-full border border-white/20 bg-linear-to-br from-zinc-400 via-slate-500 to-slate-700 shadow-inner dark:border-white/10 dark:from-indigo-900 dark:via-purple-950 dark:to-slate-900;
   }
 
-  /* 组件：推荐卡片 */
+  /* ---- Recommendation card ---- */
   .glass-card {
     @apply relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 pr-8 pl-4 transition duration-500 dark:border-white/5 dark:bg-zinc-950/75;
   }
@@ -95,12 +95,12 @@
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
-  /* 组件：设置 */
+  /* ---- Settings ---- */
   .settings-section-title {
     @apply border-border border-b pb-2 text-lg font-semibold;
   }
 
-  /* 组件：Logo 光晕 */
+  /* ---- Logo glow ---- */
   .logo-glow-effect {
     @apply absolute -inset-4 rounded-full bg-rose-500/20 blur-xl dark:bg-rose-500/10;
   }
@@ -219,7 +219,7 @@
     background-attachment: fixed;
   }
 
-  /* HUD 透明样式覆盖 */
+  /* The HUD window is an overlay, so it must not paint a background. */
   html.is-hud,
   .is-hud body {
     background-color: transparent !important;
@@ -228,7 +228,7 @@
     overflow: hidden !important;
   }
 
-  /* 禁止系统级拖拽行为 */
+  /* Dragging an element out of the window is never wanted here. */
   img,
   a,
   svg,
@@ -237,7 +237,7 @@
     -webkit-user-drag: none;
   }
 
-  /* 滚动条样式 */
+  /* Thin, muted scrollbars everywhere. */
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;

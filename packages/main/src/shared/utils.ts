@@ -1,13 +1,9 @@
-/**
- * 判断一个窗口对象是否处于完全可用、可交互且未被销毁的状态
- */
+/** Whether a window is still alive and usable for IPC. */
 export function isSafeWindow(win?: Electron.BrowserWindow | null): win is Electron.BrowserWindow {
   return !!win && !win.isDestroyed();
 }
 
-/**
- * 向一个可能处于边缘销毁状态的窗口发送 IPC 消息
- */
+/** Sends an IPC message to a window that may be on its way out. */
 export function safeSend(
   win: Electron.BrowserWindow | null | undefined,
   channel: string,

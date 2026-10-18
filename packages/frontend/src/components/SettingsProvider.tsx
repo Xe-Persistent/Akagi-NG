@@ -36,22 +36,16 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
     revisionRef.current = revision;
   }, [settings, revision]);
 
-  // --- Effects ---
-
-  // 1. 同步外部属性变更（初次加载/后台刷新）
   useEffect(() => {
     dispatch({ type: 'SYNC', payload: initialSettings });
   }, [initialSettings]);
 
-  // 2. i18n 同步与广播
-  // 保持界面语言与状态一致
   useEffect(() => {
     if (i18n.language !== settings.locale) {
       i18n.changeLanguage(settings.locale).catch(console.error);
     }
   }, [settings.locale]);
 
-  // 3. 远程监听（进程间通信）
   useEffect(() => {
     const unsub = window.electron.on('locale-changed', (newLocale: string) => {
       dispatch({ type: 'REMOTE_UPDATE', payload: { locale: newLocale } });
@@ -59,14 +53,11 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
     return () => unsub();
   }, []);
 
-  // 4. 初始模型列表获取
   useEffect(() => {
     fetchModelsApi()
       .then((models) => dispatch({ type: 'SET_AVAILABLE_MODELS', payload: models }))
       .catch(console.error);
   }, []);
-
-  // --- 核心方法 ---
 
   const cancelPendingSave = useCallback(() => {
     if (saveTimerRef.current === null) return;
@@ -121,7 +112,6 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
     }
   }, []);
 
-  // 5. 本地修改后防抖保存
   useEffect(() => {
     if (revision === 0) return;
 
@@ -137,8 +127,6 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
       if (saveTimerRef.current === timer) saveTimerRef.current = null;
     };
   }, [revision, persist, cancelPendingSave]);
-
-  // --- 对外接口 ---
 
   const refreshSettings = useCallback(async () => {
     // Never clobber an edit whose debounced save has not landed yet.

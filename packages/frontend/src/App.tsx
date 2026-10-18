@@ -17,9 +17,7 @@ import { cn } from '@/lib/utils';
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Hud = lazy(() => import('@/pages/HUD'));
 
-/**
- * 带有中止信号的等待工具函数
- */
+/** A `setTimeout` that rejects with `AbortError` when the signal fires. */
 const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     const onAbort = () => {
@@ -35,9 +33,7 @@ const wait = (ms: number, signal: AbortSignal) =>
     else signal.addEventListener('abort', onAbort, { once: true });
   });
 
-/**
- * 应用程序初始化逻辑
- */
+/** Loads the settings before the first paint, so the theme is right from frame one. */
 const initApp = async () => {
   if (!window.electron) {
     throw new Error('Akagi-NG requires Electron environment to boot.');

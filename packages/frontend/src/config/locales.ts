@@ -1,6 +1,3 @@
-/**
- * 支持的语言/地区配置
- */
 export const SUPPORTED_LOCALES = [
   { value: 'zh-CN', label: '中文(简体)' },
   { value: 'zh-TW', label: '中文(繁體)' },

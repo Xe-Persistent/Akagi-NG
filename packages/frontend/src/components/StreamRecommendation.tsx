@@ -18,19 +18,16 @@ export default function StreamRecommendation({
   const config = ACTION_CONFIG[action];
   const hasSimCandidates = sim_candidates && sim_candidates.length > 0;
 
-  // 确定配置：优先精确匹配（reach、pon 等），否则默认切牌样式
+  // Anything without a config of its own is a plain discard.
   const effectiveConfig = config ?? ACTION_CONFIG.discard;
 
   const displayLabel = t(effectiveConfig.label);
   const labelLength = displayLabel.length;
 
-  // 根据标签长度动态调整字体大小
   const fontSizeClass = labelLength <= 2 ? 'text-6xl' : labelLength <= 4 ? 'text-5xl' : 'text-4xl';
   const trackingClass =
     labelLength <= 2 ? 'tracking-widest' : labelLength <= 4 ? 'tracking-wider' : 'tracking-tight';
 
-  // 确定要显示的主要牌张
-  // 立直前瞻、吃碰杠等有特殊处理
   let mainTile: string | null = null;
   if (!hasSimCandidates) {
     if (
@@ -39,7 +36,7 @@ export default function StreamRecommendation({
     ) {
       mainTile = tile;
     } else if (!config) {
-      mainTile = action; // 这是一个弃牌动作（动作字符串即为牌代码）
+      mainTile = action; // A plain discard: the action string is the tile code.
     }
   }
 
@@ -52,15 +49,11 @@ export default function StreamRecommendation({
         'animate-in fade-in-0 slide-in-from-bottom-4 ease-premium duration-500',
       )}
     >
-      {/* 1. Background Glow Effect */}
       <div className={cn('background-glow', effectiveConfig.gradient)} />
 
-      {/* 2. Main Container (Glassmorphism) */}
       <div className='glass-card'>
-        {/* Decoration: Left Strip */}
         <div className={cn('accent-strip', effectiveConfig.gradient)} />
 
-        {/* Left: Action Label */}
         <div className='z-content mr-2 flex h-full w-52 flex-col items-center justify-center'>
           <h2
             className={cn(
@@ -74,19 +67,16 @@ export default function StreamRecommendation({
           </h2>
         </div>
 
-        {/* Separator */}
         <div className='vertical-divider mr-10' />
 
-        {/* Center: Tile Display Area */}
         <div className='flex h-full grow items-center gap-8 overflow-x-auto overflow-y-hidden px-2'>
-          {/* Case A: Riichi Declaration Candidates */}
+          {/* Riichi candidates */}
           {hasSimCandidates ? (
             <div className='flex gap-8'>
               {sim_candidates.map((cand) => (
                 <div key={cand.tile} className='flex items-end gap-4'>
-                  {/* Tile */}
                   <MahjongTile tile={cand.tile} className='scale-110 shadow-md' />
-                  {/* Show confidence for each candidate (only if > 1) */}
+                  {/* Per-candidate confidence only means something with a choice to make. */}
                   {sim_candidates.length > 1 && (
                     <div className='mb-1'>
                       <ConfidenceRing
@@ -103,14 +93,14 @@ export default function StreamRecommendation({
             </div>
           ) : (
             <>
-              {/* Case B: Single Tile Display (Tsumo / Discard) */}
+              {/* A single tile: tsumo, ron, nukidora or the discard. */}
               {mainTile && (
                 <div className='flex items-center gap-5'>
                   <MahjongTile tile={mainTile} className='scale-110' />
                 </div>
               )}
 
-              {/* Case C: Called Combinations (Chi, Pon, Kan) */}
+              {/* The tiles a chi, pon or kan takes. */}
               {shouldShowConsumed && consumed && (
                 <ConsumedDisplay action={action} consumed={consumed} tile={tile} />
               )}
@@ -118,7 +108,6 @@ export default function StreamRecommendation({
           )}
         </div>
 
-        {/* Right: Confidence */}
         <div className='ml-6 flex items-center justify-center'>
           <ConfidenceRing percentage={confidence} color={effectiveConfig.color} />
         </div>

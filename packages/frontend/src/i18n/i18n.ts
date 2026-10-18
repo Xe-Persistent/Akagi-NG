@@ -13,10 +13,12 @@ i18n.use(initReactI18next).init({
     'zh-TW': { translation: zhTW },
     'ja-JP': { translation: jaJP },
   },
-  lng: 'zh-CN', // 默认初始语言，将由设置更新
+  // Replaced by the stored locale as soon as the settings arrive.
+  lng: 'zh-CN',
   fallbackLng: 'zh-CN',
   interpolation: {
-    escapeValue: false, // React 已经防止了 XSS
+    // React already escapes what it renders.
+    escapeValue: false,
   },
 });
 

@@ -78,7 +78,7 @@ export class MitmProxyManager {
       });
       this.server = server;
 
-      // Optionally chain game traffic through a user-configured upstream proxy
+      // Game traffic can be chained through a proxy the user already runs.
       const upstream = settings.mitm.upstream?.trim();
       const passThroughOptions = upstream
         ? { proxyConfig: { proxyUrl: upstream, noProxy: ['127.0.0.1', 'localhost'] } }
@@ -106,11 +106,10 @@ export class MitmProxyManager {
         this.connectionTracker.onConnectionClosed(close.streamId);
       });
 
-      // client -> server (outbound) and server -> client (inbound)
+      // Both directions of a Majsoul socket are parsed; nothing else is touched.
       await server.on('websocket-message-received', (msg) => this.handleMessage(msg));
       await server.on('websocket-message-sent', (msg) => this.handleMessage(msg));
 
-      // Pass through other HTTP requests without interception
       await server.forAnyRequest().thenPassThrough(passThroughOptions);
 
       await server.start(settings.mitm.port);

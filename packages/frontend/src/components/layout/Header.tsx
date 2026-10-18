@@ -27,7 +27,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   locale?: string;
   onLocaleChange?: (locale: string) => void;
-  onShutdown?: () => void;
+  /** Hides the dashboard to the tray; quitting goes through the tray menu. */
+  onCloseWindow?: () => void;
   onToggleHud?: (show: boolean) => void;
   isHudActive?: boolean;
 }
@@ -38,7 +39,7 @@ function HeaderContent({
   onOpenSettings,
   locale,
   onLocaleChange,
-  onShutdown,
+  onCloseWindow,
   onToggleHud,
   isHudActive = false,
 }: HeaderProps) {
@@ -141,13 +142,13 @@ function HeaderContent({
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           />
 
-          {/* Shutdown Button */}
-          {onShutdown && (
+          {/* Close Window Button */}
+          {onCloseWindow && (
             <HeaderIconButton
               icon={X}
-              onClick={onShutdown}
+              onClick={onCloseWindow}
               className='text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'
-              aria-label='Shutdown'
+              aria-label='Close window'
             />
           )}
         </div>

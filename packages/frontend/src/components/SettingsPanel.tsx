@@ -63,8 +63,6 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     }
   };
 
-  if (!settings) return null;
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl'>

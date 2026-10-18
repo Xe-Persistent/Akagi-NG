@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { STREAM_PLAYER_HEIGHT, STREAM_PLAYER_WIDTH } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
+import { isHudWindow } from '@/lib/routing';
 import { cn } from '@/lib/utils';
 
 import StreamRenderComponent from './StreamRenderComponent';
@@ -64,7 +65,7 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
     return () => observer.disconnect();
   }, []);
 
-  const isHudPage = window.location.hash === '#/hud';
+  const isHudPage = isHudWindow();
 
   return (
     <div

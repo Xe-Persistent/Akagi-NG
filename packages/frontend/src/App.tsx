@@ -10,6 +10,7 @@ import { SettingsProvider } from '@/components/SettingsProvider';
 import { StartupErrorBoundary } from '@/components/StartupErrorBoundary';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { APP_SPLASH_EXIT_MS, APP_SPLASH_SHOW_MS } from '@/config/constants';
+import { isHudWindow } from '@/lib/routing';
 import { fetchSettingsApi } from '@/lib/settings-api';
 import { cn } from '@/lib/utils';
 
@@ -19,12 +20,19 @@ const Hud = lazy(() => import('@/pages/HUD'));
 /**
  * 带有中止信号的等待工具函数
  */
-const wait = (ms: number, signal?: AbortSignal) =>
-  new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    if (signal) {
-      signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
-    }
+const wait = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    if (signal.aborted) onAbort();
+    else signal.addEventListener('abort', onAbort, { once: true });
   });
 
 /**
@@ -38,13 +46,19 @@ const initApp = async () => {
   return { settings };
 };
 
-// 预加载应用数据
-const appDataPromise = initApp();
-const settingsResolvedPromise = appDataPromise.then((d) => d.settings);
+type AppData = Awaited<ReturnType<typeof initApp>>;
 
-function AppInner() {
+interface AppInnerProps {
+  appDataPromise: Promise<AppData>;
+  isHud: boolean;
+}
+
+function AppInner({ appDataPromise, isHud }: AppInnerProps) {
   const data = use(appDataPromise);
-  const isHud = useMemo(() => window.location.hash === '#/hud', []);
+  const settingsPromise = useMemo(
+    () => appDataPromise.then((resolved) => resolved.settings),
+    [appDataPromise],
+  );
   const [isExiting, setIsExiting] = useState(false);
 
   const [splashStage, setSplashStage] = useState<'splash' | 'exiting' | 'ready'>(
@@ -91,7 +105,7 @@ function AppInner() {
               path='/'
               element={
                 <Dashboard
-                  settingsPromise={settingsResolvedPromise}
+                  settingsPromise={settingsPromise}
                   isSplashActive={!isHud && splashStage === 'splash'}
                 />
               }
@@ -117,13 +131,15 @@ function AppInner() {
 }
 
 export default function App() {
-  const isHud = window.location.hash === '#/hud';
+  // Created once per window, so React never re-suspends on a fresh promise.
+  const [appDataPromise] = useState(initApp);
+  const isHud = isHudWindow();
 
   return (
     <ThemeProvider>
       <StartupErrorBoundary>
         <Suspense fallback={isHud ? <div className='h-full' /> : <LaunchScreen />}>
-          <AppInner />
+          <AppInner appDataPromise={appDataPromise} isHud={isHud} />
         </Suspense>
       </StartupErrorBoundary>
     </ThemeProvider>

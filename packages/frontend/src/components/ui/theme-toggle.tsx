@@ -1,30 +1,35 @@
 import { Laptop, Moon, Sun } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-
-type Theme = 'light' | 'dark' | 'system';
+import type { Theme } from '@/types';
 
 interface ThemeOption {
   value: Theme;
   icon: typeof Sun;
+  /** Background of the sliding pill while this option is active. */
   activeColor: string;
+  /** Tint of the icon while this option is active. */
+  activeIconColor: string;
 }
 
 const THEME_OPTIONS: ThemeOption[] = [
   {
     value: 'light',
     icon: Sun,
-    activeColor: 'bg-zinc-200/80 text-amber-600 shadow-xs dark:bg-zinc-700/80',
+    activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
+    activeIconColor: 'text-amber-600',
   },
   {
     value: 'dark',
     icon: Moon,
-    activeColor: 'bg-zinc-200/80 text-indigo-600 shadow-xs dark:bg-zinc-700/80',
+    activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
+    activeIconColor: 'text-indigo-600',
   },
   {
     value: 'system',
     icon: Laptop,
-    activeColor: 'bg-zinc-200/80 text-zinc-900 shadow-xs dark:bg-zinc-700/80 dark:text-zinc-100',
+    activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
+    activeIconColor: 'text-zinc-900 dark:text-zinc-100',
   },
 ];
 
@@ -34,7 +39,8 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
-  const activeIndex = THEME_OPTIONS.findIndex((opt) => opt.value === theme);
+  const foundIndex = THEME_OPTIONS.findIndex((opt) => opt.value === theme);
+  const activeIndex = foundIndex === -1 ? THEME_OPTIONS.length - 1 : foundIndex;
   const activeOption = THEME_OPTIONS[activeIndex];
 
   return (
@@ -50,7 +56,7 @@ export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
         }}
       />
 
-      {THEME_OPTIONS.map(({ value, icon: Icon, activeColor }) => {
+      {THEME_OPTIONS.map(({ value, icon: Icon, activeIconColor }) => {
         const isActive = theme === value;
         return (
           <button
@@ -64,12 +70,7 @@ export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
             )}
             aria-label={`Switch to ${value} theme`}
           >
-            <Icon
-              className={cn(
-                'h-3/5 w-3/5 transition-colors',
-                isActive ? activeColor.split(' ').find((c) => c.startsWith('text-')) : '',
-              )}
-            />
+            <Icon className={cn('h-3/5 w-3/5 transition-colors', isActive && activeIconColor)} />
           </button>
         );
       })}

@@ -1,6 +1,7 @@
 import { Bot } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { isHudWindow } from '@/lib/routing';
 import type { RecommendationData } from '@/types';
 
 import StreamRecommendation from './StreamRecommendation';
@@ -11,7 +12,7 @@ interface StreamRenderComponentProps {
 
 export default function StreamRenderComponent({ data }: StreamRenderComponentProps) {
   const { t } = useTranslation();
-  const isHudPage = window.location.hash === '#/hud';
+  const isHudPage = isHudWindow();
 
   if (!data) {
     if (isHudPage) {

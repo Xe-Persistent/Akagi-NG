@@ -13,9 +13,11 @@
   <body>
     <script>
       (function () {
-        const theme = localStorage.getItem('theme');
+        const stored = localStorage.getItem('theme');
+        const theme =
+          stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
         const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (theme === 'dark' || (theme === 'system' && systemDark) || (!theme && systemDark)) {
+        if (theme === 'dark' || (theme === 'system' && systemDark)) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');

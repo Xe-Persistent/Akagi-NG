@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToastContainer } from 'react-toastify';
 
@@ -32,7 +32,7 @@ interface DashboardProps {
 
 function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) {
   const { t, i18n } = useTranslation();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const initialSettings = use(settingsPromise);
 
   const context = use(GameContext);
@@ -54,22 +54,18 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
   const [resourceStatus, setResourceStatus] = useState<ResourceStatus | null>(null);
 
-  // 1. 订阅系统主题
-  const isSystemDark = useSyncExternalStore(
-    (callback) => {
-      const media = window.matchMedia('(prefers-color-scheme: dark)');
-      media.addEventListener('change', callback);
-      return () => media.removeEventListener('change', callback);
-    },
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
-    () => false,
-  );
-
-  // 2. 业务副作用：资源检查与 HUD 监听
+  // 1. 业务副作用：资源检查与 HUD 监听
   useEffect(() => {
-    window.electron.invoke<ResourceStatus>('check-resource-status').then((status) => {
-      setResourceStatus(status);
-    });
+    let cancelled = false;
+
+    window.electron
+      .invoke<ResourceStatus>('check-resource-status')
+      .then((status) => {
+        if (!cancelled) setResourceStatus(status);
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to check resource status:', error);
+      });
 
     const unsubHud = window.electron.on('hud-visibility-changed', (visible: boolean) => {
       setIsHudActive(visible);
@@ -80,21 +76,26 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     });
 
     return () => {
+      cancelled = true;
       if (unsubHud) unsubHud();
       if (unsubQuit) unsubQuit();
     };
   }, [setIsHudActive]);
 
-  // 3. 资源状态通知
+  // 2. 资源状态通知
   useEffect(() => {
     if (!resourceStatus) return;
 
-    if (!resourceStatus.models) {
-      notify.warn(t('status.models_missing'), {
-        toastId: 'models_missing',
-        autoClose: false,
-      });
+    if (resourceStatus.models) {
+      // The models showed up (or the check was retried): retire the stale warning.
+      notify.dismiss('models_missing');
+      return;
     }
+
+    notify.warn(t('status.models_missing'), {
+      toastId: 'models_missing',
+      autoClose: false,
+    });
   }, [resourceStatus, t]);
 
   const handleLaunchGame = useCallback(async () => {
@@ -113,7 +114,8 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     }
   }, [initialSettings, t]);
 
-  const handleShutdownClick = useCallback(() => {
+  // The window's close button hides it to the tray; quitting is a separate flow.
+  const handleCloseWindow = useCallback(() => {
     window.electron.invoke('close-window');
   }, []);
 
@@ -150,7 +152,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
           onOpenSettings={handleOpenSettings}
           locale={i18n.language}
           onLocaleChange={handleLocaleChange}
-          onShutdown={handleShutdownClick}
+          onCloseWindow={handleCloseWindow}
           onToggleHud={handleToggleHud}
           isHudActive={isHudActive}
         />
@@ -186,7 +188,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
       <ToastContainer
         autoClose={TOAST_DURATION_DEFAULT}
         position='top-right'
-        theme={theme === 'system' ? (isSystemDark ? 'dark' : 'light') : theme}
+        theme={resolvedTheme}
       />
     </>
   );

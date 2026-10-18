@@ -3,10 +3,18 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { ThemeContext } from '@/contexts/ThemeContext';
 import type { Theme } from '@/types';
 
+function isTheme(value: unknown): value is Theme {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
+/** A hand-edited or stale value falls back to following the system. */
+function readStoredTheme(): Theme {
+  const stored = localStorage.getItem('theme');
+  return isTheme(stored) ? stored : 'system';
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem('theme') as Theme) || 'system',
-  );
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   const [systemPrefersDark, setSystemPrefersDark] = useState(
     () => window.matchMedia('(prefers-color-scheme: dark)').matches,
@@ -23,8 +31,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme' && e.newValue) {
-        setTheme(e.newValue as Theme);
+      if (e.key === 'theme' && isTheme(e.newValue)) {
+        setTheme(e.newValue);
       }
     };
     window.addEventListener('storage', handleStorageChange);

@@ -8,6 +8,14 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 export function StartupErrorBoundary({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
 
+  const exitApp = () => {
+    if (!window.electron) {
+      window.close();
+      return;
+    }
+    void window.electron.invoke('request-shutdown').catch(() => window.close());
+  };
+
   return (
     <ErrorBoundary
       fallback={(error: Error) => (
@@ -17,16 +25,7 @@ export function StartupErrorBoundary({ children }: { children: ReactNode }) {
           <p className='text-muted-foreground mb-4 max-w-lg text-sm whitespace-pre-wrap'>
             {error.message || String(error)}
           </p>
-          <Button
-            onClick={() => {
-              return (
-                window.electron?.invoke('request-shutdown').catch(() => window.close()) ??
-                window.close()
-              );
-            }}
-          >
-            {t('common.exit_app')}
-          </Button>
+          <Button onClick={exitApp}>{t('common.exit_app')}</Button>
         </div>
       )}
     >

@@ -23,7 +23,6 @@ export class EngineService {
 
   private isMockMode = false;
   private playerId = -1;
-  private isReacting = false;
   /** True once we have won the current round, which can happen before it ends. */
   private weWonThisRound = false;
   /** Last tile contexts, used to decorate win recommendations. */
@@ -129,9 +128,9 @@ export class EngineService {
 
   private trackTileContext(ev: MJAIEvent) {
     if (ev.type === 'tsumo' && ev.actor === this.playerId) {
-      this.lastDrawnTile = (ev as { pai?: string }).pai ?? null;
+      this.lastDrawnTile = ev.pai;
     } else if (ev.type === 'dahai' && ev.actor !== this.playerId) {
-      this.lastDiscardTile = (ev as { pai?: string }).pai ?? null;
+      this.lastDiscardTile = ev.pai;
     }
   }
 
@@ -145,24 +144,17 @@ export class EngineService {
   }
 
   private react() {
-    if (this.isReacting) return;
-    this.isReacting = true;
+    const recommendations = this.buildRecommendations();
+    // No decision at all means there is nothing to say; an empty list is a
+    // decision whose suggestions the HUD must not show, and it still has to be
+    // published so the previous (now illegal) one disappears.
+    if (!recommendations) return;
 
-    try {
-      const recommendations = this.buildRecommendations();
-      // No decision at all means there is nothing to say; an empty list is a
-      // decision whose suggestions the HUD must not show, and it still has to be
-      // published so the previous (now illegal) one disappears.
-      if (!recommendations) return;
-
-      const payload: RecommendationData = { recommendations };
-      // What the HUD is about to show, so a capture says what was recommended
-      // and not only what the table did.
-      logger.verbose(`HUD: ${recommendations.map(describeRecommendation).join(' ')}`);
-      broadcastToWindows('engine:recommendations', payload);
-    } finally {
-      this.isReacting = false;
-    }
+    const payload: RecommendationData = { recommendations };
+    // What the HUD is about to show, so a capture says what was recommended
+    // and not only what the table did.
+    logger.verbose(`HUD: ${recommendations.map(describeRecommendation).join(' ')}`);
+    broadcastToWindows('engine:recommendations', payload);
   }
 
   private buildRecommendations(): Recommendation[] | null {

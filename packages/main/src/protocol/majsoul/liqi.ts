@@ -21,6 +21,16 @@ export interface LiqiMessage {
   data: Record<string, unknown>;
 }
 
+/**
+ * What decoding one captured frame produced: a game message, a frame that is
+ * not liqi at all (e.g. another protocol sharing the socket), or a liqi frame
+ * this build failed to decode.
+ */
+export type LiqiParseResult =
+  | { kind: 'message'; message: LiqiMessage }
+  | { kind: 'skipped' }
+  | { kind: 'failed'; reason: string };
+
 /** A decoded top-level protobuf field of a liqi frame payload. */
 export type LiqiBlock =
   | { kind: 'varint'; id: number; begin: number; value: number }
@@ -51,6 +61,20 @@ interface LiqiJson {
  * Mirrors the client's own obfuscation; do not reorder.
  */
 const WRAPPER_XOR_KEYS = [0x84, 0x5e, 0x4e, 0x42, 0x39, 0xa2, 0x1f, 0x60, 0x1c];
+
+/**
+ * Upper bound on remembered in-flight requests. A response that never arrives
+ * would otherwise keep its entry for the rest of the session.
+ */
+const MAX_PENDING_REQUESTS = 256;
+
+/**
+ * A valid liqi frame this build cannot map — an unknown message class, an RPC
+ * the extracted descriptor lacks, or a response whose request predates the
+ * capture. These are expected protocol gaps, not malformed data, so they are
+ * skipped without surfacing a parse failure.
+ */
+class UnsupportedLiqiFrame extends Error {}
 
 export function decodeWrapper(data: Uint8Array): Uint8Array {
   const result = new Uint8Array(data.length);
@@ -186,7 +210,7 @@ export class LiqiProto {
     return toCamelCase(plain) as Record<string, unknown>;
   }
 
-  public parse(buf: Buffer): LiqiMessage | null {
+  public parse(buf: Buffer): LiqiParseResult {
     let msgId = -1;
 
     try {
@@ -204,18 +228,22 @@ export class LiqiProto {
             ? this.parseRequest(msgId, blocks)
             : this.parseResponse(msgId, blocks);
       } else {
-        logger.warn(`Unknown liqi msg type: ${msgType}`);
-        return null;
+        // A socket that carries more than liqi: not an error worth reporting.
+        logger.verbose(`Skipping a non-liqi frame (type ${buf[0]})`);
+        return { kind: 'skipped' };
       }
 
-      return { id: msgId, type: msgType, method, data };
+      return { kind: 'message', message: { id: msgId, type: msgType, method, data } };
     } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      if (e instanceof UnsupportedLiqiFrame) {
+        logger.verbose(`Skipping an unsupported liqi frame: ${reason}`);
+        return { kind: 'skipped' };
+      }
       // Recorded at the capture level, so a survey of a log can tell how many
       // frames were dropped and why.
-      logger.verbose(
-        `Decode skipped: ${e instanceof Error ? e.message : String(e)} (msg_id: ${msgId}, type: ${buf[0]})`,
-      );
-      return null;
+      logger.verbose(`Decode failed: ${reason} (msg_id: ${msgId}, type: ${buf[0]})`);
+      return { kind: 'failed', reason };
     }
   }
 
@@ -225,7 +253,7 @@ export class LiqiProto {
 
     const msgCls = this.getMessageClass(messageName);
     if (!msgCls) {
-      throw new Error(`Unknown Notify Message: ${messageName}`);
+      throw new UnsupportedLiqiFrame(`Unknown Notify Message: ${messageName}`);
     }
 
     const payload = this.readBytes(blocks, 1);
@@ -254,7 +282,7 @@ export class LiqiProto {
     const methodName = this.readBytes(blocks, 0).toString('utf8');
     const descriptor = this.lookupRpc(methodName);
     if (!descriptor) {
-      throw new Error(`Unknown RPC method: ${methodName}`);
+      throw new UnsupportedLiqiFrame(`Unknown RPC method: ${methodName}`);
     }
 
     if (this.pendingRequests.has(msgId)) {
@@ -263,7 +291,7 @@ export class LiqiProto {
 
     const requestType = this.getMessageClass(descriptor.requestType);
     if (!requestType) {
-      throw new Error(`Unknown Request Message: ${descriptor.requestType}`);
+      throw new UnsupportedLiqiFrame(`Unknown Request Message: ${descriptor.requestType}`);
     }
 
     const data = this.decodeMessage(requestType, this.readBytes(blocks, 1));
@@ -272,8 +300,19 @@ export class LiqiProto {
       method: methodName,
       responseType: descriptor.responseType ? this.getMessageClass(descriptor.responseType) : null,
     });
+    this.prunePendingRequests();
 
     return [methodName, data];
+  }
+
+  /** Drops the oldest requests once the map is full; a lost response never frees its own. */
+  private prunePendingRequests() {
+    while (this.pendingRequests.size > MAX_PENDING_REQUESTS) {
+      const oldest = this.pendingRequests.keys().next().value;
+      if (oldest === undefined) return;
+      this.pendingRequests.delete(oldest);
+      logger.verbose(`Dropping stale request msg_id ${oldest} (no response arrived)`);
+    }
   }
 
   private parseResponse(msgId: number, blocks: LiqiBlock[]): [string, Record<string, unknown>] {
@@ -283,12 +322,12 @@ export class LiqiProto {
 
     const pending = this.pendingRequests.get(msgId);
     if (!pending) {
-      throw new Error(`Response msg_id ${msgId} not found in pending requests`);
+      throw new UnsupportedLiqiFrame(`Response msg_id ${msgId} not found in pending requests`);
     }
     this.pendingRequests.delete(msgId);
 
     if (!pending.responseType) {
-      throw new Error(`Unknown Response Message: ${pending.method}`);
+      throw new UnsupportedLiqiFrame(`Unknown Response Message: ${pending.method}`);
     }
 
     const data = this.decodeMessage(pending.responseType, this.readBytes(blocks, 1));

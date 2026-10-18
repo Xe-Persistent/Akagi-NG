@@ -3,8 +3,8 @@ import type { WebContents } from 'electron';
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import type { EngineService } from '../engine/engine-service.js';
-import { engineStatus } from '../engine-status.js';
 import { ConnectionTracker } from './connection-tracker.js';
+import { ingestCapturedFrame } from './frame-ingest.js';
 
 const logger = createLogger('GameHandler');
 
@@ -32,6 +32,8 @@ export interface WebSocketFrameSentEvent {
 
 export class GameHandler {
   private attached = false;
+  /** Majsoul websockets only; frames of other page sockets must not reach the bridge. */
+  private readonly majsoulRequests = new Set<string>();
   private readonly connectionTracker: ConnectionTracker;
 
   constructor(
@@ -49,6 +51,7 @@ export class GameHandler {
       this.webContents.on('render-process-gone', (_event, details) => {
         logger.error(`Renderer process gone: ${details.reason} (${details.exitCode})`);
         this.attached = false;
+        this.majsoulRequests.clear();
         this.connectionTracker.forceDisconnect();
       });
 
@@ -90,6 +93,8 @@ export class GameHandler {
       this.webContents.debugger.on('detach', (_event, reason) => {
         logger.warn('Web debugger detached:', reason);
         this.attached = false;
+        this.majsoulRequests.clear();
+        this.connectionTracker.forceDisconnect();
       });
 
       this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));
@@ -108,6 +113,7 @@ export class GameHandler {
   }
 
   public detach() {
+    this.majsoulRequests.clear();
     this.connectionTracker.forceDisconnect();
     if (this.attached) {
       this.attached = false;
@@ -121,67 +127,50 @@ export class GameHandler {
     }
   }
 
-  private readonly cdpHandlers: ReadonlyMap<string, (params: never) => void> = new Map([
+  private readonly cdpHandlers: ReadonlyMap<string, (params: unknown) => void> = new Map([
     [
       'Network.webSocketCreated',
-      (params: WebSocketCreatedEvent) => {
+      (params) => {
+        const { requestId, url } = params as WebSocketCreatedEvent;
         // Only Majsoul sockets are tracked; other page sockets are ignored.
-        if (!bridgeManager.getBridgeForUrl(params.url)) return;
-        this.connectionTracker.onConnectionOpened(params.requestId);
+        if (!bridgeManager.getBridgeForUrl(url)) return;
+
+        this.majsoulRequests.add(requestId);
+        this.connectionTracker.onConnectionOpened(requestId);
       },
     ],
     [
       'Network.webSocketClosed',
-      (params: WebSocketClosedEvent) => {
-        this.connectionTracker.onConnectionClosed(params.requestId);
+      (params) => {
+        const { requestId } = params as WebSocketClosedEvent;
+        if (!this.majsoulRequests.delete(requestId)) return;
+        this.connectionTracker.onConnectionClosed(requestId);
       },
     ],
     [
       'Network.webSocketFrameReceived',
-      (params: WebSocketFrameReceivedEvent) => {
-        this.handleWebSocketFrame(params);
-      },
+      (params) => this.handleWebSocketFrame(params as WebSocketFrameReceivedEvent),
     ],
     [
       'Network.webSocketFrameSent',
-      (params: WebSocketFrameSentEvent) => {
-        this.handleWebSocketFrame(params);
-      },
+      (params) => this.handleWebSocketFrame(params as WebSocketFrameSentEvent),
     ],
-  ] as Array<[string, (params: never) => void]>);
+  ]);
 
-  private async handleDebuggerMessage(_event: unknown, method: string, params: unknown) {
-    this.cdpHandlers.get(method)?.(params as never);
+  private handleDebuggerMessage(_event: unknown, method: string, params: unknown) {
+    this.cdpHandlers.get(method)?.(params);
   }
 
   private handleWebSocketFrame(params: WebSocketFrameReceivedEvent | WebSocketFrameSentEvent) {
-    const { response } = params;
+    if (!this.majsoulRequests.has(params.requestId)) return;
 
-    if (!response || !response.payloadData) {
-      return;
-    }
+    const { response } = params;
+    if (!response?.payloadData) return;
 
     const bridge = bridgeManager.getCurrentBridge();
     if (!bridge) return;
 
-    try {
-      const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
-      const output = bridge.parse(buffer, 'CDP');
-
-      if (output.parseFailed) {
-        engineStatus.notice('parse_error');
-      }
-      if (output.replayed) {
-        engineStatus.notice('replay');
-      }
-
-      if (output.events.length === 0) return;
-
-      this.engine.ingest(output.events).catch((err: unknown) => {
-        logger.error('Failed to ingest parsed events:', err);
-      });
-    } catch (err) {
-      logger.error('Error parsing via TS bridge', err);
-    }
+    const buffer = Buffer.from(response.payloadData, response.opcode === 1 ? 'utf8' : 'base64');
+    void ingestCapturedFrame(this.engine, bridge, buffer, 'CDP');
   }
 }

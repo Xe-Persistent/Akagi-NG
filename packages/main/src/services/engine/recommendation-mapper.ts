@@ -129,7 +129,7 @@ function attachRiichiLookahead(
   );
 }
 
-export function toRecommendation(
+function toRecommendation(
   action: EngineAction,
   confidence: number,
   context: DecisionContext,

@@ -55,14 +55,13 @@ export class ModelRunner {
    * Feeds one mjai event. Events the engine has no use for are ignored here;
    * a broken engine throws so the caller can surface it.
    */
-  public feed(ev: MJAIEvent): boolean {
-    if (!this.engine) return false;
+  public feed(ev: MJAIEvent): void {
+    if (!this.engine) return;
 
     const accepted = this.engine.feedLine(JSON.stringify(ev));
     if (!accepted) {
       logger.verbose(`Engine ignored event: ${ev.type}`);
     }
-    return accepted;
   }
 
   /** The current decision, or null when there is nothing to decide. */

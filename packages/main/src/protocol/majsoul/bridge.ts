@@ -81,20 +81,27 @@ export class MajsoulBridge extends BaseBridge {
   public parse(content: Buffer, source?: string): BridgeOutput {
     try {
       this.replayed = false;
-      const liqiMessage = this.liqiProto.parse(content);
+      const parsed = this.liqiProto.parse(content);
+      const isHeartbeat = parsed.kind === 'message' && parsed.message.method === HEARTBEAT_METHOD;
 
       // The frame's own bytes, one level deeper than the decoded line: what a
       // decode this build gets wrong needs to reproduce. The keep-alive stays out
       // of both, and a frame that failed to decode still leaves its bytes behind.
-      if (liqiMessage?.method !== HEARTBEAT_METHOD) {
+      if (!isHeartbeat) {
         logger.debug(`${source ? `[${source}] ` : ''}raw ${content.toString('hex')}`);
       }
 
-      if (!liqiMessage) return { events: [], replayed: this.replayed };
+      if (parsed.kind === 'skipped') {
+        return { events: [], replayed: this.replayed };
+      }
+      if (parsed.kind === 'failed') {
+        return { events: [], parseFailed: true, replayed: this.replayed };
+      }
 
+      const liqiMessage = parsed.message;
       // The complete decoded message: a capture kept at `verbose` is what makes
       // a real game inspectable offline, and every field is logged as decoded.
-      if (liqiMessage.method !== HEARTBEAT_METHOD) {
+      if (!isHeartbeat) {
         const tag = source ? `[${source}] ` : '';
         logger.verbose(
           `${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`,

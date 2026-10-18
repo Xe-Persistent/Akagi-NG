@@ -1,5 +1,3 @@
-import { MahjongConstants } from '../../shared/schema/mahjong.js';
-
 // Majsoul -> MJAI tile codes.
 export const MS_TILE_2_MJAI_TILE: Record<string, string> = {
   '0m': '5mr',
@@ -62,18 +60,33 @@ export function toMjaiTile(tile: string): string {
   return mapped;
 }
 
-/** Sort-order lookup, private to this module. */
-const PAI_ORDER_INDEX: Record<string, number> = {};
-MahjongConstants.PAI_ORDER.forEach((pai: string, i: number) => {
-  PAI_ORDER_INDEX[pai] = i;
-});
+const SUITS = 'mps';
+const HONOURS = 'ESWNPFC'; // east, south, west, north, white, green, red
 
+/** A code the protocol does not define sorts last. */
+const LAST = 999;
+
+/**
+ * Sort weight of a tile, in the same order the renderer uses (`lib/mahjong.ts`):
+ * each suit by rank with the red five just before the plain one, then the
+ * honours.
+ */
 export function getPaiSortKey(pai: string): number {
-  return PAI_ORDER_INDEX[pai] ?? 999;
+  const isRed = pai.endsWith('r');
+  const base = isRed ? pai.slice(0, -1) : pai;
+  const suit = base.at(-1) ?? '';
+  const suitIndex = SUITS.indexOf(suit);
+
+  if (suitIndex >= 0) {
+    const rank = Number.parseInt(base[0], 10);
+    if (Number.isNaN(rank)) return LAST;
+    return suitIndex * 100 + rank * 2 + (isRed ? 0 : 1);
+  }
+
+  const honour = HONOURS.indexOf(suit);
+  return honour >= 0 ? 300 + honour : LAST;
 }
 
 export function comparePai(pai1: string, pai2: string): number {
-  const idx1 = getPaiSortKey(pai1);
-  const idx2 = getPaiSortKey(pai2);
-  return idx1 - idx2;
+  return getPaiSortKey(pai1) - getPaiSortKey(pai2);
 }

@@ -43,7 +43,9 @@ export class MajsoulStateTracker {
 
   /**
    * Builds the four-seat `tehais` matrix used by `start_kyoku` and stores our
-   * own hand. Returns null when the tile list has an unexpected length.
+   * own hand. A dealer's deal carries fourteen tiles -- the hand plus the tile
+   * already drawn -- while every other deal carries thirteen. Returns null when
+   * the tile list has an unexpected length.
    */
   public setupNewRound(tiles: string[]): { tehais: string[][]; myTsumohai: string | null } | null {
     const tehais = Array.from({ length: MahjongConstants.SEATS_4P }, () =>
@@ -61,9 +63,10 @@ export class MajsoulStateTracker {
     }
 
     if (tiles.length === MahjongConstants.TSUMO_TEHAI_SIZE) {
-      const withDraw = [...hand, toMjaiTile(tiles[MahjongConstants.TEHAI_SIZE])].sort(comparePai);
-      const sortedHand = withDraw.slice(0, MahjongConstants.TEHAI_SIZE);
-      const tsumohai = withDraw[MahjongConstants.TEHAI_SIZE];
+      // The last tile of the payload is the one that was drawn -- not whichever
+      // tile happens to sort highest -- so the hand is the other thirteen.
+      const tsumohai = toMjaiTile(tiles[MahjongConstants.TEHAI_SIZE]);
+      const sortedHand = hand.sort(comparePai);
 
       this.myTehais = sortedHand;
       this.myTsumohai = tsumohai;

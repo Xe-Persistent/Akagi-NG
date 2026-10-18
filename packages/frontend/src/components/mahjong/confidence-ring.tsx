@@ -19,6 +19,7 @@ export const ConfidenceRing = memo(
     fontSize = 'text-5xl',
   }: ConfidenceRingProps) {
     const [currentPercentage, setCurrentPercentage] = useState(percentage);
+    const [sprintPhase, setSprintPhase] = useState(0);
     const valueAnimationRef = useRef<number | undefined>(undefined);
     const sprintAnimationRef = useRef<number | undefined>(undefined);
     const startTimeRef = useRef<number | undefined>(undefined);
@@ -75,7 +76,6 @@ export const ConfidenceRing = memo(
     }, [percentage]);
 
     // 光束效果动画循环
-    const [sprintPhase, setSprintPhase] = useState(0);
     useEffect(() => {
       const duration = 1500; // 每次循环 1.5 秒
 

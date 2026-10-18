@@ -4,6 +4,7 @@ import { createLogger, setLogLevel } from '../../logging/index.js';
 import type { MitmProxyManager } from '../../services/capture/mitm-proxy.js';
 import type { AppSettings } from '../../services/settings-manager.js';
 import { getSettingsManager } from '../../services/settings-manager.js';
+import { errorMessage } from '../../shared/errors.js';
 import { safeSend } from '../../shared/utils.js';
 
 const logger = createLogger('IPC');
@@ -60,7 +61,7 @@ export function registerSettingsHandlers(mitmProxyManager: MitmProxyManager) {
       return { success: true };
     } catch (err: unknown) {
       logger.error('Failed to update settings:', err);
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
+      return { success: false, error: errorMessage(err) };
     }
   });
 
@@ -71,7 +72,5 @@ export function registerSettingsHandlers(mitmProxyManager: MitmProxyManager) {
     return after;
   });
 
-  ipcMain.handle('settings:get-models', async () => {
-    return await settingsManager.getAvailableModels();
-  });
+  ipcMain.handle('settings:get-models', () => settingsManager.getAvailableModels());
 }

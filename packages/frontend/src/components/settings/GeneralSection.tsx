@@ -9,15 +9,13 @@ import {
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { SUPPORTED_LOCALES } from '@/config/locales';
+import type { UpdateSetting } from '@/contexts/SettingsContext';
 import { useTheme } from '@/hooks/useTheme';
-import type { Paths, PathValue, Settings, Theme } from '@/types';
+import type { Settings, Theme } from '@/types';
 
 interface GeneralSectionProps {
   settings: Settings;
-  updateSetting: <P extends Paths<Settings>>(
-    path: readonly [...P],
-    value: PathValue<Settings, P>,
-  ) => void;
+  updateSetting: UpdateSetting;
 }
 
 export function GeneralSection({ settings, updateSetting }: GeneralSectionProps) {
@@ -30,9 +28,7 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
       <SettingsItem label={t('settings.general.locale')}>
         <Select
           value={settings.locale || 'zh-CN'}
-          onValueChange={(val) => {
-            updateSetting(['locale'], val);
-          }}
+          onValueChange={(val) => updateSetting(['locale'], val)}
         >
           <SelectTrigger>
             <SelectValue placeholder='Select Language' />

@@ -7,6 +7,7 @@ import * as mockttp from 'mockttp';
 
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
+import { errorMessage } from '../../shared/errors.js';
 import { getAssetPath } from '../../shared/paths.js';
 import type { EngineService } from '../engine/engine-service.js';
 import { getSettingsManager } from '../settings-manager.js';
@@ -116,10 +117,7 @@ export class MitmProxyManager {
       this.isRunning = true;
       logger.info(`MITM Proxy started on port ${settings.mitm.port}`);
     } catch (error) {
-      logger.error(
-        'Failed to start MITM Proxy:',
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error('Failed to start MITM Proxy:', errorMessage(error));
       await this.discardServer();
     }
   }
@@ -160,10 +158,7 @@ export class MitmProxyManager {
       this.isRunning = false;
       logger.info('MITM Proxy stopped.');
     } catch (error) {
-      logger.error(
-        'Failed to stop MITM Proxy:',
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error('Failed to stop MITM Proxy:', errorMessage(error));
     } finally {
       this.majsoulStreams.clear();
     }

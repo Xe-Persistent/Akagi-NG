@@ -1,4 +1,5 @@
 import { createLogger } from '../../logging/index.js';
+import { errorMessage } from '../../shared/errors.js';
 import { MahjongConstants } from '../../shared/schema/mahjong.js';
 import type { LiqiMessage, LiqiProto } from './liqi.js';
 import { MsgType } from './liqi.js';
@@ -42,7 +43,7 @@ export function parseSyncGameActions(
       if (item) messages.push(item);
     }
   } catch (e) {
-    logger.error(`Error parsing sync game: ${e instanceof Error ? e.message : String(e)}`);
+    logger.error(`Error parsing sync game: ${errorMessage(e)}`);
   }
 
   return messages;

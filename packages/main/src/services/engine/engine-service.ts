@@ -94,9 +94,10 @@ export class EngineService {
         logger.error('Failed to initialize the local engine:', outcome.error);
         engineStatus.set({ model: 'failed' });
         return;
-      default:
+      case 'loaded':
         logger.info(`Loaded model ${outcome.modelName} (${start.is_3p ? '3p' : '4p'})`);
         engineStatus.set({ model: 'ready', modelName: outcome.modelName });
+        break;
     }
 
     // A fresh engine needs the game context only; there is nothing to replay.

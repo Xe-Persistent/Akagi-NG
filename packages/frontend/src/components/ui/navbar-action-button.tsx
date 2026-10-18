@@ -9,13 +9,13 @@ export interface NavbarActionButtonProps extends ComponentProps<typeof Button> {
   iconClassName?: string;
 }
 
-export const NavbarActionButton = ({
+export function NavbarActionButton({
   icon: Icon,
   className,
   iconClassName,
   ref,
   ...props
-}: NavbarActionButtonProps) => {
+}: NavbarActionButtonProps) {
   return (
     <Button
       ref={ref}
@@ -30,6 +30,4 @@ export const NavbarActionButton = ({
       <Icon className={cn('h-4 w-4', iconClassName)} />
     </Button>
   );
-};
-
-NavbarActionButton.displayName = 'NavbarActionButton';
+}

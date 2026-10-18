@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { EngineStatus, RecommendationData } from '@/types';
 
@@ -15,11 +15,8 @@ interface UseEngineConnectionResult {
 export function useEngineConnection(): UseEngineConnectionResult {
   const [data, setData] = useState<RecommendationData | null>(null);
   const [status, setStatus] = useState<EngineStatus | null>(null);
-  const mountedRef = useRef(true);
 
   useEffect(() => {
-    mountedRef.current = true;
-
     const unsubRecommendations = window.electron.on(
       'engine:recommendations',
       (payload: unknown) => {
@@ -28,20 +25,19 @@ export function useEngineConnection(): UseEngineConnectionResult {
     );
 
     const unsubStatus = window.electron.on('engine:status', (payload: unknown) => {
-      if (mountedRef.current) setStatus(payload as EngineStatus);
+      setStatus(payload as EngineStatus);
     });
 
     window.electron
       .invoke<EngineStatus>('engine:status:get')
       .then((snapshot) => {
-        if (mountedRef.current && snapshot) setStatus(snapshot);
+        if (snapshot) setStatus(snapshot);
       })
       .catch(() => {
         // Without a handler the first broadcast still arrives on change.
       });
 
     return () => {
-      mountedRef.current = false;
       unsubRecommendations();
       unsubStatus();
     };

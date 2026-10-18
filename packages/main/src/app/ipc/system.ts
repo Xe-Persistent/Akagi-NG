@@ -35,9 +35,7 @@ export function registerSystemHandlers(windowManager: WindowManager, engine: Eng
     return true;
   });
 
-  ipcMain.handle('check-resource-status', async () => {
-    return await resourceValidator.validate();
-  });
+  ipcMain.handle('check-resource-status', () => resourceValidator.validate());
 
   // A window that opens mid-session asks for the current status instead of
   // waiting for the next change.

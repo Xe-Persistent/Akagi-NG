@@ -184,7 +184,8 @@ export function detectRegression(
   return losses.length > 0 ? `the extracted schema looks truncated: ${losses.join('; ')}` : null;
 }
 
-/** Human-readable summary of what changed between two descriptor builds. */ export function diffDescriptors(
+/** Human-readable summary of what changed between two descriptor builds. */
+export function diffDescriptors(
   previous: LiqiDescriptorJson | null,
   next: LiqiDescriptorJson,
 ): string[] {

@@ -1,7 +1,7 @@
 import type { Settings } from '@/types';
 
 /** Thin wrappers over the settings IPC channels; the provider owns the state. */
-export async function fetchSettingsApi(): Promise<Settings> {
+export function fetchSettingsApi(): Promise<Settings> {
   return window.electron.invoke<Settings>('settings:get');
 }
 
@@ -16,10 +16,10 @@ export async function saveSettingsApi(settings: Settings): Promise<Settings> {
   return fetchSettingsApi();
 }
 
-export async function resetSettingsApi(): Promise<Settings> {
+export function resetSettingsApi(): Promise<Settings> {
   return window.electron.invoke<Settings>('settings:reset');
 }
 
-export async function fetchModelsApi(): Promise<string[]> {
+export function fetchModelsApi(): Promise<string[]> {
   return window.electron.invoke<string[]>('settings:get-models');
 }

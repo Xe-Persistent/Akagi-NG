@@ -34,6 +34,11 @@ export interface AppSettings {
   model_config: ModelConfig;
 }
 
+/** Only the part of the JSON schema file that electron-store consumes. */
+interface SettingsSchemaJson {
+  properties?: Record<string, unknown>;
+}
+
 function detectSystemLocale(): string {
   const locale = app.getLocale();
   if (locale.startsWith('zh-CN')) return 'zh-CN';
@@ -69,10 +74,8 @@ export class SettingsManager {
     try {
       const schemaPath = join(getProjectRoot(), 'assets', 'settings.schema.json');
       const schemaRaw = readFileSync(schemaPath, 'utf-8');
-      const schemaJson = JSON.parse(schemaRaw);
-      if (schemaJson && schemaJson.properties) {
-        schemaOptions = schemaJson.properties;
-      }
+      const schemaJson = JSON.parse(schemaRaw) as SettingsSchemaJson;
+      schemaOptions = schemaJson.properties;
     } catch (err) {
       logger.error('Failed to load settings.schema.json', err);
     }

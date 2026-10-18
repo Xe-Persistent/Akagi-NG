@@ -59,8 +59,5 @@ export function settingsReducer(state: SettingsState, action: SettingsAction): S
 
     case 'SET_AVAILABLE_MODELS':
       return { ...state, availableModels: action.payload };
-
-    default:
-      return state;
   }
 }

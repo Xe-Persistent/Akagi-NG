@@ -8,15 +8,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
+import type { UpdateSetting } from '@/contexts/SettingsContext';
 import { useSettings } from '@/hooks/useSettings';
-import type { Paths, PathValue, Settings } from '@/types';
+import type { Settings } from '@/types';
 
 interface ModelConfigSectionProps {
   settings: Settings;
-  updateSetting: <P extends Paths<Settings>>(
-    path: readonly [...P],
-    value: PathValue<Settings, P>,
-  ) => void;
+  updateSetting: UpdateSetting;
 }
 
 export function ModelConfigSection({ settings, updateSetting }: ModelConfigSectionProps) {

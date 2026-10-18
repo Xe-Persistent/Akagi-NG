@@ -42,9 +42,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
   const { setIsHudActive, isHudActive } = context;
 
   const handleLocaleChange = useCallback(
-    async (newLocale: string) => {
-      updateSetting(['locale'], newLocale);
-    },
+    (newLocale: string) => updateSetting(['locale'], newLocale),
     [updateSetting],
   );
 
@@ -77,8 +75,8 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
     return () => {
       cancelled = true;
-      if (unsubHud) unsubHud();
-      if (unsubQuit) unsubQuit();
+      unsubHud();
+      unsubQuit();
     };
   }, [setIsHudActive]);
 

@@ -62,7 +62,7 @@ export class GameHandler {
       });
 
       // 2. Auto re-attach when page reloads or navigates
-      this.webContents.on('did-finish-load', async () => {
+      this.webContents.on('did-finish-load', () => {
         if (!this.attached && !this.webContents.isDestroyed()) {
           setTimeout(() => this.tryAttach(), 500);
         }

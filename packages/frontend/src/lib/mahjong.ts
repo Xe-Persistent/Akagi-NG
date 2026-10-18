@@ -2,10 +2,12 @@
  * 获取麻将牌的排序权重
  * 数牌取数字大小，例如：'1m' -> 1, '5p' -> 5
  * 字牌返回 99 排到最后
+ *
+ * 只比较点数、不区分花色；调用方只对同一副露内的牌排序，花色必然一致。
  */
-export const getTileSortValue = (tile: string): number => {
-  const val = parseInt(tile[0]);
-  return isNaN(val) ? 99 : val;
+const getTileSortValue = (tile: string): number => {
+  const value = Number.parseInt(tile[0], 10);
+  return Number.isNaN(value) ? 99 : value;
 };
 
 /**

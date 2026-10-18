@@ -11,14 +11,12 @@ import {
 } from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
 import { MAJSOUL_SERVERS, type MajsoulServer } from '@/config/platforms';
-import type { Paths, PathValue, Settings } from '@/types';
+import type { UpdateSetting } from '@/contexts/SettingsContext';
+import type { Settings } from '@/types';
 
 interface ConnectionSectionProps {
   settings: Settings;
-  updateSetting: <P extends Paths<Settings>>(
-    path: readonly [...P],
-    value: PathValue<Settings, P>,
-  ) => void;
+  updateSetting: UpdateSetting;
 }
 
 export function ConnectionSection({ settings, updateSetting }: ConnectionSectionProps) {
@@ -32,9 +30,7 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
         <CapsuleSwitch
           className='w-fit max-w-full'
           checked={settings.mitm.enabled}
-          onCheckedChange={(val) => {
-            updateSetting(['mitm', 'enabled'], val);
-          }}
+          onCheckedChange={(val) => updateSetting(['mitm', 'enabled'], val)}
           labelOn={t('settings.connection.mode_mitm')}
           labelOff={t('settings.connection.mode_browser')}
         />
@@ -76,7 +72,9 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
             <Input
               type='number'
               value={settings.mitm.port}
-              onChange={(e) => updateSetting(['mitm', 'port'], parseInt(e.target.value) || 0)}
+              onChange={(e) =>
+                updateSetting(['mitm', 'port'], Number.parseInt(e.target.value, 10) || 0)
+              }
             />
           </SettingsItem>
           <SettingsItem label={t('settings.connection.mitm.upstream')}>

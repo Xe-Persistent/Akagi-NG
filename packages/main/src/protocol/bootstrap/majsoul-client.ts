@@ -1,3 +1,4 @@
+import { errorMessage } from '../../shared/errors.js';
 import { type BootstrapLogger, silentLogger } from './logger.js';
 import { ClassId, SerializedFile } from './serialized-file.js';
 import { UnityFsBundle } from './unityfs.js';
@@ -114,7 +115,7 @@ export class MajsoulAssetClient {
           return { profileBase: base, bundleHash: hash };
         }
       } catch (error) {
-        this.log.debug(`Texture profile ${profile} unavailable: ${describe(error)}`);
+        this.log.debug(`Texture profile ${profile} unavailable: ${errorMessage(error)}`);
       }
     }
 
@@ -244,8 +245,4 @@ export function findTextAsset(
     if (match) return match;
   }
   return undefined;
-}
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

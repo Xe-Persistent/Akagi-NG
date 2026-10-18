@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import * as protobuf from 'protobufjs';
 
 import { createLogger } from '../../logging/index.js';
+import { errorMessage } from '../../shared/errors.js';
 import { getAssetPath } from '../../shared/paths.js';
 import { LiqiProtocolConstants } from './consts.js';
 
@@ -235,7 +236,7 @@ export class LiqiProto {
 
       return { kind: 'message', message: { id: msgId, type: msgType, method, data } };
     } catch (e) {
-      const reason = e instanceof Error ? e.message : String(e);
+      const reason = errorMessage(e);
       if (e instanceof UnsupportedLiqiFrame) {
         logger.verbose(`Skipping an unsupported liqi frame: ${reason}`);
         return { kind: 'skipped' };

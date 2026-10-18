@@ -1,4 +1,5 @@
 import { createLogger } from '../../logging/index.js';
+import { errorMessage } from '../../shared/errors.js';
 import { MahjongConstants } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import type { BridgeOutput } from '../base-bridge.js';
@@ -132,7 +133,7 @@ export class MajsoulBridge extends BaseBridge {
       const events = this.parseLiqi(liqiMessage);
       return { events, replayed: this.replayed };
     } catch (e) {
-      logger.error(`Error parsing Majsoul message: ${e instanceof Error ? e.message : String(e)}`);
+      logger.error(`Error parsing Majsoul message: ${errorMessage(e)}`);
       return { events: [], parseFailed: true, replayed: this.replayed };
     }
   }

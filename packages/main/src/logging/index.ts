@@ -72,7 +72,7 @@ log.transports.console.level = app.isPackaged ? false : DEFAULT_LEVEL;
  * Mirrors the `log_level` setting; unknown values keep the current level.
  */
 export function setLogLevel(level: string) {
-  const normalized = level?.toLowerCase?.() as LogLevel | undefined;
+  const normalized = level?.toLowerCase() as LogLevel | undefined;
   if (!normalized || !LEVELS.includes(normalized)) return;
 
   log.transports.file.level = normalized;

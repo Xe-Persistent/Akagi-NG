@@ -61,8 +61,8 @@ export function toMjaiTile(tile: string): string {
   return mapped;
 }
 
-// 优化排序查找字典
-export const PAI_ORDER_INDEX: Record<string, number> = {};
+/** 排序查找字典，仅供本模块的排序函数使用。 */
+const PAI_ORDER_INDEX: Record<string, number> = {};
 MahjongConstants.PAI_ORDER.forEach((pai: string, i: number) => {
   PAI_ORDER_INDEX[pai] = i;
 });

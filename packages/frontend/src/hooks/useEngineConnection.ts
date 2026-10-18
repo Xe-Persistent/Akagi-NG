@@ -5,7 +5,6 @@ import type { EngineStatus, RecommendationData } from '@/types';
 interface UseEngineConnectionResult {
   data: RecommendationData | null;
   status: EngineStatus | null;
-  error: string | null;
 }
 
 /**
@@ -16,16 +15,10 @@ interface UseEngineConnectionResult {
 export function useEngineConnection(): UseEngineConnectionResult {
   const [data, setData] = useState<RecommendationData | null>(null);
   const [status, setStatus] = useState<EngineStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
-
-    if (!window.electron) {
-      queueMicrotask(() => setError('config_error'));
-      return;
-    }
 
     const unsubRecommendations = window.electron.on(
       'engine:recommendations',
@@ -54,5 +47,5 @@ export function useEngineConnection(): UseEngineConnectionResult {
     };
   }, []);
 
-  return useMemo(() => ({ data, status, error }), [data, status, error]);
+  return useMemo(() => ({ data, status }), [data, status]);
 }

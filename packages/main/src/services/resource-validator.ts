@@ -4,9 +4,8 @@ import { join } from 'node:path';
 import { getProjectRoot } from '../shared/paths.js';
 
 export interface ResourceStatus {
+  /** Whether at least one loadable model file is present. */
   models: boolean;
-  missingCritical: string[];
-  missingOptional: string[];
 }
 
 /** Checks that the model files the app needs are present next to the executable. */
@@ -14,13 +13,7 @@ export class ResourceValidator {
   constructor(private projectRoot: string) {}
 
   public async validate(): Promise<ResourceStatus> {
-    const modelsExists = await this.checkModels(join(this.projectRoot, 'models'));
-
-    return {
-      models: modelsExists,
-      missingCritical: modelsExists ? [] : ['models'],
-      missingOptional: [],
-    };
+    return { models: await this.checkModels(join(this.projectRoot, 'models')) };
   }
 
   private async checkModels(dirPath: string): Promise<boolean> {

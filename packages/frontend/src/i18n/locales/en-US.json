@@ -1,7 +1,5 @@
 {
   "settings": {
-    "save": "Save Changes",
-    "discard": "Discard Changes",
     "update_protocol": "Update Protocol",
     "restore": "Restore Defaults",
     "restore_confirm_title": "Restore Default Settings",
@@ -20,7 +18,6 @@
       "title": "Game Connection",
       "mode": "Connection Mode",
       "mode_browser": "Internal Browser",
-      "game_url": "Game URL",
       "majsoul_server": "Majsoul Server",
       "majsoul_servers": {
         "cn": "Chinese Server",
@@ -34,14 +31,8 @@
         "upstream": "Upstream Proxy (Optional)"
       }
     },
-    "server": {
-      "title": "Background Service",
-      "host": "Service Address",
-      "port": "Port"
-    },
     "model_config": {
       "title": "AI Model",
-      "mode_selection": "Model Select",
       "model_4p": "4-Player Model",
       "model_3p": "3-Player Model",
       "no_models_found": "No local models found",
@@ -51,12 +42,9 @@
     "status_saving": "Saving…",
     "status_error": "Save failed.",
     "restored_success": "Settings restored to defaults.",
-    "loading": "Loading settings…",
     "load_error_desc": "Could not load settings."
   },
   "common": {
-    "enabled": "Enabled",
-    "disabled": "Disabled",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "error": "Error",
@@ -102,7 +90,6 @@
     "parse_failed": "Failed to parse match data.",
     "disconnected": "Game connection lost. Check your network or refresh the page.",
     "left_game": "Left the current match.",
-    "bridge_unavailable": "Configuration Error",
     "model_failed": "Failed to load AI model.",
     "runtime_error": "AI model runtime error",
     "models_missing": "Local model files (models) are missing. The application cannot run without them."

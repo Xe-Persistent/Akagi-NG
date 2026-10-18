@@ -12,9 +12,6 @@
  * - the match ends on a knockout (`NotifyGameEndResult`), not on a payload flag.
  */
 
-/** `operationList[].type` of the swap offer that opens every xuezhan round. */
-export const XUEZHAN_SWAP_OPERATION = 12;
-
 /** A win as the mode reports it, before it becomes a mjai event. */
 export interface XuezhanWin {
   seat: number;
@@ -29,11 +26,6 @@ export function isXuezhanRule(gameConfig: unknown): boolean {
   const rule = (gameConfig as { mode?: { detailRule?: { xuezhandaodi?: number } } } | undefined)
     ?.mode?.detailRule;
   return rule?.xuezhandaodi === 1;
-}
-
-/** Whether a deal carries the swap offer, i.e. whether it belongs to this mode. */
-export function offersSwap(data: Payload): boolean {
-  return operations(data).some((operation) => operation.type === XUEZHAN_SWAP_OPERATION);
 }
 
 /**
@@ -63,18 +55,12 @@ export function applySwap(
  * earlier wins in `hulesHistory`, which the Mid events already reported, so only
  * `hules` is converted.
  */
-export function parseXuezhanWins(data: Payload, endsRound: boolean): XuezhanWin[] {
+export function parseXuezhanWins(data: Payload): XuezhanWin[] {
   const hules = (data.hules as Payload[] | undefined) ?? [];
 
   return hules.map((hule) => ({
     seat: hule.seat as number,
     pai: hule.huTile as string,
     zimo: hule.zimo === true,
-    endsRound,
   }));
-}
-
-function operations(data: Payload): Payload[] {
-  const operation = data.operation as Payload | undefined;
-  return (operation?.operationList as Payload[] | undefined) ?? [];
 }

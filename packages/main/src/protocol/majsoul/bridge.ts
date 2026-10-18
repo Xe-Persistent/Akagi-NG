@@ -281,7 +281,7 @@ export class MajsoulBridge extends BaseBridge {
     const deltas = (data.deltaScores as number[] | undefined) ?? [];
     const events: MJAIEvent[] = [];
 
-    for (const win of parseXuezhanWins(data, endsRound)) {
+    for (const win of parseXuezhanWins(data)) {
       // A ron is charged to whoever discarded last; a self-draw has no target.
       if (!win.zimo && this.state.lastDiscard === null) {
         logger.warn('Xuezhan ron without a discard to attribute it to');

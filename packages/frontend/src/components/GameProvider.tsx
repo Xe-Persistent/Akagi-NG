@@ -6,19 +6,13 @@ import { useEngineToasts } from '@/hooks/useEngineToasts';
 import { isHudWindow } from '@/lib/routing';
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { data, status, error } = useEngineConnection();
-  useEngineToasts(status, error);
+  const { data, status } = useEngineConnection();
+  useEngineToasts(status);
   const [isHudActive, setIsHudActive] = useState(() => isHudWindow());
 
   const value = useMemo(
-    () => ({
-      data,
-      status,
-      error,
-      isHudActive,
-      setIsHudActive,
-    }),
-    [data, status, error, isHudActive],
+    () => ({ data, status, isHudActive, setIsHudActive }),
+    [data, status, isHudActive],
   );
 
   return <GameContext value={value}>{children}</GameContext>;

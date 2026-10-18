@@ -6,8 +6,6 @@ import { cn } from '@/lib/utils';
 
 const Select = SelectPrimitive.Root;
 
-const SelectGroup = SelectPrimitive.Group;
-
 const SelectValue = SelectPrimitive.Value;
 
 type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger>;
@@ -92,17 +90,6 @@ const SelectContent = ({
   </SelectPrimitive.Portal>
 );
 
-type SelectLabelProps = ComponentProps<typeof SelectPrimitive.Label>;
-
-const SelectLabel = ({ className, ref, ...props }: SelectLabelProps) => (
-  <SelectPrimitive.Label
-    ref={ref}
-    data-slot='select-label'
-    className={cn('px-2 py-1.5 text-sm font-semibold', className)}
-    {...props}
-  />
-);
-
 type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item>;
 
 const SelectItem = ({ className, children, ref, ...props }: SelectItemProps) => (
@@ -124,26 +111,12 @@ const SelectItem = ({ className, children, ref, ...props }: SelectItemProps) => 
   </SelectPrimitive.Item>
 );
 
-type SelectSeparatorProps = ComponentProps<typeof SelectPrimitive.Separator>;
-
-const SelectSeparator = ({ className, ref, ...props }: SelectSeparatorProps) => (
-  <SelectPrimitive.Separator
-    ref={ref}
-    data-slot='select-separator'
-    className={cn('bg-muted -mx-1 my-1 h-px', className)}
-    {...props}
-  />
-);
-
 export {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectScrollDownButton,
   SelectScrollUpButton,
-  SelectSeparator,
   SelectTrigger,
   SelectValue,
 };

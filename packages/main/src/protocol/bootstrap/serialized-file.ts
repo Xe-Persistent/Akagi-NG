@@ -253,8 +253,9 @@ function readSerializedType(
 /**
  * Decodes the compact ("blob") type tree encoding: a fixed-size node table plus
  * a string buffer that both type and field names point into. Strings may also be
- * references into Unity's shared common-string table, which this reader does not
- * ship; those nodes are reported instead of silently producing garbage names.
+ * references into Unity's shared common-string table (`unity-common-strings.ts`);
+ * an offset missing from that table is reported instead of silently producing
+ * garbage names.
  */
 function readBlobTypetree(reader: ByteReader, version: number): TypeTreeNode {
   const nodeCount = reader.i32();

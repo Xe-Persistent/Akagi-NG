@@ -81,7 +81,6 @@ export type PathValue<T, P extends readonly unknown[]> = P extends [infer K]
 export type Theme = 'light' | 'dark' | 'system';
 
 export interface ResourceStatus {
+  /** Whether at least one loadable model file is present. */
   models: boolean;
-  missingCritical: string[];
-  missingOptional: string[];
 }

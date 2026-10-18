@@ -36,7 +36,7 @@ const NOTICE_MESSAGES: Record<EngineNotice['kind'], { messageKey: string; type: 
  * are turned into messages here and nowhere else, so what the user sees follows
  * from the status the main process reports.
  */
-export function useEngineToasts(status: EngineStatus | null, connectionError: string | null) {
+export function useEngineToasts(status: EngineStatus | null) {
   const { t } = useTranslation();
   const previousRef = useRef<EngineStatus | null>(null);
 
@@ -54,18 +54,6 @@ export function useEngineToasts(status: EngineStatus | null, connectionError: st
       });
     }
   }, [status, t]);
-
-  // The renderer itself can fail to reach the main process; that is not engine
-  // state, so it is reported separately.
-  useEffect(() => {
-    if (!connectionError) return;
-
-    toast(t('status.bridge_unavailable'), {
-      toastId: `connection:${connectionError}`,
-      type: 'error',
-      autoClose: TOAST_DURATION_DEFAULT,
-    });
-  }, [connectionError, t]);
 }
 
 /** The transitions and notices worth a message, in the order they are shown. */

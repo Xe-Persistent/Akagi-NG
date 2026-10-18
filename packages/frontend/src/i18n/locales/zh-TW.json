@@ -1,7 +1,5 @@
 {
   "settings": {
-    "save": "儲存變更",
-    "discard": "放棄變更",
     "update_protocol": "更新協議文件",
     "restore": "恢復預設設定",
     "restore_confirm_title": "恢復預設設定",
@@ -20,7 +18,6 @@
       "title": "遊戲連線",
       "mode": "連線模式",
       "mode_browser": "內建視窗",
-      "game_url": "遊戲位址",
       "majsoul_server": "雀魂伺服器",
       "majsoul_servers": {
         "cn": "國際中文服",
@@ -34,14 +31,8 @@
         "upstream": "上游代理 (可選)"
       }
     },
-    "server": {
-      "title": "後台服務",
-      "host": "服務位址",
-      "port": "連接埠"
-    },
     "model_config": {
       "title": "AI 模型",
-      "mode_selection": "模型選擇",
       "model_4p": "四麻模型",
       "model_3p": "三麻模型",
       "no_models_found": "未找到本地模型",
@@ -51,12 +42,9 @@
     "status_saving": "正在儲存…",
     "status_error": "儲存失敗",
     "restored_success": "設定已還原為預設值。",
-    "loading": "正在載入設定…",
     "load_error_desc": "無法載入設定。"
   },
   "common": {
-    "enabled": "已啟用",
-    "disabled": "已停用",
     "confirm": "確認",
     "cancel": "取消",
     "error": "發生錯誤",
@@ -102,7 +90,6 @@
     "parse_failed": "遊戲數據解析異常",
     "disconnected": "遊戲連線中斷，請檢查網路或重新整理頁面",
     "left_game": "已離開當前對局",
-    "bridge_unavailable": "配置錯誤",
     "model_failed": "AI 模型載入失敗",
     "runtime_error": "AI 模型運行異常",
     "models_missing": "本地模型檔案 (models) 缺失，程式將無法執行。"

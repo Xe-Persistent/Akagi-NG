@@ -52,17 +52,17 @@ const SCENARIOS: MockScenario[] = [
     ],
   },
 
-  // 场景 3：混合杠（暗杠 4m + 加杠 7s）
+  // 场景 3：混合杠（暗杠 5m + 加杠 7s）
   {
-    tehai: ['4m', '4m', '4m', '4m', '5m', '6m', '7m', 'E', 'E', 'E', '7s'], // has a 7s, 7s, 7s from Pon
+    // The 7s is the fourth copy of a pon that is already on the table.
+    tehai: ['5m', '5mr', '5m', '5m', '6m', '7m', 'E', 'E', 'E', '7s', '1p', '2p', '3p'],
     recommendations: [
-      { action: 'kan', confidence: 0.9, tile: '5m', consumed: ['5m', '5mr', '5m', '5m'] }, // Ankan (consumes 4 from hand)
-      { action: 'kan', confidence: 0.9, tile: '7s', consumed: ['7s'] }, // Kakan (consumes 1 from hand)
+      { action: 'kan', confidence: 0.9, tile: '5m', consumed: ['5m', '5mr', '5m', '5m'] }, // Ankan
+      { action: 'kan', confidence: 0.9, tile: '7s', consumed: ['7s'] }, // Kakan
       { action: '7s', confidence: 0.1 }, // Skip kan
     ],
   },
-  // 场景 4：碰 vs 大明杠
-  // 手牌：999p 123s ... 对手打出 9p
+  // 场景 4：碰 vs 大明杠（对手打出 9p）
   {
     tehai: ['9p', '9p', '9p', '1s', '2s', '3s', '4s', '5s', '6s', 'E', 'E', 'S', 'S'],
     recommendations: [

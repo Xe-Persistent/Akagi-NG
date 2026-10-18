@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { type HTMLAttributes, type ReactNode, useId } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -17,8 +17,12 @@ export function SettingsItem({
   className,
   ...props
 }: SettingsItemProps) {
+  const labelId = useId();
+
   return (
     <div
+      role='group'
+      aria-labelledby={labelId}
       className={cn(
         'group flex w-full',
         layout === 'row' ? 'items-center justify-between gap-4' : 'flex-col gap-2',
@@ -27,9 +31,9 @@ export function SettingsItem({
       {...props}
     >
       <div className='flex flex-col gap-0.5'>
-        <label className='text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70'>
+        <span id={labelId} className='text-sm leading-none font-medium'>
           {label}
-        </label>
+        </span>
         {description && <p className='text-muted-foreground text-xs'>{description}</p>}
       </div>
       <div className={cn(layout === 'row' ? 'shrink-0' : 'w-full')}>{children}</div>

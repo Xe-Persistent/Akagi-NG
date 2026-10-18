@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { EngineStatus, RecommendationData } from '@/types';
 
@@ -43,5 +43,5 @@ export function useEngineConnection(): UseEngineConnectionResult {
     };
   }, []);
 
-  return useMemo(() => ({ data, status }), [data, status]);
+  return { data, status };
 }

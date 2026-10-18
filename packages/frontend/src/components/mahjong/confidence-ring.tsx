@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -27,10 +27,8 @@ export const ConfidenceRing = memo(
     const targetValueRef = useRef(percentage);
     const isFirstRenderRef = useRef(true);
 
-    const currentPercentageRef = useRef(currentPercentage);
-    useLayoutEffect(() => {
-      currentPercentageRef.current = currentPercentage;
-    }, [currentPercentage]);
+    /** Where the last frame left the ring; read without making the effect depend on it. */
+    const readCurrentPercentage = useEffectEvent(() => currentPercentage);
 
     useEffect(() => {
       // Nothing to animate on the first render.
@@ -42,7 +40,7 @@ export const ConfidenceRing = memo(
       }
 
       // Start from wherever the ring currently is.
-      startValueRef.current = currentPercentageRef.current;
+      startValueRef.current = readCurrentPercentage();
       targetValueRef.current = percentage;
       startTimeRef.current = undefined;
 

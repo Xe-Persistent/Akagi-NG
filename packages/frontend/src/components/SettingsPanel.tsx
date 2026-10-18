@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Download, Loader2, RotateCcw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,13 +42,14 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [isUpdatingProtocol, setIsUpdatingProtocol] = useState(false);
 
+  /* The refetch belongs to the panel opening, not to the callback's identity. */
+  const refreshOnOpen = useEffectEvent(refreshSettings);
+
   // Every open panel re-reads from the main process, so an edit made elsewhere
   // cannot linger in the form.
   useEffect(() => {
-    if (open) {
-      refreshSettings();
-    }
-  }, [open, refreshSettings]);
+    if (open) void refreshOnOpen();
+  }, [open]);
 
   const handleUpdateProtocol = async () => {
     setIsUpdatingProtocol(true);

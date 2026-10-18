@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TOAST_DURATION_DEFAULT, TOAST_DURATION_SHORT } from '@/config/constants';
@@ -36,12 +36,8 @@ export function useEngineToasts(status: EngineStatus | null) {
   const { t } = useTranslation();
   const previousRef = useRef<EngineStatus | null>(null);
 
-  useEffect(() => {
-    if (!status) return;
-
-    const notices = project(previousRef.current, status);
-    previousRef.current = status;
-
+  /** Shows what the projection produced, in whichever language is current then. */
+  const showNotices = useEffectEvent((notices: Notice[]) => {
     for (const notice of notices) {
       notify.show(t(notice.messageKey), {
         toastId: notice.id,
@@ -49,7 +45,15 @@ export function useEngineToasts(status: EngineStatus | null) {
         autoClose: notice.autoClose,
       });
     }
-  }, [status, t]);
+  });
+
+  useEffect(() => {
+    if (!status) return;
+
+    const notices = project(previousRef.current, status);
+    previousRef.current = status;
+    showNotices(notices);
+  }, [status]);
 }
 
 /** The transitions and notices worth a message, in the order they are shown. */

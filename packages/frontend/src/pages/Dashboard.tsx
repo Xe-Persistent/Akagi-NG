@@ -139,6 +139,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     <>
       <div
         className={cn(
+          // Cross-fades in as the splash fades out (APP_SPLASH_EXIT_MS).
           'flex h-full flex-col transition duration-1000',
           isSplashActive ? 'pointer-events-none opacity-0 blur-xl' : 'blur-0 opacity-100',
         )}

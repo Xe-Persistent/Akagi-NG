@@ -1,4 +1,12 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react';
 
 import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { SettingsContext } from '@/contexts/SettingsContext';
@@ -23,7 +31,6 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
 
   const { settings, revision, isRestored, availableModels } = state;
 
-  const settingsRef = useRef(settings);
   const revisionRef = useRef(revision);
   /** Highest revision the store has confirmed; guards a refresh over unsaved edits. */
   const savedRevisionRef = useRef(0);
@@ -32,9 +39,8 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
   const saveSeqRef = useRef(0);
 
   useEffect(() => {
-    settingsRef.current = settings;
     revisionRef.current = revision;
-  }, [settings, revision]);
+  }, [revision]);
 
   useEffect(() => {
     dispatch({ type: 'SYNC', payload: initialSettings });
@@ -65,10 +71,11 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
     saveTimerRef.current = null;
   }, []);
 
-  const persist = useCallback(async (revisionToSave: number) => {
+  const persist = useEffectEvent(async (revisionToSave: number) => {
     // A newer save supersedes this one; its response is discarded below.
     const saveId = ++saveSeqRef.current;
-    const payload = settingsRef.current;
+    // Read at call time, so the debounced save always sends the newest settings.
+    const payload = settings;
 
     if (toastIdRef.current === null) {
       toastIdRef.current = notify.loading(i18n.t('settings.status_saving'));
@@ -110,7 +117,7 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
         toastIdRef.current = null;
       }
     }
-  }, []);
+  });
 
   useEffect(() => {
     if (revision === 0) return;
@@ -126,7 +133,7 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
       clearTimeout(timer);
       if (saveTimerRef.current === timer) saveTimerRef.current = null;
     };
-  }, [revision, persist, cancelPendingSave]);
+  }, [revision, cancelPendingSave]);
 
   const refreshSettings = useCallback(async () => {
     // Never clobber an edit whose debounced save has not landed yet.

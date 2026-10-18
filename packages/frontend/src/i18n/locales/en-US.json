@@ -44,16 +44,13 @@
       "mode_selection": "Model Select",
       "model_4p": "4-Player Model",
       "model_3p": "3-Player Model",
-      "temperature": "Temperature",
-      "temperature_desc": "Adjust the confidence gap between recommendations. Lower temperatures make the top choice more prominent, while higher temperatures make confidences closer.",
       "no_models_found": "No local models found",
       "select_model": "Select Model"
     },
     "status_saved": "Save success.",
     "status_saving": "Saving…",
     "status_error": "Save failed.",
-    "restart_required": "Settings changed, Please restart the application to apply the changes.",
-    "restored_success": "Settings restored to defaults. Please restart the application to apply the changes.",
+    "restored_success": "Settings restored to defaults.",
     "loading": "Loading settings…",
     "load_error_desc": "Could not load settings."
   },

@@ -6,7 +6,7 @@ import type { AkagiEngine } from '@akagi-ng/rust-engine';
 import { createLogger } from '../../logging/index.js';
 import { getProjectRoot } from '../../shared/paths.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
-import { settingsManager } from '../settings-manager.js';
+import { getSettingsManager } from '../settings-manager.js';
 import type { EngineDecision } from './recommendation-mapper.js';
 
 const logger = createLogger('ModelRunner');
@@ -31,7 +31,7 @@ export class ModelRunner {
   public async load(seat: number, is3p: boolean): Promise<LoadOutcome> {
     this.reset();
 
-    const settings = settingsManager.getSettings();
+    const settings = getSettingsManager().getSettings();
     const modelName = is3p ? settings.model_config.model_3p : settings.model_config.model_4p;
     const modelPath = join(getProjectRoot(), 'models', modelName);
 

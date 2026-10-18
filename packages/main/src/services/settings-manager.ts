@@ -21,7 +21,6 @@ export interface MITMConfig {
 }
 
 export interface ModelConfig {
-  temperature: number;
   model_4p: string;
   model_3p: string;
 }
@@ -58,7 +57,6 @@ function getDefaultSettings(): AppSettings {
     model_config: {
       model_4p: 'akagi4p.safetensors',
       model_3p: 'akagi3p.safetensors',
-      temperature: 0.3,
     },
   };
 }
@@ -107,13 +105,21 @@ export class SettingsManager {
     });
   }
 
+  /** A snapshot, so a caller cannot mutate the store through the returned object. */
   public getSettings(): AppSettings {
-    return this.store.store;
+    return structuredClone(this.store.store);
   }
 
   public updateSettings(updates: Partial<AppSettings>) {
     const current = this.store.store;
-    const newSettings = { ...current, ...updates };
+    const newSettings: AppSettings = {
+      ...current,
+      ...updates,
+      // The nested objects are merged so a patch that only carries one field
+      // cannot wipe the rest of that section.
+      mitm: { ...current.mitm, ...updates.mitm },
+      model_config: { ...current.model_config, ...updates.model_config },
+    };
 
     if (updates.majsoul_server) {
       newSettings.game_url = getGameUrl(newSettings.majsoul_server);
@@ -127,7 +133,7 @@ export class SettingsManager {
     const defaults = getDefaultSettings();
     this.store.store = defaults;
     logger.info('Settings reset to defaults');
-    return defaults;
+    return structuredClone(defaults);
   }
 
   public async getAvailableModels(): Promise<string[]> {
@@ -142,13 +148,23 @@ export class SettingsManager {
   }
 }
 
-export const settingsManager = new SettingsManager();
+let instance: SettingsManager | null = null;
+
+/**
+ * The store is created on first use, which must happen once the app is ready:
+ * the default locale comes from `app.getLocale()`, and on Windows that call is
+ * only reliable after `ready`.
+ */
+export function getSettingsManager(): SettingsManager {
+  instance ??= new SettingsManager();
+  return instance;
+}
 
 /** Where the game window should send its traffic when it goes through our proxy. */
 export function getMitmConfig(): { host: string; port: number } {
-  const settings = settingsManager.getSettings();
+  const settings = getSettingsManager().getSettings();
   return {
-    host: settings.mitm?.host ?? '127.0.0.1',
-    port: settings.mitm?.port ?? 6789,
+    host: settings.mitm.host,
+    port: settings.mitm.port,
   };
 }

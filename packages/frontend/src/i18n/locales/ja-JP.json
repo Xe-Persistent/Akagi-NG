@@ -44,16 +44,13 @@
       "mode_selection": "モデル選択",
       "model_4p": "四麻モデル",
       "model_3p": "三麻モデル",
-      "temperature": "温度パラメータ",
-      "temperature_desc": "推奨事項間の信頼度の差を調整します。温度が低いほどトップの選択肢が明確になり、温度が高いほど各選択肢の信頼度が近くなります。",
       "no_models_found": "ローカルモデルが見つかりません",
       "select_model": "モデルを選択"
     },
     "status_saved": "保存済み",
     "status_saving": "保存中…",
     "status_error": "保存に失敗しました。",
-    "restart_required": "設定が変更されました。変更を反映するにはアプリを再起動してください。",
-    "restored_success": "設定がデフォルトに戻されました。変更を反映するにはアプリを再起動してください。",
+    "restored_success": "設定をデフォルトに戻しました。",
     "loading": "設定を読み込み中…",
     "load_error_desc": "設定を読み込めませんでした。"
   },

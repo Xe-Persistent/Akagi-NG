@@ -10,7 +10,7 @@ import { SettingsProvider } from '@/components/SettingsProvider';
 import { StartupErrorBoundary } from '@/components/StartupErrorBoundary';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { APP_SPLASH_EXIT_MS, APP_SPLASH_SHOW_MS } from '@/config/constants';
-import { fetchSettingsApi } from '@/hooks/useSettings';
+import { fetchSettingsApi } from '@/lib/settings-api';
 import { cn } from '@/lib/utils';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));

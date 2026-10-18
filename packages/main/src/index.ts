@@ -6,11 +6,11 @@ import { app, dialog } from 'electron';
 import { registerIpcHandlers } from './app/ipc/index.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
-import { createLogger, initializeLogger } from './logging/index.js';
+import { createLogger, initializeLogger, setLogLevel } from './logging/index.js';
 import { startMockStream, stopMockStream } from './mock-stream.js';
 import { MitmProxyManager } from './services/capture/mitm-proxy.js';
 import { EngineService } from './services/engine/engine-service.js';
-import { settingsManager } from './services/settings-manager.js';
+import { getSettingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
 
 // Single Instance Lock
@@ -19,7 +19,9 @@ if (!gotTheLock) {
   app.exit(0);
 }
 
-initializeLogger(join(getProjectRoot(), 'logs'), settingsManager.getSettings().log_level);
+// The stored level is applied once the app is ready; the settings store itself
+// cannot be created before that (its default locale comes from `app.getLocale()`).
+initializeLogger(join(getProjectRoot(), 'logs'));
 
 const logger = createLogger('Main');
 
@@ -59,7 +61,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(async () => {
-  // 0. Register all IPC handlers
+  // 0. Load the settings before anything else reads them
+  setLogLevel(getSettingsManager().getSettings().log_level);
   registerIpcHandlers(windowManager, engineService, mitmProxyManager);
 
   // 1. Start MITM Proxy (a mock run captures nothing)

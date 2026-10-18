@@ -17,7 +17,6 @@ interface GeneralSectionProps {
   updateSetting: <P extends Paths<Settings>>(
     path: readonly [...P],
     value: PathValue<Settings, P>,
-    shouldDebounce?: boolean,
   ) => void;
 }
 

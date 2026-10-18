@@ -10,7 +10,7 @@ import { bridgeManager } from '../../protocol/bridge-manager.js';
 import { getAssetPath } from '../../shared/paths.js';
 import type { EngineService } from '../engine/engine-service.js';
 import { engineStatus } from '../engine-status.js';
-import { settingsManager } from '../settings-manager.js';
+import { getSettingsManager } from '../settings-manager.js';
 import { ConnectionTracker } from './connection-tracker.js';
 
 const logger = createLogger('MITMProxy');
@@ -57,7 +57,7 @@ export class MitmProxyManager {
       return;
     }
 
-    const settings = settingsManager.getSettings();
+    const settings = getSettingsManager().getSettings();
     if (!settings.mitm.enabled) {
       logger.info('MITM Proxy is disabled in settings. Skipping startup.');
       return;

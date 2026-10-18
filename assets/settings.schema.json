@@ -77,19 +77,11 @@
           "type": "string",
           "default": "akagi3p.safetensors",
           "description": "Selected model for 3-player mahjong."
-        },
-        "temperature": {
-          "type": "number",
-          "default": 0.3,
-          "minimum": 0.1,
-          "maximum": 1.3,
-          "description": "Softmax temperature for model confidence normalization."
         }
       },
       "required": [
         "model_4p",
-        "model_3p",
-        "temperature"
+        "model_3p"
       ],
       "additionalProperties": false
     }

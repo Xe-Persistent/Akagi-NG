@@ -18,9 +18,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
-import { fetchSettingsApi, useSettings } from '@/hooks/useSettings';
+import { useSettings } from '@/hooks/useSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/lib/notify';
+import { fetchSettingsApi } from '@/lib/settings-api';
 import { cn } from '@/lib/utils';
 import type { ResourceStatus, Settings } from '@/types';
 

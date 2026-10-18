@@ -44,16 +44,13 @@
       "mode_selection": "模型選擇",
       "model_4p": "四麻模型",
       "model_3p": "三麻模型",
-      "temperature": "溫度參數",
-      "temperature_desc": "調整各推薦選項之間的信心差距。較低的溫度會使最高概率的選項更加突出，較高的溫度會使各選項概率更接近。",
       "no_models_found": "未找到本地模型",
       "select_model": "選擇模型"
     },
     "status_saved": "儲存成功",
     "status_saving": "正在儲存…",
     "status_error": "儲存失敗",
-    "restart_required": "設定已變更，請重新啟動應用程式以套用變更",
-    "restored_success": "設定已恢復為預設值，請重新啟動應用程式以套用變更",
+    "restored_success": "設定已還原為預設值。",
     "loading": "正在載入設定…",
     "load_error_desc": "無法載入設定。"
   },

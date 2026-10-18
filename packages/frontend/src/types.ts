@@ -55,7 +55,6 @@ export interface Settings {
   model_config: {
     model_4p: string;
     model_3p: string;
-    temperature: number;
   };
 }
 

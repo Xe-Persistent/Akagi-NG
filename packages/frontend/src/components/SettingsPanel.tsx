@@ -37,8 +37,7 @@ interface SettingsPanelProps {
 
 export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const { t } = useTranslation();
-  const { settings, restartRequired, isRestored, updateSetting, restoreDefaults, refreshSettings } =
-    useSettings();
+  const { settings, isRestored, updateSetting, restoreDefaults, refreshSettings } = useSettings();
 
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [isUpdatingProtocol, setIsUpdatingProtocol] = useState(false);
@@ -72,12 +71,6 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         <DialogHeader className='border-border border-b p-6 pb-4'>
           <DialogTitle>{t('app.settings_title')}</DialogTitle>
           <DialogDescription>{t('app.settings_desc')}</DialogDescription>
-          {restartRequired && (
-            <Alert variant='warning' className='mt-4 flex justify-center p-2 text-center'>
-              <AlertTriangle className='h-4 w-4' />
-              <AlertDescription>{t('settings.restart_required')}</AlertDescription>
-            </Alert>
-          )}
           {isRestored && (
             <Alert variant='success' className='mt-4 flex justify-center p-2 text-center'>
               <CheckCircle2 className='h-4 w-4' />

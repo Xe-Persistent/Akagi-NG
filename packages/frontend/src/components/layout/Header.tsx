@@ -33,7 +33,7 @@ interface HeaderProps {
   isHudActive?: boolean;
 }
 
-function HeaderContent({
+export function Header({
   isLaunching,
   onLaunch,
   onOpenSettings,
@@ -155,8 +155,4 @@ function HeaderContent({
       </div>
     </header>
   );
-}
-
-export function Header(props: HeaderProps) {
-  return <HeaderContent {...props} />;
 }

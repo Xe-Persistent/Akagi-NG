@@ -36,8 +36,8 @@ export class MajsoulStateTracker {
     this.gameEnded = false;
     this.lastDiscard = null;
     this.doras = [];
-    this.myTehais = Array<string>(MahjongConstants.TEHAI_SIZE).fill('?');
-    this.myTsumohai = '?';
+    this.myTehais = Array<string>(MahjongConstants.TEHAI_SIZE).fill(MahjongConstants.UNKNOWN_TILE);
+    this.myTsumohai = MahjongConstants.UNKNOWN_TILE;
     this.pendingReachAccepted = null;
   }
 

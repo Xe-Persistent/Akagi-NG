@@ -10,72 +10,8 @@ import {
   resetSettingsApi,
   saveSettingsApi,
 } from '@/lib/settings-api';
+import { createSettingsState, settingsReducer } from '@/lib/settings-reducer';
 import type { Paths, PathValue, Settings } from '@/types';
-
-// --- 类型与归约器 ---
-
-interface State {
-  settings: Settings;
-  /** Bumped by every local edit; the save effect watches it. */
-  revision: number;
-  isRestored: boolean;
-  availableModels: string[];
-}
-
-type Action =
-  | { type: 'SYNC'; payload: Settings; revision?: number }
-  | { type: 'REMOTE_UPDATE'; payload: { locale: string } }
-  | { type: 'USER_UPDATE'; path: readonly string[]; value: unknown }
-  | { type: 'RESTORE_SUCCESS'; payload: Settings }
-  | { type: 'SET_AVAILABLE_MODELS'; payload: string[] };
-
-function setByPath(root: Record<string, unknown>, path: readonly string[], value: unknown) {
-  let current: Record<string, unknown> = root;
-  for (let i = 0; i < path.length - 1; i++) {
-    const key = path[i];
-    if (typeof current[key] !== 'object' || current[key] === null) {
-      current[key] = {};
-    }
-    current = current[key] as Record<string, unknown>;
-  }
-  current[path[path.length - 1]] = value;
-}
-
-function settingsReducer(state: State, action: Action): State {
-  switch (action.type) {
-    case 'SYNC':
-      // A response for an older edit must not undo a newer one.
-      if (action.revision !== undefined && action.revision !== state.revision) return state;
-      if (JSON.stringify(state.settings) === JSON.stringify(action.payload)) return state;
-      return { ...state, settings: action.payload };
-
-    case 'REMOTE_UPDATE':
-      if (state.settings.locale === action.payload.locale) return state;
-      return { ...state, settings: { ...state.settings, locale: action.payload.locale } };
-
-    case 'USER_UPDATE': {
-      const nextSettings = structuredClone(state.settings) as unknown as Record<string, unknown>;
-      setByPath(nextSettings, action.path, action.value);
-      return {
-        ...state,
-        settings: nextSettings as unknown as Settings,
-        revision: state.revision + 1,
-        isRestored: false,
-      };
-    }
-
-    case 'RESTORE_SUCCESS':
-      return { ...state, settings: action.payload, isRestored: true };
-
-    case 'SET_AVAILABLE_MODELS':
-      return { ...state, availableModels: action.payload };
-
-    default:
-      return state;
-  }
-}
-
-// --- 组件 ---
 
 interface SettingsProviderProps {
   children: ReactNode;
@@ -83,12 +19,7 @@ interface SettingsProviderProps {
 }
 
 export function SettingsProvider({ children, initialSettings }: SettingsProviderProps) {
-  const [state, dispatch] = useReducer(settingsReducer, {
-    settings: initialSettings,
-    revision: 0,
-    isRestored: false,
-    availableModels: [],
-  });
+  const [state, dispatch] = useReducer(settingsReducer, initialSettings, createSettingsState);
 
   const { settings, revision, isRestored, availableModels } = state;
 

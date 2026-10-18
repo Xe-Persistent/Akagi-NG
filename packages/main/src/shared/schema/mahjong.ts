@@ -41,6 +41,9 @@ export const MahjongConstants = {
     '?',
   ],
 
+  // 未知牌占位符（某张牌尚未公开时使用）
+  UNKNOWN_TILE: '?',
+
   // 座位数
   SEATS_3P: 3, // 三麻座位数
   SEATS_4P: 4, // 四麻座位数

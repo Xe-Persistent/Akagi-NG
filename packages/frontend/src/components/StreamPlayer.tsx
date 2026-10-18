@@ -42,7 +42,6 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
   const { data, isHudActive } = context;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
   const containerSize = {
@@ -73,7 +72,6 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
       className={cn('flex min-h-0 w-full flex-1 items-center justify-center', className)}
     >
       <div
-        ref={containerRef}
         style={{
           width: containerSize.width,
           height: containerSize.height,

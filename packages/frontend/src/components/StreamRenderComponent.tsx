@@ -42,8 +42,8 @@ export default function StreamRenderComponent({ data }: StreamRenderComponentPro
       id='render-source'
       className='relative flex h-full w-full flex-col items-center justify-center gap-4 p-4'
     >
-      {(data.recommendations || []).slice(0, 3).map((rec, index) => {
-        const key = `${rec.action}-${rec.tile || ''}-${rec.consumed?.join(',') || ''}-${index}`;
+      {data.recommendations.map((rec, index) => {
+        const key = `${rec.action}-${rec.tile ?? ''}-${rec.consumed?.join(',') ?? ''}-${index}`;
         return <StreamRecommendation key={key} {...rec} />;
       })}
     </div>

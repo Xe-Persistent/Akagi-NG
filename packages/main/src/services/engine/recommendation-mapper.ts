@@ -3,8 +3,9 @@ import { createLogger } from '../../logging/index.js';
 const logger = createLogger('Recommendation');
 
 /**
- * How many riichi-lookahead tiles the HUD shows. The engine ranks more, but the
- * candidate row is sized for this many tiles.
+ * How many riichi-lookahead tiles the HUD shows. Must match the Rust engine's
+ * `LOOKAHEAD_TOP_N`, which already trims the list it sends; this is a guard
+ * against a payload from an older/newer engine.
  */
 const RIICHI_LOOKAHEAD_CANDIDATES = 5;
 

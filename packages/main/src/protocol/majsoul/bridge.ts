@@ -7,12 +7,23 @@ import { OperationAnGangAddGang, OperationChiPengGang } from './consts.js';
 import type { LiqiMessage } from './liqi.js';
 import { LiqiProto, MsgType } from './liqi.js';
 import { MajsoulStateTracker } from './state-tracker.js';
+import { is3pFromSyncSnapshot, parseSyncGameActions } from './sync-replay.js';
 import { toMjaiTile } from './tile-mapping.js';
 import { applySwap, isXuezhanRule, parseXuezhanWins } from './xuezhan.js';
 
 const logger = createLogger('MajsoulBridge');
 
+/** Decoded fields of one protocol message; its shape is only known at runtime. */
 type ActionPayload = Record<string, unknown>;
+
+/** An `ActionPrototype` frame: the action's name plus its own decoded payload. */
+interface ActionPrototype extends ActionPayload {
+  name: string;
+  data: ActionPayload;
+}
+
+/** `chang` (the round-wind index) to the mjai round-wind tile. */
+const ROUND_WINDS = ['E', 'S', 'W', 'N'] as const;
 
 /** ActionPrototype names that end the current kyoku. */
 const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu']);
@@ -35,7 +46,16 @@ const HEARTBEAT_METHOD = '.lq.Route.heartbeat';
 /** The round's first dora marker, before any indicator has been reported. */
 function toMjaiTileOrUnknown(doras: string[] | undefined): string {
   const first = doras?.[0];
-  return first ? toMjaiTile(first) : '?';
+  return first ? toMjaiTile(first) : MahjongConstants.UNKNOWN_TILE;
+}
+
+/** A five of a numbered suit; an honor such as 5z is not a suit five. */
+function isSuitFive(pai: string): boolean {
+  return pai[0] === '5' && pai[1] !== 'z';
+}
+
+function isRedFive(pai: string): boolean {
+  return pai.endsWith('r');
 }
 
 export class MajsoulBridge extends BaseBridge {
@@ -45,17 +65,17 @@ export class MajsoulBridge extends BaseBridge {
   private replayed = false;
 
   private readonly actionHandlers: Readonly<
-    Record<string, (actionData: ActionPayload) => MJAIEvent[]>
+    Record<string, (action: ActionPrototype) => MJAIEvent[]>
   > = {
-    ActionNewRound: (actionData) => this.handleNewRound(actionData),
-    ActionDealTile: (actionData) => this.handleDealTile(actionData),
-    ActionDiscardTile: (actionData) => this.handleDiscardTile(actionData),
-    ActionChiPengGang: (actionData) => this.handleChiPengGang(actionData),
-    ActionAnGangAddGang: (actionData) => this.handleAnGangAddGang(actionData),
-    ActionBaBei: (actionData) => this.handleBaBei(actionData),
-    ActionChangeTile: (actionData) => this.handleChangeTile(actionData),
-    ActionHuleXueZhanMid: (actionData) => this.handleXuezhanHule(actionData, false),
-    ActionHuleXueZhanEnd: (actionData) => this.handleXuezhanHule(actionData, true),
+    ActionNewRound: (action) => this.handleNewRound(action),
+    ActionDealTile: (action) => this.handleDealTile(action),
+    ActionDiscardTile: (action) => this.handleDiscardTile(action),
+    ActionChiPengGang: (action) => this.handleChiPengGang(action),
+    ActionAnGangAddGang: (action) => this.handleAnGangAddGang(action),
+    ActionBaBei: (action) => this.handleBaBei(action),
+    ActionChangeTile: (action) => this.handleChangeTile(action),
+    ActionHuleXueZhanMid: (action) => this.handleXuezhanHule(action, false),
+    ActionHuleXueZhanEnd: (action) => this.handleXuezhanHule(action, true),
   };
 
   /**
@@ -162,32 +182,42 @@ export class MajsoulBridge extends BaseBridge {
   // ===== ActionPrototype handling =====
 
   private handleActionPrototype(liqiMessage: LiqiMessage): MJAIEvent[] {
-    const actionData = liqiMessage.data as ActionPayload;
-    const actionName = actionData.name as string;
+    const action = liqiMessage.data as ActionPrototype;
+    this.dropUnswappedDeal(action.name);
 
-    this.dropUnswappedDeal(actionName);
+    // A round-ending action settles and ends the kyoku; the held reach_accepted
+    // is deliberately dropped, because a round that ends here never accepted it.
+    if (END_ROUND_ACTIONS.has(action.name)) return this.roundEndEvents(action);
 
-    if (END_ROUND_ACTIONS.has(actionName)) {
-      const roundEnd = actionName === 'ActionNoTile' ? this.handleNoTile(actionData) : [];
-      return [...roundEnd, this.makeEndKyoku()];
-    }
-
-    const handler = this.actionHandlers[actionName];
+    const handler = this.actionHandlers[action.name];
     if (!handler) {
       // Recorded at the capture level, so a survey of a log can tell which
       // actions the bridge has no mapping for.
-      logger.verbose(`Unhandled ActionPrototype: ${actionName}`);
+      logger.verbose(`Unhandled ActionPrototype: ${action.name}`);
     }
 
-    const events = handler ? handler(actionData) : [];
-
-    if (this.state.pendingReachAccepted) {
-      events.push(this.state.pendingReachAccepted);
-      this.state.pendingReachAccepted = null;
-    }
-
-    events.push(...this.handleDoraUpdate(actionData));
+    const events = handler ? handler(action) : [];
+    this.flushPendingReachAccepted(events);
+    events.push(...this.handleDoraUpdate(action));
     return events;
+  }
+
+  /** The mode's own settlement (if any), then the round's end. */
+  private roundEndEvents(action: ActionPrototype): MJAIEvent[] {
+    const settlement = action.name === 'ActionNoTile' ? this.handleNoTile(action) : [];
+    return [...settlement, this.makeEndKyoku()];
+  }
+
+  /**
+   * Majsoul fuses the riichi declaration and the discard, so the accepted event
+   * is held back and appended after the next action has been reported.
+   */
+  private flushPendingReachAccepted(events: MJAIEvent[]) {
+    const accepted = this.state.pendingReachAccepted;
+    if (!accepted) return;
+
+    events.push(accepted);
+    this.state.pendingReachAccepted = null;
   }
 
   /**
@@ -202,8 +232,8 @@ export class MajsoulBridge extends BaseBridge {
     this.pendingDeal = null;
   }
 
-  private handleNewRound(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleNewRound(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
 
     // Xuezhan deals before the swap, so the round cannot open yet: the hand is
     // still going to lose three tiles and gain three. `handleChangeTile` opens it.
@@ -220,8 +250,8 @@ export class MajsoulBridge extends BaseBridge {
    * xuezhan deal with its swap already applied.
    */
   private openRound(data: ActionPayload, doraMarker: string): MJAIEvent[] {
-    const bakaze = ['E', 'S', 'W', 'N'][data.chang as number];
-    this.state.doras = doraMarker === '?' ? [] : [doraMarker];
+    const bakaze = ROUND_WINDS[data.chang as number];
+    this.state.doras = doraMarker === MahjongConstants.UNKNOWN_TILE ? [] : [doraMarker];
 
     const honba = data.ben as number;
     const oya = data.ju as number;
@@ -252,8 +282,8 @@ export class MajsoulBridge extends BaseBridge {
    * corrected here — tiles leave, tiles arrive — and only then does the round
    * open together with the dora indicator the swap carries.
    */
-  private handleChangeTile(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleChangeTile(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const deal = this.pendingDeal;
     this.pendingDeal = null;
 
@@ -275,8 +305,8 @@ export class MajsoulBridge extends BaseBridge {
    * does not end the round: the players who have already won stop drawing and
    * the rest carry on. Only the third win ends it (`ActionHuleXueZhanEnd`).
    */
-  private handleXuezhanHule(actionData: ActionPayload, endsRound: boolean): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleXuezhanHule(action: ActionPrototype, endsRound: boolean): MJAIEvent[] {
+    const data = action.data;
     const scores = (data.scores as number[] | undefined) ?? [];
     const deltas = (data.deltaScores as number[] | undefined) ?? [];
     const events: MJAIEvent[] = [];
@@ -302,8 +332,8 @@ export class MajsoulBridge extends BaseBridge {
    * exclude players (a blood battle does not charge or pay those who already
    * won), and `tenpais` reports only the players who were actually paid.
    */
-  private handleNoTile(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleNoTile(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const players = (data.players as ActionPayload[] | undefined) ?? [];
     const settlement = ((data.scores as ActionPayload[] | undefined)?.[0] ?? {}) as ActionPayload;
     const deltas = (settlement.deltaScores as number[] | undefined) ?? [];
@@ -313,11 +343,11 @@ export class MajsoulBridge extends BaseBridge {
     return [this.makeRyukyoku(scores, deltas, tenpais)];
   }
 
-  private handleDealTile(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleDealTile(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const actor = data.seat as number;
 
-    let pai = '?';
+    let pai: string = MahjongConstants.UNKNOWN_TILE;
     if (data.tile) {
       pai = toMjaiTile(data.tile as string);
       if (actor === this.state.seat) {
@@ -328,8 +358,8 @@ export class MajsoulBridge extends BaseBridge {
     return [this.makeTsumo(actor, pai)];
   }
 
-  private handleDiscardTile(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleDiscardTile(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const actor = data.seat as number;
     this.state.lastDiscard = actor;
 
@@ -353,8 +383,8 @@ export class MajsoulBridge extends BaseBridge {
     return events;
   }
 
-  private handleChiPengGang(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleChiPengGang(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const actor = data.seat as number;
     const froms = data.froms as number[];
     const tiles = data.tiles as string[];
@@ -403,22 +433,19 @@ export class MajsoulBridge extends BaseBridge {
     }
   }
 
-  private handleAnGangAddGang(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleAnGangAddGang(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const actor = data.seat as number;
     const pai = toMjaiTile(data.tiles as string);
 
     switch (data.type) {
       case OperationAnGangAddGang.AnGang: {
-        const consumed = this.buildAnkanTiles(pai);
+        const consumed = this.buildKanTiles(pai, 'closed');
         this.state.onKan(actor, consumed, false);
         return [this.makeAnkan(actor, consumed)];
       }
       case OperationAnGangAddGang.AddGang: {
-        const consumed = Array<string>(MahjongConstants.KAKAN_CONSUMED).fill(pai.replace('r', ''));
-        if (pai[0] === '5' && !pai.endsWith('r')) {
-          consumed[0] += 'r';
-        }
+        const consumed = this.buildKanTiles(pai, 'added');
         this.state.onKan(actor, consumed, true, pai);
         return [this.makeKakan(actor, pai, consumed)];
       }
@@ -428,28 +455,31 @@ export class MajsoulBridge extends BaseBridge {
   }
 
   /**
-   * A closed kan always consumes the other three copies of the tile; the hand
-   * may hold a red five instead of a plain one, so the first entry keeps the
-   * red flag to mirror the legacy conversion.
+   * The tiles a kan consumes, with the red-five flag kept on the first copy.
+   *
+   * A closed kan takes all its tiles from the hand, so a declared suit five
+   * (red or not) means a red copy is assumed present. An added kan's consumed
+   * list is the pon already on the table while `pai` is the tile just added, so
+   * a red `pai` is not part of it.
    */
-  private buildAnkanTiles(pai: string): string[] {
-    const consumed = Array<string>(MahjongConstants.ANKAN_TILES).fill(pai.replace('r', ''));
-    if (pai[0] === '5' && pai[1] !== 'z') {
-      consumed[0] += 'r';
-    }
+  private buildKanTiles(pai: string, kind: 'closed' | 'added'): string[] {
+    const count =
+      kind === 'closed' ? MahjongConstants.ANKAN_TILES : MahjongConstants.KAKAN_CONSUMED;
+    const consumed = Array<string>(count).fill(pai.replace('r', ''));
+    const carriesRed = isSuitFive(pai) && (kind === 'closed' || !isRedFive(pai));
+    if (carriesRed) consumed[0] += 'r';
     return consumed;
   }
 
-  private handleBaBei(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload;
+  private handleBaBei(action: ActionPrototype): MJAIEvent[] {
+    const data = action.data;
     const actor = data.seat as number;
     this.state.onNukidora(actor);
     return [this.makeNukidora(actor)];
   }
 
-  private handleDoraUpdate(actionData: ActionPayload): MJAIEvent[] {
-    const data = actionData.data as ActionPayload | undefined;
-    const doras = data?.doras as string[] | undefined;
+  private handleDoraUpdate(action: ActionPrototype): MJAIEvent[] {
+    const doras = action.data.doras as string[] | undefined;
 
     if (doras && doras.length > this.state.doras.length) {
       this.state.doras = doras;
@@ -467,9 +497,9 @@ export class MajsoulBridge extends BaseBridge {
   // ===== Reconnect / sync replay =====
 
   private parseSyncGame(liqiMessage: LiqiMessage): MJAIEvent[] {
-    this.preScanModeFromSyncMsg(liqiMessage);
+    this.applySnapshotMode(liqiMessage);
 
-    const syncGameMsgs = this.parseSyncGameRaw(liqiMessage);
+    const syncGameMsgs = parseSyncGameActions(liqiMessage, this.liqiProto);
     const parsedList: MJAIEvent[] = [];
     this.replayed = true;
 
@@ -489,65 +519,18 @@ export class MajsoulBridge extends BaseBridge {
 
   private parseEnterGame(liqiMessage: LiqiMessage): MJAIEvent[] {
     this.syncing = false;
-    this.preScanModeFromSyncMsg(liqiMessage);
+    this.applySnapshotMode(liqiMessage);
 
     const parsedList: MJAIEvent[] = [];
-    for (const msg of this.parseSyncGameRaw(liqiMessage)) {
+    for (const msg of parseSyncGameActions(liqiMessage, this.liqiProto)) {
       parsedList.push(...this.handleActionPrototype(msg));
     }
 
     return parsedList;
   }
 
-  /** The game mode is only known from the snapshot before actions are replayed. */
-  private preScanModeFromSyncMsg(liqiMessage: LiqiMessage) {
-    const data = liqiMessage.data as ActionPayload | undefined;
-    const gameRestore = data?.gameRestore as ActionPayload | undefined;
-    const snapshot = gameRestore?.snapshot as ActionPayload | undefined;
-    const players = snapshot?.players as unknown[] | undefined;
-
-    if (players) {
-      this.state.is3p = players.length === MahjongConstants.SEATS_3P;
-      logger.verbose(`Pre-scanned mode from snapshot: is_3p=${this.state.is3p}`);
-    }
-  }
-
-  /**
-   * Unpacks the base64 action history of `gameRestore` into ActionPrototype
-   * shaped messages so they can be replayed through the normal handlers.
-   */
-  private parseSyncGameRaw(liqiMessage: LiqiMessage): LiqiMessage[] {
-    const messages: LiqiMessage[] = [];
-
-    try {
-      const data = liqiMessage.data as ActionPayload | undefined;
-      const restore = data?.gameRestore as ActionPayload | undefined;
-      if (!restore) return [];
-
-      const actions = (restore.actions ?? []) as ActionPayload[];
-      for (const action of actions) {
-        const item = this.parseSyncGameActionItem(action);
-        if (item) messages.push(item);
-      }
-    } catch (e) {
-      logger.error(`Error parsing sync game: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
-    return messages;
-  }
-
-  private parseSyncGameActionItem(actionDict: ActionPayload): LiqiMessage | null {
-    const innerName = actionDict.name as string;
-    const rawData = Buffer.from(actionDict.data as string, 'base64');
-    const innerDict = this.liqiProto.parseWrapper(innerName, rawData, false);
-
-    if (!innerDict) return null;
-
-    return {
-      id: -1,
-      type: MsgType.Notify,
-      method: '.lq.ActionPrototype',
-      data: { ...actionDict, data: innerDict },
-    };
+  private applySnapshotMode(liqiMessage: LiqiMessage) {
+    const is3p = is3pFromSyncSnapshot(liqiMessage);
+    if (is3p !== null) this.state.is3p = is3p;
   }
 }

@@ -12,6 +12,13 @@ const mainAlias = { electron: fromRoot('./packages/main/test/electron-stub.ts') 
 
 export default defineConfig({
   test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      reportsDirectory: fromRoot('./coverage'),
+      include: ['packages/main/src/**/*.{ts,cts}', 'packages/frontend/src/**/*.{ts,tsx}'],
+      exclude: ['**/*.d.ts', '**/test/**'],
+    },
     projects: [
       {
         resolve: { alias: mainAlias },

@@ -14,6 +14,7 @@ tmp/
 
 .coverage
 .coverage.*
+coverage/
 coverage.xml
 htmlcov/
 *.cover

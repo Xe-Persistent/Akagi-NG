@@ -46,7 +46,6 @@
       "output": "../../dist/release",
       "buildResources": "../../build"
     },
-    "electronDist": "../../node_modules/electron/dist",
     "files": [
       {
         "from": "../../dist/main",

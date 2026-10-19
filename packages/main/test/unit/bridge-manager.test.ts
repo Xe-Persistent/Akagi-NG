@@ -8,20 +8,6 @@ import { BridgeManager } from '../../src/protocol/bridge-manager.js';
 import { ResourceValidator } from '../../src/services/resource-validator.js';
 
 describe('routing a game URL to a bridge', () => {
-  const manager = new BridgeManager();
-
-  it.each([
-    'wss://game.maj-soul.com/1/',
-    'https://mahjongsoul.game.yo-star.com/',
-    'wss://gateway.majsoul.example/game',
-  ])('recognises %s', (url) => {
-    expect(manager.isMajsoulUrl(url)).toBe(true);
-  });
-
-  it.each(['https://example.com/', 'wss://other-game.example/ws'])('leaves %s alone', (url) => {
-    expect(manager.isMajsoulUrl(url)).toBe(false);
-  });
-
   it('creates one bridge and reuses it', () => {
     const fresh = new BridgeManager();
 
@@ -33,10 +19,16 @@ describe('routing a game URL to a bridge', () => {
     expect(fresh.getCurrentBridge()).toBe(first);
   });
 
-  it('does not hand a bridge to a URL that is not majsoul', () => {
+  it.each([
+    'https://example.com/',
+    // A marker in the path, the query or a lookalike host must not route here.
+    'https://example.com/?ref=majsoul',
+    'wss://gateway.majsoul.example/game',
+    'https://notmajsoul.com/',
+  ])('does not hand a bridge to %s', (url) => {
     const fresh = new BridgeManager();
 
-    expect(fresh.getBridgeForUrl('https://example.com/')).toBeNull();
+    expect(fresh.getBridgeForUrl(url)).toBeNull();
     expect(fresh.getCurrentBridge()).toBeNull();
   });
 

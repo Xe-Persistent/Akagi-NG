@@ -212,6 +212,7 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
      - Domain wildcard: `*.maj-soul.com  ->  Akagi-Mitm`
      - Domain wildcard: `*.majsoul.com  ->  Akagi-Mitm`
      - Domain wildcard: `*.mahjongsoul.com  ->  Akagi-Mitm`
+     - Domain: `mahjongsoul.game.yo-star.com  ->  Akagi-Mitm`
    - **Default rule**:
      - Select **[System Proxy]**, then click **Apply Changes** to save.
 

@@ -5,6 +5,11 @@ import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import { errorMessage } from '../../shared/errors.js';
 import { getCertificatesDir } from '../../shared/paths.js';
+import {
+  isMajsoulUrl,
+  MAJSOUL_CLIENT_HOSTS,
+  MAJSOUL_DOMAINS,
+} from '../../shared/schema/platforms.js';
 import type { EngineService } from '../engine/engine-service.js';
 import { getSettingsManager } from '../settings-manager.js';
 import { ensureCertificates } from './certificates.js';
@@ -19,12 +24,14 @@ const logger = createLogger('MITMProxy');
  * misconfigured system proxy cannot make Akagi-NG a general-purpose TLS
  * interception point. The analytics endpoint is intercepted because its
  * beacons are dropped locally instead of being forwarded.
+ *
+ * The English client's origin is matched by exact host, never by the whole
+ * `yo-star.com` publisher domain: that domain also serves unrelated Yostar
+ * games, which must stay tunnelled.
  */
-const INTERCEPTED_TLS_HOSTS = [
-  { hostname: '*.maj-soul.com' },
-  { hostname: '*.majsoul.com' },
-  { hostname: '*.mahjongsoul.com' },
-  { hostname: '*.yo-star.com' },
+export const INTERCEPTED_TLS_HOSTS: { hostname: string }[] = [
+  ...MAJSOUL_DOMAINS.map((domain) => ({ hostname: `*.${domain}` })),
+  ...MAJSOUL_CLIENT_HOSTS.map((hostname) => ({ hostname })),
   { hostname: '*.log.aliyuncs.com' },
 ];
 
@@ -45,6 +52,8 @@ export function isTelemetryBeacon(url: string): boolean {
 export class MitmProxyManager {
   private server: Mockttp | null = null;
   private isRunning = false;
+  /** Set while a start attempt is in flight, so concurrent callers share it. */
+  private startTask: Promise<void> | null = null;
   /** Majsoul websockets only; messages of other proxied sockets must not reach the bridge. */
   private readonly majsoulStreams = new Set<string>();
   private readonly connectionTracker: ConnectionTracker;
@@ -53,7 +62,18 @@ export class MitmProxyManager {
     this.connectionTracker = new ConnectionTracker(engine);
   }
 
-  public async start() {
+  /**
+   * Two overlapping attempts would bind the port twice: the loser fails, clears
+   * `this.server`, and leaves the winner running with no handle to stop it.
+   */
+  public start(): Promise<void> {
+    this.startTask ??= this.startOnce().finally(() => {
+      this.startTask = null;
+    });
+    return this.startTask;
+  }
+
+  private async startOnce() {
     if (this.isRunning) {
       logger.warn('MITM Proxy is already running.');
       return;
@@ -74,7 +94,6 @@ export class MitmProxyManager {
           certPath: pemPath,
           tlsInterceptOnly: INTERCEPTED_TLS_HOSTS,
         },
-        cors: true,
       });
       this.server = server;
 
@@ -108,7 +127,7 @@ export class MitmProxyManager {
       await server.forAnyWebSocket().thenPassThrough(connectionOptions);
 
       await server.on('websocket-request', (req) => {
-        if (!bridgeManager.isMajsoulUrl(req.url)) return;
+        if (!isMajsoulUrl(req.url)) return;
 
         logger.verbose(`[MITM] WebSocket connection requested: ${req.url}`);
         bridgeManager.getBridgeForUrl(req.url);
@@ -165,6 +184,8 @@ export class MitmProxyManager {
   }
 
   public async stop() {
+    // A start still in flight must settle before there is a server to stop.
+    await this.startTask?.catch(() => undefined);
     if (!this.isRunning || !this.server) return;
     logger.info('Stopping MITM Proxy...');
     this.connectionTracker.forceDisconnect();

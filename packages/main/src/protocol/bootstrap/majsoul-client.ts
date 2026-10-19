@@ -1,4 +1,5 @@
 import { errorMessage } from '../../shared/errors.js';
+import { getGameUrl, MAJSOUL_SERVERS } from '../../shared/schema/platforms.js';
 import { type BootstrapLogger, silentLogger } from './logger.js';
 import { ClassId, SerializedFile } from './serialized-file.js';
 import { UnityFsBundle } from './unityfs.js';
@@ -17,7 +18,12 @@ import { UnityFsBundle } from './unityfs.js';
  *   -> bundle_info_so.majset (BundleInfoSO: asset path -> bundle name)
  *   -> the bundles owning the wanted assets -> TextAsset payloads
  */
-const CLIENT_URL = 'https://game.maj-soul.com/1/';
+/**
+ * The Chinese server serves the same global WebGL build the other clients are
+ * derived from, so the extractor always follows it regardless of the server
+ * the user plays on.
+ */
+const CLIENT_URL = getGameUrl(MAJSOUL_SERVERS.CN);
 const TEXTURE_PROFILES = ['ASTC', 'DXT'] as const;
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' +

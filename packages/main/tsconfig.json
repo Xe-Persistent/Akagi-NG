@@ -8,8 +8,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "skipLibCheck": true,
-    "outDir": "../../dist/main",
-    "rootDir": "./src"
+    "noEmit": true
   },
-  "include": ["./src/**/*"]
+  "include": ["src/**/*", "test/**/*"]
 }

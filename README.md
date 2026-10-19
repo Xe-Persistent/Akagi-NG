@@ -22,8 +22,7 @@
 <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-9135FF?logo=vite&logoColor=white" alt="Vite">
 <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
-<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
-<img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
+<img src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white" alt="Rust">
 <br>
 <img src="https://img.shields.io/github/license/Xe-Persistent/Akagi-NG?labelColor=808080&color=663366" alt="License">
 <a href="https://discord.gg/Z2wjXUK8bN"><img src="https://img.shields.io/discord/1192792431364673577?label=Discord&labelColor=5865F2&logo=discord&logoColor=white" alt="Discord"></a>
@@ -45,10 +44,9 @@ It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), ai
 
 Core Philosophy of Akagi-NG:
 
-- **Modern Architecture Practices**: Fully embrace Python 3.12, React 19 and TS 6.0, constructing a stable, smooth and high-performance system foundation with cutting-edge engineering standards.
-- **Ultimate Inference Performance**: Deeply integrate with the high-speed `libriichi` Rust engine, providing full-speed inference capabilities for Mortal-series AI models based on Pytorch.
+- **Modern Architecture Practices**: Fully embrace Electron, React 19 and TS 6.0, constructing a stable, smooth and high-performance system foundation with cutting-edge engineering standards.
+- **Ultimate Inference Performance**: Deeply integrate with the high-speed Rust inference engine, providing full-speed, libriichi-free inference for the built-in Akagi models.
 - **Deeply Decoupled Design**: Highly decouple the decision core and interaction system, providing built-in browser mode and MITM proxy mode, flexibly adapting to various usage environments.
-- **Riichi Lookahead Feature**: Utilize `Riichi Lookahead` mechanism, completely presenting the model's hidden strategies during the Riichi phase, eliminating AI decision blind spots.
 
 ---
 
@@ -56,56 +54,25 @@ Core Philosophy of Akagi-NG:
 
 - 🖥️ **Compatible Platforms**
   - Windows 10 & 11
-  - macOS (Apple Silicon only)
+  - macOS 13 Ventura or later (Apple Silicon only)
   - Linux
 
 - 🎮 **Supported Games**
   - Mahjong Soul
-  - Tenhou
-  - Riichi City
-  - Amatsuki Mahjong
+
+- 🀄 **Supported Modes**
+  - Standard 4-player and 3-player riichi
+  - Battle of Asura (修罗之战)
 
 - ✨ **Core Features**
   - Real-time hand analysis and AI discard recommendations
-  - Riichi Lookahead - Intelligent recommendation for the best discard after reaching
+  - Riichi Lookahead - intelligently recommends the best discard after declaring riichi
   - Comprehensive Fuuro Support - Clear action prompts for Chi, Pon and all Kan variants
   - Modern Glassmorphism Style - Smooth and transparent visual experience
   - Multi-language support - Simplified Chinese / Traditional Chinese / Japanese / English
 
 - 🤖 **AI Models**
-  - Mortal (Mortal 4p / Mortal 3p)
-  - AkagiOT (AkagiOT 4p / AkagiOT 3p)
-
-> [!NOTE]
-> **Riichi Lookahead** is a core feature in Akagi-NG, designed to solve the question: "When AI suggests Riichi, which tile should I discard?"
->
-> <details>
-> <summary><b>Click to view detailed logic of Riichi Lookahead</b></summary>
->
-> **1. Why is it needed?**
->
-> When the AI engine (Mortal Bot) suggests a Riichi operation, the MJAI protocol simply returns an action `{"type": "reach"}`, and does not directly tell us which tile to discard after declaring Riichi (e.g., `6m`). However, for the user, after clicking the "Riichi" button, the next step must be to discard a tile. Without Lookahead, users can only guess or judge for themselves which one to discard, which might lead to incorrect execution of the AI-recommended Riichi strategy (e.g., discarding the wrong tile resulting in Furiten or dealing into another's hand).
->
-> **2. How it works**
->
-> The core idea of Lookahead is **"Simulating the Future"**. When the AI suggests Riichi, we create a temporary parallel universe, assume the player has declared Riichi, and then ask the AI engine what it would discard in that state. All simulations in this "parallel universe" do not affect the other real "main universe". Once the Lookahead is complete, we merge the obtained Riichi discard recommendation into the main engine's recommendations.
->
-> The process is divided into the following steps:
->
-> 1. **Trigger Lookahead**: In the current situation, after inference, the AI engine considers "Riichi" to be ranked among the top 3 recommended actions.
-> 2. **Start Simulation**: Akagi-NG creates a new, temporary `Lookahead Bot`.
-> 3. **History Replay**:
->    - To let the AI engine's internal state reach the current game state, we need to feed it all events (drawing, discarding, melding, etc.) that have occurred since the start of the game once more. When replaying each move of "one's own actions", the Bot would foolishly ask the AI engine: "What should I do now?". This leads to a situation where, when a game progresses to the 15th turn, the Lookahead would need to perform more than 15 AI inferences. For online models, these are 15 HTTP requests, which would instantly trigger a 429 rate-limit ban.
->    - Therefore, we introduced a "Shadow" Lookahead Bot. During the replay phase, we explicitly know it's just "restating history", so when the AI engine asks "What should I do now?", the Lookahead Bot **completely skips AI inference** by setting `can_act=False`. This makes the replay process almost instantaneous with zero network consumption.
-> 4. **Branch Convergence**:
->    - Once the state is fully restored to "now", we manually send a "Riichi" event to the AI engine.
->    - At this point, the AI engine's internal state becomes: "Player has just declared Riichi and is waiting for a discard".
-> 5. **Final Inference**:
->    - In this new "Declared Riichi" state, we initiate a **real** inference request to the AI engine: "What is the best discard tile now?"
->    - The engine analyzes the situation and returns the specific discard action (e.g., `discard 6m`).
-> 6. **Result Display**: The frontend UI receives this `6m` information. On the interface, it will both highlight the Riichi and other discard recommendations (like "Damaten"), and also display the suggested `6m` in a sub-item of the Riichi recommendation. If there is more than one Riichi discard candidate, all will be displayed with their respective confidence levels.
->
-> </details>
+  - Akagi (built-in 4p / 3p models)
 
 ## Demo
 
@@ -149,16 +116,13 @@ To ensure the program runs correctly, please check if the `Akagi-NG` directory s
 Akagi-NG/
   ├── Akagi-NG     # Main Application (Electron Desktop)
   ├── assets/      # Platform-specific UI assets
-  ├── bin/         # Backend core executable directory
+  ├── ca/          # MITM CA certificate (created when the proxy is enabled)
   ├── config/      # Configuration directory (settings.json)
-  ├── lib/         # libriichi binary extensions (.pyd/.so)
-  │     ├── libriichi
-  │     └── libriichi3p
   ├── locales/     # Localization resource files
   ├── logs/        # Runtime log directory
-  ├── models/      # AI model weight files (.pth)
-  │     ├── mortal
-  │     └── mortal3p
+  ├── models/      # AI model weight files (.safetensors)
+  │     ├── akagi4p
+  │     └── akagi3p
   ├── resources/   # Electron core resources (app.asar)
   ├── LICENSE      # Open source license
   ├── README       # Quick start plain text guide
@@ -171,6 +135,9 @@ After double-clicking `Akagi-NG`, the program will show the integrated Dashboard
 
 Click the monitor icon in the top right corner of the Dashboard to open the HUD interface. Click the × in the top right corner of the Dashboard to minimize the program to the system tray. To exit the program, right-click the tray icon and select "Quit Akagi-NG".
 
+> [!NOTE]
+> macOS builds are unsigned and not notarized. On first launch, right-click `Akagi-NG.app` and choose **Open**, or allow it in **System Settings → Privacy & Security**. If macOS still blocks it, run `xattr -dr com.apple.quarantine /Applications/Akagi-NG.app`.
+
 > [!TIP]
 > **HUD (Heads-Up Display)** is a core feature of Akagi-NG. It can directly overlay auxiliary information in a semi-transparent form over the game screen, without the need to manually pin windows to the top.
 
@@ -180,9 +147,7 @@ All configurations for Akagi-NG are located in the `config/settings.json` file. 
 
 ### 5. Built-in Browser Mode
 
-This is the **default working mode** for Akagi-NG, supporting Mahjong Soul and Tenhou only.
-
-In this mode, Akagi-NG uses the Electron core to manage a dedicated Chromium instance to run the game.
+This is the **default working mode** for Akagi-NG. In this mode, Akagi-NG uses the Electron core to manage a dedicated Chromium instance to run the game.
 
 #### Core Advantages
 
@@ -203,15 +168,15 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
 
 1. Enable "External Proxy" in the settings panel.
 
-2. Import and trust the `mitmproxy-ca-cert.cer` certificate from `~/.mitmproxy/`. For Windows, the steps are as follows:
-   1. Double-click the certificate file, click `Install Certificate`
-   2. If prompted, select `Local Machine`, then click Next
+2. Import and trust the CA certificate generated by Akagi-NG (it is created automatically the first time you enable the proxy). On Windows:
+   1. Double-click `akagi-ng-ca.cer`, then click `Install Certificate`
+   2. Select `Current User`, then click Next
    3. Select `Place all certificates in the following store`, then click `Browse...`
    4. Select `Trusted Root Certification Authorities`, click OK, then Next and Finish
    5. If prompted for permission, click `Yes`
 
-> [!IMPORTANT]
-> Be sure to install the certificate to "**Trusted Root Certification Authorities**".
+> [!NOTE]
+> The built-in window uses capture through Electron's debugger, so it needs no certificate. The certificate is only required for an external browser or game client routed to the proxy.
 
 3. Akagi-NG starts an HTTP proxy server at `127.0.0.1:6789` by default. You can click "Launch Game" in the Dashboard to start playing directly — in this case, Akagi-NG works similarly to Built-in Browser Mode. If you wish to use a system browser or game client, you will also need to configure proxy software and routing rules to direct game-related traffic to this proxy.
 
@@ -247,6 +212,7 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
      - Domain wildcard: `*.maj-soul.com  ->  Akagi-Mitm`
      - Domain wildcard: `*.majsoul.com  ->  Akagi-Mitm`
      - Domain wildcard: `*.mahjongsoul.com  ->  Akagi-Mitm`
+     - Domain: `mahjongsoul.game.yo-star.com  ->  Akagi-Mitm`
    - **Default rule**:
      - Select **[System Proxy]**, then click **Apply Changes** to save.
 
@@ -284,7 +250,7 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
        type: select
    ```
 
-3. **Add Proxy Rules (Rules)**:
+3. **Add Routing Rules (Rules)**:
    - Using Mahjong Soul as an example, route Mahjong Soul related domains to the node defined above. Please note the rule order, it is recommended to place them near the top.
 
    ```yaml
@@ -299,18 +265,6 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
      - DOMAIN-KEYWORD,mahjongsoul,🀄 Mahjong Soul
    ```
 
-   - For other platforms, the proxy rules are similar — replace the `PROCESS-NAME` rule with the corresponding platform's client process name, as shown below:
-
-   ```yaml
-   rules:
-     # Tenhou
-     - DOMAIN-KEYWORD,tenhou,🀄 Mahjong Soul
-     # Riichi City
-     - PROCESS-NAME,Mahjong-JP.exe,🀄 Mahjong Soul
-     # Amatsuki Mahjong
-     - PROCESS-NAME,mahjongp.exe,🀄 Mahjong Soul
-   ```
-
 4. **Apply Configuration**:
    - Save and refresh the Clash configuration. Now start the Mahjong Soul client, the traffic path is: `Mahjong Soul Client -> Clash (TUN) -> Matches Rules -> Forward to Akagi-NG (6789) -> Your Network/Upstream Proxy`
 
@@ -322,11 +276,11 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
 
 #### Q: How is the strength of the built-in models?
 
-**A:** Taking Mahjong Soul as an example, Mortal 4p is at the level of **Master 1**, and Mortal 3p is at the level of **Expert 3**.
+**A:** Taking Mahjong Soul as an example, the built-in Akagi 4p model is around Master 1, and the 3p model is comparable.
 
-#### Q: The built-in models are too weak, are there stronger ones?
+#### Q: Is the model strength different in Battle of Asura mode?
 
-**A:** Yes, please join the [Discord channel](https://discord.gg/Z2wjXUK8bN) to get them.
+**A:** The model is trained on standard riichi rules. Under Battle of Asura scoring — where winning earlier is worth more, a self-draw pays less after someone has won, and at most three players can win — its _choices_ do not fully represent the model's strength, while the layer below is exact: legal actions, your hand, event flow and settlement all follow the game.
 
 #### Q: Is there an autoplay feature?
 
@@ -338,8 +292,8 @@ Akagi-NG supports intercepting game data via Man-in-the-Middle (MITM) attacks, a
 
 ### Environment Requirements
 
-- **Python 3.12**: Used to run the backend inference engine.
-- **Node.js 24 & npm**: Used to compile the Electron desktop and React frontend.
+- **Node.js 24 & npm**: Used to compile the Electron desktop, React frontend and application tooling.
+- **Rust toolchain**: Used to build the native inference engine (`packages/rust_engine`).
 - **Git**: Used to clone the project repository.
 
 ### 1. Initialize Project
@@ -351,47 +305,23 @@ git clone https://github.com/Xe-Persistent/Akagi-NG.git
 cd Akagi-NG
 ```
 
-#### Backend Setup
-
-The integrated build script depends on the virtual environment under the `akagi_backend` directory:
-
-```bash
-cd akagi_backend
-python -m venv .venv
-
-# Windows
-.\.venv\Scripts\activate
-
-# Linux/macOS
-source .venv/bin/activate
-
-pip install -e ".[dev]"
-cd ..
-```
-
-Prepare libriichi binary extensions and rename them according to your system:
-
-```bash
-# Windows
-copy lib\libriichi-3.12-x86_64-pc-windows-msvc.pyd lib\libriichi.pyd
-copy lib\libriichi3p-3.12-x86_64-pc-windows-msvc.pyd lib\libriichi3p.pyd
-
-# macOS
-cp lib/libriichi-3.12-aarch64-apple-darwin.so lib/libriichi.so
-cp lib/libriichi3p-3.12-aarch64-apple-darwin.so lib/libriichi3p.so
-
-# Linux
-cp lib/libriichi-3.12-x86_64-unknown-linux-gnu.so lib/libriichi.so
-cp lib/libriichi3p-3.12-x86_64-unknown-linux-gnu.so lib/libriichi3p.so
-```
-
-#### Frontend & Electron Setup
+#### Install Dependencies
 
 In the project root, run install:
 
 ```bash
 npm install
 ```
+
+#### Build the Rust Inference Engine
+
+The main process loads the native engine through a Node-API binding. Build it once before running in development:
+
+```bash
+npm run build -w @akagi-ng/rust-engine
+```
+
+This command also regenerates the Node-API loader (`index.js`) and its type declarations (`index.d.ts`) inside `packages/rust_engine/native`.
 
 ### 2. Run in Development
 
@@ -401,15 +331,30 @@ Launch the mono-repo development environment:
 npm run dev
 ```
 
+If you just want to inspect the HUD without starting a game or loading a model:
+
+```bash
+npm run dev:mock
+```
+
+This plays a rotating set of canned recommendations (data in `packages/main/src/mock-data.ts`)
+and walks the status indicator through every state it can show, so you can inspect the
+recommendation shapes and indicator states one by one.
+
 ### 3. Build for Production
 
-Clean, sync versions, compile and package the entire application:
+Clean, sync versions, build the Rust inference engine, compile and package the entire application:
 
 ```bash
 npm run build
 ```
 
 The build artifacts will be generated in the `dist/release` directory.
+
+### 4. Updating the Majsoul Protocol
+
+The `assets/liqi.json` descriptor is rebuilt from the Mahjong Soul Unity client. See
+[docs/PROTOCOL.md](docs/PROTOCOL.md) for the extraction commands and the `Auto Liqi` workflow.
 
 ---
 
@@ -419,5 +364,8 @@ The core source code of this software follows the [GNU Affero General Public Lic
 
 ## Acknowledgements & Third-Party Resources
 
-The `lib` (containing `libriichi` binary extensions) and `models` (AI weight files) bundled in the releases of this project are sourced directly from the project [shinkuan/Akagi](https://github.com/shinkuan/Akagi).
-These compiled binaries and model weights are the property of their original authors and are distributed under AGPLv3 with the Commons Clause. We extend our greatest gratitude to the original authors for their incredible work.
+The inference engine in `packages/rust_engine` reuses the model decoder, observation encoder, action codec and MJAI compatibility layer of [shinkuan/Akagi](https://github.com/shinkuan/Akagi)'s `native_bot`, and is covered by the same parity tests, so the bundled weights produce identical decisions here and upstream.
+
+The `models` AI weight files bundled with releases come from the default `native_bot` weights in [shinkuan/Akagi](https://github.com/shinkuan/Akagi) (`native_bot/weights/akagi4p.safetensors` and `akagi3p.safetensors`).
+
+These resources are distributed under the Apache-2.0 license. Copyright belongs to the original authors. We extend our greatest gratitude for their work.

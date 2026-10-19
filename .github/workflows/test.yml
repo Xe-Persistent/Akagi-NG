@@ -2,134 +2,72 @@ name: Test
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, dev]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, dev]
   workflow_dispatch:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  PYTHONUTF8: 1
-  PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
-
 jobs:
-  lint-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.12
-          cache: pip
-
-      - name: Install ruff
-        run: pip install ruff
-
-      - name: Run Ruff linting
-        working-directory: akagi_backend
-        run: ruff check akagi_ng/
-
-      - name: Run Ruff format check
-        working-directory: akagi_backend
-        run: ruff format --check akagi_ng/
-
-  test-backend:
+  test:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          python-version: 3.12
-          cache: pip
-          cache-dependency-path: akagi_backend/pyproject.toml
-
-      - name: Cache Python virtual environment
-        uses: actions/cache@v5
-        id: venv-cache
-        with:
-          path: akagi_backend/.venv
-          key: venv-${{ runner.os }}-py3.12-${{ hashFiles('akagi_backend/pyproject.toml') }}
-          restore-keys: |
-            venv-${{ runner.os }}-py3.12-
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        if: steps.venv-cache.outputs.cache-hit != 'true'
-        working-directory: akagi_backend
-        shell: bash
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate || source .venv/Scripts/activate
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
-      - name: Prepare libriichi
-        shell: bash
-        run: |
-          # Detect platform and architecture
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            SYS_STR="pc-windows-msvc"
-            EXT="pyd"
-            ARCH_STR="x86_64"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            SYS_STR="apple-darwin"
-            EXT="so"
-            ARCH_STR="aarch64"
-          else
-            SYS_STR="unknown-linux-gnu"
-            EXT="so"
-            ARCH_STR="x86_64"
-          fi
-
-          echo "Detected OS: $RUNNER_OS, Arch: $ARCH_STR"
-
-          cp "lib/libriichi-3.12-${ARCH_STR}-${SYS_STR}.${EXT}" "lib/libriichi.${EXT}"
-          cp "lib/libriichi3p-3.12-${ARCH_STR}-${SYS_STR}.${EXT}" "lib/libriichi3p.${EXT}"
+        run: npm ci
 
       - name: Run unit tests with coverage
-        working-directory: akagi_backend
-        shell: bash
-        run: |
-          source .venv/bin/activate || source .venv/Scripts/activate
-          python -m pytest tests/ -k "not e2e" -ra -v --tb=short \
-            --cov=akagi_ng \
-            --cov-report=xml \
-            --cov-report=term \
-            --cov-report=html
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: npm run test:coverage
+
+      - name: Run unit tests
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+        run: npm test
+
+      - name: Run integration tests
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: npm run test:integration
 
       - name: Upload coverage to Codecov
+        if: ${{ startsWith(matrix.os, 'ubuntu') && success() }}
         uses: codecov/codecov-action@v7
-        if: success()
         with:
-          files: akagi_backend/coverage.xml
-          flags: backend
+          files: coverage/lcov.info
+          flags: typescript
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
       - name: Upload coverage HTML report
+        if: ${{ startsWith(matrix.os, 'ubuntu') && failure() }}
         uses: actions/upload-artifact@v7
-        if: failure()
         with:
-          name: coverage-report-${{ matrix.os }}-py3.12
-          path: akagi_backend/htmlcov/
+          name: coverage-report
+          path: coverage/
           retention-days: 7
 
-  lint-js:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -154,3 +92,53 @@ jobs:
 
       - name: Run TypeScript check
         run: npm run typecheck
+
+  rust:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rust_engine
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Check the inference engine
+        working-directory: packages/rust_engine
+        run: cargo check --locked
+
+      - name: Lint the inference engine
+        working-directory: packages/rust_engine
+        run: cargo clippy --locked --all-targets
+
+      # `dyn-symbols` lets napi resolve its symbols from the Node host at run
+      # time instead of linking against them, which is how the Windows build
+      # already works. Without it the parity test binary has no host to link
+      # against and dies with "undefined symbol: napi_*".
+      - name: Test the inference engine
+        working-directory: packages/rust_engine
+        run: |
+          mkdir -p ../../coverage
+          cargo llvm-cov --locked --all-targets --features dyn-symbols --lcov --output-path ../../coverage/rust-lcov.info
+
+      - name: Normalize Rust coverage paths
+        run: sed -i 's#^SF:.*/packages/rust_engine/#SF:packages/rust_engine/#' coverage/rust-lcov.info
+
+      - name: Upload Rust coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: coverage/rust-lcov.info
+          flags: rust
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

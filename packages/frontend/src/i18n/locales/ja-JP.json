@@ -1,0 +1,95 @@
+{
+  "settings": {
+    "update_protocol": "プロトコルを更新",
+    "restore": "初期設定に戻す",
+    "restore_confirm_title": "初期設定に戻す",
+    "restore_confirm_desc": "すべての設定を初期値に戻しますか？この操作は取り消せません。",
+    "general": {
+      "title": "一般設定",
+      "locale": "表示言語",
+      "theme": "テーマ",
+      "theme_system": "システム設定",
+      "theme_light": "ライトテーマ",
+      "theme_dark": "ダークテーマ",
+      "log_level": "ログ収集レベル"
+    },
+    "connection": {
+      "title": "ゲーム接続",
+      "mode": "接続モード",
+      "mode_browser": "内蔵ブラウザ",
+      "majsoul_server": "雀魂サーバー",
+      "majsoul_servers": {
+        "cn": "中国語サーバー",
+        "jp": "日本サーバー",
+        "en": "英語サーバー"
+      },
+      "mode_mitm": "外部プロキシ",
+      "mitm": {
+        "port": "リッスンポート",
+        "upstream": "上流プロキシ (任意)"
+      }
+    },
+    "model_config": {
+      "title": "AI モデル設定",
+      "model_4p": "四麻モデル",
+      "model_3p": "三麻モデル",
+      "no_models_found": "ローカルモデルが見つかりません",
+      "select_model": "モデルを選択"
+    },
+    "status_saved": "保存済み",
+    "status_saving": "保存中…",
+    "status_error": "保存に失敗しました。",
+    "restored_success": "設定をデフォルトに戻しました。",
+    "load_error_desc": "設定を読み込めませんでした。"
+  },
+  "common": {
+    "confirm": "OK",
+    "cancel": "キャンセル",
+    "error": "エラー",
+    "connection_failed": "接続失敗",
+    "close": "閉じる",
+    "exit_app": "アプリを終了"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_game": "ゲームを起動",
+    "startup_failed": "アプリケーションの起動に失敗しました",
+    "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
+    "settings_title": "Akagi NG 設定",
+    "settings_desc": "アプリケーション設定パネル",
+    "standby": "待機中",
+    "standby_desc": "対局データを待機中、打牌推奨の準備が整いました",
+    "hud_active": "HUDモードが有効です",
+    "hud_desc": "AIの打牌推奨が専用のHUDウィンドウに表示されます",
+    "shutdown_confirm_title": "Akagi NGを終了しますか？",
+    "shutdown_confirm_desc": "Akagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
+    "stopped_title": "アプリケーションは終了しました",
+    "stopped_desc": "Akagi NGをご利用いただきありがとうございました。"
+  },
+  "actions": {
+    "reach": "リーチ",
+    "chi": "チー",
+    "pon": "ポン",
+    "kan": "カン",
+    "ron": "ロン",
+    "tsumo": "ツモ",
+    "ryukyoku": "流局",
+    "nukidora": "北抜き",
+    "none": "スキップ",
+    "discard": "切"
+  },
+  "status": {
+    "client_connected": "ゲームに接続しました。",
+    "game_ready": "対局に接続しました。AI準備完了。",
+    "model_loaded": "ローカルモデルを読み込みました。",
+    "syncing": "対局データを同期中…",
+    "proto_updated": "雀魂プロトコルファイルの更新に成功しました。",
+    "proto_update_failed": "雀魂プロトコルファイルの更新に失敗しました。",
+    "parse_failed": "対局データの解析に失敗しました。",
+    "disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください。",
+    "left_game": "対局から退出しました。",
+    "model_failed": "AIモデルの読み込みに失敗しました。",
+    "runtime_error": "AIモデルの実行異常",
+    "models_missing": "ローカルモデルファイル (models) がありません。アプリケーションは動作できません。"
+  }
+}

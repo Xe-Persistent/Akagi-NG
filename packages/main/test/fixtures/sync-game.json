@@ -1,0 +1,637 @@
+{
+  "is_end": false,
+  "step": 125,
+  "game_restore": {
+    "actions": [
+      {
+        "step": 0,
+        "name": "ActionMJStart",
+        "data": ""
+      },
+      {
+        "step": 1,
+        "name": "ActionNewRound",
+        "data": "CAAQABgAIgIzcyICOG0iAjVzIgIxeiICM3AiAjRwIgI1cCICMnoiAjJwIgI3cCICMXAiAjFzIgI4cDIMqMMBqMMBqMMBqMMBQABYAGhFcgIyc3oCCAB6AggBegIIAnoCCAOaAUA2ZDJhMmM0NzkxMTMwMGVlMTlkYjIzNjMyZWE0ZTIyYTk5NDIyNWYyMWY0ZWRlNTk2Y2Y1YzdhNzNjNTg4MmVkqgFAZGQyYzJjMjk2YzgyYjBlZTg4OGQzODM5MWI5Y2E2OGQ5NWMxM2U3N2U1Y2RhY2EzOGU5YWZjNTBmNDIyNDQ5Nw=="
+      },
+      {
+        "step": 2,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjV6GAAoADAASAA="
+      },
+      {
+        "step": 3,
+        "name": "ActionDealTile",
+        "data": "CAEYRDgA"
+      },
+      {
+        "step": 4,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjJtGAAoATAASAA="
+      },
+      {
+        "step": 5,
+        "name": "ActionDealTile",
+        "data": "CAIYQzgA"
+      },
+      {
+        "step": 6,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjhzGAAoATAASAA="
+      },
+      {
+        "step": 7,
+        "name": "ActionDealTile",
+        "data": "CAMSAjV6GEIiDQgDEgIIASCgnAEoiCc4AA=="
+      },
+      {
+        "step": 8,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjJ6GAAoADAASAA="
+      },
+      {
+        "step": 9,
+        "name": "ActionDealTile",
+        "data": "CAAYQTgA"
+      },
+      {
+        "step": 10,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjZzGAAoATAASAA="
+      },
+      {
+        "step": 11,
+        "name": "ActionDealTile",
+        "data": "CAEYQDgA"
+      },
+      {
+        "step": 12,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjNzGAAoATAASAA="
+      },
+      {
+        "step": 13,
+        "name": "ActionDealTile",
+        "data": "CAIYPzgA"
+      },
+      {
+        "step": 14,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjdtGAAoATAASAA="
+      },
+      {
+        "step": 15,
+        "name": "ActionDealTile",
+        "data": "CAMSAjZzGD4iDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 16,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjV6GAAoADAASAA="
+      },
+      {
+        "step": 17,
+        "name": "ActionDealTile",
+        "data": "CAAYPTgA"
+      },
+      {
+        "step": 18,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjJ6GAAoADAASAA="
+      },
+      {
+        "step": 19,
+        "name": "ActionDealTile",
+        "data": "CAEYPDgA"
+      },
+      {
+        "step": 20,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjFzGAAoATAASAA="
+      },
+      {
+        "step": 21,
+        "name": "ActionDealTile",
+        "data": "CAIYOzgA"
+      },
+      {
+        "step": 22,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjR6GAAoATAASAA="
+      },
+      {
+        "step": 23,
+        "name": "ActionDealTile",
+        "data": "CAMSAjhzGDoiDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 24,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjF6GAAoADAASAA="
+      },
+      {
+        "step": 25,
+        "name": "ActionChiPengGang",
+        "data": "CAEQARoCMXoaAjF6GgIxeiIDAQEDOABKAgAA"
+      },
+      {
+        "step": 26,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjZ6GAAoADAASAA="
+      },
+      {
+        "step": 27,
+        "name": "ActionDealTile",
+        "data": "CAIYOTgA"
+      },
+      {
+        "step": 28,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjF6GAAoADAASAA="
+      },
+      {
+        "step": 29,
+        "name": "ActionDealTile",
+        "data": "CAMSAjRtGDgiDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 30,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjhtGAAoADAASAA="
+      },
+      {
+        "step": 31,
+        "name": "ActionDealTile",
+        "data": "CAAYNzgA"
+      },
+      {
+        "step": 32,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjR6GAAoADAASAA="
+      },
+      {
+        "step": 33,
+        "name": "ActionDealTile",
+        "data": "CAEYNjgA"
+      },
+      {
+        "step": 34,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjRzGAAoATAASAA="
+      },
+      {
+        "step": 35,
+        "name": "ActionDealTile",
+        "data": "CAIYNTgA"
+      },
+      {
+        "step": 36,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjZ6GAAoADAASAA="
+      },
+      {
+        "step": 37,
+        "name": "ActionDealTile",
+        "data": "CAMSAjZ6GDQiDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 38,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjZ6GAAoATAASAA="
+      },
+      {
+        "step": 39,
+        "name": "ActionDealTile",
+        "data": "CAAYMzgA"
+      },
+      {
+        "step": 40,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjJ6GAAoATAASAA="
+      },
+      {
+        "step": 41,
+        "name": "ActionDealTile",
+        "data": "CAEYMjgA"
+      },
+      {
+        "step": 42,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjlzGAAoATAASAA="
+      },
+      {
+        "step": 43,
+        "name": "ActionDealTile",
+        "data": "CAIYMTgA"
+      },
+      {
+        "step": 44,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjN6GAAoADAASAA="
+      },
+      {
+        "step": 45,
+        "name": "ActionDealTile",
+        "data": "CAMSAjVtGDAiDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 46,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjhzGAAoADAASAA="
+      },
+      {
+        "step": 47,
+        "name": "ActionDealTile",
+        "data": "CAAYLzgA"
+      },
+      {
+        "step": 48,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjFwGAAoADAASAA="
+      },
+      {
+        "step": 49,
+        "name": "ActionDealTile",
+        "data": "CAEYLjgA"
+      },
+      {
+        "step": 50,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjNtGAAoATAASAA="
+      },
+      {
+        "step": 51,
+        "name": "ActionDealTile",
+        "data": "CAIYLTgA"
+      },
+      {
+        "step": 52,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjJzGAAiFAgDEgkIAhIFMXN8M3MguJQBKIgnKAEwAEgA"
+      },
+      {
+        "step": 53,
+        "name": "ActionDealTile",
+        "data": "CAMSAjBtGCwiDQgDEgIIASC4lAEoiCc4AA=="
+      },
+      {
+        "step": 54,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjFzGAAoADAASAA="
+      },
+      {
+        "step": 55,
+        "name": "ActionDealTile",
+        "data": "CAAYKzgA"
+      },
+      {
+        "step": 56,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjFtGAAoADAASAA="
+      },
+      {
+        "step": 57,
+        "name": "ActionDealTile",
+        "data": "CAEYKjgA"
+      },
+      {
+        "step": 58,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjN6GAAoADAASAA="
+      },
+      {
+        "step": 59,
+        "name": "ActionDealTile",
+        "data": "CAIYKTgA"
+      },
+      {
+        "step": 60,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjhtGAAoADAASAA="
+      },
+      {
+        "step": 61,
+        "name": "ActionDealTile",
+        "data": "CAMSAjFwGCgiDAgDEgIIASCQTiiIJzgA"
+      },
+      {
+        "step": 62,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjFwGAAoATAASAA="
+      },
+      {
+        "step": 63,
+        "name": "ActionDealTile",
+        "data": "CAAYJzgA"
+      },
+      {
+        "step": 64,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjhtGAAoADAASAA="
+      },
+      {
+        "step": 65,
+        "name": "ActionDealTile",
+        "data": "CAEYJjgA"
+      },
+      {
+        "step": 66,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjhwGAAoATAASAA="
+      },
+      {
+        "step": 67,
+        "name": "ActionDealTile",
+        "data": "CAIYJTgA"
+      },
+      {
+        "step": 68,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjlwGAAiEwgDEgkIAhIFN3B8OHAgiCcoiCcoADAASAA="
+      },
+      {
+        "step": 69,
+        "name": "ActionDealTile",
+        "data": "CAMSAjlzGCQiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 70,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjlzGAAoATAASAA="
+      },
+      {
+        "step": 71,
+        "name": "ActionDealTile",
+        "data": "CAAYIzgA"
+      },
+      {
+        "step": 72,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjN6GAAoATAASAA="
+      },
+      {
+        "step": 73,
+        "name": "ActionDealTile",
+        "data": "CAEYIjgA"
+      },
+      {
+        "step": 74,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjJtGAAoATAASAA="
+      },
+      {
+        "step": 75,
+        "name": "ActionDealTile",
+        "data": "CAIYITgA"
+      },
+      {
+        "step": 76,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjFtGAAoADAASAA="
+      },
+      {
+        "step": 77,
+        "name": "ActionDealTile",
+        "data": "CAMSAjVwGCAiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 78,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjNzGAAoADAASAA="
+      },
+      {
+        "step": 79,
+        "name": "ActionDealTile",
+        "data": "CAAYHzgA"
+      },
+      {
+        "step": 80,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjNwGAAoADAASAA="
+      },
+      {
+        "step": 81,
+        "name": "ActionDealTile",
+        "data": "CAEYHjgA"
+      },
+      {
+        "step": 82,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjd6GAAoADAASAA="
+      },
+      {
+        "step": 83,
+        "name": "ActionDealTile",
+        "data": "CAIYHTgA"
+      },
+      {
+        "step": 84,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjVtGAAiEwgDEgkIAxIFMG18NW0giCcoiCcoADAASAA="
+      },
+      {
+        "step": 85,
+        "name": "ActionDealTile",
+        "data": "CAMSAjZtGBwiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 86,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjVtGAAoADAASAA="
+      },
+      {
+        "step": 87,
+        "name": "ActionDealTile",
+        "data": "CAAYGzgA"
+      },
+      {
+        "step": 88,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjdzGAAoATAASAA="
+      },
+      {
+        "step": 89,
+        "name": "ActionDealTile",
+        "data": "CAEYGjgA"
+      },
+      {
+        "step": 90,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjR6GAAoATAASAA="
+      },
+      {
+        "step": 91,
+        "name": "ActionDealTile",
+        "data": "CAIYGTgA"
+      },
+      {
+        "step": 92,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjd6GAAoATAASAA="
+      },
+      {
+        "step": 93,
+        "name": "ActionDealTile",
+        "data": "CAMSAjltGBgiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 94,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjltGAAoATAASAA="
+      },
+      {
+        "step": 95,
+        "name": "ActionDealTile",
+        "data": "CAAYFzgA"
+      },
+      {
+        "step": 96,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjBwGAAiEwgDEgkIAxIFNXB8NXAgiCcoiCcoADAASAA="
+      },
+      {
+        "step": 97,
+        "name": "ActionDealTile",
+        "data": "CAEYFjgA"
+      },
+      {
+        "step": 98,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjJzGAAoADAASAA="
+      },
+      {
+        "step": 99,
+        "name": "ActionDealTile",
+        "data": "CAIYFTgA"
+      },
+      {
+        "step": 100,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjR6GAAoATAASAA="
+      },
+      {
+        "step": 101,
+        "name": "ActionDealTile",
+        "data": "CAMSAjhwGBQiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 102,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjhwGAAoADAASAA="
+      },
+      {
+        "step": 103,
+        "name": "ActionDealTile",
+        "data": "CAAYEzgA"
+      },
+      {
+        "step": 104,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjRtGAEoADAASAA="
+      },
+      {
+        "step": 105,
+        "name": "ActionDealTile",
+        "data": "CAEYEioICAAQwLsBGAE4AA=="
+      },
+      {
+        "step": 106,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjJ6GAAoADAASAA="
+      },
+      {
+        "step": 107,
+        "name": "ActionDealTile",
+        "data": "CAIYETgA"
+      },
+      {
+        "step": 108,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjhzGAAoADAASAA="
+      },
+      {
+        "step": 109,
+        "name": "ActionDealTile",
+        "data": "CAMSAjNzGBAiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 110,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjNzGAAoATAASAA="
+      },
+      {
+        "step": 111,
+        "name": "ActionDealTile",
+        "data": "CAAYDzgA"
+      },
+      {
+        "step": 112,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjV6GAAoATAASAA="
+      },
+      {
+        "step": 113,
+        "name": "ActionDealTile",
+        "data": "CAEYDjgA"
+      },
+      {
+        "step": 114,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjFwGAAoADAASAA="
+      },
+      {
+        "step": 115,
+        "name": "ActionDealTile",
+        "data": "CAIYDTgA"
+      },
+      {
+        "step": 116,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjdtGAAiEwgDEgkIAhIFMG18Nm0giCcoiCcoATAASAA="
+      },
+      {
+        "step": 117,
+        "name": "ActionDealTile",
+        "data": "CAMSAjRwGAwiDAgDEgIIASCIJyiIJzgA"
+      },
+      {
+        "step": 118,
+        "name": "ActionDiscardTile",
+        "data": "CAMSAjFwGAAoADAASAA="
+      },
+      {
+        "step": 119,
+        "name": "ActionDealTile",
+        "data": "CAAYCzgA"
+      },
+      {
+        "step": 120,
+        "name": "ActionDiscardTile",
+        "data": "CAASAjN6GAAoATAASAA="
+      },
+      {
+        "step": 121,
+        "name": "ActionDealTile",
+        "data": "CAEYCjgA"
+      },
+      {
+        "step": 122,
+        "name": "ActionDiscardTile",
+        "data": "CAESAjlwGAAoATAASAA="
+      },
+      {
+        "step": 123,
+        "name": "ActionDealTile",
+        "data": "CAIYCTgA"
+      },
+      {
+        "step": 124,
+        "name": "ActionDiscardTile",
+        "data": "CAISAjRwGAAiJQgDEhAIAhIFMnB8M3ASBTNwfDVwEgkIAxIFNHB8NHAgiCcoiCcoADAASAA="
+      }
+    ],
+    "passed_waiting_time": 8,
+    "game_state": 1,
+    "start_time": 0,
+    "last_pause_time_ms": 0
+  }
+}

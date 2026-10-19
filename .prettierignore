@@ -2,14 +2,13 @@ assets/
 build/
 coverage/
 dist/
-htmlcov/
 logs/
 node_modules/
 public/
 tmp/
 .env
 .env.*
-.venv/
-__pycache__/
-*.pth
+target/
+packages/rust_engine/native/index.js
+packages/rust_engine/native/index.d.ts
 package-lock.json

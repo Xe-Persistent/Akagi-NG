@@ -1,0 +1,42 @@
+# The inference code under src/ (tiles, model, obs, action_codec, adapt, mjai_compat,
+# replay, chankan) is ported from Akagi's `native_bot` crate so that the bundled weights
+# are evaluated exactly like upstream. `native_bot` is licensed under Apache-2.0.
+#
+# Keep candle at 0.9 until upstream moves: candle 0.11 compiles unchanged and still passes
+# the PyTorch parity test, but it changes the logits and flips ~2% of the decisions on a
+# real-game replay, which would break the decision-level parity with upstream.
+# riichienv-core can move within 0.4.x: 0.4.10 was verified decision-identical to 0.4.8.
+
+[package]
+edition = "2021"
+name = "rust_engine"
+version = "1.1.0"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# napi's own default. This crate links the cdylib against the host's N-API
+# symbols instead, which a test binary cannot do: it has no host to link
+# against, so `cargo test` fails with "undefined symbol: napi_*". Turning the
+# feature on resolves them at run time instead, exactly as the Windows build
+# already does.
+dyn-symbols = ["napi/dyn-symbols"]
+
+[dependencies]
+napi = { version = "3.14", default-features = false, features = ["napi4"] }
+napi-derive = "3.6"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The following dependencies implement the AI logic (from Akagi 3.3)
+riichienv-core = "0.4.8"
+candle-core = "0.9"
+candle-nn = "0.9"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true

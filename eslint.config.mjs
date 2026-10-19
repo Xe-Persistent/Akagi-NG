@@ -8,10 +8,20 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/build/**', '**/venv/**', '**/.venv/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/build/**',
+      '**/target/**',
+      '**/*.tsbuildinfo',
+      'coverage/**',
+      'tmp/**',
+      'packages/rust_engine/native/index.js',
+      'packages/rust_engine/native/index.d.ts',
+    ],
   },
 
-  // ─── 基础规则（所有 TS/JS 文件） ───
+  // ─── Base rules, every TS/JS file ───
   eslintJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -19,11 +29,10 @@ export default defineConfig([
       'simple-import-sort': simpleImportSort,
     },
     rules: {
-      // import 排序
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
 
-      // 未使用变量或参数，忽略 _ 前缀
+      // `_`-prefixed names may stay unused.
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -34,15 +43,14 @@ export default defineConfig([
         },
       ],
 
-      // TypeScript 质量规则
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'warn',
     },
   },
 
-  // ─── Electron & Scripts（Node 环境） ───
+  // ─── Electron and scripts (Node) ───
   {
-    files: ['electron/**/*.{ts,tsx,mjs,js}', 'scripts/**/*.{ts,mjs,js}'],
+    files: ['packages/main/**/*.{ts,js}', 'scripts/**/*.{ts,mjs,js}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: { ...globals.node },
@@ -53,9 +61,9 @@ export default defineConfig([
     },
   },
 
-  // ─── Frontend（React + Browser 环境） ───
+  // ─── Frontend (React, browser) ───
   {
-    files: ['akagi_frontend/**/*.{ts,tsx}'],
+    files: ['packages/frontend/**/*.{ts,tsx}'],
     ...eslintReact.configs['recommended-typescript'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -68,6 +76,6 @@ export default defineConfig([
     },
   },
 
-  // ─── Prettier 冲突规则禁用（必须放最后） ───
+  // ─── Turns off what Prettier owns; must stay last ───
   prettier,
 ]);

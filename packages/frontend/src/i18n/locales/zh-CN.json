@@ -1,0 +1,95 @@
+{
+  "settings": {
+    "update_protocol": "更新协议文件",
+    "restore": "恢复默认设置",
+    "restore_confirm_title": "恢复默认设置",
+    "restore_confirm_desc": "确定要将所有设置恢复为默认值吗？此操作无法撤销。",
+    "general": {
+      "title": "常规",
+      "locale": "语言",
+      "theme": "外观主题",
+      "theme_system": "跟随系统",
+      "theme_light": "浅色",
+      "theme_dark": "深色",
+      "log_level": "日志级别"
+    },
+    "connection": {
+      "title": "游戏连接",
+      "mode": "连接模式",
+      "mode_browser": "内置窗口",
+      "majsoul_server": "雀魂服务器",
+      "majsoul_servers": {
+        "cn": "国际中文服",
+        "jp": "日服",
+        "en": "英文服"
+      },
+      "mode_mitm": "外部代理",
+      "mitm": {
+        "port": "监听端口",
+        "upstream": "上游代理 (可选)"
+      }
+    },
+    "model_config": {
+      "title": "AI 模型",
+      "model_4p": "四麻模型",
+      "model_3p": "三麻模型",
+      "no_models_found": "未找到本地模型",
+      "select_model": "选择模型"
+    },
+    "status_saved": "保存成功",
+    "status_saving": "正在保存…",
+    "status_error": "保存失败",
+    "restored_success": "设置已恢复为默认值。",
+    "load_error_desc": "无法加载设置。"
+  },
+  "common": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "error": "发生错误",
+    "connection_failed": "连接失败",
+    "close": "关闭",
+    "exit_app": "退出应用"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_game": "启动游戏",
+    "startup_failed": "应用启动失败",
+    "launch_error": "无法获取游戏 URL，请检查设置",
+    "settings_title": "Akagi NG 设置",
+    "settings_desc": "应用配置面板",
+    "standby": "待机中",
+    "standby_desc": "正在等待对局数据，准备提供打牌建议",
+    "hud_active": "HUD 模式已启用",
+    "hud_desc": "AI 打牌建议将在独立的 HUD 窗口中实时显示",
+    "shutdown_confirm_title": "确认退出",
+    "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
+    "stopped_title": "应用已停止",
+    "stopped_desc": "感谢您使用 Akagi NG"
+  },
+  "actions": {
+    "reach": "立直",
+    "chi": "吃",
+    "pon": "碰",
+    "kan": "杠",
+    "ron": "和",
+    "tsumo": "自摸",
+    "ryukyoku": "流局",
+    "nukidora": "拔北",
+    "none": "跳过",
+    "discard": "打"
+  },
+  "status": {
+    "client_connected": "游戏已连接",
+    "game_ready": "对局已连接，AI 已就绪",
+    "model_loaded": "已加载本地模型",
+    "syncing": "正在同步对局数据…",
+    "proto_updated": "雀魂协议文件更新成功",
+    "proto_update_failed": "雀魂协议文件更新失败",
+    "parse_failed": "游戏数据解析异常",
+    "disconnected": "游戏连接中断，请检查网络或刷新页面",
+    "left_game": "已离开当前对局",
+    "model_failed": "AI 模型加载失败",
+    "runtime_error": "AI 模型运行异常",
+    "models_missing": "本地模型文件 (models) 缺失，程序将无法运行。"
+  }
+}

@@ -18,20 +18,21 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHONUTF8: 1
   AKAGI_MOCK_MODE: 0
-  PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+  # Electron 44 supports macOS Ventura and later; keep the native engine aligned.
+  MACOSX_DEPLOYMENT_TARGET: '13.0'
 
 jobs:
   test:
     if: ${{ !inputs.skip_tests }}
     uses: ./.github/workflows/test.yml
+    secrets: inherit
 
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     needs: test
     if: ${{ always() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
@@ -40,13 +41,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.12
-          cache: pip
-          cache-dependency-path: akagi_backend/pyproject.toml
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -54,32 +48,19 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache Python virtual environment
-        uses: actions/cache@v5
-        id: venv-cache
-        with:
-          path: akagi_backend/.venv
-          key: venv-build-${{ runner.os }}-py3.12-${{ hashFiles('akagi_backend/pyproject.toml') }}
-          restore-keys: |
-            venv-build-${{ runner.os }}-py3.12-
-
-      - name: Install Python dependencies
-        if: steps.venv-cache.outputs.cache-hit != 'true'
-        working-directory: akagi_backend
-        shell: bash
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate || source .venv/Scripts/activate
-          python -m pip install --upgrade pip
-          pip install -e .
-
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Build Electron App
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rust_engine
+
+      - name: Build application
         run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
@@ -92,7 +73,7 @@ jobs:
             dist/release/*.tar.gz
             dist/release/*.AppImage
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload build logs on failure
         uses: actions/upload-artifact@v7
@@ -100,7 +81,7 @@ jobs:
         with:
           name: build-logs-${{ matrix.os }}-${{ github.run_number }}
           path: |
-            electron/*.log
+            logs/**/*.log
             dist/**/*.log
           retention-days: 7
           if-no-files-found: ignore

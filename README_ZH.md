@@ -22,8 +22,7 @@
 <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-9135FF?logo=vite&logoColor=white" alt="Vite">
 <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
-<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
-<img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
+<img src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white" alt="Rust">
 <br>
 <img src="https://img.shields.io/github/license/Xe-Persistent/Akagi-NG?labelColor=808080&color=663366" alt="License">
 <a href="https://discord.gg/Z2wjXUK8bN"><img src="https://img.shields.io/discord/1192792431364673577?label=Discord&labelColor=5865F2&logo=discord&logoColor=white" alt="Discord"></a>
@@ -45,10 +44,9 @@
 
 Akagi-NG 的核心理念：
 
-- **前沿架构实践**：全面拥抱 Python 3.12、React 19 与 TS 6.0，以前沿工程标准构筑稳固、丝滑且高性能的系统基石。
-- **极致性能推理**：深度集成 `libriichi` 高速 Rust 引擎，基于 Pytorch 提供 Mortal 系列 AI 模型的全速推理能力。
+- **前沿架构实践**：全面拥抱 Electron、React 19 与 TS 6.0，以前沿工程标准构筑稳固、丝滑且高性能的系统基石。
+- **极致性能推理**：深度集成 Rust 高速推理引擎，无需 `libriichi` 即可为内置 Akagi 模型提供全速推理能力。
 - **深度解耦设计**：决策核心与交互系统高度解耦，提供内置浏览器模式与 MITM 代理模式，灵活适配各类使用环境。
-- **自研立直前瞻**：自研 `Riichi Lookahead` 前瞻技术，完整呈现模型在立直环节的隐含策略，补足 AI 决策盲区。
 
 ---
 
@@ -56,14 +54,15 @@ Akagi-NG 的核心理念：
 
 - 🖥️ **兼容平台**
   - Windows 10 & 11
-  - macOS (Apple Silicon only)
+  - macOS 13 Ventura 及以上（仅 Apple Silicon）
   - Linux
 
 - 🎮 **支持游戏**
   - 雀魂麻将
-  - 天凤
-  - 麻雀一番街
-  - 天月麻雀
+
+- 🀄 **支持模式**
+  - 标准四人麻将 / 三人麻将
+  - 修罗之战
 
 - ✨ **核心功能**
   - 实时手牌分析与 AI 何切推荐
@@ -73,39 +72,7 @@ Akagi-NG 的核心理念：
   - 多语言支持 - 简体中文 / 繁體中文 / 日本語 / English
 
 - 🤖 **AI 模型**
-  - Mortal (Mortal 4p / Mortal 3p)
-  - AkagiOT (AkagiOT 4p / AkagiOT 3p)
-
-> [!NOTE]
-> **Riichi Lookahead（立直前瞻）** 是 Akagi-NG 的一项核心功能，旨在解决“当 AI 建议立直时，我应该切哪张牌？”的问题。
->
-> <details>
-> <summary><b>点击查看立直前瞻的详细逻辑</b></summary>
->
-> **1. 为什么需要它？**
->
-> 当 AI 引擎 (Mortal Bot) 建议执行立直操作时，MJAI 协议返回的动作仅仅是 `{"type": "reach"}`，并不会直接告诉我们立直后应该切哪张牌（例如 `6m`）。然而，对于用户来说，点击“立直”按钮后，下一步必须切出一张牌。如果没有 Lookahead，用户只能瞎猜或者自己判断切哪张，这可能会导致 AI 建议的立直策略无法正确执行（例如切了错误的牌导致振听或放铳）。
->
-> **2. 工作原理**
->
-> Lookahead 的核心思想是**“模拟未来”**。当 AI 建议立直时，我们创建一个临时的平行宇宙，假设玩家已经声明了立直，然后问 AI 引擎在那个状态下会切什么牌。在这个“平行宇宙”中的一切模拟均不会影响到另一个真实的“主宇宙”。当前瞻完成后，我们只需要将前瞻得到的立直切牌推荐合并到主引擎的打牌推荐中即可。
->
-> 流程分为以下几步：
->
-> 1. **触发前瞻**：当前局面下，AI 引擎经过推理，认为“立直”排在推荐动作列表的前 3 名。
-> 2. **启动模拟**：Akagi-NG 创建一个新的、临时的 `Lookahead Bot`。
-> 3. **历史重放**：
->    - 为了让 AI 引擎内部达到当前的游戏状态，我们需要把从开局到现在发生的所有事件（摸牌、打牌、吃碰杠等）全部喂给它一遍。在重放每一手“自己的动作”时，Bot 都会傻乎乎地去问 AI 引擎：“这时候我该干嘛？”。这导致了一局游戏进行到第 15 巡时，Lookahead 需要进行 15 次以上的 AI 推理。对于在线模型，这就是 15 次 HTTP 请求，会瞬间触发 429 封禁。
->    - 因此，我们引入一个“影子” Lookahead Bot。在重放阶段，我们明确知道这只是在“复述历史”，所以当 AI 引擎问“这时候我该干嘛？”时，Lookahead Bot 通过设置 `can_act=False` **完全跳过 AI 推理**。这使得重放过程几乎是瞬时的，且零网络消耗。
-> 4. **分支收束**：
->    - 当状态完全恢复到“现在”后，我们手动向 AI 引擎发送一个“立直”事件。
->    - 此时， AI 引擎的内部状态就变成了：“玩家刚刚宣布了立直，正等待切牌”。
-> 5. **最终推理**：
->    - 在这个“宣布立直”的新状态下，我们向 AI 引擎发起一次**真实**的推理请求：“现在最佳切牌是什么？”
->    - 引擎会根据局面分析，返回具体的切牌动作（例如 `打 6m`）。
-> 6. **结果展示**：前端 UI 接收到这个`6m`的信息，界面上会既会高亮显示立直和其他切牌推荐（比如“默听”），也会在立直推荐的子条目展示建议打出的那张`6m`。若立直切牌候选多于 1 种，子条目中会分别展示每张立直切牌和置信度。
->
-> </details>
+  - Akagi (内置四麻 / 三麻模型)
 
 ## 演示视频
 
@@ -149,16 +116,13 @@ https://github.com/user-attachments/assets/701a3dcf-1574-46af-9594-082605c4e158
 Akagi-NG/
   ├── Akagi-NG     # 主程序 (Electron 桌面端)
   ├── assets/      # 各平台相关的界面资源
-  ├── bin/         # 后端核心程序所在的目录
+  ├── ca/          # MITM CA 证书（启用代理时生成）
   ├── config/      # 配置文件目录 (settings.json)
-  ├── lib/         # libriichi 二进制扩展 (.pyd/.so)
-  │     ├── libriichi
-  │     └── libriichi3p
   ├── locales/     # 多语言支持资源
   ├── logs/        # 运行日志目录
-  ├── models/      # AI 模型权重文件 (.pth)
-  │     ├── mortal
-  │     └── mortal3p
+  ├── models/      # AI 模型权重文件 (.safetensors)
+  │     ├── akagi4p
+  │     └── akagi3p
   ├── resources/   # 应用程序核心资源 (app.asar)
   ├── LICENSE      # 开源许可协议
   ├── README       # 极简使用说明
@@ -171,6 +135,9 @@ Akagi-NG/
 
 点击 Dashboard 右上角的显示器图标即可开启 HUD 界面。点击 Dashboard 右上角的 × 会将程序最小化至系统托盘。如需退出程序，请点击托盘右键菜单的 “Quit Akagi-NG”。
 
+> [!NOTE]
+> macOS 构建未签名、未公证。首次启动请右键点击 `Akagi-NG.app` 选择“打开”，或在“系统设置 → 隐私与安全性”中允许运行；若仍被拦截，可执行 `xattr -dr com.apple.quarantine /Applications/Akagi-NG.app`。
+
 > [!TIP]
 > **HUD (Heads-Up Display)** 是 Akagi-NG 的一项核心特性。它能够将辅助信息直接以半透明形式覆盖在游戏画面上，无需手动置顶窗口。
 
@@ -180,9 +147,7 @@ Akagi-NG 的所有配置均位于 `config/settings.json` 文件中。您可以�
 
 ### 5. 内置浏览器模式
 
-这是 Akagi-NG 的**默认工作模式**，仅支持雀魂、天凤平台。
-
-在此模式下，Akagi-NG 利用 Electron 核心管理一个专用的 Chromium 实例来运行游戏。
+这是 Akagi-NG 的**默认工作模式**。在此模式下，Akagi-NG 利用 Electron 核心管理一个专用的 Chromium 实例来运行游戏。
 
 #### 核心优势
 
@@ -203,15 +168,15 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
 1. 在设置面板中启用“外部代理”。
 
-2. 在系统中导入并信任 `~/.mitmproxy/` 下的 `mitmproxy-ca-cert.cer` 证书，以 Windows 为例，操作步骤如下：
-   1. 双击该证书文件，点击 `安装证书` 按钮
-   2. 若出现选项，请选 `本地计算机`，然后点击下一步
+2. 在系统中导入并信任 Akagi-NG 生成的 CA 证书（首次启用代理时会自动生成），以 Windows 为例：
+   1. 双击 `akagi-ng-ca.cer`，点击 `安装证书` 按钮
+   2. 选择 `当前用户`，然后点击下一步
    3. 选择 `将所有证书放入下列存储`，然后点击 `浏览...`
    4. 选择 `受信任的根证书颁发机构`，确定，再点击下一步、完成
    5. 若提示要求权限，请选择 `是`
 
-> [!IMPORTANT]
-> 务必将证书安装到“**受信任的根证书颁发机构**”。
+> [!NOTE]
+> 内置窗口通过 Electron 调试协议抓包，本身不需要证书；只有使用外部浏览器或游戏客户端时才需要安装。
 
 3. Akagi-NG 默认在本地 127.0.0.1:6789 启动一个 HTTP 代理服务器。您可以选择直接在 Dashboard 中点击“启动游戏”开始游玩，此时 Akagi-NG 的工作方式与内置浏览器模式类似。如果您希望使用系统浏览器或游戏客户端，还需配合代理软件与代理规则将游戏相关流量导向该代理。
 
@@ -247,6 +212,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
      - 域名通配符：`*.maj-soul.com  ->  Akagi-Mitm`
      - 域名通配符：`*.majsoul.com  ->  Akagi-Mitm`
      - 域名通配符：`*.mahjongsoul.com  ->  Akagi-Mitm`
+     - 域名：`mahjongsoul.game.yo-star.com  ->  Akagi-Mitm`
    - **默认规则**：
      - 选择 **[系统代理]**，然后点击 **应用选项** 保存。
 
@@ -284,7 +250,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
        type: select
    ```
 
-3. **添加分流规则 (Rules)**:
+3. **添加路由规则 (Rules)**:
    - 以雀魂麻将为例，将雀魂相关域名指向上面定义的本地代理节点。请注意规则顺序，建议将规则放在靠前位置。
 
    ```yaml
@@ -299,18 +265,6 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
      - DOMAIN-KEYWORD,mahjongsoul,🀄 雀魂麻将
    ```
 
-   - 雀魂麻将以外的其他平台代理规则与上方类似，只需将 `PROCESS-NAME` 规则替换为对应平台的客户端进程名即可。如下方所示：
-
-   ```yaml
-   rules:
-     # 天凤
-     - DOMAIN-KEYWORD,tenhou,🀄 雀魂麻将
-     # 麻雀一番街
-     - PROCESS-NAME,Mahjong-JP.exe,🀄 雀魂麻将
-     # 天月麻雀
-     - PROCESS-NAME,mahjongp.exe,🀄 雀魂麻将
-   ```
-
 4. **应用配置**:
    - 保存并刷新 Clash 配置。现在启动雀魂客户端，流量路径为：`雀魂客户端 -> Clash (TUN) -> 匹配到 Rules -> 转发给 Akagi-NG (6789) -> 您的网络/上游代理`
 
@@ -322,11 +276,11 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
 #### Q: 内置的模型强度如何？
 
-**A:** 以雀魂为例，Mortal 4p 的水平在**雀豪1**左右，Mortal 3p 的水平在**雀杰3**左右。
+**A:** 以雀魂为例，内置的 Akagi 四麻模型水平约在雀豪1，三麻模型与四麻相近。
 
-#### Q: 内置的模型太弱了，有没有更强的模型？
+#### Q: 修罗之战的模型强度与普通模式有区别吗？
 
-**A:** 有，请加入 [Discord 频道](https://discord.gg/Z2wjXUK8bN) 获取。
+**A:** 模型是按标准立直麻将规则训练的。在血战的算分方式下（早巡和牌收益更高、有人和牌后自摸损、最多只有三家和牌），它的*选择*不能完全代表该模型的水平，而底层的*正确性*是有保证的：合法动作、手牌、事件流、结算都与游戏一致。
 
 #### Q: 有没有自动打牌功能？
 
@@ -338,8 +292,8 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
 
 ### 环境要求
 
-- **Python 3.12**: 用于运行后端推理引擎。
-- **Node.js 24 & npm**: 用于编译 Electron 桌面端和 React 前端。
+- **Node.js 24 & npm**: 用于编译 Electron 桌面端、React 前端与各类构建脚本。
+- **Rust 工具链**: 用于构建原生推理引擎（`packages/rust_engine`）。
 - **Git**: 用于克隆项目仓库。
 
 ### 1. 项目初始化
@@ -351,41 +305,7 @@ git clone https://github.com/Xe-Persistent/Akagi-NG.git
 cd Akagi-NG
 ```
 
-#### 准备后端环境
-
-集成构建脚本依赖于 `akagi_backend` 目录下的虚拟环境：
-
-```bash
-cd akagi_backend
-python -m venv .venv
-
-# Windows
-.\.venv\Scripts\activate
-
-# Linux/macOS
-source .venv/bin/activate
-
-pip install -e ".[dev]"
-cd ..
-```
-
-根据你的系统平台准备 libriichi 二进制扩展并重命名：
-
-```bash
-# Windows
-copy lib\libriichi-3.12-x86_64-pc-windows-msvc.pyd lib\libriichi.pyd
-copy lib\libriichi3p-3.12-x86_64-pc-windows-msvc.pyd lib\libriichi3p.pyd
-
-# macOS
-cp lib/libriichi-3.12-aarch64-apple-darwin.so lib/libriichi.so
-cp lib/libriichi3p-3.12-aarch64-apple-darwin.so lib/libriichi3p.so
-
-# Linux
-cp lib/libriichi-3.12-x86_64-unknown-linux-gnu.so lib/libriichi.so
-cp lib/libriichi3p-3.12-x86_64-unknown-linux-gnu.so lib/libriichi3p.so
-```
-
-#### 安装前端与 Electron 依赖
+#### 安装依赖
 
 在项目根目录下，执行安装：
 
@@ -393,23 +313,47 @@ cp lib/libriichi3p-3.12-x86_64-unknown-linux-gnu.so lib/libriichi3p.so
 npm install
 ```
 
+#### 构建 Rust 推理引擎
+
+主进程通过 Node-API 原生扩展加载推理引擎，开发前需先构建一次：
+
+```bash
+npm run build -w @akagi-ng/rust-engine
+```
+
+该命令同时会重新生成 `packages/rust_engine/native` 下的 Node-API 加载器（`index.js`）与类型声明（`index.d.ts`）。
+
 ### 2. 开发环境运行
 
-在项目根目录下执行一键启动命令，会同时拉起后端、前端和 Electron 端：
+在项目根目录下执行一键启动命令，会同时拉起前端和 Electron 端：
 
 ```bash
 npm run dev
 ```
 
+如果只是想看 HUD 的显示效果（不需要开一局、也不需要模型）：
+
+```bash
+npm run dev:mock
+```
+
+会循环播放一组预设的打牌建议（数据见 `packages/main/src/mock-data.ts`），并把状态
+指示器可能出现的所有状态依次走一遍，方便逐个检查建议形态与指示器状态。
+
 ### 3. 生产环境构建
 
-执行以下命令，即可一键完成环境清理、版本号同步、后端编译、前端打包以及应用最终打包的全流程：
+执行以下命令，即可一键完成环境清理、版本号同步、Rust 推理引擎构建、前端打包以及应用最终打包的全流程：
 
 ```bash
 npm run build
 ```
 
 构建产物将生成于 `dist/release` 目录下。
+
+### 4. 更新雀魂协议
+
+`assets/liqi.json` 描述符直接从雀魂 Unity 客户端重建。提取命令与 `Auto Liqi` 工作流见
+[docs/PROTOCOL.md](docs/PROTOCOL.md)。
 
 ---
 
@@ -419,5 +363,8 @@ npm run build
 
 ## 致谢与第三方资源声明
 
-本项目发布版打包附带的 `lib`（包含 `libriichi` 二进制扩展）与 `models`（AI 模型权重）文件，均来源于项目 [shinkuan/Akagi](https://github.com/shinkuan/Akagi)。
-这些编译的二进制文件与模型权重的版权归原作者所有，并在 AGPLv3 与 Commons Clause 协议下分发。在此向原作者的卓越工作与开源精神表示最诚挚的感谢！
+本项目的 `packages/rust_engine` 推理引擎复用了 [shinkuan/Akagi](https://github.com/shinkuan/Akagi) `native_bot` 的模型解码器、观测编码、动作编解码与 MJAI 兼容层，并沿用其对齐测试，以保证内置权重在本项目与上游产生完全一致的决策。
+
+本项目发布版打包附带的 `models` AI 模型权重文件来源于 [shinkuan/Akagi](https://github.com/shinkuan/Akagi) 的默认 `native_bot` 权重（`native_bot/weights/akagi4p.safetensors` 与 `akagi3p.safetensors`）。
+
+以上资源以 Apache-2.0 许可分发。版权归原作者所有。在此向原作者的卓越工作与开源精神表示最诚挚的感谢！

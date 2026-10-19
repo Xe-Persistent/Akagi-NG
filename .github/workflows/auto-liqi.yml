@@ -1,0 +1,66 @@
+name: Auto Liqi
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-liqi
+  cancel-in-progress: false
+
+jobs:
+  auto-liqi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract the protocol from the Unity client
+        id: extract
+        run: npx tsx scripts/extract-liqi.ts
+
+      - name: Open pull request
+        if: steps.extract.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: ${{ github.ref_name }}
+          branch: auto/liqi-${{ steps.extract.outputs.product_version }}
+          delete-branch: true
+          commit-message: |
+            chore(majsoul): update protocol to ${{ steps.extract.outputs.product_version }}
+
+            bundle_hash: ${{ steps.extract.outputs.bundle_hash }}
+          title: 'chore(majsoul): update protocol to ${{ steps.extract.outputs.product_version }}'
+          body: |
+            Automated update of the Mahjong Soul protocol definitions.
+
+            - Client productVersion: `${{ steps.extract.outputs.product_version }}`
+            - Bundle hash: `${{ steps.extract.outputs.bundle_hash }}`
+
+            `assets/liqi.json` is reconstructed directly from the Mahjong Soul
+            Unity client asset bundles (protobuf descriptors in
+            `LuaByte/Lua/Protol/*_pb.lua.bytes` plus the service table in
+            `MyAssets/docs/proto_config.bytes`) by `scripts/extract-liqi.ts`.
+            No CDN proto release is involved.
+
+            Review the diff before merging: `assets/liqi.json` is the descriptor
+            the bridge decodes every liqi frame with.
+          add-paths: |
+            assets/liqi.json
+            assets/liqi.meta.json

@@ -1,10 +1,11 @@
 {
-  "name": "akagi-ng-root",
+  "name": "akagi-ng",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI.",
   "author": "Akagi-NG Contributors",
   "license": "AGPL-3.0",
+  "type": "module",
   "engines": {
     "node": ">=24.0"
   },
@@ -13,35 +14,40 @@
     "url": "https://github.com/Xe-Persistent/Akagi-NG.git"
   },
   "workspaces": [
-    "akagi_frontend",
-    "electron"
+    "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -k \"npm run dev -w akagi-frontend\" \"npm run dev -w akagi-ng-desktop\"",
-    "dev:mock": "concurrently -k \"tsx scripts/mock_server.ts\" \"npm run dev -w akagi-frontend\" \"npm run dev:mock -w akagi-ng-desktop\"",
+    "dev": "concurrently -k \"npm run dev -w @akagi-ng/frontend\" \"npm run dev -w @akagi-ng/main\"",
+    "dev:mock": "concurrently -k \"npm run dev -w @akagi-ng/frontend\" \"npm run dev:mock -w @akagi-ng/main\"",
     "clean": "tsx scripts/clean.ts",
     "sync-version": "tsx scripts/sync_version.ts",
     "prepare-release": "tsx scripts/prepare_release.ts",
-    "build:backend": "tsx scripts/build_backend.ts",
-    "build": "npm run clean && npm run sync-version && npm run build -w akagi-frontend && npm run build:backend && npm run build -w akagi-ng-desktop && npm run prepare-release && npm run package -w akagi-ng-desktop",
+    "build": "npm run clean && npm run sync-version && npm run build -w @akagi-ng/rust-engine && npm run build -w @akagi-ng/frontend && npm run build -w @akagi-ng/main && npm run prepare-release && npm run package -w @akagi-ng/main",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "typecheck": "npm exec --workspaces -- tsc --noEmit --pretty"
+    "test": "vitest run --project main --project frontend",
+    "test:coverage": "vitest run --coverage --project main --project frontend",
+    "test:watch": "vitest --project main --project frontend",
+    "test:integration": "vitest run --project integration",
+    "test:rust": "cargo test --locked --features dyn-symbols --manifest-path packages/rust_engine/Cargo.toml",
+    "typecheck": "tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/frontend/tsconfig.node.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {
-    "@eslint-react/eslint-plugin": "^5.6.0",
+    "@eslint-react/eslint-plugin": "^5.28.1",
     "@eslint/js": "^10.0.1",
-    "concurrently": "^9.2.1",
-    "eslint": "^10.2.1",
+    "@vitest/coverage-v8": "^5.0.5",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-simple-import-sort": "^13.0.0",
-    "globals": "^17.5.0",
-    "prettier": "^3.8.3",
-    "prettier-plugin-tailwindcss": "^0.8.0",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1"
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
   }
 }

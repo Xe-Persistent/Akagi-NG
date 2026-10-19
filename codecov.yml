@@ -6,7 +6,7 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: 70...100
+  range: 40...90
 
   status:
     project:
@@ -18,18 +18,21 @@ coverage:
 
     patch:
       default:
-        target: 80%
+        target: 70%
         threshold: 5%
         if_ci_failed: error
         informational: false
 
 flags:
-  backend:
+  typescript:
     paths:
-      - akagi_backend/akagi_ng/
-
-fixes:
-  - 'akagi_ng/::akagi_backend/akagi_ng/'
+      - packages/main/src/
+      - packages/frontend/src/
+    carryforward: true
+  rust:
+    paths:
+      - packages/rust_engine/src/
+    carryforward: true
 
 comment:
   layout: diff,flags,files,footer
@@ -39,15 +42,17 @@ comment:
   require_head: true
 
 ignore:
+  - packages/*/test/
+  - packages/*/dist/
+  - packages/rust_engine/target/
+  - packages/rust_engine/tests/
   - scripts/
-  - tests/
-  - '**/test_*.py'
-  - '**/__init__.py'
-  - '**/__main__.py'
-  - '.venv/'
-  - '*.egg-info/'
-  - build/
+  - docs/
   - dist/
+  - build/
+  - '**/*.d.ts'
+  - '**/*.test.ts'
+  - '**/*.config.*'
 
 github_checks:
   annotations: true

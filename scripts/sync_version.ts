@@ -1,8 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
- * Syncs the version from root package.json down to electron, frontend, and backend environments.
+ * Syncs the version from root package.json down to the Electron, frontend and
+ * Rust engine packages. Lockfiles are intentionally left alone: they are updated
+ * by their own package managers when dependencies change.
  */
 function syncVersion() {
   try {
@@ -24,27 +30,14 @@ function syncVersion() {
 
     console.log(`Master version declared as: ${version}`);
 
-    // Update pyproject.toml
-    const pyprojectPath = join(projectRoot, 'akagi_backend', 'pyproject.toml');
-    console.log(`Updating ${pyprojectPath}...`);
-    let pyprojectContent = readFileSync(pyprojectPath, 'utf-8');
-    pyprojectContent = pyprojectContent.replace(
-      /^(\s*version\s*=\s*)["']([^"']+)["']/m,
-      `$1"${version}"`,
-    );
-    writeFileSync(pyprojectPath, pyprojectContent);
-    console.log(`✅ Synced to pyproject.toml`);
-
-    // Update electron/package.json
-    const electronPackageJsonPath = join(projectRoot, 'electron', 'package.json');
+    const electronPackageJsonPath = join(projectRoot, 'packages', 'main', 'package.json');
     console.log(`Updating ${electronPackageJsonPath}...`);
     const electronPackageJson = JSON.parse(readFileSync(electronPackageJsonPath, 'utf-8'));
     electronPackageJson.version = version;
     writeFileSync(electronPackageJsonPath, JSON.stringify(electronPackageJson, null, 2) + '\n');
-    console.log(`✅ Synced to electron/package.json`);
+    console.log(`✅ Synced to packages/main/package.json`);
 
-    // Update frontend/package.json
-    const frontendPackageJsonPath = join(projectRoot, 'akagi_frontend', 'package.json');
+    const frontendPackageJsonPath = join(projectRoot, 'packages', 'frontend', 'package.json');
     console.log(`Updating ${frontendPackageJsonPath}...`);
     const frontendPackageJson = JSON.parse(readFileSync(frontendPackageJsonPath, 'utf-8'));
     frontendPackageJson.version = version;
@@ -52,7 +45,24 @@ function syncVersion() {
       delete frontendPackageJson._comment;
     }
     writeFileSync(frontendPackageJsonPath, JSON.stringify(frontendPackageJson, null, 2) + '\n');
-    console.log(`✅ Synced to akagi_frontend/package.json`);
+    console.log(`✅ Synced to packages/frontend/package.json`);
+
+    const rustEnginePackageJsonPath = join(projectRoot, 'packages', 'rust_engine', 'package.json');
+    console.log(`Updating ${rustEnginePackageJsonPath}...`);
+    const rustEnginePackageJson = JSON.parse(readFileSync(rustEnginePackageJsonPath, 'utf-8'));
+    rustEnginePackageJson.version = version;
+    writeFileSync(rustEnginePackageJsonPath, JSON.stringify(rustEnginePackageJson, null, 2) + '\n');
+    console.log(`✅ Synced to packages/rust_engine/package.json`);
+
+    const rustEngineCargoTomlPath = join(projectRoot, 'packages', 'rust_engine', 'Cargo.toml');
+    console.log(`Updating ${rustEngineCargoTomlPath}...`);
+    const cargoToml = readFileSync(rustEngineCargoTomlPath, 'utf-8');
+    const cargoVersion = /(\[package\][\s\S]*?^version\s*=\s*")[^"]*(")/m;
+    if (!cargoVersion.test(cargoToml)) {
+      throw new Error(`Could not find the [package] version in ${rustEngineCargoTomlPath}`);
+    }
+    writeFileSync(rustEngineCargoTomlPath, cargoToml.replace(cargoVersion, `$1${version}$2`));
+    console.log(`✅ Synced to packages/rust_engine/Cargo.toml`);
 
     console.log(`🎉 Monorepo version successfully synced!`);
   } catch (error) {

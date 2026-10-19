@@ -1,9 +1,8 @@
-# Dependabot 自动依赖更新配置
-# 文档: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Keeps dependencies current.
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  # GitHub Actions 版本更新
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -17,7 +16,7 @@ updates:
       prefix: ci
       include: scope
     open-pull-requests-limit: 5
-    # 分组合并次要和补丁版本更新
+    # Minor and patch bumps arrive as one PR.
     groups:
       actions-dependencies:
         patterns:
@@ -25,59 +24,3 @@ updates:
         update-types:
           - minor
           - patch
-
-  # Python 后端依赖更新
-  - package-ecosystem: pip
-    directory: /akagi_backend
-    schedule:
-      interval: weekly
-      day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
-    labels:
-      - dependencies
-      - python
-    commit-message:
-      prefix: deps
-      include: scope
-    open-pull-requests-limit: 10
-    # 分组合并次要和补丁版本更新
-    groups:
-      python-dependencies:
-        patterns:
-          - '*'
-        update-types:
-          - minor
-          - patch
-
-  # Node.js 依赖更新
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: '09:00'
-      timezone: Asia/Shanghai
-    labels:
-      - dependencies
-      - npm
-    commit-message:
-      prefix: deps
-      include: scope
-    open-pull-requests-limit: 10
-    groups:
-      production-dependencies:
-        dependency-type: production
-        update-types:
-          - minor
-          - patch
-      development-dependencies:
-        dependency-type: development
-        update-types:
-          - minor
-          - patch
-    ignore:
-      - dependency-name: '@types/node'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'electron'
-        update-types: ['version-update:semver-major']

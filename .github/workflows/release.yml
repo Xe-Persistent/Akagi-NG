@@ -10,45 +10,43 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PYTHONUTF8: 1
   AKAGI_MOCK_MODE: 0
-  PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+  # Electron 44 supports macOS Ventura and later; keep the native engine aligned.
+  MACOSX_DEPLOYMENT_TARGET: '13.0'
 
 jobs:
-  pre-release-test:
-    uses: ./.github/workflows/test.yml
-
-  release:
-    needs: pre-release-test
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
+  validate:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      - name: Extract version from tag
-        id: version
-        shell: pwsh
+      - name: Verify tag matches package.json
         run: |
-          $version = "${{ github.ref_name }}"
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-          $clean_version = $version -replace '^v', ''
-          echo "CLEAN_VERSION=$clean_version" >> $env:GITHUB_OUTPUT
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag v$tag does not match package.json version $version"
+            exit 1
+          fi
+          echo "Tag v$tag matches package.json version $version"
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.12
-          cache: pip
-          cache-dependency-path: akagi_backend/pyproject.toml
+  pre-release-test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  build:
+    needs: [validate, pre-release-test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -57,55 +55,68 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - name: Cache Python virtual environment
-        uses: actions/cache@v5
-        id: venv-cache
-        with:
-          path: akagi_backend/.venv
-          key: venv-build-${{ runner.os }}-py3.12-${{ hashFiles('akagi_backend/pyproject.toml') }}
-          restore-keys: |
-            venv-build-${{ runner.os }}-py3.12-
-
-      - name: Install Python dependencies
-        if: steps.venv-cache.outputs.cache-hit != 'true'
-        working-directory: akagi_backend
-        shell: bash
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate || source .venv/Scripts/activate
-          python -m pip install --upgrade pip
-          pip install -e .
-
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Build Electron App
-        run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
         with:
-          files: |
+          workspaces: packages/rust_engine
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.os }}
+          path: |
             dist/release/*.exe
             dist/release/*.zip
             dist/release/*.dmg
             dist/release/*.tar.gz
             dist/release/*.AppImage
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-          name: ${{ steps.version.outputs.VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 7
+          if-no-files-found: error
 
-      - name: Upload build artifacts on failure
+      - name: Upload build logs on failure
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: failed-build-artifacts-${{ matrix.os }}
+          name: failed-build-logs-${{ matrix.os }}
           path: |
-            dist/
-            electron/**/*.log
+            logs/**/*.log
+            dist/**/*.log
           retention-days: 14
+          if-no-files-found: ignore
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

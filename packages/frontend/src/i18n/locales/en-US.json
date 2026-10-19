@@ -1,0 +1,95 @@
+{
+  "settings": {
+    "update_protocol": "Update Protocol",
+    "restore": "Restore Defaults",
+    "restore_confirm_title": "Restore Default Settings",
+    "restore_confirm_desc": "Are you sure you want to restore all settings to default values? This action cannot be undone.",
+    "general": {
+      "title": "General",
+      "locale": "Language",
+      "theme": "Theme",
+      "theme_system": "System",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
+      "log_level": "Log Level"
+    },
+    "connection": {
+      "title": "Game Connection",
+      "mode": "Connection Mode",
+      "mode_browser": "Internal Browser",
+      "majsoul_server": "Majsoul Server",
+      "majsoul_servers": {
+        "cn": "Chinese Server",
+        "jp": "Japanese Server",
+        "en": "English Server"
+      },
+      "mode_mitm": "External Proxy",
+      "mitm": {
+        "port": "Listen Port",
+        "upstream": "Upstream Proxy (Optional)"
+      }
+    },
+    "model_config": {
+      "title": "AI Model",
+      "model_4p": "4-Player Model",
+      "model_3p": "3-Player Model",
+      "no_models_found": "No local models found",
+      "select_model": "Select Model"
+    },
+    "status_saved": "Save success.",
+    "status_saving": "Saving…",
+    "status_error": "Save failed.",
+    "restored_success": "Settings restored to defaults.",
+    "load_error_desc": "Could not load settings."
+  },
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "error": "Error",
+    "connection_failed": "Connection Failed",
+    "close": "Close",
+    "exit_app": "Exit Application"
+  },
+  "app": {
+    "title": "Akagi Next-Generation",
+    "launch_game": "Launch Game",
+    "startup_failed": "Application startup failed",
+    "launch_error": "Could not retrieve game URL. Please check settings.",
+    "settings_title": "Akagi NG Settings",
+    "settings_desc": "Application Configuration Panel",
+    "standby": "Standby",
+    "standby_desc": "Waiting for game data, ready to provide play suggestions",
+    "hud_active": "HUD Mode Active",
+    "hud_desc": "AI play suggestions are shown in a dedicated HUD window",
+    "shutdown_confirm_title": "Confirm Shutdown",
+    "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
+    "stopped_title": "Application Stopped",
+    "stopped_desc": "Thank you for using Akagi NG."
+  },
+  "actions": {
+    "reach": "Reach",
+    "chi": "Chi",
+    "pon": "Pon",
+    "kan": "Kan",
+    "ron": "Ron",
+    "tsumo": "Tsumo",
+    "ryukyoku": "Draw",
+    "nukidora": "Kita",
+    "none": "Skip",
+    "discard": "Discard"
+  },
+  "status": {
+    "client_connected": "Game connected.",
+    "game_ready": "Match connected. AI is ready.",
+    "model_loaded": "Local model loaded.",
+    "syncing": "Syncing match data…",
+    "proto_updated": "Majsoul protocol updated successfully.",
+    "proto_update_failed": "Failed to update Majsoul protocol.",
+    "parse_failed": "Failed to parse match data.",
+    "disconnected": "Game connection lost. Check your network or refresh the page.",
+    "left_game": "Left the current match.",
+    "model_failed": "Failed to load AI model.",
+    "runtime_error": "AI model runtime error",
+    "models_missing": "Local model files (models) are missing. The application cannot run without them."
+  }
+}

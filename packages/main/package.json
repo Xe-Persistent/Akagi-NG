@@ -1,0 +1,106 @@
+{
+  "name": "@akagi-ng/main",
+  "private": true,
+  "version": "1.1.0",
+  "description": "Akagi-NG Electron Desktop App",
+  "author": "Akagi-NG Contributors",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "main": "../../dist/main/index.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json && electron .",
+    "dev:mock": "tsc -p tsconfig.build.json && electron . --mock",
+    "build": "tsc -p tsconfig.build.json",
+    "package": "electron-builder --publish never"
+  },
+  "dependencies": {
+    "@akagi-ng/rust-engine": "*",
+    "electron-log": "^5.4.4",
+    "electron-store": "^12.0.0",
+    "mockttp": "^4.6.4",
+    "protobufjs": "^8.8.1"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "^26.17.0"
+  },
+  "build": {
+    "appId": "me.akagi.ng",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Xe-Persistent",
+        "repo": "Akagi-NG"
+      }
+    ],
+    "artifactName": "Akagi-NG-${version}-${os}-${arch}.${ext}",
+    "productName": "Akagi-NG",
+    "icon": "../../assets/torii.ico",
+    "electronLanguages": [
+      "en-US",
+      "zh-CN",
+      "zh-TW",
+      "ja"
+    ],
+    "directories": {
+      "output": "../../dist/release",
+      "buildResources": "../../build"
+    },
+    "electronDist": "../../node_modules/electron/dist",
+    "files": [
+      {
+        "from": "../../dist/main",
+        "to": "dist/main"
+      },
+      {
+        "from": "../../dist/renderer",
+        "to": "dist/renderer"
+      },
+      "package.json",
+      "!**/*.map",
+      "!**/rust-engine/{src,target}/**",
+      "!**/rust-engine/{Cargo.toml,Cargo.lock,build.rs}"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/index.js"
+    },
+    "extraFiles": [
+      {
+        "from": "../../assets",
+        "to": "assets"
+      },
+      {
+        "from": "../../build/extra",
+        "to": "."
+      },
+      {
+        "from": "../../README.txt",
+        "to": "."
+      },
+      {
+        "from": "../../LICENSE",
+        "to": "."
+      }
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": "zip",
+      "icon": "../../assets/torii.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "../../assets/torii.icns",
+      "category": "public.app-category.games",
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "../../assets/torii.png"
+    },
+    "copyright": "Copyright (C) 2026 Akagi-NG Contributors"
+  }
+}

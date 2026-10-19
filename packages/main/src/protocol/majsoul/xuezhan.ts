@@ -1,0 +1,42 @@
+/**
+ * The xuezhan (blood battle) protocol: everything the mode does differently from a
+ * plain four-player game, as plain functions over decoded payloads.
+ *
+ * Confirmed against real captures (`logs/akagi_20261016_*`):
+ * - every round deals with an empty dora list, offers a three-tile swap
+ *   (`operationList[].type === 12`) and reports the swap in `ActionChangeTile`,
+ *   which is also where the round's dora indicator arrives;
+ * - a win is reported by `ActionHuleXueZhanMid` and settles immediately, but the
+ *   round carries on without the players who have already won; the third win
+ *   arrives as `ActionHuleXueZhanEnd` and ends the round;
+ * - the match ends on a knockout (`NotifyGameEndResult`), not on a payload flag.
+ */
+
+/** The room rules arrive with `authGame`; `xuezhandaodi` is the blood battle. */
+export function isXuezhanRule(gameConfig: unknown): boolean {
+  const rule = (gameConfig as { mode?: { detailRule?: { xuezhandaodi?: number } } } | undefined)
+    ?.mode?.detailRule;
+  return rule?.xuezhandaodi === 1;
+}
+
+/**
+ * Applies the swap to a dealt hand: the tiles that left are removed, the ones that
+ * arrived are added. The payload only names what moved, and a hand can hold the
+ * same tile twice, so tiles are removed one occurrence at a time.
+ */
+export function applySwap(
+  tiles: string[],
+  out: string[],
+  incoming: string[],
+): { hand: string[]; missing: string[] } {
+  const hand = [...tiles];
+  const missing: string[] = [];
+
+  for (const tile of out) {
+    const index = hand.indexOf(tile);
+    if (index >= 0) hand.splice(index, 1);
+    else missing.push(tile);
+  }
+
+  return { hand: [...hand, ...incoming], missing };
+}

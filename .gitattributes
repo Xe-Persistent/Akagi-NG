@@ -1,10 +1,7 @@
-# 强制所有文本文件使用 LF 行尾
+# Keep text files on LF.
 * text=auto eol=lf
 
-# Python 文件明确使用 LF
-*.py text eol=lf
-
-# 前端代码使用 LF
+# Source and web assets.
 *.js text eol=lf
 *.jsx text eol=lf
 *.ts text eol=lf
@@ -14,44 +11,46 @@
 *.html text eol=lf
 *.svg text eol=lf
 
-# 配置文件使用 LF
+# Configuration files.
 *.toml text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
 *.json text eol=lf
 
-# 文档使用 LF
+# Documentation.
 *.txt text eol=lf
 *.md text eol=lf
 
-# Shell 脚本使用 LF
+# Shell scripts.
 *.sh text eol=lf
 
-# Windows 批处理文件例外，使用 CRLF
+# Windows scripts use CRLF.
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
-# 二进制文件不转换
+# Binary files are never converted.
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
 *.ico binary
+*.icns binary
+*.tiff binary
 *.pdf binary
 *.zip binary
 *.gz binary
 *.tar binary
-*.whl binary
+*.node binary
 *.so binary
 *.dll binary
 *.dylib binary
+*.safetensors binary
 
-# 自动生成的文件
-*pb2.py linguist-generated=true
+# Generated dependency files.
 package-lock.json linguist-generated=true
 
-# Git 配置文件在导出时忽略
+# Git configuration files are not exported.
 .gitattributes export-ignore
 .gitignore export-ignore
 .editorconfig export-ignore

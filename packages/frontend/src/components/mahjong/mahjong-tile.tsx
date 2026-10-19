@@ -1,0 +1,42 @@
+import { memo } from 'react';
+
+import { cn } from '@/lib/utils';
+
+interface MahjongTileProps {
+  tile: string;
+  className?: string;
+  isGhost?: boolean;
+  isBack?: boolean;
+}
+
+export const MahjongTile = memo(function MahjongTile({
+  tile,
+  className,
+  isGhost,
+  isBack,
+}: MahjongTileProps) {
+  const svgPath = `Resources/${tile}.svg`;
+
+  return (
+    <div
+      className={cn(
+        'mahjong-tile-container',
+        isGhost ? 'opacity-50 grayscale' : 'hover:-translate-y-1',
+        className,
+      )}
+    >
+      <div className='mahjong-tile-face'>
+        {isBack ? (
+          <div className='mahjong-tile-back'>
+            <div className='absolute inset-0 bg-linear-to-t from-black/10 to-transparent dark:from-black/30' />
+            <div className='absolute inset-0 bg-linear-to-tr from-transparent via-white/20 to-transparent opacity-30 dark:opacity-20' />
+          </div>
+        ) : (
+          <img src={svgPath} alt={tile} className='h-full w-full object-contain p-px select-none' />
+        )}
+      </div>
+      {/* The edge that makes the tile read as a solid slab. */}
+      <div className='mahjong-tile-3d' />
+    </div>
+  );
+});

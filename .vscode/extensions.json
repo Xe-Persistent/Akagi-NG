@@ -1,8 +1,9 @@
 {
   "recommendations": [
     "dbaeumer.vscode-eslint",
+    "EditorConfig.EditorConfig",
     "esbenp.prettier-vscode",
-    "charliermarsh.ruff",
-    "bradlc.vscode-tailwindcss"
+    "bradlc.vscode-tailwindcss",
+    "rust-lang.rust-analyzer"
   ]
 }

@@ -1,11 +1,14 @@
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { platform as getPlatform } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const rootDir = resolve(__dirname, '../');
 const extraDir = join(rootDir, 'build', 'extra');
 
-// 0. Ensure extraDir exists
+// Rebuild `build/extra` from scratch, so a stale asset cannot ship.
 if (existsSync(extraDir)) {
   rmSync(extraDir, { recursive: true, force: true });
 }
@@ -13,61 +16,31 @@ mkdirSync(extraDir, { recursive: true });
 
 console.log('📦 Preparing release assets...');
 
-// 1. Create target folders
-['lib', 'models', 'logs', 'config'].forEach((folder) => {
+['models', 'logs', 'config'].forEach((folder) => {
   const folderPath = join(extraDir, folder);
   if (!existsSync(folderPath)) {
     mkdirSync(folderPath);
   }
 });
 
-// 2. Bundle Models
-['mortal.pth', 'mortal3p.pth', 'LICENSE'].forEach((modelFile) => {
+['akagi4p.safetensors', 'akagi3p.safetensors'].forEach((modelFile) => {
   const src = join(rootDir, 'models', modelFile);
   if (existsSync(src)) {
     copyFileSync(src, join(extraDir, 'models', modelFile));
     console.log(`   ✅ Bundled model: ${modelFile}`);
-  }
-});
-
-// 3. Bundle and rename libriichi for current platform
-const platform = getPlatform();
-
-const sysStr =
-  platform === 'win32'
-    ? 'pc-windows-msvc'
-    : platform === 'darwin'
-      ? 'apple-darwin'
-      : 'unknown-linux-gnu';
-const ext = platform === 'win32' ? 'pyd' : 'so';
-const archStr = platform === 'darwin' ? 'aarch64' : 'x86_64';
-
-['libriichi', 'libriichi3p'].forEach((prefix) => {
-  const pattern = `${prefix}-3.12-${archStr}-${sysStr}.${ext}`;
-  const srcFile = join(rootDir, 'lib', pattern);
-  if (existsSync(srcFile)) {
-    copyFileSync(srcFile, join(extraDir, 'lib', `${prefix}.${ext}`));
-    console.log(`   ✅ Bundled lib: ${prefix}.${ext} (from ${pattern})`);
   } else {
-    // try fallback
-    const fallbackSrc = join(rootDir, 'lib', `${prefix}.${ext}`);
-    if (existsSync(fallbackSrc)) {
-      copyFileSync(fallbackSrc, join(extraDir, 'lib', `${prefix}.${ext}`));
-      console.log(`   ✅ Bundled lib: ${prefix}.${ext} (from fallback exact match)`);
-    } else {
-      console.warn(`   ⚠️ Warning: Could not find lib file ${pattern}`);
-    }
+    throw new Error(`Model missing: ${src}`);
   }
 });
 
-// 4. Copy lib/LICENSE
-const libLicense = join(rootDir, 'lib', 'LICENSE');
-if (existsSync(libLicense)) {
-  copyFileSync(libLicense, join(extraDir, 'lib', 'LICENSE'));
-  console.log('   ✅ Bundled lib: LICENSE');
+const modelLicense = join(rootDir, 'models', 'LICENSE');
+if (!existsSync(modelLicense)) {
+  throw new Error(`Model license missing: ${modelLicense}`);
 }
+copyFileSync(modelLicense, join(extraDir, 'models', 'LICENSE'));
+console.log('   ✅ Bundled model license');
 
-// 5. Config/Logs placeholders
+// Git cannot carry an empty directory into a release, hence the placeholders.
 ['logs', 'config'].forEach((folder) => {
   writeFileSync(join(extraDir, folder, '_placeholder'), '');
 });

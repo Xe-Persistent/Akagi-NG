@@ -1,0 +1,80 @@
+import { createLogger } from '../../logging/index.js';
+import { errorMessage } from '../../shared/errors.js';
+import { MahjongConstants } from '../../shared/schema/mahjong.js';
+import type { LiqiMessage, LiqiProto } from './liqi.js';
+import { MsgType } from './liqi.js';
+import { MAJSOUL_METHODS } from './wire.js';
+
+const logger = createLogger('MajsoulSync');
+
+type Payload = Record<string, unknown>;
+
+/**
+ * The game mode is only known from the snapshot the reconnect carries, before
+ * any action is replayed. Returns `null` when the frame has no snapshot.
+ */
+export function is3pFromSyncSnapshot(liqiMessage: LiqiMessage): boolean | null {
+  const data = liqiMessage.data as Payload | undefined;
+  const snapshot = (data?.gameRestore as Payload | undefined)?.snapshot as Payload | undefined;
+  const players = snapshot?.players as unknown[] | undefined;
+  if (!players) return null;
+
+  const is3p = players.length === MahjongConstants.SEATS_3P;
+  logger.verbose(`Pre-scanned mode from snapshot: is_3p=${is3p}`);
+  return is3p;
+}
+
+/**
+ * Unpacks the base64 action history of `gameRestore` into ActionPrototype
+ * shaped messages so they can be replayed through the normal handlers.
+ *
+ * One unreadable entry is skipped rather than allowed to cost the rest of the
+ * history: the replay is the only way back into an in-progress hand, and a
+ * truncated log would leave it half-rebuilt.
+ */
+export function parseSyncGameActions(
+  liqiMessage: LiqiMessage,
+  liqiProto: LiqiProto,
+): LiqiMessage[] {
+  const restore = (liqiMessage.data as Payload | undefined)?.gameRestore as Payload | undefined;
+  if (!restore) return [];
+
+  const messages: LiqiMessage[] = [];
+  for (const action of (restore.actions ?? []) as Payload[]) {
+    const item = parseSyncGameActionItem(action, liqiProto);
+    if (item) messages.push(item);
+  }
+
+  return messages;
+}
+
+function parseSyncGameActionItem(actionDict: Payload, liqiProto: LiqiProto): LiqiMessage | null {
+  const innerName = actionDict.name as string;
+
+  try {
+    // Unlike a live action, the payload stored in a restore is not XOR
+    // scrambled, so it decodes as it is.
+    const innerDict = liqiProto.parseWrapper(
+      innerName,
+      Buffer.from(actionDict.data as string, 'base64'),
+      false,
+    );
+
+    if (!innerDict) {
+      logger.warn(`Skipping a restore action this build cannot decode: ${innerName}`);
+      return null;
+    }
+
+    return {
+      id: -1,
+      type: MsgType.Notify,
+      method: MAJSOUL_METHODS.actionPrototype,
+      data: { ...actionDict, data: innerDict },
+    };
+  } catch (e) {
+    logger.warn(
+      `Skipping a restore action that failed to decode: ${innerName} (${errorMessage(e)})`,
+    );
+    return null;
+  }
+}

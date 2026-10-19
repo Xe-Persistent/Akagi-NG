@@ -1,156 +1,44 @@
-# Tenhou 协议文档
+# Majsoul Protocol Descriptor
 
-## 消息格式说明
+`assets/liqi.json` is the protobuf descriptor used to decode every Majsoul packet. It is extracted
+**straight from the Mahjong Soul Unity client** asset bundles (`LuaByte/Lua/Protol/*_pb.lua.bytes`
+plus `MyAssets/docs/proto_config.bytes`) instead of the CDN `res/proto/liqi.json`, which lags behind
+the shipping client. The "update protocol" button in the settings panel runs the same pipeline at
+runtime.
 
-天凤平台使用 JSON 格式的消息，每个消息包含一个 `tag` 字段标识消息类型。
+## Refresh locally
 
-### 1. SHUFFLE - 洗牌
+The command rewrites `assets/liqi.json` and `assets/liqi.meta.json`:
 
-- `seed`: 用于生成牌墙和骰子的随机数种子
-- `ref`: 未知参数
+```bash
+npx tsx scripts/extract-liqi.ts           # online: extract from the live client
+npx tsx scripts/extract-liqi.ts --check   # compare only; exits non-zero when out of date
+npx tsx scripts/extract-liqi.ts --from-raw tmp/raw   # offline: read Protol/*.lua + proto_config.bytes
+```
 
-### 2. GO - 游戏开始
+## CI
 
-- `type`: 大厅类型
-- `lobby`: 大厅编号
+The `Auto Liqi` workflow (`.github/workflows/auto-liqi.yml`) checks the client once a day and opens a
+pull request whenever the extracted schema changes.
 
-### 3. UN - 用户列表/重连
+---
 
-- `n[0-3]`: 每个玩家的名称 (URLEncoded UTF-8)
-- `dan`: 每个玩家的段位
-- `rate`: 每个玩家的 Rate
-- `sx`: 每个玩家的性别 ("M" 或 "F")
+# 雀魂协议描述符
 
-### 4. BYE - 用户断开连接
+`assets/liqi.json` 是解析雀魂全部封包所依据的 protobuf 描述符，它**直接从雀魂 Unity 客户端**的
+资源包中提取（`LuaByte/Lua/Protol/*_pb.lua.bytes` + `MyAssets/docs/proto_config.bytes`），不再使用
+已滞后于客户端的 CDN `res/proto/liqi.json`。设置面板中的「更新协议文件」按钮会在运行时执行同一套流程。
 
-- `who`: 断开连接的玩家
+## 本地刷新
 
-### 5. TAIKYOKU - 对局开始
+以下命令会重写 `assets/liqi.json` 与 `assets/liqi.meta.json`：
 
-- `oya`: 庄家
+```bash
+npx tsx scripts/extract-liqi.ts           # 联网：从当前客户端提取
+npx tsx scripts/extract-liqi.ts --check   # 只比对，不写入；不一致时以非 0 退出
+npx tsx scripts/extract-liqi.ts --from-raw tmp/raw   # 离线：读取 Protol/*.lua 与 proto_config.bytes
+```
 
-### 6. INIT - 开局 (配牌)
+## CI
 
-- `seed`: 6 个元素的列表:
-  - 局数
-  - 本场数
-  - 立直棒数
-  - 骰子1减一
-  - 骰子2减一
-  - 宝牌指示牌
-- `ten`: 每个玩家的点数列表
-- `oya`: 庄家
-- `hai[0-3]`: 每个玩家的配牌列表
-
-### 7. [T-W][0-9]\* - 玩家摸牌
-
-格式: `<T>`, `<U>`, `<V>`, `<W>` 分别代表4个玩家
-
-### 8. [D-G][0-9]\* - 玩家切牌
-
-格式: `<D>`, `<E>`, `<F>`, `<G>` 分别代表4个玩家
-
-### 9. N - 玩家鸣牌
-
-- `who`: 鸣牌的玩家
-- `m`: 副露数据
-
-### 10. REACH - 玩家立直
-
-- `who`: 立直的玩家
-- `step`: 立直步骤
-  - `1`: 宣言 "立直"
-  - `2`: 切牌后放置立直棒
-- `ten`: 每个玩家的当前点数列表
-
-### 11. DORA - 新宝牌指示牌
-
-- `hai`: 新的宝牌指示牌
-
-### 12. AGARI - 玩家和牌
-
-- `who`: 和牌的玩家
-- `fromwho`: 谁点的炮 (自摸则是自己, 荣和则是别人)
-- `hai`: 赢家的手牌列表
-- `m`: 赢家的副露列表
-- `machi`: 赢家的听牌列表
-- `doraHai`: 宝牌列表
-- `dorahaiUra`: 里宝牌列表
-- `yaku`: 役及其番数列表（见下表）
-- `yakuman`: 役满列表（见下表）
-- `ten`: 3 个元素的列表
-  - 符数
-  - 点数
-  - 满贯限制 (0=无限制, 1=满贯, 2=跳满, 3=倍满, 4=三倍满, 5=役满)
-- `ba`: 2 个元素的列表 (场棒)
-  - 本场数
-  - 立直棒数
-- `sc`: 每个玩家的分数及变化列表
-- `owari`: 游戏结束时的最终分数 (含马点)
-
-#### 役（Yaku）列表
-
-| 编号  | 役名                    |
-| ----- | ----------------------- |
-| 0     | 门前清自摸和            |
-| 1     | 立直                    |
-| 2     | 一发                    |
-| 3     | 枪杠                    |
-| 4     | 岭上开花                |
-| 5     | 海底摸月                |
-| 6     | 河底捞鱼                |
-| 7     | 平和                    |
-| 8     | 断幺九                  |
-| 9     | 一杯口                  |
-| 10-17 | 翻牌 (自风/场风/三元牌) |
-| 18-20 | 役牌                    |
-| 21    | 双立直                  |
-| 22    | 七对子                  |
-| 23    | 混全带幺九              |
-| 24    | 一气通贯                |
-| 25    | 三色同顺                |
-| 26    | 三色同刻                |
-| 27    | 三杠子                  |
-| 28    | 对对和                  |
-| 29    | 三暗刻                  |
-| 30    | 小三元                  |
-| 31    | 混老头                  |
-| 32    | 二杯口                  |
-| 33    | 纯全带幺九              |
-| 34    | 混一色                  |
-| 35    | 清一色                  |
-| 52    | 宝牌                    |
-| 53    | 里宝牌                  |
-| 54    | 红宝牌                  |
-
-#### 役满（Yakuman）列表
-
-| 编号   | 役满名                      |
-| ------ | --------------------------- |
-| 36     | 人和                        |
-| 37     | 天和                        |
-| 38     | 地和                        |
-| 39     | 大三元                      |
-| 40, 41 | 四暗刻 / 四暗刻单骑         |
-| 42     | 字一色                      |
-| 43     | 绿一色                      |
-| 44     | 清老头                      |
-| 45, 46 | 九莲宝灯 / 纯正九莲宝灯     |
-| 47, 48 | 国士无双 / 国士无双十三面待 |
-| 49     | 大四喜                      |
-| 50     | 小四喜                      |
-| 51     | 四杠子                      |
-
-### 13. RYUUKYOKU - 流局
-
-- `type`: 流局类型
-  - `"yao9"`: 九种九牌
-  - `"reach4"`: 四家立直
-  - `"ron3"`: 三家和
-  - `"kan4"`: 四开杠
-  - `"kaze4"`: 四风连打
-  - `"nm"`: 流局满贯
-- `hai[0-3]`: 玩家展示的手牌列表
-- `ba`: (同上)
-- `sc`: (同上)
-- `owari`: (同上)
+`Auto Liqi` 工作流（`.github/workflows/auto-liqi.yml`）每天检查一次客户端协议，有变化时自动提交 PR。

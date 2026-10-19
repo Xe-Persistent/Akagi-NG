@@ -7,6 +7,9 @@ on:
     branches: [main, master, dev]
   workflow_dispatch:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 concurrency:
   group: test-${{ github.ref }}
@@ -17,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -35,15 +38,19 @@ jobs:
         run: npm ci
 
       - name: Run unit tests with coverage
-        if: ${{ matrix.os == 'ubuntu-24.04' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: npm run test:coverage
 
       - name: Run unit tests
-        if: ${{ matrix.os != 'ubuntu-24.04' }}
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: npm test
 
+      - name: Run integration tests
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: npm run test:integration
+
       - name: Upload coverage to Codecov
-        if: ${{ matrix.os == 'ubuntu-24.04' && success() }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && success() }}
         uses: codecov/codecov-action@v7
         with:
           files: coverage/lcov.info
@@ -53,7 +60,7 @@ jobs:
           verbose: true
 
       - name: Upload coverage HTML report
-        if: ${{ matrix.os == 'ubuntu-24.04' && failure() }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && failure() }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report

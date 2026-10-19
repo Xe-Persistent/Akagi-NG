@@ -19,17 +19,20 @@ concurrency:
 
 env:
   AKAGI_MOCK_MODE: 0
+  # Electron 44 supports macOS Ventura and later; keep the native engine aligned.
+  MACOSX_DEPLOYMENT_TARGET: '13.0'
 
 jobs:
   test:
     if: ${{ !inputs.skip_tests }}
     uses: ./.github/workflows/test.yml
+    secrets: inherit
 
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     needs: test
     if: ${{ always() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
@@ -56,13 +59,8 @@ jobs:
         with:
           workspaces: packages/rust_engine
 
-      - name: Build native inference engine
-        run: npm run build -w @akagi-ng/rust-engine
-
-      - name: Build Electron App
+      - name: Build application
         run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
@@ -75,7 +73,7 @@ jobs:
             dist/release/*.tar.gz
             dist/release/*.AppImage
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload build logs on failure
         uses: actions/upload-artifact@v7

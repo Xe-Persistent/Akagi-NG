@@ -11,35 +11,42 @@ concurrency:
 
 env:
   AKAGI_MOCK_MODE: 0
+  # Electron 44 supports macOS Ventura and later; keep the native engine aligned.
+  MACOSX_DEPLOYMENT_TARGET: '13.0'
 
 jobs:
-  pre-release-test:
-    uses: ./.github/workflows/test.yml
-
-  release:
-    needs: pre-release-test
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-24.04, macos-14]
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
+  validate:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      - name: Extract version from tag
-        id: version
-        shell: pwsh
+      - name: Verify tag matches package.json
         run: |
-          $version = "${{ github.ref_name }}"
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-          $clean_version = $version -replace '^v', ''
-          echo "CLEAN_VERSION=$clean_version" >> $env:GITHUB_OUTPUT
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag v$tag does not match package.json version $version"
+            exit 1
+          fi
+          echo "Tag v$tag matches package.json version $version"
+
+  pre-release-test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  build:
+    needs: [validate, pre-release-test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -59,36 +66,57 @@ jobs:
         with:
           workspaces: packages/rust_engine
 
-      - name: Build native inference engine
-        run: npm run build -w @akagi-ng/rust-engine
-
-      - name: Build Electron App
+      - name: Build application
         run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
         with:
-          files: |
+          name: release-${{ matrix.os }}
+          path: |
             dist/release/*.exe
             dist/release/*.zip
             dist/release/*.dmg
             dist/release/*.tar.gz
             dist/release/*.AppImage
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-          name: ${{ steps.version.outputs.VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 7
+          if-no-files-found: error
 
-      - name: Upload build artifacts on failure
+      - name: Upload build logs on failure
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: failed-build-artifacts-${{ matrix.os }}
+          name: failed-build-logs-${{ matrix.os }}
           path: |
-            dist/
             logs/**/*.log
+            dist/**/*.log
           retention-days: 14
+          if-no-files-found: ignore
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

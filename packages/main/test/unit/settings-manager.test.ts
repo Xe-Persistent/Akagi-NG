@@ -40,7 +40,7 @@ describe('the settings store', () => {
     expect(settings).toMatchObject({
       log_level: 'info',
       majsoul_server: 'cn',
-      mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
+      mitm: { enabled: false, port: 6789, upstream: '' },
       model_config: { model_4p: 'akagi4p.safetensors', model_3p: 'akagi3p.safetensors' },
     });
     expect(settings.game_url).toContain('maj-soul');
@@ -53,7 +53,6 @@ describe('the settings store', () => {
 
     expect(manager.getSettings().mitm).toMatchObject({
       port: 1080,
-      host: '127.0.0.1',
       enabled: false,
       upstream: '',
     });

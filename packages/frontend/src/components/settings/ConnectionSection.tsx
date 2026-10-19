@@ -62,12 +62,6 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
 
       {settings.mitm.enabled && (
         <>
-          <SettingsItem label={t('settings.connection.mitm.host')}>
-            <Input
-              value={settings.mitm.host}
-              onChange={(e) => updateSetting(['mitm', 'host'], e.target.value)}
-            />
-          </SettingsItem>
           <SettingsItem label={t('settings.connection.mitm.port')}>
             <Input
               type='number'

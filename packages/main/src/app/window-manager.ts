@@ -69,4 +69,9 @@ export class WindowManager {
   public async createGameWindow(options: GameWindowOptions): Promise<void> {
     await this.game.open(options);
   }
+
+  /** Re-points an open game window after the proxy settings changed. */
+  public async syncGameWindowProxy(useMitm: boolean): Promise<void> {
+    await this.game.syncProxy(useMitm);
+  }
 }

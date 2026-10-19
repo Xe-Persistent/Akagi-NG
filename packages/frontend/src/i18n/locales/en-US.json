@@ -25,7 +25,6 @@
       },
       "mode_mitm": "External Proxy",
       "mitm": {
-        "host": "Listen Address",
         "port": "Listen Port",
         "upstream": "Upstream Proxy (Optional)"
       }

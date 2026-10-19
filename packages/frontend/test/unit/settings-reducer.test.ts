@@ -8,7 +8,7 @@ const settings: Settings = {
   locale: 'en-US',
   game_url: '',
   majsoul_server: 'cn',
-  mitm: { enabled: false, host: '127.0.0.1', port: 23410, upstream: '' },
+  mitm: { enabled: false, port: 23410, upstream: 'http://127.0.0.1:7890' },
   model_config: { model_4p: 'a.safetensors', model_3p: '' },
 };
 
@@ -29,7 +29,7 @@ describe('the settings reducer', () => {
     expect(edited.revision).toBe(1);
     expect(edited.isRestored).toBe(false);
     // A nested edit must leave the rest of the section alone.
-    expect(edited.settings.mitm.host).toBe('127.0.0.1');
+    expect(edited.settings.mitm.upstream).toBe('http://127.0.0.1:7890');
     // And the previous state must not have been mutated in place.
     expect(state.settings.mitm.port).toBe(23410);
   });

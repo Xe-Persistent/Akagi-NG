@@ -13,7 +13,7 @@ const settings: Settings = {
   locale: 'en-US',
   game_url: 'https://game.maj-soul.com/1/',
   majsoul_server: 'cn',
-  mitm: { enabled: false, host: '127.0.0.1', port: 6789, upstream: '' },
+  mitm: { enabled: false, port: 6789, upstream: '' },
   model_config: { model_4p: 'akagi4p.safetensors', model_3p: '' },
 };
 

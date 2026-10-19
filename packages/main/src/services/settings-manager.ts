@@ -15,7 +15,6 @@ const logger = createLogger('Settings');
 
 export interface MITMConfig {
   enabled: boolean;
-  host: string;
   port: number;
   upstream: string;
 }
@@ -55,7 +54,6 @@ function getDefaultSettings(): AppSettings {
     majsoul_server: MAJSOUL_SERVERS.CN,
     mitm: {
       enabled: false,
-      host: '127.0.0.1',
       port: 6789,
       upstream: '',
     },
@@ -163,11 +161,7 @@ export function getSettingsManager(): SettingsManager {
   return instance;
 }
 
-/** Where the game window should send its traffic when it goes through our proxy. */
-export function getMitmConfig(): { host: string; port: number } {
-  const settings = getSettingsManager().getSettings();
-  return {
-    host: settings.mitm.host,
-    port: settings.mitm.port,
-  };
+/** Port the game window points its proxy at; the proxy is always addressed locally. */
+export function getMitmPort(): number {
+  return getSettingsManager().getSettings().mitm.port;
 }

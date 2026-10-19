@@ -6,6 +6,7 @@ import type { AppSettings } from '../../services/settings-manager.js';
 import { getSettingsManager } from '../../services/settings-manager.js';
 import { errorMessage } from '../../shared/errors.js';
 import { safeSend } from '../../shared/utils.js';
+import type { WindowManager } from '../window-manager.js';
 
 const logger = createLogger('IPC');
 
@@ -16,6 +17,7 @@ const logger = createLogger('IPC');
  */
 async function applyRuntimeSettings(
   mitmProxyManager: MitmProxyManager,
+  windowManager: WindowManager,
   before: AppSettings,
   after: AppSettings,
 ): Promise<void> {
@@ -28,6 +30,9 @@ async function applyRuntimeSettings(
     if (after.mitm.enabled) {
       await mitmProxyManager.start();
     }
+    // The open window still points at the old port, or at a proxy that just
+    // stopped, so it has to be re-pointed.
+    await windowManager.syncGameWindowProxy(after.mitm.enabled);
   }
 
   if (before.locale !== after.locale) {
@@ -40,13 +45,14 @@ async function applyRuntimeSettings(
 function isSameMitmConfig(before: AppSettings, after: AppSettings): boolean {
   const a = before.mitm;
   const b = after.mitm;
-  return (
-    a.enabled === b.enabled && a.host === b.host && a.port === b.port && a.upstream === b.upstream
-  );
+  return a.enabled === b.enabled && a.port === b.port && a.upstream === b.upstream;
 }
 
 /** Settings reads/writes, plus applying what a change implies. */
-export function registerSettingsHandlers(mitmProxyManager: MitmProxyManager) {
+export function registerSettingsHandlers(
+  mitmProxyManager: MitmProxyManager,
+  windowManager: WindowManager,
+) {
   const settingsManager = getSettingsManager();
 
   ipcMain.handle('settings:get', () => {
@@ -57,7 +63,12 @@ export function registerSettingsHandlers(mitmProxyManager: MitmProxyManager) {
     try {
       const before = settingsManager.getSettings();
       settingsManager.updateSettings(updates);
-      await applyRuntimeSettings(mitmProxyManager, before, settingsManager.getSettings());
+      await applyRuntimeSettings(
+        mitmProxyManager,
+        windowManager,
+        before,
+        settingsManager.getSettings(),
+      );
       return { success: true };
     } catch (err: unknown) {
       logger.error('Failed to update settings:', err);
@@ -68,7 +79,7 @@ export function registerSettingsHandlers(mitmProxyManager: MitmProxyManager) {
   ipcMain.handle('settings:reset', async () => {
     const before = settingsManager.getSettings();
     const after = settingsManager.resetSettings();
-    await applyRuntimeSettings(mitmProxyManager, before, after);
+    await applyRuntimeSettings(mitmProxyManager, windowManager, before, after);
     return after;
   });
 

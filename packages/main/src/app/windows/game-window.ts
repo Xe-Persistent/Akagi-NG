@@ -3,20 +3,30 @@ import { BrowserWindow, nativeTheme } from 'electron';
 import { createLogger } from '../../logging/index.js';
 import { GameHandler } from '../../services/capture/game-handler.js';
 import type { EngineService } from '../../services/engine/engine-service.js';
-import { getMitmConfig } from '../../services/settings-manager.js';
+import { getMitmPort } from '../../services/settings-manager.js';
 import { GAME_WINDOW_HEIGHT, GAME_WINDOW_WIDTH } from '../../shared/constants.js';
 import { isSafeWindow } from '../../shared/utils.js';
 
 const logger = createLogger('GameWindow');
 
 /**
- * Removes the Electron tokens from a Chromium user agent, leaving the shape a
- * plain Chrome would send. The app-name token is not present in Electron 44's
- * default agent but older builds and packaged variants can add it.
+ * The game runs in its own persistent session, so its proxy and permission
+ * rules cannot leak into the dashboard or the HUD, and its login survives a
+ * restart.
  */
-export function anonymizeUserAgent(userAgent: string): string {
-  return userAgent.replace(/akagi-ng-desktop\/\S+\s/g, '').replace(/Electron\/\S+\s/g, '');
-}
+const GAME_PARTITION = 'persist:game';
+
+/**
+ * Capabilities the game page may request. Everything else — camera,
+ * microphone, geolocation, notifications, clipboard reads, external protocol
+ * launches, HID/USB/serial — is refused: this window shows remote content and
+ * has no business reaching them.
+ */
+const ALLOWED_PERMISSIONS = new Set<string>([
+  'fullscreen',
+  'pointerLock',
+  'clipboard-sanitized-write',
+]);
 
 export interface GameWindowOptions {
   url?: string;
@@ -56,6 +66,7 @@ export class GameWindow {
       autoHideMenuBar: true,
       backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
       webPreferences: {
+        partition: GAME_PARTITION,
         nodeIntegration: false,
         contextIsolation: true,
       },
@@ -63,13 +74,8 @@ export class GameWindow {
     this.window = window;
 
     this.registerWindowEvents(window);
-    this.registerUserAgent(window);
-
-    if (useMitm) {
-      await this.useMitmProxy(window);
-    } else {
-      this.attachGameHandler(window);
-    }
+    this.hardenSession(window);
+    await this.syncProxy(useMitm ?? false);
 
     window.on('closed', () => {
       this.gameHandler?.detach();
@@ -97,6 +103,30 @@ export class GameWindow {
     }
   }
 
+  /**
+   * Applies the proxy the current mode needs: MITM points the window at our
+   * loopback proxy, CDP clears one left behind by an earlier MITM run. The
+   * capture path follows, so CDP and MITM never observe the same socket.
+   * Called on open and again whenever the proxy settings change.
+   */
+  public async syncProxy(useMitm: boolean): Promise<void> {
+    const window = this.get();
+    if (!window) return;
+
+    logger.info(`Applying game proxy settings (mitm: ${useMitm})`);
+    if (useMitm) {
+      this.gameHandler?.detach();
+      this.gameHandler = null;
+      await this.useMitmProxy(window);
+      return;
+    }
+
+    await this.useDirectConnection(window);
+    if (!this.gameHandler) {
+      await this.attachGameHandler(window);
+    }
+  }
+
   private registerWindowEvents(window: BrowserWindow) {
     window.webContents.setWindowOpenHandler(() => ({
       action: 'allow',
@@ -114,14 +144,22 @@ export class GameWindow {
     });
   }
 
-  /** Removes the Electron fingerprint from the user agent the page sees. */
-  private registerUserAgent(window: BrowserWindow) {
-    window.webContents.setUserAgent(anonymizeUserAgent(window.webContents.session.getUserAgent()));
+  /** Remote content gets no capability we do not explicitly need. */
+  private hardenSession(window: BrowserWindow) {
+    const gameSession = window.webContents.session;
+
+    gameSession.setPermissionRequestHandler((_contents, permission, callback) => {
+      callback(ALLOWED_PERMISSIONS.has(permission));
+    });
+    gameSession.setPermissionCheckHandler((_contents, permission) =>
+      ALLOWED_PERMISSIONS.has(permission),
+    );
   }
 
   private async useMitmProxy(window: BrowserWindow) {
-    const mitm = getMitmConfig();
-    const proxyRules = `http://${mitm.host}:${mitm.port}`;
+    // The proxy is always addressed over loopback, whatever the machine's
+    // network interfaces look like.
+    const proxyRules = `http://127.0.0.1:${getMitmPort()}`;
     logger.info(`Routing game traffic through MITM proxy: ${proxyRules}`);
 
     await window.webContents.session.setProxy({
@@ -130,16 +168,21 @@ export class GameWindow {
     });
   }
 
+  /** Clears a proxy left behind by an earlier MITM run. */
+  private async useDirectConnection(window: BrowserWindow) {
+    await window.webContents.session.setProxy({ mode: 'direct' });
+  }
+
   /**
    * The debugger API must be attached before the page loads, otherwise the first
    * websocket frames are missed.
    */
-  private attachGameHandler(window: BrowserWindow) {
+  private async attachGameHandler(window: BrowserWindow) {
     try {
       if (window.webContents.isDestroyed()) return;
 
       this.gameHandler = new GameHandler(window.webContents, this.engine);
-      void this.gameHandler.attach();
+      await this.gameHandler.attach();
     } catch (err) {
       logger.error('Failed to attach GameHandler:', err);
     }

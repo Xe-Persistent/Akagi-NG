@@ -48,7 +48,6 @@ export interface Settings {
   majsoul_server: MajsoulServer;
   mitm: {
     enabled: boolean;
-    host: string;
     port: number;
     upstream: string;
   };

@@ -42,11 +42,6 @@
           "default": false,
           "description": "Enable MITM proxy."
         },
-        "host": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "MITM proxy listening host."
-        },
         "port": {
           "type": "integer",
           "default": 6789,
@@ -60,7 +55,7 @@
           "description": "Upstream proxy URL (e.g. http://127.0.0.1:7890)."
         }
       },
-      "required": ["enabled", "host", "port", "upstream"],
+      "required": ["enabled", "port", "upstream"],
       "additionalProperties": false
     },
     "model_config": {

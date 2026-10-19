@@ -98,7 +98,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "icon": "../../assets/torii.png"
+      "icon": "../../assets/torii.png",
+      "executableName": "akagi-ng"
     },
     "copyright": "Copyright (C) 2026 Akagi-NG Contributors"
   }

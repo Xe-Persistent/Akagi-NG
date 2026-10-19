@@ -11,8 +11,7 @@
       "theme_system": "跟随系统",
       "theme_light": "浅色",
       "theme_dark": "深色",
-      "log_level": "日志级别",
-      "log_level_hint": "越靠下记录得越详细。VERBOSE 记录逐条对局细节（解码封包、引擎决策、HUD 推送），反馈问题时请选它；DEBUG 额外记录原始帧字节。"
+      "log_level": "日志级别"
     },
     "connection": {
       "title": "游戏连接",

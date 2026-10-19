@@ -56,10 +56,7 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
         </Select>
       </SettingsItem>
 
-      <SettingsItem
-        label={t('settings.general.log_level')}
-        description={t('settings.general.log_level_hint')}
-      >
+      <SettingsItem label={t('settings.general.log_level')}>
         <Select
           value={settings.log_level}
           onValueChange={(val) => updateSetting(['log_level'], val)}

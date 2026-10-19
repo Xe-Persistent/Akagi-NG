@@ -110,4 +110,4 @@
 
 ---
 
-**Full Changelog**: https://github.com/Xe-Persistent/Akagi-NG/compare/v0.x.x...vX.Y.Z
+**Full Changelog**: https://github.com/Xe-Persistent/Akagi-NG/compare/vA.B.C...vX.Y.Z

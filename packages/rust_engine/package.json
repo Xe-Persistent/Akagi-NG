@@ -2,6 +2,7 @@
   "name": "@akagi-ng/rust-engine",
   "private": true,
   "version": "1.1.0",
+  "license": "Apache-2.0",
   "main": "native/index.js",
   "types": "native/index.d.ts",
   "napi": {

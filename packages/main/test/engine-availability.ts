@@ -15,8 +15,8 @@ const hasAddon = (() => {
 })();
 
 /**
- * The weights are downloaded separately, one file per table size, so a checkout
- * can have the addon but only one of the two models.
+ * The weights live in `models/`; a partial checkout can have the addon but
+ * only one of the two model files.
  */
 export function hasEngineFor(is3p: boolean): boolean {
   return hasAddon && existsSync(`${repoRoot}/models/${is3p ? 'akagi3p' : 'akagi4p'}.safetensors`);

@@ -11,8 +11,7 @@
       "theme_system": "システム設定",
       "theme_light": "ライトテーマ",
       "theme_dark": "ダークテーマ",
-      "log_level": "ログ収集レベル",
-      "log_level_hint": "下にあるほど詳細に記録します。VERBOSE は 1 件ごとの対局内容（デコード済みパケット、エンジンの判断、HUD への送信内容）を記録します — 不具合報告にはこれを選んでください。DEBUG は生のフレームも記録します。"
+      "log_level": "ログ収集レベル"
     },
     "connection": {
       "title": "ゲーム接続",

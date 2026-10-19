@@ -13,8 +13,7 @@
     "log_level": {
       "type": "string",
       "enum": ["error", "warn", "info", "verbose", "debug"],
-      "default": "info",
-      "description": "Logging detail, using electron-log's level names, least detailed first. `verbose` records the per-item game detail (decoded packets, engine decisions, HUD payloads) and is what to use when reporting a problem; `debug` adds the raw frames."
+      "default": "info"
     },
     "locale": {
       "type": "string",
@@ -26,7 +25,7 @@
       "type": "string",
       "default": "https://game.maj-soul.com/1/",
       "readOnly": true,
-      "description": "Backend-derived game URL for internal Electron window."
+      "description": "Game URL derived from the selected Majsoul server."
     },
     "majsoul_server": {
       "type": "string",

@@ -29,9 +29,16 @@ console.log('📦 Preparing release assets...');
     copyFileSync(src, join(extraDir, 'models', modelFile));
     console.log(`   ✅ Bundled model: ${modelFile}`);
   } else {
-    console.warn(`   ⚠️ Model missing, skipped: ${modelFile}`);
+    throw new Error(`Model missing: ${src}`);
   }
 });
+
+const modelLicense = join(rootDir, 'models', 'LICENSE');
+if (!existsSync(modelLicense)) {
+  throw new Error(`Model license missing: ${modelLicense}`);
+}
+copyFileSync(modelLicense, join(extraDir, 'models', 'LICENSE'));
+console.log('   ✅ Bundled model license');
 
 // Git cannot carry an empty directory into a release, hence the placeholders.
 ['logs', 'config'].forEach((folder) => {

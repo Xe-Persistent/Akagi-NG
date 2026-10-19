@@ -46,6 +46,7 @@
       "output": "../../dist/release",
       "buildResources": "../../build"
     },
+    "electronDist": "../../node_modules/electron/dist",
     "files": [
       {
         "from": "../../dist/main",
@@ -74,41 +75,31 @@
       {
         "from": "../../build/extra",
         "to": "."
+      },
+      {
+        "from": "../../README.txt",
+        "to": "."
+      },
+      {
+        "from": "../../LICENSE",
+        "to": "."
       }
     ],
     "npmRebuild": false,
     "win": {
       "target": "zip",
-      "icon": "../../assets/torii.ico",
-      "extraFiles": [
-        {
-          "from": "../../README.txt",
-          "to": "."
-        },
-        {
-          "from": "../../LICENSE",
-          "to": "."
-        }
-      ]
+      "icon": "../../assets/torii.ico"
     },
     "mac": {
       "target": "dmg",
       "icon": "../../assets/torii.icns",
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true
     },
     "linux": {
       "target": "AppImage",
-      "icon": "../../assets/torii.png",
-      "extraFiles": [
-        {
-          "from": "../../README.txt",
-          "to": "."
-        },
-        {
-          "from": "../../LICENSE",
-          "to": "."
-        }
-      ]
+      "icon": "../../assets/torii.png"
     },
     "copyright": "Copyright (C) 2026 Akagi-NG Contributors"
   }

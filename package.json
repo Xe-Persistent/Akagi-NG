@@ -22,7 +22,7 @@
     "clean": "tsx scripts/clean.ts",
     "sync-version": "tsx scripts/sync_version.ts",
     "prepare-release": "tsx scripts/prepare_release.ts",
-    "build": "npm run clean && npm run sync-version && npm run build -w @akagi-ng/frontend && npm run build -w @akagi-ng/main && npm run prepare-release && npm run package -w @akagi-ng/main",
+    "build": "npm run clean && npm run sync-version && npm run build -w @akagi-ng/rust-engine && npm run build -w @akagi-ng/frontend && npm run build -w @akagi-ng/main && npm run prepare-release && npm run package -w @akagi-ng/main",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",

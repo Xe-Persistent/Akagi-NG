@@ -10,7 +10,8 @@
   "files": [
     "index.js",
     "index.d.ts",
-    "*.node"
+    "*.node",
+    "LICENSE"
   ],
   "scripts": {
     "artifacts": "napi artifacts",

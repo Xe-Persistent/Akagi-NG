@@ -18,6 +18,10 @@ It does not modify the game client and does not perform automatic gameplay.
 2. Double-click `Akagi-NG`  
 3. The first launch may take longer due to initialization
 
+> macOS: the build is unsigned and not notarized. On first launch, right-click `Akagi-NG.app` and choose **Open**, or allow it in **System Settings → Privacy & Security**. If macOS still blocks it, run `xattr -dr com.apple.quarantine /Applications/Akagi-NG.app`.
+
+> macOS：构建未签名、未公证。首次启动请右键点击 `Akagi-NG.app` 选择“打开”，或在“系统设置 → 隐私与安全性”中允许运行；若仍被拦截，可执行 `xattr -dr com.apple.quarantine /Applications/Akagi-NG.app`。
+
 ---
 
 ## Configuration | 配置说明

@@ -29,6 +29,10 @@ flags:
       - packages/main/src/
       - packages/frontend/src/
     carryforward: true
+  rust:
+    paths:
+      - packages/rust_engine/src/
+    carryforward: true
 
 comment:
   layout: diff,flags,files,footer
@@ -40,7 +44,8 @@ comment:
 ignore:
   - packages/*/test/
   - packages/*/dist/
-  - packages/rust_engine/
+  - packages/rust_engine/target/
+  - packages/rust_engine/tests/
   - scripts/
   - docs/
   - dist/

@@ -3,6 +3,7 @@ import { errorMessage } from '../../shared/errors.js';
 import { MahjongConstants } from '../../shared/schema/mahjong.js';
 import type { LiqiMessage, LiqiProto } from './liqi.js';
 import { MsgType } from './liqi.js';
+import { MAJSOUL_METHODS } from './wire.js';
 
 const logger = createLogger('MajsoulSync');
 
@@ -59,7 +60,7 @@ function parseSyncGameActionItem(actionDict: Payload, liqiProto: LiqiProto): Liq
   return {
     id: -1,
     type: MsgType.Notify,
-    method: '.lq.ActionPrototype',
+    method: MAJSOUL_METHODS.actionPrototype,
     data: { ...actionDict, data: innerDict },
   };
 }

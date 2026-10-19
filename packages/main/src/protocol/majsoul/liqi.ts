@@ -5,9 +5,15 @@ import * as protobuf from 'protobufjs';
 import { createLogger } from '../../logging/index.js';
 import { errorMessage } from '../../shared/errors.js';
 import { getAssetPath } from '../../shared/paths.js';
-import { LiqiProtocolConstants } from './consts.js';
 
 const logger = createLogger('Liqi');
+
+/** Protobuf wire types, read from the low three bits of a field tag. */
+const WIRE_VARINT = 0;
+const WIRE_BYTES = 2;
+
+/** A request wrapper is exactly two blocks: the method name and its payload. */
+const REQUEST_BLOCK_COUNT = 2;
 
 export enum MsgType {
   Notify = 1,
@@ -114,11 +120,11 @@ export function fromProtobuf(buf: Buffer): LiqiBlock[] {
     const blockId = buf[p] >> 3;
     p++;
 
-    if (blockType === LiqiProtocolConstants.BLOCK_TYPE_VARINT) {
+    if (blockType === WIRE_VARINT) {
       const [value, nextPosition] = parseVarint(buf, p);
       blocks.push({ kind: 'varint', id: blockId, begin, value });
       p = nextPosition;
-    } else if (blockType === LiqiProtocolConstants.BLOCK_TYPE_STRING) {
+    } else if (blockType === WIRE_BYTES) {
       const [length, nextPosition] = parseVarint(buf, p);
       const bytes = buf.subarray(nextPosition, nextPosition + length);
       blocks.push({ kind: 'bytes', id: blockId, begin, bytes });
@@ -276,7 +282,7 @@ export class LiqiProto {
 
   private parseRequest(msgId: number, blocks: LiqiBlock[]): [string, Record<string, unknown>] {
     if (msgId >= 1 << 16) throw new Error(`msg_id ${msgId} exceeds max value`);
-    if (blocks.length !== LiqiProtocolConstants.MSG_BLOCK_SIZE) {
+    if (blocks.length !== REQUEST_BLOCK_COUNT) {
       throw new Error(`Invalid msg_block size: ${blocks.length}`);
     }
 
@@ -317,7 +323,8 @@ export class LiqiProto {
   }
 
   private parseResponse(msgId: number, blocks: LiqiBlock[]): [string, Record<string, unknown>] {
-    if (this.readBytes(blocks, 0).length !== LiqiProtocolConstants.EMPTY_DATA_LEN) {
+    // The first block of a response is a placeholder the client never fills.
+    if (this.readBytes(blocks, 0).length !== 0) {
       throw new Error('Response first block not empty');
     }
 

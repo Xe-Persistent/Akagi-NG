@@ -49,7 +49,7 @@ export class MajsoulStateTracker {
    */
   public setupNewRound(tiles: string[]): { tehais: string[][]; myTsumohai: string | null } | null {
     const tehais = Array.from({ length: MahjongConstants.SEATS_4P }, () =>
-      Array<string>(MahjongConstants.TEHAI_SIZE).fill('?'),
+      Array<string>(MahjongConstants.TEHAI_SIZE).fill(MahjongConstants.UNKNOWN_TILE),
     );
 
     const hand = tiles.slice(0, MahjongConstants.TEHAI_SIZE).map((tile) => toMjaiTile(tile));

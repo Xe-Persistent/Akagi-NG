@@ -4,7 +4,7 @@ import { MahjongConstants } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import type { BridgeOutput } from '../base-bridge.js';
 import { BaseBridge } from '../base-bridge.js';
-import { OperationAnGangAddGang, OperationChiPengGang } from './consts.js';
+import { MAJSOUL_METHODS, OperationAnGangAddGang, OperationChiPengGang } from './wire.js';
 import type { LiqiMessage } from './liqi.js';
 import { LiqiProto, MsgType } from './liqi.js';
 import { MajsoulStateTracker } from './state-tracker.js';
@@ -23,6 +23,18 @@ interface ActionPrototype extends ActionPayload {
   data: ActionPayload;
 }
 
+/**
+ * How many tiles each call reports. The protocol guarantees these counts, so the
+ * handlers turn any other length into a hard error rather than a silent meld.
+ */
+const MELD_TILES = {
+  chi: 2,
+  pon: 2,
+  daiminkan: 3,
+  ankan: 4,
+  kakan: 3,
+} as const;
+
 /** `chang` (the round-wind index) to the mjai round-wind tile. */
 const ROUND_WINDS = ['E', 'S', 'W', 'N'] as const;
 
@@ -36,13 +48,6 @@ const STALE_DEAL_ACTIONS = new Set([
   'ActionHuleXueZhanMid',
   'ActionHuleXueZhanEnd',
 ]);
-
-/**
- * The game websocket's keep-alive. It carries no game state and arrives as a
- * Req/Res pair every few seconds, which at one capture line per frame would
- * drown the game itself, so it is decoded but not recorded.
- */
-const HEARTBEAT_METHOD = '.lq.Route.heartbeat';
 
 /** The round's first dora marker, before any indicator has been reported. */
 function toMjaiTileOrUnknown(doras: string[] | undefined): string {
@@ -103,7 +108,8 @@ export class MajsoulBridge extends BaseBridge {
     try {
       this.replayed = false;
       const parsed = this.liqiProto.parse(content);
-      const isHeartbeat = parsed.kind === 'message' && parsed.message.method === HEARTBEAT_METHOD;
+      const isHeartbeat =
+        parsed.kind === 'message' && parsed.message.method === MAJSOUL_METHODS.heartbeat;
 
       // The frame's own bytes, one level deeper than the decoded line: what a
       // decode this build gets wrong needs to reproduce. The keep-alive stays out
@@ -144,16 +150,16 @@ export class MajsoulBridge extends BaseBridge {
     const { method, type } = liqiMessage;
 
     switch (method) {
-      case '.lq.FastTest.syncGame':
+      case MAJSOUL_METHODS.syncGame:
         return type === MsgType.Res ? this.parseSyncGame(liqiMessage) : [];
-      case '.lq.FastTest.enterGame':
+      case MAJSOUL_METHODS.enterGame:
         return type === MsgType.Res ? this.parseEnterGame(liqiMessage) : [];
-      case '.lq.FastTest.authGame':
+      case MAJSOUL_METHODS.authGame:
         return this.handleAuthGame(liqiMessage, type);
-      case '.lq.ActionPrototype':
+      case MAJSOUL_METHODS.actionPrototype:
         return this.handleActionPrototype(liqiMessage);
-      case '.lq.NotifyGameEndResult':
-      case '.lq.NotifyGameTerminate':
+      case MAJSOUL_METHODS.gameEndResult:
+      case MAJSOUL_METHODS.gameTerminate:
         return this.handleGameEnd();
       default:
         return [];
@@ -414,17 +420,17 @@ export class MajsoulBridge extends BaseBridge {
 
     switch (data.type) {
       case OperationChiPengGang.Chi:
-        if (consumed.length !== MahjongConstants.CHI_CONSUMED) {
+        if (consumed.length !== MELD_TILES.chi) {
           throw new Error('Invalid consumed count');
         }
         return [this.makeChi(actor, target, pai, consumed)];
       case OperationChiPengGang.Peng:
-        if (consumed.length !== MahjongConstants.PON_CONSUMED) {
+        if (consumed.length !== MELD_TILES.pon) {
           throw new Error('Invalid consumed count');
         }
         return [this.makePon(actor, target, pai, consumed)];
       case OperationChiPengGang.Gang:
-        if (consumed.length !== MahjongConstants.DAIMINKAN_CONSUMED) {
+        if (consumed.length !== MELD_TILES.daiminkan) {
           throw new Error('Invalid consumed count');
         }
         return [this.makeDaiminkan(actor, target, pai, consumed)];
@@ -464,8 +470,7 @@ export class MajsoulBridge extends BaseBridge {
    * a red `pai` is not part of it.
    */
   private buildKanTiles(pai: string, kind: 'closed' | 'added'): string[] {
-    const count =
-      kind === 'closed' ? MahjongConstants.ANKAN_TILES : MahjongConstants.KAKAN_CONSUMED;
+    const count = kind === 'closed' ? MELD_TILES.ankan : MELD_TILES.kakan;
     const consumed = Array<string>(count).fill(pai.replace('r', ''));
     const carriesRed = isSuitFive(pai) && (kind === 'closed' || !isRedFive(pai));
     if (carriesRed) consumed[0] += 'r';

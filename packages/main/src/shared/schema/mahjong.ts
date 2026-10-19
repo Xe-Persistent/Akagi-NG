@@ -1,3 +1,11 @@
+/**
+ * The shape of a mahjong table, shared by everything that has to know one: the
+ * protocol bridge, the round tracker and the reconnect replay.
+ *
+ * Only table-level vocabulary belongs here. What one wire message happens to
+ * report -- how many tiles a pon names, say -- is that parser's business and
+ * lives with it.
+ */
 export const MahjongConstants = {
   // Stand-in for a tile that has not been revealed yet.
   UNKNOWN_TILE: '?',
@@ -7,10 +15,4 @@ export const MahjongConstants = {
 
   TEHAI_SIZE: 13,
   TSUMO_TEHAI_SIZE: 14,
-
-  CHI_CONSUMED: 2,
-  PON_CONSUMED: 2,
-  DAIMINKAN_CONSUMED: 3,
-  ANKAN_TILES: 4,
-  KAKAN_CONSUMED: 3,
 } as const;

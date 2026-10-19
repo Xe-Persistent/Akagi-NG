@@ -121,11 +121,15 @@ jobs:
         working-directory: packages/rust_engine
         run: cargo clippy --locked --all-targets
 
+      # `dyn-symbols` lets napi resolve its symbols from the Node host at run
+      # time instead of linking against them, which is how the Windows build
+      # already works. Without it the parity test binary has no host to link
+      # against and dies with "undefined symbol: napi_*".
       - name: Test the inference engine
         working-directory: packages/rust_engine
         run: |
           mkdir -p ../../coverage
-          cargo llvm-cov --locked --all-targets --lcov --output-path ../../coverage/rust-lcov.info
+          cargo llvm-cov --locked --all-targets --features dyn-symbols --lcov --output-path ../../coverage/rust-lcov.info
 
       - name: Normalize Rust coverage paths
         run: sed -i 's#^SF:.*/packages/rust_engine/#SF:packages/rust_engine/#' coverage/rust-lcov.info

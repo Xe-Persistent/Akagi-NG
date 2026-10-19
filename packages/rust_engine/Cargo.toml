@@ -16,6 +16,14 @@ license = "Apache-2.0"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# napi's own default. This crate links the cdylib against the host's N-API
+# symbols instead, which a test binary cannot do: it has no host to link
+# against, so `cargo test` fails with "undefined symbol: napi_*". Turning the
+# feature on resolves them at run time instead, exactly as the Windows build
+# already does.
+dyn-symbols = ["napi/dyn-symbols"]
+
 [dependencies]
 napi = { version = "3.14", default-features = false, features = ["napi4"] }
 napi-derive = "3.6"

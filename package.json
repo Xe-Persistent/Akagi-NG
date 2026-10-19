@@ -31,7 +31,7 @@
     "test:coverage": "vitest run --coverage --project main --project frontend",
     "test:watch": "vitest --project main --project frontend",
     "test:integration": "vitest run --project integration",
-    "test:rust": "cargo test --locked --manifest-path packages/rust_engine/Cargo.toml",
+    "test:rust": "cargo test --locked --features dyn-symbols --manifest-path packages/rust_engine/Cargo.toml",
     "typecheck": "tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/frontend/tsconfig.node.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {

@@ -12,12 +12,22 @@ const mainAlias = { electron: fromRoot('./packages/main/test/electron-stub.ts') 
 
 export default defineConfig({
   test: {
+    /**
+     * `electron-log` requires the `electron` package, whose entry point
+     * downloads the ~100 MB binary when its postinstall left no `path.txt`
+     * behind — which is what a CI runner can end up with. Tests never launch
+     * Electron, so pointing the lookup at a path that need not exist keeps the
+     * require local and network-free.
+     */
+    env: { ELECTRON_OVERRIDE_DIST_PATH: fromRoot('./packages/main/test') },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: fromRoot('./coverage'),
       include: ['packages/main/src/**/*.{ts,cts}', 'packages/frontend/src/**/*.{ts,tsx}'],
-      exclude: ['**/*.d.ts', '**/test/**'],
+      // `preload.cts` runs inside Electron's contextBridge and cannot be loaded
+      // under Node; the coverage parser cannot even read it.
+      exclude: ['**/*.d.ts', '**/test/**', 'packages/main/src/preload.cts'],
     },
     projects: [
       {

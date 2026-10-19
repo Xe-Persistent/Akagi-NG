@@ -4,13 +4,13 @@ import { MahjongConstants } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import type { BridgeOutput } from '../base-bridge.js';
 import { BaseBridge } from '../base-bridge.js';
-import { MAJSOUL_METHODS, OperationAnGangAddGang, OperationChiPengGang } from './wire.js';
 import type { LiqiMessage } from './liqi.js';
 import { LiqiProto, MsgType } from './liqi.js';
 import { MajsoulStateTracker } from './state-tracker.js';
 import { is3pFromSyncSnapshot, parseSyncGameActions } from './sync-replay.js';
 import { toMjaiTile } from './tile-mapping.js';
-import { applySwap, isXuezhanRule, parseXuezhanWins } from './xuezhan.js';
+import { MAJSOUL_METHODS, OperationAnGangAddGang, OperationChiPengGang } from './wire.js';
+import { applySwap, isXuezhanRule } from './xuezhan.js';
 
 const logger = createLogger('MajsoulBridge');
 
@@ -40,6 +40,9 @@ const ROUND_WINDS = ['E', 'S', 'W', 'N'] as const;
 
 /** ActionPrototype names that end the current kyoku. */
 const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu']);
+
+/** `ActionLiuJu.type` for 三家和了, which is a ron and not an ordinary abort. */
+const LIUJU_THREE_RONS = 5;
 
 /** Round-level actions that mean a swap will never arrive for a held deal. */
 const STALE_DEAL_ACTIONS = new Set([
@@ -192,9 +195,15 @@ export class MajsoulBridge extends BaseBridge {
     const action = liqiMessage.data as ActionPrototype;
     this.dropUnswappedDeal(action.name);
 
-    // A round-ending action settles and ends the kyoku; the held reach_accepted
-    // is deliberately dropped, because a round that ends here never accepted it.
-    if (END_ROUND_ACTIONS.has(action.name)) return this.roundEndEvents(action);
+    // A riichi declared with the previous discard is accepted unless this action
+    // is a ron on it, which voids the declaration and its deposit.
+    const events: MJAIEvent[] = [];
+    this.flushPendingReachAccepted(events, this.settlesByRon(action));
+
+    if (END_ROUND_ACTIONS.has(action.name)) {
+      events.push(...this.settlementEvents(action), this.makeEndKyoku());
+      return events;
+    }
 
     const handler = this.actionHandlers[action.name];
     if (!handler) {
@@ -203,28 +212,117 @@ export class MajsoulBridge extends BaseBridge {
       logger.verbose(`Unhandled ActionPrototype: ${action.name}`);
     }
 
-    const events = handler ? handler(action) : [];
-    this.flushPendingReachAccepted(events);
+    if (handler) events.push(...handler(action));
     events.push(...this.handleDoraUpdate(action));
     return events;
   }
 
-  /** The mode's own settlement (if any), then the round's end. */
-  private roundEndEvents(action: ActionPrototype): MJAIEvent[] {
-    const settlement = action.name === 'ActionNoTile' ? this.handleNoTile(action) : [];
-    return [...settlement, this.makeEndKyoku()];
+  /**
+   * Whether the action is a ron, which is the one way a round can move on that
+   * voids a riichi declared with the discard before it: nobody pays the deposit
+   * and the declaration never stands. A triple ron aborts the hand the same way.
+   */
+  private settlesByRon(action: ActionPrototype): boolean {
+    if (action.name === 'ActionLiuJu') return action.data.type === LIUJU_THREE_RONS;
+    if (!action.name.includes('Hule')) return false;
+
+    return this.readWins(action).some((win) => !win.zimo);
+  }
+
+  /**
+   * What the table settled before the round closed. Without it the three ways a
+   * round can end -- a win, an exhaustive draw and an abortive draw -- are
+   * indistinguishable in the event stream, since `end_kyoku` carries nothing.
+   */
+  private settlementEvents(action: ActionPrototype): MJAIEvent[] {
+    switch (action.name) {
+      case 'ActionHule':
+        // `scores` is the table after the win: `oldScores + deltaScores` equals
+        // it in every capture, including the plain four-player one
+        // (`logs/akagi_20261019_130714.log`) that settled the question.
+        return this.horaEvents(action, (action.data.scores as number[] | undefined) ?? []);
+      case 'ActionNoTile':
+        return this.handleNoTile(action);
+      case 'ActionLiuJu':
+        return this.handleLiuJu(action);
+      default:
+        return [];
+    }
+  }
+
+  /** The reason strings `riichienv` gives the same aborts. */
+  private static readonly LIUJU_REASONS: Record<number, string> = {
+    1: 'kyushu_kyuhai',
+    2: 'sufuurenta',
+    3: 'suukansansen',
+    4: 'suucha_riichi',
+    5: 'sanchaho',
+  };
+
+  /**
+   * An abortive draw: the hand never finished, so there is nothing to pay out.
+   * `type` is a bare number in `liqi.proto`; the meanings are the ones the game's
+   * other protocol readers agree on, in the order the game numbers them.
+   *
+   * Some types also reveal hands -- nine terminals shows the declarer's, four
+   * riichi shows every seat, and a triple ron leaves out the discarder -- but the
+   * event's `tehais` slot is not filled: the wire format of those strings has not
+   * been seen in a capture, and `riichienv` does not read the field.
+   */
+  private handleLiuJu(action: ActionPrototype): MJAIEvent[] {
+    const type = action.data.type as number | undefined;
+    const reason = type === undefined ? undefined : MajsoulBridge.LIUJU_REASONS[type];
+    if (type !== undefined && reason === undefined) {
+      logger.warn(`Unknown ActionLiuJu type ${type}`);
+    }
+
+    return [this.makeRyukyoku([], [], [], reason)];
+  }
+
+  /**
+   * One `hora` per win the settlement reports. A ron is charged to whoever
+   * discarded last; a self-draw has no target.
+   */
+  private horaEvents(action: ActionPrototype, scores: number[]): MJAIEvent[] {
+    const deltas = (action.data.deltaScores as number[] | undefined) ?? [];
+
+    return this.readWins(action).map((win) => {
+      if (!win.zimo && this.state.lastDiscard === null) {
+        logger.warn(`Ron in ${action.name} without a discard to attribute it to`);
+      }
+      const target = win.zimo ? win.seat : (this.state.lastDiscard ?? win.seat);
+
+      return this.makeHora(win.seat, target, toMjaiTile(win.pai), scores, deltas);
+    });
+  }
+
+  /**
+   * The wins a settlement names, in the order the table lists them. A blood
+   * battle repeats the round's earlier wins in `hulesHistory`, which the Mid
+   * events already reported, so only `hules` is read.
+   */
+  private readWins(action: ActionPrototype): { seat: number; pai: string; zimo: boolean }[] {
+    const hules = (action.data.hules as ActionPayload[] | undefined) ?? [];
+
+    return hules.map((hule) => ({
+      seat: hule.seat as number,
+      pai: hule.huTile as string,
+      zimo: hule.zimo === true,
+    }));
   }
 
   /**
    * Majsoul fuses the riichi declaration and the discard, so the accepted event
-   * is held back and appended after the next action has been reported.
+   * is held back until the next action proves the declaration stood. A ron on
+   * that discard is the exception: the deposit is never paid, so the held event
+   * is dropped instead of reported.
    */
-  private flushPendingReachAccepted(events: MJAIEvent[]) {
+  private flushPendingReachAccepted(events: MJAIEvent[], ronned = false) {
     const accepted = this.state.pendingReachAccepted;
     if (!accepted) return;
 
-    events.push(accepted);
     this.state.pendingReachAccepted = null;
+    if (!ronned) events.push(accepted);
   }
 
   /**
@@ -313,22 +411,11 @@ export class MajsoulBridge extends BaseBridge {
    * the rest carry on. Only the third win ends it (`ActionHuleXueZhanEnd`).
    */
   private handleXuezhanHule(action: ActionPrototype, endsRound: boolean): MJAIEvent[] {
-    const data = action.data;
-    const scores = (data.scores as number[] | undefined) ?? [];
-    const deltas = (data.deltaScores as number[] | undefined) ?? [];
-    const events: MJAIEvent[] = [];
+    const scores = (action.data.scores as number[] | undefined) ?? [];
+    // The final win's `hulesHistory` repeats what the Mid events already
+    // reported, so only `hules` is converted.
+    const events = this.horaEvents(action, scores);
 
-    for (const win of parseXuezhanWins(data)) {
-      // A ron is charged to whoever discarded last; a self-draw has no target.
-      if (!win.zimo && this.state.lastDiscard === null) {
-        logger.warn('Xuezhan ron without a discard to attribute it to');
-      }
-      const target = win.zimo ? win.seat : (this.state.lastDiscard ?? win.seat);
-      events.push(this.makeHora(win.seat, target, toMjaiTile(win.pai), scores, deltas));
-    }
-
-    // The final win ends the round. Its `hulesHistory` repeats what the Mid
-    // events already reported, so it is not converted again.
     if (endsRound) events.push(this.makeEndKyoku());
 
     return events;
@@ -344,10 +431,17 @@ export class MajsoulBridge extends BaseBridge {
     const players = (data.players as ActionPayload[] | undefined) ?? [];
     const settlement = ((data.scores as ActionPayload[] | undefined)?.[0] ?? {}) as ActionPayload;
     const deltas = (settlement.deltaScores as number[] | undefined) ?? [];
-    const scores = (settlement.oldScores as number[] | undefined) ?? [];
+    const before = (settlement.oldScores as number[] | undefined) ?? [];
+    // The payload reports the table before the draw and the change; the event
+    // reports it after, as a win does. Verified against every capture: the sum
+    // matches the next round's opening scores.
+    const scores = before.map((value, seat) => value + (deltas[seat] ?? 0));
     const tenpais = players.map((player) => player.tingpai === true && player.alreadyHule !== true);
+    // A nagashi mangan pays like a win, so a plain exhaustive draw is not the
+    // only thing this action can report.
+    const reason = data.liujumanguan === true ? 'nagashimangan' : 'exhaustive_draw';
 
-    return [this.makeRyukyoku(scores, deltas, tenpais)];
+    return [this.makeRyukyoku(scores, deltas, tenpais, reason)];
   }
 
   private handleDealTile(action: ActionPrototype): MJAIEvent[] {
@@ -382,8 +476,8 @@ export class MajsoulBridge extends BaseBridge {
     this.state.onDiscard(actor, pai, tsumogiri);
 
     if (data.isLiqi) {
-      // Majsoul fuses the riichi declaration and the discard; the accepted
-      // event is appended after the discard has been reported.
+      // Majsoul fuses the riichi declaration and the discard, and only the next
+      // action can prove nobody ronned it, so the acceptance is held until then.
       this.state.pendingReachAccepted = this.makeReachAccepted(actor);
     }
 

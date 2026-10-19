@@ -12,15 +12,6 @@
  * - the match ends on a knockout (`NotifyGameEndResult`), not on a payload flag.
  */
 
-/** A win as the mode reports it, before it becomes a mjai event. */
-export interface XuezhanWin {
-  seat: number;
-  pai: string;
-  zimo: boolean;
-}
-
-type Payload = Record<string, unknown>;
-
 /** The room rules arrive with `authGame`; `xuezhandaodi` is the blood battle. */
 export function isXuezhanRule(gameConfig: unknown): boolean {
   const rule = (gameConfig as { mode?: { detailRule?: { xuezhandaodi?: number } } } | undefined)
@@ -48,19 +39,4 @@ export function applySwap(
   }
 
   return { hand: [...hand, ...incoming], missing };
-}
-
-/**
- * Reads a mid-game or final blood-battle win. The payload repeats the round's
- * earlier wins in `hulesHistory`, which the Mid events already reported, so only
- * `hules` is converted.
- */
-export function parseXuezhanWins(data: Payload): XuezhanWin[] {
-  const hules = (data.hules as Payload[] | undefined) ?? [];
-
-  return hules.map((hule) => ({
-    seat: hule.seat as number,
-    pai: hule.huTile as string,
-    zimo: hule.zimo === true,
-  }));
 }

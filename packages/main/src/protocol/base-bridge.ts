@@ -255,11 +255,16 @@ export abstract class BaseBridge {
     };
   }
 
-  /** An exhaustive draw, with the payments the game reported. */
+  /**
+   * A draw, with the payments the game reported and, when the protocol says so,
+   * why the hand was aborted. The reason strings are the ones `riichienv` uses
+   * for its own draws, so a replayed and a live round describe themselves alike.
+   */
   public makeRyukyoku(
     scores: number[],
     deltas: number[],
     tenpais: boolean[],
+    reason?: string,
     sync?: boolean,
   ): RyukyokuEvent {
     return {
@@ -267,6 +272,7 @@ export abstract class BaseBridge {
       scores,
       deltas,
       tenpais,
+      ...(reason ? { reason } : {}),
       sync: this.resolveSync(sync),
     };
   }

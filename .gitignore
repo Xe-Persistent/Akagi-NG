@@ -2,7 +2,6 @@
 Thumbs.db
 
 .idea/
-.venv/
 build/
 /config/
 dist/
@@ -11,10 +10,7 @@ node_modules/
 target/
 tmp/
 *.node
+*.tsbuildinfo
+.eslintcache
 
-.coverage
-.coverage.*
 coverage/
-coverage.xml
-htmlcov/
-*.cover

@@ -12,6 +12,7 @@ import { MitmProxyManager } from './services/capture/mitm-proxy.js';
 import { EngineService } from './services/engine/engine-service.js';
 import { getSettingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
+import { anonymizeUserAgent } from './shared/user-agent.js';
 
 // A second launch must not add a second tray icon or a second capture session.
 const gotTheLock = app.requestSingleInstanceLock();
@@ -28,6 +29,10 @@ const logger = createLogger('Main');
 logger.info(`Starting Akagi-NG Desktop v${app.getVersion()}...`);
 logger.info(`System: ${os.type()} ${os.release()} (${os.arch()})`);
 logger.info(`Node.js: ${process.versions.node} | Electron: ${process.versions.electron}`);
+
+// Electron advertises itself and the app in the default agent; clean it once
+// so every window — including OAuth popups — matches plain Chrome.
+app.userAgentFallback = anonymizeUserAgent(app.userAgentFallback);
 
 const engineService = new EngineService();
 const mitmProxyManager = new MitmProxyManager(engineService);

@@ -37,13 +37,21 @@ export class EngineService {
   /**
    * Feeds a batch of mjai events (already converted from the game protocol) into
    * the engine and answers at decision points.
+   *
+   * @param replayed - the batch is a restore's history: everything but its last
+   * event describes a position the game has already left
    */
-  public async ingest(events: MJAIEvent[]) {
+  public async ingest(events: MJAIEvent[], replayed = false) {
     // The mock stream publishes on its own; a captured game interleaving with it
     // would make the HUD flicker between two sources. No model is loaded either.
     if (this.isMockMode) return;
 
-    for (const ev of events) {
+    // Only the end of a replay is the state the table is in now; reacting to the
+    // rest would broadcast one stale recommendation per historical decision.
+    const liveFrom = replayed ? events.length - 1 : 0;
+
+    for (let index = 0; index < events.length; index++) {
+      const ev = events[index];
       this.trackTileContext(ev);
       this.trackRoundState(ev);
 
@@ -53,9 +61,7 @@ export class EngineService {
         this.feed(ev);
       }
 
-      // A reconnect replay feeds history back in: reacting to it would broadcast
-      // one stale recommendation per historical decision point.
-      if (ev.sync !== true && this.isDecisionPoint(ev)) {
+      if (index >= liveFrom && this.isDecisionPoint(ev)) {
         this.react();
       }
     }

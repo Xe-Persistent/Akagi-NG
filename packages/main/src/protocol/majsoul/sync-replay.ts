@@ -27,24 +27,22 @@ export function is3pFromSyncSnapshot(liqiMessage: LiqiMessage): boolean | null {
 /**
  * Unpacks the base64 action history of `gameRestore` into ActionPrototype
  * shaped messages so they can be replayed through the normal handlers.
+ *
+ * One unreadable entry is skipped rather than allowed to cost the rest of the
+ * history: the replay is the only way back into an in-progress hand, and a
+ * truncated log would leave it half-rebuilt.
  */
 export function parseSyncGameActions(
   liqiMessage: LiqiMessage,
   liqiProto: LiqiProto,
 ): LiqiMessage[] {
+  const restore = (liqiMessage.data as Payload | undefined)?.gameRestore as Payload | undefined;
+  if (!restore) return [];
+
   const messages: LiqiMessage[] = [];
-
-  try {
-    const data = liqiMessage.data as Payload | undefined;
-    const restore = data?.gameRestore as Payload | undefined;
-    if (!restore) return [];
-
-    for (const action of (restore.actions ?? []) as Payload[]) {
-      const item = parseSyncGameActionItem(action, liqiProto);
-      if (item) messages.push(item);
-    }
-  } catch (e) {
-    logger.error(`Error parsing sync game: ${errorMessage(e)}`);
+  for (const action of (restore.actions ?? []) as Payload[]) {
+    const item = parseSyncGameActionItem(action, liqiProto);
+    if (item) messages.push(item);
   }
 
   return messages;
@@ -52,15 +50,31 @@ export function parseSyncGameActions(
 
 function parseSyncGameActionItem(actionDict: Payload, liqiProto: LiqiProto): LiqiMessage | null {
   const innerName = actionDict.name as string;
-  const rawData = Buffer.from(actionDict.data as string, 'base64');
-  const innerDict = liqiProto.parseWrapper(innerName, rawData, false);
 
-  if (!innerDict) return null;
+  try {
+    // Unlike a live action, the payload stored in a restore is not XOR
+    // scrambled, so it decodes as it is.
+    const innerDict = liqiProto.parseWrapper(
+      innerName,
+      Buffer.from(actionDict.data as string, 'base64'),
+      false,
+    );
 
-  return {
-    id: -1,
-    type: MsgType.Notify,
-    method: MAJSOUL_METHODS.actionPrototype,
-    data: { ...actionDict, data: innerDict },
-  };
+    if (!innerDict) {
+      logger.warn(`Skipping a restore action this build cannot decode: ${innerName}`);
+      return null;
+    }
+
+    return {
+      id: -1,
+      type: MsgType.Notify,
+      method: MAJSOUL_METHODS.actionPrototype,
+      data: { ...actionDict, data: innerDict },
+    };
+  } catch (e) {
+    logger.warn(
+      `Skipping a restore action that failed to decode: ${innerName} (${errorMessage(e)})`,
+    );
+    return null;
+  }
 }

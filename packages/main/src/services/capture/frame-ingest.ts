@@ -30,7 +30,7 @@ export async function ingestCapturedFrame(
     }
 
     if (output.events.length > 0) {
-      await engine.ingest(output.events);
+      await engine.ingest(output.events, output.replayed === true);
     }
   } catch (error) {
     logger.error(`Failed to process a ${source} frame:`, error);

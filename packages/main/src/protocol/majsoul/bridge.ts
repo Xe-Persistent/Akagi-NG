@@ -97,8 +97,7 @@ export class MajsoulBridge extends BaseBridge {
     return this.state.gameEnded;
   }
 
-  public override reset() {
-    super.reset();
+  public reset() {
     this.state.reset();
     this.pendingDeal = null;
   }
@@ -154,9 +153,8 @@ export class MajsoulBridge extends BaseBridge {
 
     switch (method) {
       case MAJSOUL_METHODS.syncGame:
-        return type === MsgType.Res ? this.parseSyncGame(liqiMessage) : [];
       case MAJSOUL_METHODS.enterGame:
-        return type === MsgType.Res ? this.parseEnterGame(liqiMessage) : [];
+        return type === MsgType.Res ? this.replayRestore(liqiMessage) : [];
       case MAJSOUL_METHODS.authGame:
         return this.handleAuthGame(liqiMessage, type);
       case MAJSOUL_METHODS.actionPrototype:
@@ -594,39 +592,30 @@ export class MajsoulBridge extends BaseBridge {
     return [this.makeEndGame()];
   }
 
-  // ===== Reconnect / sync replay =====
+  // ===== Reconnect / restore replay =====
 
-  private parseSyncGame(liqiMessage: LiqiMessage): MJAIEvent[] {
+  /**
+   * Both `syncGame` and `enterGame` answer a reconnect with a `game_restore`
+   * whose `actions[]` is the whole kyoku so far, and replaying it through the
+   * normal per-action path is what rebuilds the state a restarted app would
+   * otherwise have lost. Entering a table carries no restore until the client is
+   * actually mid-match, so an empty one has to be a no-op.
+   */
+  private replayRestore(liqiMessage: LiqiMessage): MJAIEvent[] {
     this.applySnapshotMode(liqiMessage);
 
-    const syncGameMsgs = parseSyncGameActions(liqiMessage, this.liqiProto);
-    const parsedList: MJAIEvent[] = [];
-    this.replayed = true;
+    const actions = parseSyncGameActions(liqiMessage, this.liqiProto);
+    // Only a frame that actually replayed history is a replay: a fresh-table
+    // `enterGame` restores nothing and the session status would be wrong to say
+    // it did.
+    this.replayed = actions.length > 0;
 
-    try {
-      for (let i = 0; i < syncGameMsgs.length; i++) {
-        // The last replayed frame is not historical: it is the state the game is
-        // in now, so it must be allowed to produce a recommendation.
-        this.syncing = i !== syncGameMsgs.length - 1;
-        parsedList.push(...this.handleActionPrototype(syncGameMsgs[i]));
-      }
-    } finally {
-      this.syncing = false;
+    const events: MJAIEvent[] = [];
+    for (const action of actions) {
+      events.push(...this.handleActionPrototype(action));
     }
 
-    return parsedList;
-  }
-
-  private parseEnterGame(liqiMessage: LiqiMessage): MJAIEvent[] {
-    this.syncing = false;
-    this.applySnapshotMode(liqiMessage);
-
-    const parsedList: MJAIEvent[] = [];
-    for (const msg of parseSyncGameActions(liqiMessage, this.liqiProto)) {
-      parsedList.push(...this.handleActionPrototype(msg));
-    }
-
-    return parsedList;
+    return events;
   }
 
   private applySnapshotMode(liqiMessage: LiqiMessage) {

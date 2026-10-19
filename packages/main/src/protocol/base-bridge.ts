@@ -31,18 +31,14 @@ export interface BridgeOutput {
    * events. A frame that carries no liqi message at all is not a failure.
    */
   parseFailed?: boolean;
-  /** The frame carried a reconnect replay, i.e. the events are history being re-fed. */
+  /**
+   * The frame replayed a restore's action history, so everything but the last
+   * event describes a position the game has already left.
+   */
   replayed?: boolean;
 }
 
 export abstract class BaseBridge {
-  /** True while a reconnect replay is in progress; stamped on emitted events. */
-  public syncing: boolean = false;
-
-  public reset(): void {
-    this.syncing = false;
-  }
-
   /**
    * Parses a platform frame and returns the resulting mjai events.
    *
@@ -54,19 +50,11 @@ export abstract class BaseBridge {
 
   // ===== MJAI message builders =====
 
-  private resolveSync(sync?: boolean): boolean {
-    if (sync !== undefined) {
-      return sync;
-    }
-    return this.syncing;
-  }
-
-  public makeStartGame(seat: number, is3p: boolean, sync?: boolean): StartGameEvent {
+  public makeStartGame(seat: number, is3p: boolean): StartGameEvent {
     return {
       type: 'start_game',
       id: seat,
       is_3p: is3p,
-      sync: this.resolveSync(sync),
     };
   }
 
@@ -79,7 +67,6 @@ export abstract class BaseBridge {
     doraMarker: string,
     scores: number[],
     tehais: string[][],
-    sync?: boolean,
   ): StartKyokuEvent {
     return {
       type: 'start_kyoku',
@@ -91,60 +78,43 @@ export abstract class BaseBridge {
       dora_marker: doraMarker,
       scores,
       tehais,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeTsumo(actor: number, pai: string, sync?: boolean): TsumoEvent {
+  public makeTsumo(actor: number, pai: string): TsumoEvent {
     return {
       type: 'tsumo',
       actor,
       pai,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeDahai(actor: number, pai: string, tsumogiri: boolean, sync?: boolean): DahaiEvent {
+  public makeDahai(actor: number, pai: string, tsumogiri: boolean): DahaiEvent {
     return {
       type: 'dahai',
       actor,
       pai,
       tsumogiri,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeChi(
-    actor: number,
-    target: number,
-    pai: string,
-    consumed: string[],
-    sync?: boolean,
-  ): ChiEvent {
+  public makeChi(actor: number, target: number, pai: string, consumed: string[]): ChiEvent {
     return {
       type: 'chi',
       actor,
       target,
       pai,
       consumed,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makePon(
-    actor: number,
-    target: number,
-    pai: string,
-    consumed: string[],
-    sync?: boolean,
-  ): PonEvent {
+  public makePon(actor: number, target: number, pai: string, consumed: string[]): PonEvent {
     return {
       type: 'pon',
       actor,
       target,
       pai,
       consumed,
-      sync: this.resolveSync(sync),
     };
   }
 
@@ -153,7 +123,6 @@ export abstract class BaseBridge {
     target: number,
     pai: string,
     consumed: string[],
-    sync?: boolean,
   ): DaiminkanEvent {
     return {
       type: 'daiminkan',
@@ -161,34 +130,30 @@ export abstract class BaseBridge {
       target,
       pai,
       consumed,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeAnkan(actor: number, consumed: string[], sync?: boolean): AnkanEvent {
+  public makeAnkan(actor: number, consumed: string[]): AnkanEvent {
     return {
       type: 'ankan',
       actor,
       consumed,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeKakan(actor: number, pai: string, consumed: string[], sync?: boolean): KakanEvent {
+  public makeKakan(actor: number, pai: string, consumed: string[]): KakanEvent {
     return {
       type: 'kakan',
       actor,
       pai,
       consumed,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeReach(actor: number, sync?: boolean): ReachEvent {
+  public makeReach(actor: number): ReachEvent {
     return {
       type: 'reach',
       actor,
-      sync: this.resolveSync(sync),
     };
   }
 
@@ -196,38 +161,33 @@ export abstract class BaseBridge {
     actor: number,
     deltas?: number[],
     scores?: number[],
-    sync?: boolean,
   ): ReachAcceptedEvent {
     return {
       type: 'reach_accepted',
       actor,
       deltas,
       scores,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeDora(doraMarker: string, sync?: boolean): DoraEvent {
+  public makeDora(doraMarker: string): DoraEvent {
     return {
       type: 'dora',
       dora_marker: doraMarker,
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeNukidora(actor: number, sync?: boolean): NukidoraEvent {
+  public makeNukidora(actor: number): NukidoraEvent {
     return {
       type: 'nukidora',
       actor,
       pai: 'N',
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeEndKyoku(sync?: boolean): EndKyokuEvent {
+  public makeEndKyoku(): EndKyokuEvent {
     return {
       type: 'end_kyoku',
-      sync: this.resolveSync(sync),
     };
   }
 
@@ -242,7 +202,6 @@ export abstract class BaseBridge {
     pai: string,
     scores: number[],
     deltas: number[],
-    sync?: boolean,
   ): HoraEvent {
     return {
       type: 'hora',
@@ -251,7 +210,6 @@ export abstract class BaseBridge {
       pai,
       scores,
       deltas,
-      sync: this.resolveSync(sync),
     };
   }
 
@@ -265,7 +223,6 @@ export abstract class BaseBridge {
     deltas: number[],
     tenpais: boolean[],
     reason?: string,
-    sync?: boolean,
   ): RyukyokuEvent {
     return {
       type: 'ryukyoku',
@@ -273,14 +230,12 @@ export abstract class BaseBridge {
       deltas,
       tenpais,
       ...(reason ? { reason } : {}),
-      sync: this.resolveSync(sync),
     };
   }
 
-  public makeEndGame(sync?: boolean): EndGameEvent {
+  public makeEndGame(): EndGameEvent {
     return {
       type: 'end_game',
-      sync: this.resolveSync(sync),
     };
   }
 }

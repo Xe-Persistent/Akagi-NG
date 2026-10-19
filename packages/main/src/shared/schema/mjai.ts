@@ -5,7 +5,6 @@ export type Score = number;
 
 export interface MJAIEventBase {
   type: string;
-  sync?: boolean;
 }
 
 export interface StartGameEvent extends MJAIEventBase {

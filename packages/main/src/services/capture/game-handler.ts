@@ -32,9 +32,20 @@ export interface WebSocketFrameSentEvent {
 
 export class GameHandler {
   private attached = false;
+  /** A detached handler never re-attaches: the window may have switched to MITM. */
+  private disposed = false;
   /** Majsoul websockets only; frames of other page sockets must not reach the bridge. */
   private readonly majsoulRequests = new Set<string>();
   private readonly connectionTracker: ConnectionTracker;
+
+  /**
+   * A reload drops the debugger session, so the new page needs re-attaching.
+   * Kept in a field so `detach()` can unregister it.
+   */
+  private readonly onDidFinishLoad = () => {
+    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
+    setTimeout(() => this.tryAttach(), 500);
+  };
 
   constructor(
     private webContents: WebContents,
@@ -44,7 +55,7 @@ export class GameHandler {
   }
 
   public async attach() {
-    if (this.attached || this.webContents.isDestroyed()) return;
+    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
 
     try {
       this.webContents.on('render-process-gone', (_event, details) => {
@@ -60,12 +71,7 @@ export class GameHandler {
         }
       });
 
-      // A reload drops the debugger session, so the new page needs re-attaching.
-      this.webContents.on('did-finish-load', () => {
-        if (!this.attached && !this.webContents.isDestroyed()) {
-          setTimeout(() => this.tryAttach(), 500);
-        }
-      });
+      this.webContents.on('did-finish-load', this.onDidFinishLoad);
 
       await this.tryAttach();
     } catch (err) {
@@ -74,7 +80,7 @@ export class GameHandler {
   }
 
   private async tryAttach() {
-    if (this.attached || this.webContents.isDestroyed()) return;
+    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
 
     try {
       if (this.webContents.debugger.isAttached()) {
@@ -111,8 +117,12 @@ export class GameHandler {
   }
 
   public detach() {
+    this.disposed = true;
     this.majsoulRequests.clear();
     this.connectionTracker.forceDisconnect();
+    if (!this.webContents.isDestroyed()) {
+      this.webContents.removeListener('did-finish-load', this.onDidFinishLoad);
+    }
     if (this.attached) {
       this.attached = false;
       if (!this.webContents.isDestroyed()) {

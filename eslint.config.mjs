@@ -13,9 +13,11 @@ export default defineConfig([
       '**/node_modules/**',
       '**/build/**',
       '**/target/**',
+      '**/*.tsbuildinfo',
+      'coverage/**',
       'tmp/**',
-      'packages/rust_engine/index.js',
-      'packages/rust_engine/index.d.ts',
+      'packages/rust_engine/native/index.js',
+      'packages/rust_engine/native/index.d.ts',
     ],
   },
 

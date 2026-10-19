@@ -6,7 +6,9 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url)).replaceAll
 /** The native addon is built per platform and is not part of a fresh checkout. */
 const hasAddon = (() => {
   try {
-    return readdirSync(`${repoRoot}/packages/rust_engine`).some((file) => file.endsWith('.node'));
+    return readdirSync(`${repoRoot}/packages/rust_engine/native`).some((file) =>
+      file.endsWith('.node'),
+    );
   } catch {
     return false;
   }

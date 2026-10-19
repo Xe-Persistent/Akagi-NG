@@ -2,7 +2,6 @@ assets/
 build/
 coverage/
 dist/
-htmlcov/
 logs/
 node_modules/
 public/
@@ -10,6 +9,6 @@ tmp/
 .env
 .env.*
 target/
-packages/rust_engine/index.js
-packages/rust_engine/index.d.ts
+packages/rust_engine/native/index.js
+packages/rust_engine/native/index.d.ts
 package-lock.json

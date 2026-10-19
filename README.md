@@ -319,7 +319,7 @@ The main process loads the native engine through a Node-API binding. Build it on
 npm run build -w @akagi-ng/rust-engine
 ```
 
-This command also regenerates the Node-API loader (`index.js`) and its type declarations (`index.d.ts`) inside `packages/rust_engine`.
+This command also regenerates the Node-API loader (`index.js`) and its type declarations (`index.d.ts`) inside `packages/rust_engine/native`.
 
 ### 2. Run in Development
 

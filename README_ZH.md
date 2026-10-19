@@ -319,7 +319,7 @@ npm install
 npm run build -w @akagi-ng/rust-engine
 ```
 
-该命令同时会重新生成 `packages/rust_engine` 下的 Node-API 加载器（`index.js`）与类型声明（`index.d.ts`）。
+该命令同时会重新生成 `packages/rust_engine/native` 下的 Node-API 加载器（`index.js`）与类型声明（`index.d.ts`）。
 
 ### 2. 开发环境运行
 

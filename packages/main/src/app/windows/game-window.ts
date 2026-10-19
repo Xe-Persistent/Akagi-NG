@@ -9,6 +9,15 @@ import { isSafeWindow } from '../../shared/utils.js';
 
 const logger = createLogger('GameWindow');
 
+/**
+ * Removes the Electron tokens from a Chromium user agent, leaving the shape a
+ * plain Chrome would send. The app-name token is not present in Electron 44's
+ * default agent but older builds and packaged variants can add it.
+ */
+export function anonymizeUserAgent(userAgent: string): string {
+  return userAgent.replace(/akagi-ng-desktop\/\S+\s/g, '').replace(/Electron\/\S+\s/g, '');
+}
+
 export interface GameWindowOptions {
   url?: string;
   /** Route the page through our MITM proxy instead of the debugger API. */
@@ -107,10 +116,7 @@ export class GameWindow {
 
   /** Removes the Electron fingerprint from the user agent the page sees. */
   private registerUserAgent(window: BrowserWindow) {
-    const defaultUA = window.webContents.session.getUserAgent();
-    window.webContents.setUserAgent(
-      defaultUA.replace(/akagi-ng-desktop\/\S+\s/g, '').replace(/Electron\/\S+\s/g, ''),
-    );
+    window.webContents.setUserAgent(anonymizeUserAgent(window.webContents.session.getUserAgent()));
   }
 
   private async useMitmProxy(window: BrowserWindow) {

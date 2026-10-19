@@ -1,20 +1,46 @@
-import { existsSync, mkdirSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
 import type { Mockttp } from 'mockttp';
 import * as mockttp from 'mockttp';
 
 import { createLogger } from '../../logging/index.js';
 import { bridgeManager } from '../../protocol/bridge-manager.js';
 import { errorMessage } from '../../shared/errors.js';
-import { getAssetPath } from '../../shared/paths.js';
+import { getCertificatesDir } from '../../shared/paths.js';
 import type { EngineService } from '../engine/engine-service.js';
 import { getSettingsManager } from '../settings-manager.js';
+import { ensureCertificates } from './certificates.js';
 import { ConnectionTracker } from './connection-tracker.js';
 import { ingestCapturedFrame } from './frame-ingest.js';
 
 const logger = createLogger('MITMProxy');
+
+/**
+ * Only Majsoul hosts and the analytics endpoint are decrypted. Everything else
+ * the client sends through this proxy is tunnelled untouched, so a
+ * misconfigured system proxy cannot make Akagi-NG a general-purpose TLS
+ * interception point. The analytics endpoint is intercepted because its
+ * beacons are dropped locally instead of being forwarded.
+ */
+const INTERCEPTED_TLS_HOSTS = [
+  { hostname: '*.maj-soul.com' },
+  { hostname: '*.majsoul.com' },
+  { hostname: '*.mahjongsoul.com' },
+  { hostname: '*.yo-star.com' },
+  { hostname: '*.log.aliyuncs.com' },
+];
+
+/**
+ * Aliyun SLS web-tracking beacons: `GET /logstores/<store>/track?...`. The
+ * game client reports on itself through these, including (on standalone
+ * builds) the TLS certificate chain it was served, which under MITM describes
+ * our local CA. The real endpoint answers 200 with an empty body, so answering
+ * the same way is indistinguishable from an ad blocker.
+ */
+const TELEMETRY_BEACON = /\/logstores\/[^/?]+\/track(?:_ua\.gif)?(?:[?#]|$)/;
+
+/** Whether a proxied URL is an Aliyun SLS web-tracking beacon. */
+export function isTelemetryBeacon(url: string): boolean {
+  return TELEMETRY_BEACON.test(url);
+}
 
 export class MitmProxyManager {
   private server: Mockttp | null = null;
@@ -25,33 +51,6 @@ export class MitmProxyManager {
 
   constructor(private engine: EngineService) {
     this.connectionTracker = new ConnectionTracker(engine);
-  }
-
-  /**
-   * Initializes the CA certificates.
-   */
-  private async getCerts(): Promise<{ keyPath: string; certPath: string }> {
-    const certsDir = getAssetPath('config', 'certs');
-    if (!existsSync(certsDir)) {
-      mkdirSync(certsDir, { recursive: true });
-    }
-
-    const keyPath = join(certsDir, 'ca.key');
-    const certPath = join(certsDir, 'ca.pem');
-
-    if (!existsSync(keyPath) || !existsSync(certPath)) {
-      logger.info('Generating new CA certificates for MITM proxy...');
-      const { key, cert } = await mockttp.generateCACertificate({
-        subject: { commonName: 'Akagi-NG Proxy CA' },
-      });
-      await writeFile(keyPath, key);
-      await writeFile(certPath, cert);
-      logger.info(`CA certificates generated at ${certsDir}`);
-    } else {
-      logger.info(`Using existing CA certificates at ${certsDir}`);
-    }
-
-    return { keyPath, certPath };
   }
 
   public async start() {
@@ -67,12 +66,13 @@ export class MitmProxyManager {
     }
 
     try {
-      const { keyPath, certPath } = await this.getCerts();
+      const { keyPath, pemPath } = await ensureCertificates(getCertificatesDir());
 
       const server = mockttp.getLocal({
         https: {
           keyPath,
-          certPath,
+          certPath: pemPath,
+          tlsInterceptOnly: INTERCEPTED_TLS_HOSTS,
         },
         cors: true,
       });
@@ -80,15 +80,32 @@ export class MitmProxyManager {
 
       // Game traffic can be chained through a proxy the user already runs.
       const upstream = settings.mitm.upstream?.trim();
-      const passThroughOptions = upstream
-        ? { proxyConfig: { proxyUrl: upstream, noProxy: ['127.0.0.1', 'localhost'] } }
-        : undefined;
+      const connectionOptions = {
+        // Present the client's own TLS ClientHello upstream where the native
+        // tls-impersonate module supports it, instead of Node's default one.
+        mirrorTlsFingerprint: true,
+        ...(upstream
+          ? { proxyConfig: { proxyUrl: upstream, noProxy: ['127.0.0.1', 'localhost'] } }
+          : {}),
+      };
+      const requestOptions = {
+        ...connectionOptions,
+        // A beacon is answered locally, so it never reaches the upstream.
+        // Doing this in `beforeRequest` keeps one catch-all rule: mockttp
+        // treats rules without a completion check as single-use unless they
+        // are the last matching one, which a separate rule could not rely on.
+        beforeRequest: (req: mockttp.CompletedRequest) => {
+          if (!isTelemetryBeacon(req.url)) return;
+          logger.verbose(`Blocked game telemetry beacon: ${req.url}`);
+          return { response: { statusCode: 200 } };
+        },
+      };
       if (upstream) {
         logger.info(`Forwarding traffic through upstream proxy: ${upstream}`);
       }
 
       // Rules must be installed before the proxy accepts traffic.
-      await server.forAnyWebSocket().thenPassThrough(passThroughOptions);
+      await server.forAnyWebSocket().thenPassThrough(connectionOptions);
 
       await server.on('websocket-request', (req) => {
         if (!bridgeManager.isMajsoulUrl(req.url)) return;
@@ -110,7 +127,7 @@ export class MitmProxyManager {
       await server.on('websocket-message-received', (msg) => this.handleMessage(msg));
       await server.on('websocket-message-sent', (msg) => this.handleMessage(msg));
 
-      await server.forAnyRequest().thenPassThrough(passThroughOptions);
+      await server.forAnyRequest().thenPassThrough(requestOptions);
 
       await server.start(settings.mitm.port);
       this.isRunning = true;

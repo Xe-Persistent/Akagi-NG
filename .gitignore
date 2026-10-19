@@ -3,6 +3,7 @@ Thumbs.db
 
 .idea/
 build/
+/ca/
 /config/
 dist/
 logs/

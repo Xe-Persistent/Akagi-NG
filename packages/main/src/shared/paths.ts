@@ -18,6 +18,10 @@ export function getAssetPath(...paths: string[]): string {
   return join(getProjectRoot(), ...paths);
 }
 
+export function getCertificatesDir(): string {
+  return getAssetPath('ca');
+}
+
 export function getRendererPath(...paths: string[]): string {
   return join(moduleDir, '../../renderer', ...paths);
 }

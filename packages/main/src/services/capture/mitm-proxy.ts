@@ -49,6 +49,20 @@ export function isTelemetryBeacon(url: string): boolean {
   return TELEMETRY_BEACON.test(url);
 }
 
+/**
+ * Options shared by both passthrough legs (websocket and request).
+ *
+ * `mirrorTlsFingerprint` is deliberately absent. It asks mockttp to replay the
+ * client's ClientHello upstream through the optional native `tls-impersonate`
+ * module, and that module aborts the whole Electron process on the first
+ * upstream TLS connection — the game client's login — with no JS error and
+ * nothing in the log. Node's default fingerprint is the safer trade.
+ */
+export function buildPassthroughOptions(upstream: string | undefined) {
+  const proxyUrl = upstream?.trim();
+  return proxyUrl ? { proxyConfig: { proxyUrl, noProxy: ['127.0.0.1', 'localhost'] } } : {};
+}
+
 export class MitmProxyManager {
   private server: Mockttp | null = null;
   private isRunning = false;
@@ -98,15 +112,8 @@ export class MitmProxyManager {
       this.server = server;
 
       // Game traffic can be chained through a proxy the user already runs.
+      const connectionOptions = buildPassthroughOptions(settings.mitm.upstream);
       const upstream = settings.mitm.upstream?.trim();
-      const connectionOptions = {
-        // Present the client's own TLS ClientHello upstream where the native
-        // tls-impersonate module supports it, instead of Node's default one.
-        mirrorTlsFingerprint: true,
-        ...(upstream
-          ? { proxyConfig: { proxyUrl: upstream, noProxy: ['127.0.0.1', 'localhost'] } }
-          : {}),
-      };
       const requestOptions = {
         ...connectionOptions,
         // A beacon is answered locally, so it never reaches the upstream.

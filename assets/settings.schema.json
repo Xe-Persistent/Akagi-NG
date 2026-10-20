@@ -7,7 +7,8 @@
     "game_url",
     "majsoul_server",
     "mitm",
-    "model_config"
+    "model_config",
+    "ot"
   ],
   "properties": {
     "log_level": {
@@ -77,6 +78,42 @@
         "model_4p",
         "model_3p"
       ],
+      "additionalProperties": false
+    },
+    "ot": {
+      "type": "object",
+      "description": "Online (OT) model settings. The API key is stored encrypted in config/secrets.json, never here.",
+      "properties": {
+        "online": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ask the online model for each decision, falling back to the local model."
+        },
+        "server": {
+          "type": "string",
+          "default": "https://mjapi.shinkuan.me",
+          "readOnly": true,
+          "description": "Online model endpoint. Fixed to the official server."
+        },
+        "model_4p": {
+          "type": "string",
+          "default": "",
+          "description": "Online model id for 4-player games. Empty uses the server default."
+        },
+        "model_3p": {
+          "type": "string",
+          "default": "",
+          "description": "Online model id for 3-player games. Empty uses the server default."
+        },
+        "react_timeout_ms": {
+          "type": "integer",
+          "default": 3000,
+          "minimum": 500,
+          "maximum": 3000,
+          "description": "Per-decision budget for the online model. Above this the local model answers."
+        }
+      },
+      "required": ["online", "server", "model_4p", "model_3p", "react_timeout_ms"],
       "additionalProperties": false
     }
   },

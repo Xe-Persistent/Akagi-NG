@@ -746,6 +746,25 @@ mod tests {
         assert!(!eng.feed_line(r#"{"type":"some_future_event"}"#));
     }
 
+    /// The spelling the bridge now emits on the live path: mjai 3p `kita`.
+    /// `normalize_line` leaves it alone and riichienv parses it natively.
+    #[test]
+    fn feed_line_accepts_the_live_kita_spelling() {
+        let h = r#"["1m","9m","1p","2p","3p","4p","5p","6p","7p","8p","9p","N","N"]"#;
+        let mut eng = crate::defaults::engine(3, 0).expect("bundled 3p weights");
+        assert!(eng.feed_line(r#"{"type":"start_game","names":["a","b","c",""]}"#));
+        assert!(eng.feed_line(&format!(
+            r#"{{"type":"start_kyoku","bakaze":"E","dora_marker":"1s","kyoku":1,"honba":0,
+                 "kyotaku":0,"oya":0,"scores":[35000,35000,35000,0],
+                 "tehais":[{h},{h},{h},{h}]}}"#
+        )));
+        assert!(eng.feed_line(r#"{"type":"tsumo","actor":0,"pai":"9p"}"#));
+        assert!(
+            eng.feed_line(r#"{"type":"kita","actor":0,"pai":"N"}"#),
+            "the live kita spelling must reach the engine as-is"
+        );
+    }
+
     /// A sanma engine must survive a Tenhou-style 4-seat `start_kyoku` (the
     /// extractor sanitizes these; `feed` used to pass them straight through to a
     /// 3-seat state, which indexes out of bounds).

@@ -1,6 +1,7 @@
 import type { MitmProxyManager } from '../../services/capture/mitm-proxy.js';
 import type { EngineService } from '../../services/engine/engine-service.js';
 import type { WindowManager } from '../window-manager.js';
+import { registerOnlineHandlers } from './online.js';
 import { registerSettingsHandlers } from './settings.js';
 import { registerSystemHandlers } from './system.js';
 import { registerWindowHandlers } from './windows.js';
@@ -15,5 +16,6 @@ export function registerIpcHandlers(
 ) {
   registerWindowHandlers(windowManager);
   registerSettingsHandlers(mitmProxyManager, windowManager);
+  registerOnlineHandlers();
   registerSystemHandlers(windowManager, engine);
 }

@@ -60,7 +60,7 @@ describe('the mock stream', () => {
     expect(riichi?.sim_candidates?.length).toBeGreaterThan(1);
   });
 
-  it('walks the indicator through every state it can show', () => {
+  it('walks the engine through every state it can report', () => {
     startMockStream();
     advance(5);
 

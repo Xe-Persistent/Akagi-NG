@@ -84,9 +84,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             fallback={(error: Error) => (
               <div className='flex flex-col items-center justify-center p-8 text-center'>
                 <AlertTriangle className='text-destructive mb-4 h-10 w-10' />
-                <h3 className='text-destructive mb-2 text-lg font-semibold'>
-                  {t('common.connection_failed')}
-                </h3>
+                <h3 className='text-destructive mb-2 text-lg font-semibold'>{t('common.error')}</h3>
                 <p className='text-muted-foreground mb-4 max-w-xs text-sm whitespace-pre-wrap'>
                   {t('settings.load_error_desc')}
                   {'\n'}

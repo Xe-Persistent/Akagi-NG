@@ -51,6 +51,14 @@ export interface Recommendation {
 /** The payload of an `engine:recommendations` broadcast. */
 export interface RecommendationData {
   recommendations: Recommendation[];
+  /** Which engine produced the rows the HUD is about to show. */
+  engine_type: 'mjot' | 'local';
+  /** A configured online service failed and the local model answered instead. */
+  fallback_used: boolean;
+  /** The circuit breaker is holding online calls back. */
+  circuit_open: boolean;
+  /** Model id the server reported for a cloud decision. */
+  model?: string;
 }
 
 /** One entry of the riichi lookahead row the HUD renders under `reach`. */

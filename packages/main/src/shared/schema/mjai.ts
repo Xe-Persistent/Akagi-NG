@@ -93,7 +93,7 @@ export interface DoraEvent extends MJAIEventBase {
 }
 
 export interface NukidoraEvent extends MJAIEventBase {
-  type: 'nukidora';
+  type: 'kita';
   actor: Actor;
   pai: 'N';
 }

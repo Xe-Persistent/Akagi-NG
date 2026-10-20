@@ -19,8 +19,13 @@ interface ConnectionSectionProps {
   updateSetting: UpdateSetting;
 }
 
+/** Mirrors `mitm.port` in `assets/settings.schema.json`. */
+const PORT_MIN = 1024;
+const PORT_MAX = 65535;
+
 export function ConnectionSection({ settings, updateSetting }: ConnectionSectionProps) {
   const { t } = useTranslation();
+  const portOutOfRange = settings.mitm.port < PORT_MIN || settings.mitm.port > PORT_MAX;
 
   return (
     <div className='space-y-4'>
@@ -63,13 +68,23 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
       {settings.mitm.enabled && (
         <>
           <SettingsItem label={t('settings.connection.mitm.port')}>
-            <Input
-              type='number'
-              value={settings.mitm.port}
-              onChange={(e) =>
-                updateSetting(['mitm', 'port'], Number.parseInt(e.target.value, 10) || 0)
-              }
-            />
+            <div className='space-y-1'>
+              <Input
+                type='number'
+                min={PORT_MIN}
+                max={PORT_MAX}
+                aria-invalid={portOutOfRange || undefined}
+                value={settings.mitm.port}
+                onChange={(e) =>
+                  updateSetting(['mitm', 'port'], Number.parseInt(e.target.value, 10) || 0)
+                }
+              />
+              {/* The schema rejects anything else, and that failure would only
+                  surface as a detached "save failed" toast. */}
+              {portOutOfRange && (
+                <p className='text-destructive text-xs'>{`${PORT_MIN}–${PORT_MAX}`}</p>
+              )}
+            </div>
           </SettingsItem>
           <SettingsItem label={t('settings.connection.mitm.upstream')}>
             <Input

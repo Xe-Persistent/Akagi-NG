@@ -179,7 +179,7 @@ export abstract class BaseBridge {
 
   public makeNukidora(actor: number): NukidoraEvent {
     return {
-      type: 'nukidora',
+      type: 'kita',
       actor,
       pai: 'N',
     };

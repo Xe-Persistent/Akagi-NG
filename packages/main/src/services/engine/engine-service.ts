@@ -2,8 +2,14 @@ import { createLogger } from '../../logging/index.js';
 import { broadcastToWindows } from '../../shared/broadcast.js';
 import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
 import { engineStatus } from '../engine-status.js';
+import { CloudDecisionService } from '../online/cloud-decision.js';
+import { DEFAULT_BASE_URL } from '../online/inference-client.js';
+import { KyokuStream } from '../online/kyoku-stream.js';
+import { readApiKey } from '../online/secret-store.js';
+import type { OnlineConfig } from '../online/types.js';
+import { getSettingsManager } from '../settings-manager.js';
 import { ModelRunner } from './model-runner.js';
-import type { Recommendation, RecommendationData } from './recommendation-mapper.js';
+import type { EngineDecision, RecommendationData } from './recommendation-mapper.js';
 import {
   describeAction,
   describeRecommendation,
@@ -17,12 +23,26 @@ const logger = createLogger('EngineService');
  * owns the model runner, knows when the local player has to act, and publishes
  * everything the renderer needs. Under `--mock` it stays out of the way, because
  * `mock-stream` owns the HUD for as long as it runs.
+ *
+ * The local engine is always in the loop. When online inference is configured it
+ * acts as the gate (no call without a real choice) and as the fallback; the
+ * online service only replaces the answer, never the pipeline.
  */
 export class EngineService {
   private readonly runner = new ModelRunner();
+  private readonly stream = new KyokuStream();
+  private readonly cloud = new CloudDecisionService({ getConfig: () => this.onlineConfig() });
+
+  /**
+   * Batches are serialized: the capture layer does not await `ingest`, and an
+   * online decision can occupy the full react timeout. Without this, a later
+   * frame would feed the engine while the previous decision is still in flight.
+   */
+  private queue: Promise<void> = Promise.resolve();
 
   private isMockMode = false;
   private playerId = -1;
+  private is3p = false;
   /** True once we have won the current round, which can happen before it ends. */
   private weWonThisRound = false;
   /** Last tile contexts, used to decorate win recommendations. */
@@ -41,7 +61,14 @@ export class EngineService {
    * @param replayed - the batch is a restore's history: everything but its last
    * event describes a position the game has already left
    */
-  public async ingest(events: MJAIEvent[], replayed = false) {
+  public ingest(events: MJAIEvent[], replayed = false): Promise<void> {
+    const run = this.queue.then(() => this.ingestBatch(events, replayed));
+    // Keep the chain alive after a failure; the caller still sees it.
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  private async ingestBatch(events: MJAIEvent[], replayed: boolean): Promise<void> {
     // The mock stream publishes on its own; a captured game interleaving with it
     // would make the HUD flicker between two sources. No model is loaded either.
     if (this.isMockMode) return;
@@ -54,6 +81,9 @@ export class EngineService {
       const ev = events[index];
       this.trackTileContext(ev);
       this.trackRoundState(ev);
+      // The window accumulates even while online inference is off, so it can be
+      // enabled mid-kyoku and upload the round so far.
+      this.stream.accumulate(ev);
 
       if (ev.type === 'start_game') {
         await this.startGame(ev as StartGameEvent);
@@ -62,12 +92,14 @@ export class EngineService {
       }
 
       if (index >= liveFrom && this.isDecisionPoint(ev)) {
-        this.react();
+        await this.react();
       }
     }
   }
 
   public stop() {
+    this.cloud.cancel();
+    this.stream.reset();
     this.runner.reset();
     engineStatus.reset();
   }
@@ -79,6 +111,7 @@ export class EngineService {
   }
 
   public gameDisconnected(gameEnded: boolean) {
+    this.cloud.cancel();
     engineStatus.set({ connection: 'idle' });
     engineStatus.notice(gameEnded ? 'lobby_return' : 'game_dropped');
   }
@@ -87,6 +120,9 @@ export class EngineService {
 
   private async startGame(start: StartGameEvent) {
     this.playerId = start.id;
+    this.is3p = start.is_3p;
+    // A new game invalidates any answer still in flight for the previous one.
+    this.cloud.cancel();
 
     engineStatus.set({ model: 'loading' });
     const outcome = await this.runner.load(start.id, start.is_3p);
@@ -129,7 +165,7 @@ export class EngineService {
     // recommended right away; no later event triggers it.
     if (ev.type === 'chi' || ev.type === 'pon') return true;
     // Someone else's kakan can be robbed; after our own we draw and discard.
-    if (ev.type === 'kakan' || ev.type === 'nukidora') return true;
+    if (ev.type === 'kakan' || ev.type === 'kita') return true;
     return false;
   }
 
@@ -150,47 +186,111 @@ export class EngineService {
     }
   }
 
-  private react() {
-    const recommendations = this.buildRecommendations();
-    // No decision at all means there is nothing to say; an empty list is a
-    // decision whose suggestions the HUD must not show, and it still has to be
-    // published so the previous (now illegal) one disappears.
-    if (!recommendations) return;
+  private onlineConfig(): OnlineConfig {
+    const settings = getSettingsManager().getSettings();
+    return {
+      enabled: settings.ot.online,
+      // The endpoint is ours to decide, not the file's: the key must never be
+      // sent to a host someone edited into `settings.json`.
+      baseUrl: DEFAULT_BASE_URL,
+      apiKey: readApiKey(),
+      model4p: settings.ot.model_4p,
+      model3p: settings.ot.model_3p,
+      reactTimeoutMs: settings.ot.react_timeout_ms,
+    };
+  }
 
-    const payload: RecommendationData = { recommendations };
+  private async react() {
+    const payload = await this.buildPayload();
+    // No decision at all means there is nothing to say, and a cancelled request
+    // must not publish a stale row; the previous frame stays as it was.
+    if (!payload) return;
+
     // What the HUD is about to show, so a capture says what was recommended
     // and not only what the table did.
-    logger.verbose(`HUD: ${recommendations.map(describeRecommendation).join(' ')}`);
+    logger.verbose(`HUD: ${payload.recommendations.map(describeRecommendation).join(' ')}`);
     broadcastToWindows('engine:recommendations', payload);
   }
 
-  private buildRecommendations(): Recommendation[] | null {
+  private async buildPayload(): Promise<RecommendationData | null> {
     if (!this.runner.loaded) return null;
 
+    let decision: EngineDecision | null;
     try {
-      const decision = this.runner.decide();
-      if (!decision) return null;
-      // The engine's own answer, including the candidates it ranked below the
-      // published row, so a capture shows what it thought at every decision.
-      logger.verbose(
-        `Decision:${decision.forced ? ' (forced)' : ''} ${decision.candidates
-          .map(([action, confidence]) => `${describeAction(action)}@${confidence.toFixed(2)}`)
-          .join(' ')}${decision.riichi_lookahead?.length ? ' +lookahead' : ''}`,
-      );
-      // A single legal action is not a choice. riichienv narrows a hand in riichi
-      // to the tile just drawn, so those turns are forced and stay unpublished —
-      // the HUD keeps what it showed rather than a row nobody can act on.
-      if (decision.forced) return null;
-
-      return mapDecisionToRecommendations(decision, {
-        playerId: this.playerId,
-        lastDrawnTile: this.lastDrawnTile,
-        lastDiscardTile: this.lastDiscardTile,
-      });
+      decision = this.runner.decide();
     } catch (err) {
       logger.error('Engine inference failed:', err);
       engineStatus.notice('runtime_error');
       return null;
     }
+    if (!decision) return null;
+
+    // The engine's own answer, including the candidates it ranked below the
+    // published row, so a capture shows what it thought at every decision.
+    logger.verbose(
+      `Decision:${decision.forced ? ' (forced)' : ''} ${decision.candidates
+        .map(([action, confidence]) => `${describeAction(action)}@${confidence.toFixed(2)}`)
+        .join(' ')}${decision.riichi_lookahead?.length ? ' +lookahead' : ''}`,
+    );
+
+    // A single legal action is not a choice. riichienv narrows a hand in riichi
+    // to the tile just drawn, so those turns are forced: nothing to recommend,
+    // no online call to spend, and the HUD keeps what it showed rather than a
+    // row nobody can act on.
+    if (decision.forced) return null;
+
+    const localPayload = this.toPayload(decision, 'local', false, false);
+
+    const config = this.onlineConfig();
+    if (!config.enabled || !config.apiKey) return localPayload;
+
+    const events = this.stream.buildApiEvents(this.playerId, this.is3p);
+    if (!events) {
+      // Mid-round start, or a stream that never reset: uploading a partial
+      // window looks like a desync to the service.
+      logger.verbose('Online inference skipped: the kyoku window is incomplete');
+      return localPayload;
+    }
+
+    const outcome = await this.cloud.decide({
+      events,
+      seat: this.playerId,
+      is3p: this.is3p,
+      local: decision,
+    });
+
+    switch (outcome.kind) {
+      case 'cancelled':
+        // Stopped, disconnected or restarted: the answer is stale.
+        return null;
+      case 'cloud':
+        return this.toPayload(outcome.decision, 'mjot', false, false, outcome.model);
+      case 'local':
+        return {
+          ...localPayload,
+          fallback_used: outcome.fallbackUsed,
+          circuit_open: outcome.circuitOpen,
+        };
+    }
+  }
+
+  private toPayload(
+    decision: EngineDecision,
+    engine_type: 'mjot' | 'local',
+    fallback_used: boolean,
+    circuit_open: boolean,
+    model?: string | null,
+  ): RecommendationData {
+    return {
+      recommendations: mapDecisionToRecommendations(decision, {
+        playerId: this.playerId,
+        lastDrawnTile: this.lastDrawnTile,
+        lastDiscardTile: this.lastDiscardTile,
+      }),
+      engine_type,
+      fallback_used,
+      circuit_open,
+      ...(model ? { model } : {}),
+    };
   }
 }

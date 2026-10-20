@@ -1,4 +1,7 @@
-import type { Recommendation } from './services/engine/recommendation-mapper.js';
+import type {
+  Recommendation,
+  RecommendationData,
+} from './services/engine/recommendation-mapper.js';
 import type { ConnectionState, EngineNotice, ModelState } from './services/engine-status.js';
 
 /**
@@ -13,9 +16,19 @@ interface MockStatus {
   notice?: EngineNotice['kind'];
 }
 
+/** Which model the rotation pretends answered a frame. */
+interface EngineSource {
+  engine: RecommendationData['engine_type'];
+  fallbackUsed: boolean;
+  circuitOpen: boolean;
+}
+
 /** One tick of the mock stream: what the HUD shows and what the engine reports. */
 export interface MockFrame {
   recommendations: Recommendation[];
+  engine_type: RecommendationData['engine_type'];
+  fallback_used: boolean;
+  circuit_open: boolean;
   status: MockStatus;
 }
 
@@ -96,20 +109,31 @@ const SCENARIOS: Recommendation[][] = [
 ];
 
 /**
- * The status rotation: every state the indicator can show, each paired with the
- * one-shot event that belongs with it, so a `dev:mock` run visits them all.
+ * The status rotation: every engine state worth broadcasting, each paired with
+ * the one-shot event that belongs with it, so a `dev:mock` run visits them all.
  */
 const STATUSES: MockStatus[] = [
-  // Blue dot: a game is open and the local model is answering.
+  // Connected and ready: the dot's colour then comes from the engine rotation.
   { connection: 'connected', model: 'ready', modelName: 'akagi4p.safetensors' },
-  // Amber pulse: the model is being loaded.
+  // Weights loading: no dot yet, and the load finishes with a toast.
   { connection: 'connected', model: 'loading' },
   // Dark red dot, with the error the runtime reported.
   { connection: 'connected', model: 'failed', modelName: 'akagi4p.safetensors' },
-  // Red pulse: the game connection dropped on its own.
+  // No dot: the game connection dropped on its own.
   { connection: 'idle', model: 'idle', notice: 'game_dropped' },
   // No dot: connected, but no game has started yet.
   { connection: 'connected', model: 'idle', notice: 'replay' },
+];
+
+/**
+ * Which model answered, rotated so the dot visits every colour it can show:
+ * online green, breaker open flashing red, fallback yellow, local blue.
+ */
+const ENGINES: EngineSource[] = [
+  { engine: 'mjot', fallbackUsed: false, circuitOpen: false },
+  { engine: 'local', fallbackUsed: true, circuitOpen: true },
+  { engine: 'local', fallbackUsed: true, circuitOpen: false },
+  { engine: 'local', fallbackUsed: false, circuitOpen: false },
 ];
 
 /**
@@ -118,8 +142,12 @@ const STATUSES: MockStatus[] = [
  * both be checked without a model or a table.
  */
 export function generateMockData(counter: number): MockFrame {
+  const engine = ENGINES[counter % ENGINES.length];
   return {
     recommendations: SCENARIOS[counter % SCENARIOS.length],
+    engine_type: engine.engine,
+    fallback_used: engine.fallbackUsed,
+    circuit_open: engine.circuitOpen,
     status: STATUSES[counter % STATUSES.length],
   };
 }

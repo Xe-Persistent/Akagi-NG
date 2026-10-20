@@ -66,7 +66,7 @@ describe('the points the engine is asked at', () => {
       { type: 'kakan', actor: 2, pai: 'E', consumed: ['E', 'E', 'E'] },
     ],
     ['our own kakan, after which we draw again', { type: 'kakan', actor: SEAT, pai: 'E' }],
-    ['a kita', { type: 'nukidora', actor: 2, pai: 'N' }],
+    ['a kita', { type: 'kita', actor: 2, pai: 'N' }],
   ])('asks at %s', async (_label, payload) => {
     expect(await reactsTo(engine, event(payload))).toBe(true);
   });

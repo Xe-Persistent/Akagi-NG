@@ -10,6 +10,13 @@ const settings: Settings = {
   majsoul_server: 'cn',
   mitm: { enabled: false, port: 23410, upstream: 'http://127.0.0.1:7890' },
   model_config: { model_4p: 'a.safetensors', model_3p: '' },
+  ot: {
+    online: false,
+    server: 'https://mjapi.shinkuan.me',
+    model_4p: '',
+    model_3p: '',
+    react_timeout_ms: 3000,
+  },
 };
 
 const state = createSettingsState(settings);

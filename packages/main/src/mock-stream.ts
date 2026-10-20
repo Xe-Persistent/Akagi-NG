@@ -40,5 +40,10 @@ function publishFrame() {
   engineStatus.set({ connection, model, modelName: modelName ?? null });
   if (notice) engineStatus.notice(notice);
 
-  broadcastToWindows('engine:recommendations', { recommendations: frame.recommendations });
+  broadcastToWindows('engine:recommendations', {
+    recommendations: frame.recommendations,
+    engine_type: frame.engine_type,
+    fallback_used: frame.fallback_used,
+    circuit_open: frame.circuit_open,
+  });
 }

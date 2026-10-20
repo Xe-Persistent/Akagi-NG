@@ -15,6 +15,13 @@ const settings: Settings = {
   majsoul_server: 'cn',
   mitm: { enabled: false, port: 6789, upstream: '' },
   model_config: { model_4p: 'akagi4p.safetensors', model_3p: '' },
+  ot: {
+    online: false,
+    server: 'https://mjapi.shinkuan.me',
+    model_4p: '',
+    model_3p: '',
+    react_timeout_ms: 3000,
+  },
 };
 
 /** Stands in for the preload bridge, recording the channels it was asked for. */

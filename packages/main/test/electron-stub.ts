@@ -84,6 +84,20 @@ export const ipcMain = {
 
 export const shell = { openExternal: async () => {} };
 export const dialog = { showErrorBox: () => {} };
+
+/**
+ * Stand-in for OS-backed credential storage: a reversible prefix instead of
+ * DPAPI/Keychain, so the store's file format and round-trip can be tested.
+ */
+export const safeStorage = {
+  isEncryptionAvailable: () => true,
+  encryptString: (value: string) => Buffer.from(`stub:${value}`, 'utf8'),
+  decryptString: (value: Buffer) => {
+    const text = value.toString('utf8');
+    if (!text.startsWith('stub:')) throw new Error('not encrypted by this backend');
+    return text.slice('stub:'.length);
+  },
+};
 export const session = { defaultSession: {} };
 export const net = {};
 export const screen = { getPrimaryDisplay: () => ({ workAreaSize: { width: 1280, height: 800 } }) };
@@ -102,6 +116,7 @@ export default {
   nativeImage,
   nativeTheme,
   net,
+  safeStorage,
   screen,
   session,
   shell,

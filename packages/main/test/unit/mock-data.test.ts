@@ -2,15 +2,27 @@ import { describe, expect, it } from 'vitest';
 
 import { generateMockData } from '../../src/mock-data.js';
 
-/** Walks one full rotation of both the scenarios and the statuses. */
+/** Walks one full rotation of the scenarios. */
 const FRAMES = Array.from({ length: 9 }, (_, tick) => generateMockData(tick));
 
 describe('the canned HUD data', () => {
-  it('repeats after the scenarios and the statuses line up again', () => {
-    // Nine scenarios against five statuses: the whole rotation is 45 ticks.
-    expect(generateMockData(45)).toEqual(generateMockData(0));
-    expect(generateMockData(48)).toEqual(generateMockData(3));
+  it('repeats after the scenarios, statuses and engines line up again', () => {
+    // Nine scenarios, five statuses and four engine states: the rotation is
+    // their least common multiple, 180 ticks.
+    expect(generateMockData(180)).toEqual(generateMockData(0));
+    expect(generateMockData(183)).toEqual(generateMockData(3));
     expect(generateMockData(9).recommendations).toEqual(generateMockData(0).recommendations);
+  });
+
+  it('rotates through every engine state the dot can show', () => {
+    const sources = Array.from({ length: 4 }, (_, tick) => {
+      const frame = generateMockData(tick);
+      return `${frame.engine_type}/${frame.fallback_used}/${frame.circuit_open}`;
+    });
+
+    expect(new Set(sources)).toEqual(
+      new Set(['mjot/false/false', 'local/true/true', 'local/true/false', 'local/false/false']),
+    );
   });
 
   it('gives every scenario a recommendation list the HUD can render', () => {
@@ -51,7 +63,7 @@ describe('the canned HUD data', () => {
     }
   });
 
-  it('rotates through every indicator state', () => {
+  it('rotates through every engine state the HUD reacts to', () => {
     const states = FRAMES.map((f) => `${f.status.connection}/${f.status.model}`);
 
     expect(new Set(states)).toEqual(

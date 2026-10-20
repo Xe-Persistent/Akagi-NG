@@ -10,6 +10,11 @@ import { createLogger } from '../logging/index.js';
 import { getProjectRoot } from '../shared/paths.js';
 import type { MajsoulServer } from '../shared/schema/platforms.js';
 import { getGameUrl, MAJSOUL_SERVERS } from '../shared/schema/platforms.js';
+import {
+  clampReactTimeout,
+  DEFAULT_BASE_URL,
+  REACT_TIMEOUT_DEFAULT_MS,
+} from './online/inference-client.js';
 
 const logger = createLogger('Settings');
 
@@ -24,6 +29,21 @@ export interface ModelConfig {
   model_3p: string;
 }
 
+/**
+ * Online inference settings, named `ot` to stay compatible with v1.0.8 files.
+ * The API key is deliberately absent: it lives encrypted in `secrets.json`.
+ */
+export interface OnlineSettings {
+  online: boolean;
+  /** Fixed official endpoint; shown read-only so a key cannot be sent elsewhere. */
+  server: string;
+  /** Model id per player count; empty lets the server pick its default. */
+  model_4p: string;
+  model_3p: string;
+  /** `/v3/react` budget in milliseconds, clamped to 500–3000. */
+  react_timeout_ms: number;
+}
+
 export interface AppSettings {
   log_level: string;
   locale: string;
@@ -31,6 +51,7 @@ export interface AppSettings {
   majsoul_server: MajsoulServer;
   mitm: MITMConfig;
   model_config: ModelConfig;
+  ot: OnlineSettings;
 }
 
 /** Only the part of the JSON schema file that electron-store consumes. */
@@ -60,6 +81,13 @@ function getDefaultSettings(): AppSettings {
     model_config: {
       model_4p: 'akagi4p.safetensors',
       model_3p: 'akagi3p.safetensors',
+    },
+    ot: {
+      online: false,
+      server: DEFAULT_BASE_URL,
+      model_4p: '',
+      model_3p: '',
+      react_timeout_ms: REACT_TIMEOUT_DEFAULT_MS,
     },
   };
 }
@@ -120,6 +148,16 @@ export class SettingsManager {
       // cannot wipe the rest of that section.
       mitm: { ...current.mitm, ...updates.mitm },
       model_config: { ...current.model_config, ...updates.model_config },
+      ot: {
+        ...current.ot,
+        ...updates.ot,
+        // The endpoint is fixed, and the timeout must stay inside the budget
+        // the UI advertises regardless of what a caller sends.
+        server: DEFAULT_BASE_URL,
+        react_timeout_ms: clampReactTimeout(
+          updates.ot?.react_timeout_ms ?? current.ot.react_timeout_ms,
+        ),
+      },
     };
 
     if (updates.majsoul_server) {
@@ -133,6 +171,10 @@ export class SettingsManager {
   public resetSettings(): AppSettings {
     const defaults = getDefaultSettings();
     this.store.store = defaults;
+    // The key is not one of the settings any more: it lives in the encrypted
+    // store, the user cannot read it back to retype it, and losing a paid
+    // credential to a "restore defaults" click is not recoverable. Clearing it
+    // is the key card's own action.
     logger.info('Settings reset to defaults');
     return structuredClone(defaults);
   }

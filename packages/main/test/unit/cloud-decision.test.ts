@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import type { EngineDecision } from '../../src/services/engine/recommendation-mapper.js';
 import {
   CloudDecisionService,
   mapCloudDecision,
@@ -18,22 +17,26 @@ const BASE_CONFIG: OnlineConfig = {
   reactTimeoutMs: 3000,
 };
 
-const LOCAL: EngineDecision = {
-  action: { type: 'dahai', pai: '1m' },
-  candidates: [[{ type: 'dahai', pai: '1m' }, 0.9]],
-  logits: [],
-};
-
 const INPUT = {
   events: [{ type: 'start_game' }, { type: 'start_kyoku' }],
   seat: 0,
   is3p: false,
-  local: LOCAL,
 };
 
 const REACH: ReactResponse = {
   reaction: { type: 'reach' },
   candidates: [{ action: 'reach', prob: 0.8 }],
+  model: 'mjot-4p',
+};
+
+/** The follow-up call: the declaration discard, plus the model's tile ranking. */
+const REACH_DISCARD: ReactResponse = {
+  reaction: { type: 'dahai', pai: '9p' },
+  candidates: [
+    { action: 'dahai:9p', prob: 0.5 },
+    { action: 'dahai:9s', prob: 0.3 },
+    { action: 'dahai:1m', prob: 0.2 },
+  ],
   model: 'mjot-4p',
 };
 
@@ -104,9 +107,7 @@ describe('the online decision', () => {
   });
 
   it('asks for the discard after a bare reach and uses the cloud one', async () => {
-    const { cloud, paths } = service({
-      responses: [REACH, { ...DAHAI, reaction: { type: 'dahai', pai: '9p' } }],
-    });
+    const { cloud, paths } = service({ responses: [REACH, REACH_DISCARD] });
 
     const outcome = await cloud.decide(INPUT);
 
@@ -114,6 +115,57 @@ describe('the online decision', () => {
     expect(outcome.kind).toBe('cloud');
     if (outcome.kind === 'cloud') {
       expect(outcome.decision.action).toEqual({ type: 'reach', pai: '9p' });
+    }
+  });
+
+  it('carries the declaration tiles the online model ranked', async () => {
+    const { cloud } = service({ responses: [REACH, REACH_DISCARD] });
+
+    const outcome = await cloud.decide(INPUT);
+
+    expect(outcome.kind).toBe('cloud');
+    if (outcome.kind === 'cloud') {
+      expect(outcome.decision.riichi_lookahead).toEqual([
+        { pai: '9p', prob: 0.5 },
+        { pai: '9s', prob: 0.3 },
+        { pai: '1m', prob: 0.2 },
+      ]);
+    }
+  });
+
+  it('keeps only discards in the declaration ranking', async () => {
+    const { cloud } = service({
+      responses: [
+        REACH,
+        {
+          ...REACH_DISCARD,
+          candidates: [
+            { action: 'dahai:9p', prob: 0.5 },
+            { action: 'hora', prob: 0.3 },
+            { action: 'kan', prob: 0.2 },
+          ],
+        },
+      ],
+    });
+
+    const outcome = await cloud.decide(INPUT);
+
+    expect(outcome.kind).toBe('cloud');
+    if (outcome.kind === 'cloud') {
+      expect(outcome.decision.riichi_lookahead).toEqual([{ pai: '9p', prob: 0.5 }]);
+    }
+  });
+
+  it('shows no declaration row when the follow-up ranks none', async () => {
+    const { cloud } = service({
+      responses: [REACH, { ...REACH_DISCARD, candidates: [] }],
+    });
+
+    const outcome = await cloud.decide(INPUT);
+
+    expect(outcome.kind).toBe('cloud');
+    if (outcome.kind === 'cloud') {
+      expect(outcome.decision.riichi_lookahead).toBeUndefined();
     }
   });
 
@@ -132,7 +184,7 @@ describe('the online decision', () => {
       responses: [
         REACH,
         new Response('{}', { status: 429, headers: { 'retry-after': '0' } }),
-        { ...DAHAI, reaction: { type: 'dahai', pai: '9p' } },
+        REACH_DISCARD,
       ],
     });
 
@@ -247,10 +299,10 @@ describe('mapping a cloud reaction', () => {
   ];
 
   it('keeps the reaction first and drops duplicate and unmappable rows', () => {
-    const decision = mapCloudDecision({ type: 'dahai', pai: '5s' }, CANDIDATES, 0, null);
+    const decision = mapCloudDecision({ type: 'dahai', pai: '5s' }, CANDIDATES);
 
     expect(decision?.action).toEqual({ type: 'dahai', pai: '5s' });
-    // `hora` has no target, so it cannot be labelled with a target.
+    // No win is possible here, so the bare `hora` row is dropped.
     expect(decision?.candidates).toEqual([
       [{ type: 'dahai', pai: '5s' }, 0.6],
       [{ type: 'chi' }, 0.2],
@@ -260,15 +312,10 @@ describe('mapping a cloud reaction', () => {
   it('does not repeat a call as a tile-less second row', () => {
     // The live service answers a pon with `reaction: pon 5s` and a top-k that
     // also lists `pon`; that is the same row, not a second one.
-    const decision = mapCloudDecision(
-      { type: 'pon', pai: '5s', consumed: ['5s', '5s'] },
-      [
-        { action: 'pon', prob: 0.53 },
-        { action: 'none', prob: 0.47 },
-      ],
-      0,
-      null,
-    );
+    const decision = mapCloudDecision({ type: 'pon', pai: '5s', consumed: ['5s', '5s'] }, [
+      { action: 'pon', prob: 0.53 },
+      { action: 'none', prob: 0.47 },
+    ]);
 
     expect(decision?.candidates).toEqual([
       [{ type: 'pon', pai: '5s', consumed: ['5s', '5s'] }, 0.53],
@@ -283,8 +330,7 @@ describe('mapping a cloud reaction', () => {
         { action: 'reach', prob: 0.21 },
         { action: 'dahai:E', prob: 0.1 },
       ],
-      0,
-      'E',
+      { reachDiscard: 'E' },
     );
 
     expect(decision?.candidates).toEqual([
@@ -294,16 +340,11 @@ describe('mapping a cloud reaction', () => {
   });
 
   it('keeps discards distinct, because their tile is the point', () => {
-    const decision = mapCloudDecision(
-      { type: 'dahai', pai: '1s' },
-      [
-        { action: 'dahai:1s', prob: 0.3 },
-        { action: 'dahai:S', prob: 0.2 },
-        { action: 'dahai:4p', prob: 0.1 },
-      ],
-      0,
-      null,
-    );
+    const decision = mapCloudDecision({ type: 'dahai', pai: '1s' }, [
+      { action: 'dahai:1s', prob: 0.3 },
+      { action: 'dahai:S', prob: 0.2 },
+      { action: 'dahai:4p', prob: 0.1 },
+    ]);
 
     expect(decision?.candidates.map(([action]) => action)).toEqual([
       { type: 'dahai', pai: '1s' },
@@ -313,9 +354,9 @@ describe('mapping a cloud reaction', () => {
   });
 
   it('needs the second call before a reach can carry a discard', () => {
-    expect(mapCloudDecision({ type: 'reach' }, [], 0, null)).toBeNull();
+    expect(mapCloudDecision({ type: 'reach' }, [])).toBeNull();
 
-    expect(mapCloudDecision({ type: 'reach' }, [], 0, '9p')?.action).toEqual({
+    expect(mapCloudDecision({ type: 'reach' }, [], { reachDiscard: '9p' })?.action).toEqual({
       type: 'reach',
       pai: '9p',
     });
@@ -323,24 +364,121 @@ describe('mapping a cloud reaction', () => {
 
   it('maps the north extraction in both spellings the service may use', () => {
     for (const type of ['kita', 'nukidora']) {
-      expect(mapCloudDecision({ type }, [], 0, null)?.action).toEqual({ type: 'kita' });
+      expect(mapCloudDecision({ type }, [])?.action).toEqual({ type: 'kita' });
     }
   });
 
   it('passes a self-draw and a ron through as hora', () => {
-    expect(mapCloudDecision({ type: 'hora', target: 2 }, [], 0, null)?.action).toEqual({
+    expect(mapCloudDecision({ type: 'hora', target: 2 }, [])?.action).toEqual({
       type: 'hora',
       target: 2,
     });
-    expect(mapCloudDecision({ type: 'hora' }, [], 3, null)?.action).toEqual({
+    expect(mapCloudDecision({ type: 'hora' }, [], { winTarget: 3 })?.action).toEqual({
       type: 'hora',
       target: 3,
     });
   });
 
+  it('labels a bare hora with the seat the decision point names', () => {
+    const decision = mapCloudDecision(
+      { type: 'dahai', pai: '9p' },
+      [
+        { action: 'dahai:9p', prob: 0.6 },
+        { action: 'hora', prob: 0.4 },
+      ],
+      { winTarget: 2 },
+    );
+
+    expect(decision?.candidates).toEqual([
+      [{ type: 'dahai', pai: '9p' }, 0.6],
+      [{ type: 'hora', target: 2 }, 0.4],
+    ]);
+  });
+
+  it('drops a bare hora when the decision point allows no win', () => {
+    const decision = mapCloudDecision({ type: 'dahai', pai: '9p' }, [
+      { action: 'dahai:9p', prob: 0.6 },
+      { action: 'hora', prob: 0.4 },
+    ]);
+
+    expect(decision?.candidates.map(([action]) => action)).toEqual([{ type: 'dahai', pai: '9p' }]);
+  });
+
+  it('refuses a hora reaction it cannot label', () => {
+    expect(mapCloudDecision({ type: 'hora' }, [{ action: 'hora', prob: 1 }])).toBeNull();
+  });
+
   it('refuses a reaction it cannot represent', () => {
-    expect(mapCloudDecision({ type: 'weather' }, [], 0, null)).toBeNull();
-    expect(mapCloudDecision({ type: 'dahai' }, [], 0, null)).toBeNull();
+    expect(mapCloudDecision({ type: 'weather' }, [])).toBeNull();
+    expect(mapCloudDecision({ type: 'dahai' }, [])).toBeNull();
+  });
+
+  it('fills the tiles behind a coarse call label', () => {
+    const decision = mapCloudDecision(
+      { type: 'dahai', pai: '9p' },
+      [
+        { action: 'dahai:9p', prob: 0.6 },
+        { action: 'pon', prob: 0.25 },
+        { action: 'chi_mid', prob: 0.15 },
+      ],
+      {
+        resolveCall: (label) => {
+          if (label === 'pon') return [{ type: 'pon', pai: '4m', consumed: ['4mr', '4m'] }];
+          if (label === 'chi_mid') return [{ type: 'chi', pai: '4m', consumed: ['3m', '5m'] }];
+          return [];
+        },
+      },
+    );
+
+    expect(decision?.candidates).toEqual([
+      [{ type: 'dahai', pai: '9p' }, 0.6],
+      [{ type: 'pon', pai: '4m', consumed: ['4mr', '4m'] }, 0.25],
+      [{ type: 'chi', pai: '4m', consumed: ['3m', '5m'] }, 0.15],
+    ]);
+  });
+
+  it('expands one `kan` label into every kan it can mean', () => {
+    const decision = mapCloudDecision(
+      { type: 'dahai', pai: '9p' },
+      [
+        { action: 'dahai:9p', prob: 0.6 },
+        { action: 'kan', prob: 0.4 },
+      ],
+      {
+        resolveCall: (label) =>
+          label === 'kan'
+            ? [
+                { type: 'daiminkan', pai: '3p', consumed: ['3p', '3p', '3p'] },
+                { type: 'ankan', consumed: ['2m', '2m', '2m', '2m'] },
+              ]
+            : [],
+      },
+    );
+
+    expect(decision?.candidates).toEqual([
+      [{ type: 'dahai', pai: '9p' }, 0.6],
+      [{ type: 'daiminkan', pai: '3p', consumed: ['3p', '3p', '3p'] }, 0.4],
+      [{ type: 'ankan', consumed: ['2m', '2m', '2m', '2m'] }, 0.4],
+    ]);
+  });
+
+  it('does not repeat the reaction when the resolver names the same call', () => {
+    const decision = mapCloudDecision(
+      { type: 'pon', pai: '5s', consumed: ['5s', '5s'] },
+      [
+        { action: 'pon', prob: 0.53 },
+        { action: 'none', prob: 0.47 },
+      ],
+      {
+        resolveCall: (label) =>
+          label === 'pon' ? [{ type: 'pon', pai: '5s', consumed: ['5sr', '5s'] }] : [],
+      },
+    );
+
+    expect(decision?.candidates).toEqual([
+      [{ type: 'pon', pai: '5s', consumed: ['5s', '5s'] }, 0.53],
+      [{ type: 'pass' }, 0.47],
+    ]);
   });
 
   it('does not call the client while the breaker is open', async () => {
@@ -351,5 +489,36 @@ describe('mapping a cloud reaction', () => {
     await cloud.decide(INPUT);
 
     expect(paths).toEqual(['/v3/react']);
+  });
+});
+
+describe('carrying coarse rows into the cloud decision', () => {
+  it('resolves the tiles behind a call label', async () => {
+    const { cloud } = service({
+      responses: [
+        {
+          reaction: { type: 'dahai', pai: '9p' },
+          candidates: [
+            { action: 'dahai:9p', prob: 0.7 },
+            { action: 'pon', prob: 0.3 },
+          ],
+          model: 'mjot-4p',
+        },
+      ],
+    });
+
+    const outcome = await cloud.decide({
+      ...INPUT,
+      resolveCall: (label) =>
+        label === 'pon' ? [{ type: 'pon', pai: '4m', consumed: ['4m', '4m'] }] : [],
+    });
+
+    expect(outcome.kind).toBe('cloud');
+    if (outcome.kind === 'cloud') {
+      expect(outcome.decision.candidates).toEqual([
+        [{ type: 'dahai', pai: '9p' }, 0.7],
+        [{ type: 'pon', pai: '4m', consumed: ['4m', '4m'] }, 0.3],
+      ]);
+    }
   });
 });

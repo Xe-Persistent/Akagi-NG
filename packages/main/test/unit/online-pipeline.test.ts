@@ -28,11 +28,11 @@ import { messagesOn, resetSentMessages, testPaths } from '../electron-stub.js';
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
 const schema = readFileSync(join(repoRoot, 'assets', 'settings.schema.json'), 'utf8');
 const SEAT = 1;
+const DEFAULT_HAND = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p'];
 
 let workDir: string;
 
-function startKyoku(): MJAIEvent {
-  const hand = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p'];
+function startKyoku(hand: string[] = DEFAULT_HAND): MJAIEvent {
   return {
     type: 'start_kyoku',
     bakaze: 'E',
@@ -51,6 +51,7 @@ const OUR_DRAW: MJAIEvent = { type: 'tsumo', actor: SEAT, pai: '5s' };
 
 interface StubOptions {
   forced?: boolean;
+  decision?: Record<string, unknown>;
 }
 
 function stubbedEngine(options: StubOptions = {}): EngineService {
@@ -62,15 +63,16 @@ function stubbedEngine(options: StubOptions = {}): EngineService {
   internal.runner = {
     loaded: true,
     feed: () => {},
-    decide: () => ({
-      action: { type: 'dahai', pai: '1m' },
-      candidates: [
-        [{ type: 'dahai', pai: '1m' }, 0.9],
-        [{ type: 'dahai', pai: '9p' }, 0.1],
-      ],
-      logits: [],
-      forced: options.forced ?? false,
-    }),
+    decide: () =>
+      options.decision ?? {
+        action: { type: 'dahai', pai: '1m' },
+        candidates: [
+          [{ type: 'dahai', pai: '1m' }, 0.9],
+          [{ type: 'dahai', pai: '9p' }, 0.1],
+        ],
+        logits: [],
+        forced: options.forced ?? false,
+      },
     reset: () => {},
     load: async () => ({ status: 'loaded', modelName: 'stub' }),
   };
@@ -84,6 +86,18 @@ function stubService(payload: unknown) {
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     calls.push({ url, body: JSON.parse(String(init?.body)) });
     return new Response(JSON.stringify(payload), { status: 200 });
+  });
+  return calls;
+}
+
+/** A fetch that answers in order; the last payload repeats for later calls. */
+function stubSequence(payloads: unknown[]) {
+  const calls: unknown[] = [];
+  const queue = [...payloads];
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    calls.push({ url, body: JSON.parse(String(init?.body)) });
+    const next = queue.length > 1 ? queue.shift() : queue[0];
+    return new Response(JSON.stringify(next), { status: 200 });
   });
   return calls;
 }
@@ -205,5 +219,111 @@ describe('the online decision inside the engine', () => {
 
     expect(calls).toEqual([]);
     expect(published()?.engine_type).toBe('local');
+  });
+
+  it('draws the tiles behind a coarse online call row', async () => {
+    writeApiKey('ot_live_test');
+    getSettingsManager().updateSettings({ ot: { online: true } } as never);
+
+    stubService({
+      reaction: { type: 'dahai', pai: '9p' },
+      candidates: [
+        { action: 'dahai:9p', prob: 0.7 },
+        { action: 'pon', prob: 0.3 },
+      ],
+      model: 'mjot-4p',
+    });
+
+    const engine = stubbedEngine();
+    try {
+      await engine.ingest([
+        { type: 'start_game', id: SEAT, is_3p: false } as unknown as MJAIEvent,
+        startKyoku(['1m', '1m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p']),
+        { type: 'dahai', actor: 0, pai: '1m', tsumogiri: false } as unknown as MJAIEvent,
+      ]);
+    } finally {
+      engine.stop();
+    }
+
+    const pon = published()?.recommendations.find((row) => row.action === 'pon');
+    expect(pon).toMatchObject({ tile: '1m', consumed: ['1m', '1m'], confidence: 0.3 });
+  });
+
+  it('labels a coarse online hora row as a ron on the discard', async () => {
+    writeApiKey('ot_live_test');
+    getSettingsManager().updateSettings({ ot: { online: true } } as never);
+
+    stubService({
+      reaction: { type: 'none' },
+      candidates: [
+        { action: 'none', prob: 0.7 },
+        { action: 'hora', prob: 0.3 },
+      ],
+      model: 'mjot-4p',
+    });
+
+    const engine = stubbedEngine();
+    try {
+      await engine.ingest([
+        { type: 'start_game', id: SEAT, is_3p: false } as unknown as MJAIEvent,
+        startKyoku(),
+        { type: 'dahai', actor: 0, pai: '3p', tsumogiri: false } as unknown as MJAIEvent,
+      ]);
+    } finally {
+      engine.stop();
+    }
+
+    const ron = published()?.recommendations.find((row) => row.action === 'ron');
+    expect(ron).toMatchObject({ tile: '3p', confidence: 0.3 });
+  });
+
+  it('shows the online model own declaration tiles under an online reach', async () => {
+    writeApiKey('ot_live_test');
+    getSettingsManager().updateSettings({ ot: { online: true } } as never);
+
+    stubSequence([
+      {
+        reaction: { type: 'reach' },
+        candidates: [{ action: 'reach', prob: 0.9 }],
+        model: 'mjot-4p',
+      },
+      {
+        reaction: { type: 'dahai', pai: '9p' },
+        candidates: [
+          { action: 'dahai:9p', prob: 0.6 },
+          { action: 'dahai:1m', prob: 0.4 },
+        ],
+        model: 'mjot-4p',
+      },
+    ]);
+
+    const engine = stubbedEngine({
+      decision: {
+        action: { type: 'reach', pai: '1m' },
+        candidates: [
+          [{ type: 'reach', pai: '1m' }, 0.9],
+          [{ type: 'dahai', pai: '9p' }, 0.1],
+        ],
+        logits: [],
+        forced: false,
+        // A local ranking that must not leak into the online card.
+        riichi_lookahead: [
+          { pai: '1m', prob: 0.99 },
+          { pai: '9p', prob: 0.01 },
+        ],
+      },
+    });
+    try {
+      await play(engine);
+    } finally {
+      engine.stop();
+    }
+
+    const reach = published()?.recommendations.find((row) => row.action === 'reach');
+    expect(reach?.tile).toBe('9p');
+    expect(reach?.sim_candidates).toEqual([
+      { tile: '9p', confidence: 0.6 },
+      { tile: '1m', confidence: 0.4 },
+    ]);
   });
 });

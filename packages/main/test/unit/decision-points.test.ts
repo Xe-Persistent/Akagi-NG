@@ -49,6 +49,22 @@ async function reactsTo(engine: EngineService, event: MJAIEvent): Promise<boolea
 
 const event = (value: Record<string, unknown>) => value as unknown as MJAIEvent;
 
+/** A round opening carries the dealt hands; the tracker reads our seat's. */
+function startKyoku(): MJAIEvent {
+  const hand = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p'];
+  return event({
+    type: 'start_kyoku',
+    bakaze: 'E',
+    dora_marker: '5s',
+    kyoku: 1,
+    honba: 0,
+    kyotaku: 0,
+    oya: 0,
+    scores: [25000, 25000, 25000, 25000],
+    tehais: [hand, hand, hand, hand],
+  });
+}
+
 describe('the points the engine is asked at', () => {
   let engine: EngineService;
 
@@ -77,10 +93,13 @@ describe('the points the engine is asked at', () => {
     ['a riichi declaration', { type: 'reach', actor: 2 }],
     ['an accepted riichi', { type: 'reach_accepted', actor: 2 }],
     ['a new dora', { type: 'dora', dora_marker: '5s' }],
-    ['a round opening', { type: 'start_kyoku' }],
     ['a round closing', { type: 'end_kyoku' }],
   ])('stays quiet at %s', async (_label, payload) => {
     expect(await reactsTo(engine, event(payload))).toBe(false);
+  });
+
+  it('stays quiet at a round opening', async () => {
+    expect(await reactsTo(engine, startKyoku())).toBe(false);
   });
 
   it('stays quiet for the rest of a round we have already won', async () => {
@@ -95,7 +114,7 @@ describe('the points the engine is asked at', () => {
   it('answers again once the next round opens', async () => {
     await engine.ingest([event({ type: 'hora', actor: SEAT, target: 2, pai: '3p' })]);
 
-    expect(await reactsTo(engine, event({ type: 'start_kyoku' }))).toBe(false);
+    expect(await reactsTo(engine, startKyoku())).toBe(false);
     expect(await reactsTo(engine, event({ type: 'tsumo', actor: SEAT, pai: '4p' }))).toBe(true);
   });
 

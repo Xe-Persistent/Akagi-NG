@@ -1,5 +1,10 @@
 import { createLogger } from '../../logging/index.js';
-import type { EngineAction, EngineDecision } from '../engine/recommendation-mapper.js';
+import { MAHJONG } from '../../shared/schema/mahjong.js';
+import type {
+  EngineAction,
+  EngineDecision,
+  RiichiLookaheadCandidate,
+} from '../engine/recommendation-mapper.js';
 import { InferenceClient, InferenceError } from './inference-client.js';
 import type { OnlineConfig, ReactCandidate, ReactResponse } from './types.js';
 
@@ -16,6 +21,12 @@ const REACH_RETRY_MAX_MS = 1_000;
 export type CloudFallbackReason =
   'disabled' | 'breaker-open' | 'request-failed' | 'null-reaction' | 'reach-failed' | 'unmappable';
 
+/** The discard a reach will declare with, plus the model's own tile ranking. */
+interface ReachResolution {
+  discard: string;
+  lookahead: RiichiLookaheadCandidate[];
+}
+
 /** What the decision path did: a cloud answer, a local fallback, or nothing. */
 export type CloudDecisionResult =
   | { kind: 'cloud'; decision: EngineDecision; model: string | null }
@@ -27,8 +38,17 @@ export interface CloudDecisionInput {
   events: unknown[];
   seat: number;
   is3p: boolean;
-  /** The local engine's answer: used as the gate and as the fallback. */
-  local: EngineDecision;
+  /**
+   * Names the tiles behind a coarse top-k call label (`pon`, `chi_low`, `kan`).
+   * Without it those rows reach the HUD as a bare label.
+   */
+  resolveCall?: (label: string) => EngineAction[];
+  /**
+   * The losing seat when a win is allowed at this decision point: our own seat
+   * for a tsumo, the discarder for a ron. `null` means nobody can win here.
+   * Without it a bare `hora` label cannot say which win it means.
+   */
+  winTarget?: number | null;
 }
 
 interface CloudDecisionDeps {
@@ -163,8 +183,9 @@ export class CloudDecisionService {
     }
 
     let reachDiscard: string | null = null;
+    let reachLookahead: RiichiLookaheadCandidate[] = [];
     if (reaction.type === 'reach') {
-      reachDiscard = await this.resolveReachDiscard(
+      const resolved = await this.resolveReachDiscard(
         client,
         model,
         input.seat,
@@ -172,26 +193,40 @@ export class CloudDecisionService {
         signal,
       );
       if (generation !== this.generation) return { kind: 'cancelled' };
-      if (!reachDiscard) {
+      if (!resolved) {
         logger.warn('Cloud reach had no discard; dropping the cloud answer for the local decision');
         return local('reach-failed', true, false);
       }
+      reachDiscard = resolved.discard;
+      reachLookahead = resolved.lookahead;
     }
 
-    const decision = mapCloudDecision(reaction, response.candidates, input.seat, reachDiscard);
+    const decision = mapCloudDecision(reaction, response.candidates, {
+      reachDiscard,
+      resolveCall: input.resolveCall,
+      winTarget: input.winTarget,
+    });
     if (!decision) {
       logger.warn(
         `Cannot map the cloud reaction (type=${String(reaction.type)}); using the local model`,
       );
       return local('unmappable', true, false);
     }
+    // The declaration-tile candidates are the online model's own ranking, taken
+    // from the follow-up call. A local lookahead would be a different model's
+    // opinion and must never stand in for it.
+    if (reachLookahead.length > 0) decision.riichi_lookahead = reachLookahead;
     return { kind: 'cloud', decision, model: response.model ?? (model || null) };
   }
 
   /**
    * A bare `reach` asks for a second decision: append the declaration and ask
-   * again for the discard. A burst 429 gets one short retry and never opens the
-   * breaker — the server is reachable, just rate limiting.
+   * again for the discard. The same answer's top-k ranks every declaration tile
+   * the model considered, which is exactly the candidate row the HUD shows under
+   * `reach` — the online model's own, not a local stand-in.
+   *
+   * A burst 429 here gets one short retry and never opens the breaker — the
+   * server is reachable, just rate limiting.
    */
   private async resolveReachDiscard(
     client: InferenceClient,
@@ -199,15 +234,15 @@ export class CloudDecisionService {
     seat: number,
     events: unknown[],
     signal: AbortSignal,
-  ): Promise<string | null> {
+  ): Promise<ReachResolution | null> {
     const followUp = [...events, { type: 'reach', actor: seat }];
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const response = await client.react(model, seat, followUp, signal);
         this.recordSuccess();
         const reaction = response.reaction;
-        if (reaction?.type === 'dahai' && typeof reaction.pai === 'string') return reaction.pai;
-        return null;
+        if (reaction?.type !== 'dahai' || typeof reaction.pai !== 'string') return null;
+        return { discard: reaction.pai, lookahead: declarationTiles(response.candidates) };
       } catch (error) {
         const inference =
           error instanceof InferenceError
@@ -281,6 +316,7 @@ function local(
 }
 
 function retryDelay(retryAfterMs: number | null): number {
+  // The null check is what narrows the type: `Number.isFinite` is not a guard.
   if (retryAfterMs === null || !Number.isFinite(retryAfterMs)) {
     return REACH_RETRY_FALLBACK_MS;
   }
@@ -303,38 +339,83 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
 
 // ===== Reaction mapping =====
 
+/** Everything a coarse reaction needs beyond the wire data to become a HUD row. */
+export interface CloudMappingContext {
+  /** The discard the follow-up call named, when the reaction is a reach. */
+  reachDiscard?: string | null;
+  /** Names the tiles behind a coarse top-k call label (`pon`, `chi_low`, `kan`). */
+  resolveCall?: (label: string) => EngineAction[];
+  /**
+   * The losing seat when a win is allowed right now: our own seat for a tsumo,
+   * the discarder for a ron. `null` means no win is possible; `undefined` means
+   * the caller did not say.
+   */
+  winTarget?: number | null;
+}
+
 /**
- * Turn the server's mjai reaction plus its coarse top-k into the same decision
- * shape the local engine produces, so the HUD mapper is shared by both paths.
- * `null` when the reaction cannot be represented (an unknown action type).
+ * Map a cloud answer to the HUD's rows. `context` supplies what the top-k labels
+ * leave out: the tiles a call takes and which win a `hora` means.
  */
 export function mapCloudDecision(
   reaction: Record<string, unknown>,
   candidates: ReactCandidate[],
-  seat: number,
-  reachDiscard: string | null,
+  context: CloudMappingContext = {},
 ): EngineDecision | null {
-  const action = reactionToAction(reaction, seat, reachDiscard);
+  const action = reactionToAction(reaction, context);
   if (!action) return null;
 
   const rows: [EngineAction, number][] = [[action, candidates[0]?.prob ?? 1]];
   const seen = new Set([signature(action)]);
+  // A coarse label for the move the reaction already spelled out is the same
+  // row, not a second, tile-less one.
+  const covered = new Set(hasDetail(action) ? [action.type] : []);
+
   for (const candidate of candidates.slice(1)) {
-    const mapped = coarseToAction(candidate.action);
-    if (!mapped) continue;
-    const key = signature(mapped);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    rows.push([mapped, candidate.prob]);
+    for (const mapped of actionsFor(candidate.action, context)) {
+      if (!hasDetail(mapped) && covered.has(mapped.type)) continue;
+      const key = signature(mapped);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (hasDetail(mapped)) covered.add(mapped.type);
+      rows.push([mapped, candidate.prob]);
+    }
   }
 
   return { action, candidates: rows, logits: [] };
 }
 
+/** A coarse label resolved into everything it can mean, or the bare mapping. */
+function actionsFor(label: string, context: CloudMappingContext): EngineAction[] {
+  const resolved = context.resolveCall?.(label) ?? [];
+  if (resolved.length > 0) return resolved;
+
+  const mapped = coarseToAction(label, context.winTarget);
+  return mapped ? [mapped] : [];
+}
+
+/**
+ * The declaration tiles ranked by the model that answered the reach. After the
+ * declaration the only meaningful choice is which tile to discard, so the
+ * follow-up's top-k is the candidate row for the reach: `dahai:<tile>` labels
+ * only, best first.
+ */
+function declarationTiles(candidates: ReactCandidate[]): RiichiLookaheadCandidate[] {
+  const seen = new Set<string>();
+  const tiles: RiichiLookaheadCandidate[] = [];
+  for (const candidate of candidates) {
+    if (!candidate.action.startsWith('dahai:')) continue;
+    const pai = candidate.action.slice('dahai:'.length);
+    if (!pai || seen.has(pai)) continue;
+    seen.add(pai);
+    tiles.push({ pai, prob: candidate.prob });
+  }
+  return tiles;
+}
+
 function reactionToAction(
   reaction: Record<string, unknown>,
-  seat: number,
-  reachDiscard: string | null,
+  context: CloudMappingContext,
 ): EngineAction | null {
   const pai = typeof reaction.pai === 'string' ? reaction.pai : '';
   const consumed = stringList(reaction.consumed);
@@ -344,7 +425,7 @@ function reactionToAction(
       return pai ? { type: 'dahai', pai } : null;
     case 'reach':
       // The discard is the second decision; without it a reach stalls autoplay.
-      return reachDiscard ? { type: 'reach', pai: reachDiscard } : null;
+      return context.reachDiscard ? { type: 'reach', pai: context.reachDiscard } : null;
     case 'pon':
     case 'chi':
     case 'daiminkan':
@@ -353,9 +434,13 @@ function reactionToAction(
       return consumed.length > 0 ? { type: 'ankan', consumed } : null;
     case 'kakan':
       return pai ? { type: 'kakan', pai, consumed } : null;
-    case 'hora':
-      // `target` is the discarder for a ron; a self-draw names our own seat.
-      return { type: 'hora', target: typeof reaction.target === 'number' ? reaction.target : seat };
+    case 'hora': {
+      // A reaction normally names the loser. When it does not, only the decision
+      // point can: without a win target the reaction cannot be labelled, so it
+      // is dropped rather than guessed into a self-draw.
+      const target = typeof reaction.target === 'number' ? reaction.target : context.winTarget;
+      return typeof target === 'number' ? { type: 'hora', target } : null;
+    }
     case 'ryukyoku':
       return { type: 'kyushu' };
     case 'kita':
@@ -369,10 +454,11 @@ function reactionToAction(
 }
 
 /**
- * Map a coarse top-k label. `hora` is deliberately absent: without a target the
- * row cannot say ron or tsumo, and guessing would mislabel the row.
+ * Map a coarse top-k label. `hora` needs a target to say tsumo or ron; the
+ * decision point supplies one (our draw, or the seat whose tile we would take),
+ * so the row is only mapped when that context exists.
  */
-function coarseToAction(action: string): EngineAction | null {
+function coarseToAction(action: string, winTarget?: number | null): EngineAction | null {
   if (action.startsWith('dahai:')) {
     const pai = action.slice('dahai:'.length);
     return pai ? { type: 'dahai', pai } : null;
@@ -389,6 +475,8 @@ function coarseToAction(action: string): EngineAction | null {
       return { type: 'chi' };
     case 'kan':
       return { type: 'daiminkan' };
+    case 'hora':
+      return typeof winTarget === 'number' ? { type: 'hora', target: winTarget } : null;
     case 'ryukyoku':
       return { type: 'kyushu' };
     case 'nukidora':
@@ -402,12 +490,26 @@ function coarseToAction(action: string): EngineAction | null {
 }
 
 /**
- * One row per action the HUD can show. Only a discard is identified by its tile;
- * every other row is the action itself, so a coarse `pon` must not sit next to
- * the reaction's `pon 5s` as a second, tile-less row.
+ * One row per action the HUD can show. A discard is identified by its tile and
+ * a call by the tiles it takes, so two kans — or a resolved `pon` and the
+ * reaction's `pon 5s` — stay distinct rows instead of collapsing into one.
+ * Red fives are compared by their base tile: the same call is the same row.
  */
 function signature(action: EngineAction): string {
-  return action.type === 'dahai' ? `dahai:${action.pai ?? ''}` : action.type;
+  if (action.type === 'dahai') return `dahai:${action.pai ?? ''}`;
+  if (action.consumed?.length) {
+    const tiles = [action.pai ?? '', ...action.consumed]
+      .map((tile) => tile.replace(MAHJONG.RED_FIVE_SUFFIX, ''))
+      .sort()
+      .join('');
+    return `${action.type}:${tiles}`;
+  }
+  return action.type;
+}
+
+/** Whether the row spells out the tiles it takes, not just the action kind. */
+function hasDetail(action: EngineAction): boolean {
+  return action.type === 'dahai' || (action.consumed?.length ?? 0) > 0;
 }
 
 function stringList(value: unknown): string[] {

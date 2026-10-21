@@ -1,4 +1,5 @@
 import { createLogger } from '../../logging/index.js';
+import { MAHJONG } from '../../shared/schema/mahjong.js';
 
 const logger = createLogger('Recommendation');
 
@@ -179,7 +180,7 @@ function toRecommendation(
     case 'kyushu':
       return { action: 'ryukyoku', confidence };
     case 'kita':
-      return { action: 'nukidora', tile: 'N', confidence };
+      return { action: 'nukidora', tile: MAHJONG.NORTH_TILE, confidence };
     case 'pass':
       return { action: 'none', confidence };
     default:

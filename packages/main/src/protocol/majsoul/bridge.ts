@@ -1,6 +1,6 @@
 import { createLogger } from '../../logging/index.js';
 import { errorMessage } from '../../shared/errors.js';
-import { MahjongConstants } from '../../shared/schema/mahjong.js';
+import { MAHJONG, MELD_TILE_COUNTS } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import type { BridgeOutput } from '../base-bridge.js';
 import { BaseBridge } from '../base-bridge.js';
@@ -23,21 +23,6 @@ interface ActionPrototype extends ActionPayload {
   data: ActionPayload;
 }
 
-/**
- * How many tiles each call reports. The protocol guarantees these counts, so the
- * handlers turn any other length into a hard error rather than a silent meld.
- */
-const MELD_TILES = {
-  chi: 2,
-  pon: 2,
-  daiminkan: 3,
-  ankan: 4,
-  kakan: 3,
-} as const;
-
-/** `chang` (the round-wind index) to the mjai round-wind tile. */
-const ROUND_WINDS = ['E', 'S', 'W', 'N'] as const;
-
 /** ActionPrototype names that end the current kyoku. */
 const END_ROUND_ACTIONS = new Set(['ActionHule', 'ActionNoTile', 'ActionLiuJu']);
 
@@ -55,7 +40,7 @@ const STALE_DEAL_ACTIONS = new Set([
 /** The round's first dora marker, before any indicator has been reported. */
 function toMjaiTileOrUnknown(doras: string[] | undefined): string {
   const first = doras?.[0];
-  return first ? toMjaiTile(first) : MahjongConstants.UNKNOWN_TILE;
+  return first ? toMjaiTile(first) : MAHJONG.UNKNOWN_TILE;
 }
 
 /** A five of a numbered suit; an honor such as 5z is not a suit five. */
@@ -64,7 +49,7 @@ function isSuitFive(pai: string): boolean {
 }
 
 function isRedFive(pai: string): boolean {
-  return pai.endsWith('r');
+  return pai.endsWith(MAHJONG.RED_FIVE_SUFFIX);
 }
 
 export class MajsoulBridge extends BaseBridge {
@@ -178,7 +163,7 @@ export class MajsoulBridge extends BaseBridge {
     if (msgType === MsgType.Res) {
       const data = liqiMessage.data as ActionPayload;
       const seatList = data.seatList as number[];
-      this.state.is3p = seatList.length === MahjongConstants.SEATS_3P;
+      this.state.is3p = seatList.length === MAHJONG.SEATS_3P;
       this.state.seat = seatList.indexOf(this.state.accountId);
       this.state.isXuezhan = isXuezhanRule(data.gameConfig);
       return [this.makeStartGame(this.state.seat, this.state.is3p)];
@@ -285,10 +270,10 @@ export class MajsoulBridge extends BaseBridge {
     const deltas = (action.data.deltaScores as number[] | undefined) ?? [];
 
     return this.readWins(action).map((win) => {
-      if (!win.zimo && this.state.lastDiscard === null) {
+      if (!win.zimo && this.state.lastDiscarder === null) {
         logger.warn(`Ron in ${action.name} without a discard to attribute it to`);
       }
-      const target = win.zimo ? win.seat : (this.state.lastDiscard ?? win.seat);
+      const target = win.zimo ? win.seat : (this.state.lastDiscarder ?? win.seat);
 
       return this.makeHora(win.seat, target, toMjaiTile(win.pai), scores, deltas);
     });
@@ -353,8 +338,8 @@ export class MajsoulBridge extends BaseBridge {
    * xuezhan deal with its swap already applied.
    */
   private openRound(data: ActionPayload, doraMarker: string): MJAIEvent[] {
-    const bakaze = ROUND_WINDS[data.chang as number];
-    this.state.doras = doraMarker === MahjongConstants.UNKNOWN_TILE ? [] : [doraMarker];
+    const bakaze = MAHJONG.ROUND_WIND_TILES[data.chang as number];
+    this.state.doras = doraMarker === MAHJONG.UNKNOWN_TILE ? [] : [doraMarker];
 
     const honba = data.ben as number;
     const oya = data.ju as number;
@@ -446,11 +431,11 @@ export class MajsoulBridge extends BaseBridge {
     const data = action.data;
     const actor = data.seat as number;
 
-    let pai: string = MahjongConstants.UNKNOWN_TILE;
+    let pai: string = MAHJONG.UNKNOWN_TILE;
     if (data.tile) {
       pai = toMjaiTile(data.tile as string);
       if (actor === this.state.seat) {
-        this.state.myTsumohai = pai;
+        this.state.onDraw(pai);
       }
     }
 
@@ -460,7 +445,7 @@ export class MajsoulBridge extends BaseBridge {
   private handleDiscardTile(action: ActionPrototype): MJAIEvent[] {
     const data = action.data;
     const actor = data.seat as number;
-    this.state.lastDiscard = actor;
+    this.state.lastDiscarder = actor;
 
     const pai = toMjaiTile(data.tile as string);
     const tsumogiri = data.moqie as boolean;
@@ -512,17 +497,17 @@ export class MajsoulBridge extends BaseBridge {
 
     switch (data.type) {
       case OperationChiPengGang.Chi:
-        if (consumed.length !== MELD_TILES.chi) {
+        if (consumed.length !== MELD_TILE_COUNTS.chi) {
           throw new Error('Invalid consumed count');
         }
         return [this.makeChi(actor, target, pai, consumed)];
       case OperationChiPengGang.Peng:
-        if (consumed.length !== MELD_TILES.pon) {
+        if (consumed.length !== MELD_TILE_COUNTS.pon) {
           throw new Error('Invalid consumed count');
         }
         return [this.makePon(actor, target, pai, consumed)];
       case OperationChiPengGang.Gang:
-        if (consumed.length !== MELD_TILES.daiminkan) {
+        if (consumed.length !== MELD_TILE_COUNTS.daiminkan) {
           throw new Error('Invalid consumed count');
         }
         return [this.makeDaiminkan(actor, target, pai, consumed)];
@@ -562,10 +547,10 @@ export class MajsoulBridge extends BaseBridge {
    * a red `pai` is not part of it.
    */
   private buildKanTiles(pai: string, kind: 'closed' | 'added'): string[] {
-    const count = kind === 'closed' ? MELD_TILES.ankan : MELD_TILES.kakan;
-    const consumed = Array<string>(count).fill(pai.replace('r', ''));
+    const count = kind === 'closed' ? MELD_TILE_COUNTS.ankan : MELD_TILE_COUNTS.kakan;
+    const consumed = Array<string>(count).fill(pai.replace(MAHJONG.RED_FIVE_SUFFIX, ''));
     const carriesRed = isSuitFive(pai) && (kind === 'closed' || !isRedFive(pai));
-    if (carriesRed) consumed[0] += 'r';
+    if (carriesRed) consumed[0] += MAHJONG.RED_FIVE_SUFFIX;
     return consumed;
   }
 

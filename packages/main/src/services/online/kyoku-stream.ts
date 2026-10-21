@@ -1,11 +1,11 @@
+import { MAHJONG } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent, StartKyokuEvent, TsumoEvent } from '../../shared/schema/mjai.js';
 
 /** Seats every online request is shaped to, including a phantom fourth in sanma. */
-const SEATS = 4;
-const HAND_SIZE = 13;
-/** `?` is the mjai spelling of a tile the client is not allowed to see. */
-const HIDDEN_PAI = '?';
-const HIDDEN_HAND: readonly string[] = Array.from({ length: HAND_SIZE }, () => HIDDEN_PAI);
+const SEATS = MAHJONG.SEATS_4P;
+/** The mjai spelling of a tile the client is not allowed to see. */
+const HIDDEN_PAI = MAHJONG.UNKNOWN_TILE;
+const HIDDEN_HAND: readonly string[] = Array.from({ length: MAHJONG.TEHAI_SIZE }, () => HIDDEN_PAI);
 /** The service rejects a request longer than this; a kyoku is nowhere near it. */
 export const MAX_API_EVENTS = 512;
 

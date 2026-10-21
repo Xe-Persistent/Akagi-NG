@@ -1,6 +1,6 @@
 import { createLogger } from '../../logging/index.js';
 import { errorMessage } from '../../shared/errors.js';
-import { MahjongConstants } from '../../shared/schema/mahjong.js';
+import { MAHJONG } from '../../shared/schema/mahjong.js';
 import type { LiqiMessage, LiqiProto } from './liqi.js';
 import { MsgType } from './liqi.js';
 import { MAJSOUL_METHODS } from './wire.js';
@@ -19,7 +19,7 @@ export function is3pFromSyncSnapshot(liqiMessage: LiqiMessage): boolean | null {
   const players = snapshot?.players as unknown[] | undefined;
   if (!players) return null;
 
-  const is3p = players.length === MahjongConstants.SEATS_3P;
+  const is3p = players.length === MAHJONG.SEATS_3P;
   logger.verbose(`Pre-scanned mode from snapshot: is_3p=${is3p}`);
   return is3p;
 }

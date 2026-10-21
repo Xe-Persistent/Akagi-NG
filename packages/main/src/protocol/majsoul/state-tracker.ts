@@ -1,5 +1,6 @@
 import { createLogger } from '../../logging/index.js';
-import { MahjongConstants } from '../../shared/schema/mahjong.js';
+import { HandLedger } from '../../shared/hand-ledger.js';
+import { MAHJONG } from '../../shared/schema/mahjong.js';
 import type { ReachAcceptedEvent } from '../../shared/schema/mjai.js';
 import { comparePai, toMjaiTile } from './tile-mapping.js';
 
@@ -15,14 +16,28 @@ export class MajsoulStateTracker {
   public is3p = false;
   public gameEnded = false;
 
-  public lastDiscard: number | null = null;
+  /** The seat that discarded last: a ron pays from this seat. */
+  public lastDiscarder: number | null = null;
   public doras: string[] = [];
   /** The game reports `xuezhandaodi`: rounds swap three tiles and do not stop at the first win. */
   public isXuezhan = false;
-  public myTehais: string[] = [];
-  public myTsumohai: string | null = null;
   /** `reach_accepted` event waiting to be appended after the current action. */
   public pendingReachAccepted: ReachAcceptedEvent | null = null;
+
+  /** Our own hand and draw, shared with the HUD's round state. */
+  private readonly hand = new HandLedger();
+
+  public get myTehais(): string[] {
+    return this.hand.tiles;
+  }
+
+  public set myTehais(tiles: string[]) {
+    this.hand.setTiles(tiles);
+  }
+
+  public get myTsumohai(): string | null {
+    return this.hand.pending;
+  }
 
   constructor() {
     this.reset();
@@ -34,11 +49,16 @@ export class MajsoulStateTracker {
     this.is3p = false;
     this.isXuezhan = false;
     this.gameEnded = false;
-    this.lastDiscard = null;
+    this.lastDiscarder = null;
     this.doras = [];
-    this.myTehais = Array<string>(MahjongConstants.TEHAI_SIZE).fill(MahjongConstants.UNKNOWN_TILE);
-    this.myTsumohai = MahjongConstants.UNKNOWN_TILE;
+    this.hand.reset(Array<string>(MAHJONG.TEHAI_SIZE).fill(MAHJONG.UNKNOWN_TILE));
+    this.hand.setPending(null);
     this.pendingReachAccepted = null;
+  }
+
+  /** A tile was dealt to us; it stays out of the hand until it is played. */
+  public onDraw(pai: string) {
+    this.hand.draw(pai);
   }
 
   /**
@@ -48,28 +68,27 @@ export class MajsoulStateTracker {
    * the tile list has an unexpected length.
    */
   public setupNewRound(tiles: string[]): { tehais: string[][]; myTsumohai: string | null } | null {
-    const tehais = Array.from({ length: MahjongConstants.SEATS_4P }, () =>
-      Array<string>(MahjongConstants.TEHAI_SIZE).fill(MahjongConstants.UNKNOWN_TILE),
+    const tehais = Array.from({ length: MAHJONG.SEATS_4P }, () =>
+      Array<string>(MAHJONG.TEHAI_SIZE).fill(MAHJONG.UNKNOWN_TILE),
     );
 
-    const hand = tiles.slice(0, MahjongConstants.TEHAI_SIZE).map((tile) => toMjaiTile(tile));
+    const hand = tiles.slice(0, MAHJONG.TEHAI_SIZE).map((tile) => toMjaiTile(tile));
 
-    if (tiles.length === MahjongConstants.TEHAI_SIZE) {
+    if (tiles.length === MAHJONG.TEHAI_SIZE) {
       const sortedHand = hand.sort(comparePai);
-      this.myTehais = sortedHand;
-      this.myTsumohai = null;
+      this.hand.reset(sortedHand);
       tehais[this.seat] = [...sortedHand];
       return { tehais, myTsumohai: null };
     }
 
-    if (tiles.length === MahjongConstants.TSUMO_TEHAI_SIZE) {
+    if (tiles.length === MAHJONG.TEHAI_SIZE_WITH_DRAW) {
       // The last tile of the payload is the one that was drawn -- not whichever
       // tile happens to sort highest -- so the hand is the other thirteen.
-      const tsumohai = toMjaiTile(tiles[MahjongConstants.TEHAI_SIZE]);
+      const tsumohai = toMjaiTile(tiles[MAHJONG.TEHAI_SIZE]);
       const sortedHand = hand.sort(comparePai);
 
-      this.myTehais = sortedHand;
-      this.myTsumohai = tsumohai;
+      this.hand.reset(sortedHand);
+      this.hand.draw(tsumohai);
       tehais[this.seat] = [...sortedHand];
       return { tehais, myTsumohai: tsumohai };
     }
@@ -83,51 +102,24 @@ export class MajsoulStateTracker {
    * following draw event cannot overwrite it.
    */
   public saveTsumohaiToHand() {
-    if (!this.myTsumohai) return;
-
-    this.myTehais.push(this.myTsumohai);
-    this.myTehais.sort(comparePai);
-    this.myTsumohai = null;
-  }
-
-  /** Removes a tile from our hand, preferring an exact (red five) match. */
-  public removeTileFromHand(tile: string) {
-    const exactIndex = this.myTehais.indexOf(tile);
-    if (exactIndex !== -1) {
-      this.myTehais.splice(exactIndex, 1);
-      return;
-    }
-
-    // Fall back to the base name, covering red-five / normal-five crossovers.
-    const base = tile.replace('r', '');
-    const baseIndex = this.myTehais.findIndex((handTile) => handTile.replace('r', '') === base);
-    if (baseIndex !== -1) {
-      this.myTehais.splice(baseIndex, 1);
-    }
+    this.hand.foldDraw();
+    this.hand.tiles.sort(comparePai);
   }
 
   public onDiscard(actor: number, pai: string, tsumogiri: boolean) {
     if (actor !== this.seat) return;
 
-    if (tsumogiri) {
-      this.myTsumohai = null;
-    } else if (this.myTehais.includes(pai)) {
-      this.myTehais.splice(this.myTehais.indexOf(pai), 1);
-    } else if (this.myTsumohai === pai) {
-      this.myTsumohai = null;
-    } else {
-      logger.warn(`Discarded tile ${pai} not found in hand ${this.myTehais}`);
+    if (!this.hand.discard(pai, tsumogiri)) {
+      logger.warn(`Discarded tile ${pai} not found in hand ${this.hand.tiles}`);
     }
 
-    this.saveTsumohaiToHand();
+    this.hand.tiles.sort(comparePai);
   }
 
   public onOpenMeld(actor: number, consumed: string[]) {
     if (actor !== this.seat) return;
 
-    for (const tile of consumed) {
-      this.removeTileFromHand(tile);
-    }
+    this.hand.consume(consumed);
   }
 
   public onKan(actor: number, consumed: string[], isKakan: boolean, pai?: string) {
@@ -136,25 +128,20 @@ export class MajsoulStateTracker {
     this.saveTsumohaiToHand();
 
     if (isKakan && pai) {
-      this.removeTileFromHand(pai);
+      this.hand.consume([pai]);
     } else if (!isKakan) {
-      for (const tile of consumed) {
-        this.removeTileFromHand(tile);
-      }
+      this.hand.consume(consumed);
     }
   }
 
   public onNukidora(actor: number) {
     if (actor !== this.seat) return;
 
-    if (this.myTehais.includes('N')) {
-      this.myTehais.splice(this.myTehais.indexOf('N'), 1);
-    } else if (this.myTsumohai === 'N') {
-      this.myTsumohai = null;
-    } else {
-      logger.warn(`Nukidora 'N' not found in hand ${this.myTehais}`);
+    if (!this.hand.removeHeld(MAHJONG.NORTH_TILE)) {
+      logger.warn(`Nukidora '${MAHJONG.NORTH_TILE}' not found in hand ${this.hand.tiles}`);
     }
 
-    this.saveTsumohaiToHand();
+    this.hand.foldDraw();
+    this.hand.tiles.sort(comparePai);
   }
 }

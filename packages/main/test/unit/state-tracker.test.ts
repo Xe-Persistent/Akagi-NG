@@ -15,10 +15,10 @@ describe('the Majsoul state tracker', () => {
     tracker = new MajsoulStateTracker();
   });
 
-  it('starts with an unknown thirteen-tile hand', () => {
+  it('starts with an unknown thirteen-tile hand and no draw', () => {
     expect(tracker.myTehais).toHaveLength(13);
     expect(tracker.myTehais.every((tile) => tile === UNKNOWN)).toBe(true);
-    expect(tracker.myTsumohai).toBe(UNKNOWN);
+    expect(tracker.myTsumohai).toBeNull();
     expect(tracker.seat).toBe(0);
     expect(tracker.is3p).toBe(false);
   });
@@ -91,44 +91,6 @@ describe('the Majsoul state tracker', () => {
       tracker.saveTsumohaiToHand();
 
       expect(tracker.myTehais).toHaveLength(13);
-    });
-  });
-
-  describe('removing a tile from the hand', () => {
-    beforeEach(() => {
-      tracker.setupNewRound(DEAL);
-    });
-
-    it('takes an exact match, so a red five is not spent on a plain one', () => {
-      tracker.myTehais = ['5m', '5mr'];
-
-      tracker.removeTileFromHand('5mr');
-
-      expect(tracker.myTehais).toEqual(['5m']);
-    });
-
-    it('falls back to the base name when only the other colour is held', () => {
-      tracker.myTehais = ['5m', '1p'];
-
-      tracker.removeTileFromHand('5mr');
-
-      expect(tracker.myTehais).toEqual(['1p']);
-    });
-
-    it('falls back the other way too', () => {
-      tracker.myTehais = ['5mr', '1p'];
-
-      tracker.removeTileFromHand('5m');
-
-      expect(tracker.myTehais).toEqual(['1p']);
-    });
-
-    it('leaves the hand alone when the tile is not there', () => {
-      const before = [...tracker.myTehais];
-
-      tracker.removeTileFromHand('7z');
-
-      expect(tracker.myTehais).toEqual(before);
     });
   });
 

@@ -15,6 +15,7 @@ import {
   describeRecommendation,
   mapDecisionToRecommendations,
 } from './recommendation-mapper.js';
+import { RoundState } from './round-state.js';
 
 const logger = createLogger('EngineService');
 
@@ -31,6 +32,7 @@ const logger = createLogger('EngineService');
 export class EngineService {
   private readonly runner = new ModelRunner();
   private readonly stream = new KyokuStream();
+  private readonly round = new RoundState();
   private readonly cloud = new CloudDecisionService({ getConfig: () => this.onlineConfig() });
 
   /**
@@ -43,11 +45,6 @@ export class EngineService {
   private isMockMode = false;
   private playerId = -1;
   private is3p = false;
-  /** True once we have won the current round, which can happen before it ends. */
-  private weWonThisRound = false;
-  /** Last tile contexts, used to decorate win recommendations. */
-  private lastDrawnTile: string | null = null;
-  private lastDiscardTile: string | null = null;
 
   /** Lets the mock stream own the HUD, used by `npm run dev:mock`. */
   public setMockMode(enabled: boolean) {
@@ -79,8 +76,9 @@ export class EngineService {
 
     for (let index = 0; index < events.length; index++) {
       const ev = events[index];
-      this.trackTileContext(ev);
-      this.trackRoundState(ev);
+      // One update keeps the hand, the claim window, the last drawn and
+      // claimed tiles, and the round flags in step.
+      this.round.update(ev, ev.type === 'start_game' ? ev.id : this.playerId);
       // The window accumulates even while online inference is off, so it can be
       // enabled mid-kyoku and upload the round so far.
       this.stream.accumulate(ev);
@@ -100,6 +98,7 @@ export class EngineService {
   public stop() {
     this.cloud.cancel();
     this.stream.reset();
+    this.round.reset();
     this.runner.reset();
     engineStatus.reset();
   }
@@ -158,7 +157,7 @@ export class EngineService {
   private isDecisionPoint(ev: MJAIEvent): boolean {
     // A won round is over for us: in xuezhan it carries on without us, and there
     // is nothing left to recommend with a hand that no longer gets drawn to.
-    if (this.weWonThisRound) return false;
+    if (this.round.won) return false;
     if (ev.type === 'tsumo' && ev.actor === this.playerId) return true;
     if (ev.type === 'dahai' && ev.actor !== this.playerId) return true;
     // A chi/pon leaves us on turn with no draw, so the discard has to be
@@ -167,23 +166,6 @@ export class EngineService {
     // Someone else's kakan can be robbed; after our own we draw and discard.
     if (ev.type === 'kakan' || ev.type === 'kita') return true;
     return false;
-  }
-
-  private trackTileContext(ev: MJAIEvent) {
-    if (ev.type === 'tsumo' && ev.actor === this.playerId) {
-      this.lastDrawnTile = ev.pai;
-    } else if (ev.type === 'dahai' && ev.actor !== this.playerId) {
-      this.lastDiscardTile = ev.pai;
-    }
-  }
-
-  /** A flag that only describes the round in progress, so it resets on a new one. */
-  private trackRoundState(ev: MJAIEvent) {
-    if (ev.type === 'start_game' || ev.type === 'start_kyoku') {
-      this.weWonThisRound = false;
-    } else if (ev.type === 'hora' && ev.actor === this.playerId) {
-      this.weWonThisRound = true;
-    }
   }
 
   private onlineConfig(): OnlineConfig {
@@ -256,7 +238,11 @@ export class EngineService {
       events,
       seat: this.playerId,
       is3p: this.is3p,
-      local: decision,
+      // A coarse `pon`/`chi_low`/`kan` only names the call; the tiles behind it
+      // come from our hand, so the HUD can draw the combination it means.
+      resolveCall: (label) => this.round.resolveCall(label),
+      // A bare `hora` needs the seat it would win from to read as a ron.
+      winTarget: this.round.winTarget(),
     });
 
     switch (outcome.kind) {
@@ -284,8 +270,8 @@ export class EngineService {
     return {
       recommendations: mapDecisionToRecommendations(decision, {
         playerId: this.playerId,
-        lastDrawnTile: this.lastDrawnTile,
-        lastDiscardTile: this.lastDiscardTile,
+        lastDrawnTile: this.round.lastDrawn,
+        lastDiscardTile: this.round.lastDiscard,
       }),
       engine_type,
       fallback_used,

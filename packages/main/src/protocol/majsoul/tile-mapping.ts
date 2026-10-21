@@ -1,3 +1,5 @@
+import { MAHJONG } from '../../shared/schema/mahjong.js';
+
 // Majsoul -> MJAI tile codes.
 export const MS_TILE_2_MJAI_TILE: Record<string, string> = {
   '0m': '5mr',
@@ -60,9 +62,6 @@ export function toMjaiTile(tile: string): string {
   return mapped;
 }
 
-const SUITS = 'mps';
-const HONOURS = 'ESWNPFC'; // east, south, west, north, white, green, red
-
 /** A code the protocol does not define sorts last. */
 const LAST = 999;
 
@@ -72,10 +71,10 @@ const LAST = 999;
  * honours.
  */
 export function getPaiSortKey(pai: string): number {
-  const isRed = pai.endsWith('r');
+  const isRed = pai.endsWith(MAHJONG.RED_FIVE_SUFFIX);
   const base = isRed ? pai.slice(0, -1) : pai;
   const suit = base.at(-1) ?? '';
-  const suitIndex = SUITS.indexOf(suit);
+  const suitIndex = MAHJONG.SUITS.indexOf(suit);
 
   if (suitIndex >= 0) {
     const rank = Number.parseInt(base[0], 10);
@@ -83,7 +82,7 @@ export function getPaiSortKey(pai: string): number {
     return suitIndex * 100 + rank * 2 + (isRed ? 0 : 1);
   }
 
-  const honour = HONOURS.indexOf(suit);
+  const honour = MAHJONG.HONOURS.indexOf(suit);
   return honour >= 0 ? 300 + honour : LAST;
 }
 

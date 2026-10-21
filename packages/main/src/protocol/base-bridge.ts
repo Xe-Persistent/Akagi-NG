@@ -1,3 +1,4 @@
+import { MAHJONG } from '../shared/schema/mahjong.js';
 import type {
   AnkanEvent,
   ChiEvent,
@@ -181,7 +182,7 @@ export abstract class BaseBridge {
     return {
       type: 'kita',
       actor,
-      pai: 'N',
+      pai: MAHJONG.NORTH_TILE,
     };
   }
 

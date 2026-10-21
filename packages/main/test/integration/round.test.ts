@@ -34,8 +34,8 @@ describe('a recorded round', () => {
     // The deal is held until `ActionChangeTile` arrives, so the round opens from
     // the swapped hand and the dora the swap carries.
     expect(events.slice(0, 3).map((event) => event.type)).toEqual(['start_kyoku', 'tsumo', 'dora']);
-    expect(round[0].name).toBe('ActionNewRound');
-    expect(round[1].name).toBe('ActionChangeTile');
+    expect(round[0]!.name).toBe('ActionNewRound');
+    expect(round[1]!.name).toBe('ActionChangeTile');
   });
 
   it('turns every discard into a tile the table can see', () => {

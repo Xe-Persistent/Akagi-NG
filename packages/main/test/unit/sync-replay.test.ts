@@ -45,9 +45,9 @@ describe('unpacking the replayed actions', () => {
     const [replayed] = parseSyncGameActions(message, proto);
 
     expect(replayed).toMatchObject({ id: -1, type: MsgType.Notify, method: '.lq.ActionPrototype' });
-    expect(replayed.data).toMatchObject({ name: 'ActionDealTile', step: 0 });
+    expect(replayed!.data).toMatchObject({ name: 'ActionDealTile', step: 0 });
     // The inner payload is decoded, not the base64 the frame carried.
-    expect((replayed.data as { data: unknown }).data).toMatchObject({ seat: 1, tile: '4p' });
+    expect((replayed!.data as { data: unknown }).data).toMatchObject({ seat: 1, tile: '4p' });
   });
 
   it('keeps the order the actions were recorded in', () => {
@@ -80,6 +80,6 @@ describe('unpacking the replayed actions', () => {
     const replayed = parseSyncGameActions(message, proto);
 
     expect(replayed).toHaveLength(1);
-    expect(replayed[0].data).toMatchObject({ name: 'ActionDealTile' });
+    expect(replayed[0]!.data).toMatchObject({ name: 'ActionDealTile' });
   });
 });

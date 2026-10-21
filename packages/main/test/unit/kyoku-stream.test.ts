@@ -66,7 +66,7 @@ describe('the per-kyoku window', () => {
       names: ['Player0', 'Player1', 'Player2', 'Player3'],
     });
 
-    const tehais = kyoku.tehais as string[][];
+    const tehais = kyoku!.tehais as string[][];
     expect(tehais[2]).toEqual(HAND);
     for (const seat of [0, 1, 3]) {
       expect(tehais[seat]).toEqual(Array.from({ length: HAND.length }, () => '?'));
@@ -110,13 +110,15 @@ describe('the per-kyoku window', () => {
     const stream = collect([startGame(true), startKyoku(3)]);
 
     const [game, kyoku] = stream.buildApiEvents(0, true) ?? [];
-    expect(game.names).toEqual(['Player0', 'Player1', 'Player2', '']);
+    expect(game!.names).toEqual(['Player0', 'Player1', 'Player2', '']);
 
-    const scores = kyoku.scores as number[];
+    const scores = kyoku!.scores as number[];
     expect(scores).toHaveLength(4);
     expect(scores.at(-1)).toBe(0);
-    expect(kyoku.tehais).toHaveLength(4);
-    expect((kyoku.tehais as string[][])[3]).toEqual(Array.from({ length: HAND.length }, () => '?'));
+    expect(kyoku!.tehais).toHaveLength(4);
+    expect((kyoku!.tehais as string[][])[3]).toEqual(
+      Array.from({ length: HAND.length }, () => '?'),
+    );
   });
 
   it('passes events it does not reshape through unchanged', () => {
@@ -158,6 +160,7 @@ describe('buildApiEvents', () => {
       type: 'start_game',
       names: ['Player0', 'Player1', 'Player2', 'Player3'],
     });
-    expect(events?.[1].tehais && (events[1].tehais as string[][])[0]).toEqual(HAND);
+    const kyokuEvent = events?.[1];
+    expect(kyokuEvent?.tehais && (kyokuEvent.tehais as string[][])[0]).toEqual(HAND);
   });
 });

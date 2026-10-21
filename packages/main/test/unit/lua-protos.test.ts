@@ -155,7 +155,7 @@ describe('a module that imports another', () => {
     resolveTypes(modules);
 
     const inner = module.messagesByVar.get('Inner')!;
-    expect(inner.fields[0].typeFqn).toBe('.lq.ReqLogin.Inner');
+    expect(inner.fields[0]!.typeFqn).toBe('.lq.ReqLogin.Inner');
   });
 
   it('resolves a field type across an import', () => {
@@ -171,6 +171,6 @@ describe('a module that imports another', () => {
     const module = parseLuaModule('liqi_pb', loginModule);
     resolveTypes(new Map([['liqi_pb', module]]));
 
-    expect(module.messagesByVar.get('ReqLogin')!.fields[0].typeFqn).toBeUndefined();
+    expect(module.messagesByVar.get('ReqLogin')!.fields[0]!.typeFqn).toBeUndefined();
   });
 });

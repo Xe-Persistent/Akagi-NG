@@ -136,18 +136,23 @@ const ENGINES: EngineSource[] = [
   { engine: 'local', fallbackUsed: false, circuitOpen: false },
 ];
 
+/** Every list below is a non-empty literal, so the modulo always lands on one. */
+function cycle<T>(items: readonly T[], counter: number): T {
+  return items[counter % items.length]!;
+}
+
 /**
  * The stand-in for the engine that `npm run dev:mock` streams into the HUD: one
  * scenario and one status per tick, so the recommendations and the indicator can
  * both be checked without a model or a table.
  */
 export function generateMockData(counter: number): MockFrame {
-  const engine = ENGINES[counter % ENGINES.length];
+  const engine = cycle(ENGINES, counter);
   return {
-    recommendations: SCENARIOS[counter % SCENARIOS.length],
+    recommendations: cycle(SCENARIOS, counter),
     engine_type: engine.engine,
     fallback_used: engine.fallbackUsed,
     circuit_open: engine.circuitOpen,
-    status: STATUSES[counter % STATUSES.length],
+    status: cycle(STATUSES, counter),
   };
 }

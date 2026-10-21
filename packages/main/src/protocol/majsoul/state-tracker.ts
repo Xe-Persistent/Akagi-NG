@@ -84,13 +84,14 @@ export class MajsoulStateTracker {
     if (tiles.length === MAHJONG.TEHAI_SIZE_WITH_DRAW) {
       // The last tile of the payload is the one that was drawn -- not whichever
       // tile happens to sort highest -- so the hand is the other thirteen.
-      const tsumohai = toMjaiTile(tiles[MAHJONG.TEHAI_SIZE]);
+      const tsumohai = tiles.at(MAHJONG.TEHAI_SIZE);
+      if (tsumohai === undefined) return null;
       const sortedHand = hand.sort(comparePai);
 
       this.hand.reset(sortedHand);
-      this.hand.draw(tsumohai);
+      this.hand.draw(toMjaiTile(tsumohai));
       tehais[this.seat] = [...sortedHand];
-      return { tehais, myTsumohai: tsumohai };
+      return { tehais, myTsumohai: toMjaiTile(tsumohai) };
     }
 
     logger.error(`Unexpected tile count in ActionNewRound: ${tiles.length}`);

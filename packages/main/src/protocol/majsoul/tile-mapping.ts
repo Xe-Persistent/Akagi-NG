@@ -77,7 +77,7 @@ export function getPaiSortKey(pai: string): number {
   const suitIndex = MAHJONG.SUITS.indexOf(suit);
 
   if (suitIndex >= 0) {
-    const rank = Number.parseInt(base[0], 10);
+    const rank = Number.parseInt(base.charAt(0), 10);
     if (Number.isNaN(rank)) return LAST;
     return suitIndex * 100 + rank * 2 + (isRed ? 0 : 1);
   }

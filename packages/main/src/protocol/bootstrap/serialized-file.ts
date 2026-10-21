@@ -343,6 +343,7 @@ function readTypetreeValue(node: TypeTreeNode, reader: ByteReader): TypetreeValu
   let align = isAligned(node.metaFlag);
   let value: TypetreeValue;
 
+  const [first] = node.children;
   const primitive = PRIMITIVES[node.type];
   if (primitive) {
     value = primitive(reader);
@@ -351,11 +352,11 @@ function readTypetreeValue(node: TypeTreeNode, reader: ByteReader): TypetreeValu
   } else if (node.type === 'TypelessData') {
     const length = reader.i32();
     value = reader.readBytes(length);
-  } else if (node.children.length > 0 && node.children[0].type === 'Array') {
-    if (isAligned(node.children[0].metaFlag)) align = true;
+  } else if (first?.type === 'Array') {
+    if (isAligned(first.metaFlag)) align = true;
     const size = reader.i32();
     if (size < 0) throw new Error(`Negative array length ${size} in type tree`);
-    const subtype = node.children[0].children[1];
+    const subtype = first.children[1];
     if (!subtype) throw new Error('Malformed vector node in type tree');
     const elementPrimitive = PRIMITIVES[subtype.type];
     if (isAligned(subtype.metaFlag) || !elementPrimitive) {

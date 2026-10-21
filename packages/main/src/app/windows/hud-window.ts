@@ -104,7 +104,7 @@ export class HudWindow {
   private registerWindowEvents(window: BrowserWindow) {
     window.on('moved', () => {
       if (isSafeWindow(window)) {
-        const [x, y] = window.getPosition();
+        const [x = 0, y = 0] = window.getPosition();
         this.lastPosition = { x, y };
       }
     });

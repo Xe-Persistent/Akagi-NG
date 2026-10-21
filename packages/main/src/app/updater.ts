@@ -12,11 +12,8 @@ interface GitHubRelease {
 }
 
 function versionParts(version: string): number[] {
-  return version
-    .replace(/^v/, '')
-    .split('-')[0]
-    .split('.')
-    .map((part) => Number.parseInt(part, 10) || 0);
+  const [head = ''] = version.replace(/^v/, '').split('-');
+  return head.split('.').map((part) => Number.parseInt(part, 10) || 0);
 }
 
 /**

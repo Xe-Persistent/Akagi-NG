@@ -119,7 +119,7 @@ describe('a captured frame', () => {
     );
 
     expect(engine.ingest).toHaveBeenCalledTimes(1);
-    expect(engine.ingest.mock.calls[0][0]).toEqual([
+    expect(engine.ingest.mock.calls[0]![0]).toEqual([
       expect.objectContaining({ type: 'start_kyoku' }),
     ]);
   });

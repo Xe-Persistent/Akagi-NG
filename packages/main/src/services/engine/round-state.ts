@@ -191,6 +191,7 @@ export class RoundState {
     const base = target.replace(MAHJONG.RED_FIVE_SUFFIX, '');
     const number = Number(base[0]);
     const suit = base[1];
+    if (suit === undefined) return null;
     if (!Number.isInteger(number) || number < 1 || number > 9) return null;
     if (!MAHJONG.SUITS.includes(suit)) return null;
 
@@ -201,8 +202,9 @@ export class RoundState {
     const consumed: string[] = [];
     for (const value of wanted) {
       const one = this.hand.take(`${value}${suit}`, 1);
-      if (!one) return null;
-      consumed.push(one[0]);
+      const tile = one?.[0];
+      if (tile === undefined) return null;
+      consumed.push(tile);
     }
     return consumed;
   }
@@ -229,8 +231,8 @@ export class RoundState {
     // An added kan is a pon already on the table plus the tile just drawn.
     for (const meld of this.melds) {
       if (meld.type !== 'pon') continue;
-      const added = this.hand.take(meld.pai, 1);
-      if (added) actions.push({ type: 'kakan', pai: added[0], consumed: [added[0]] });
+      const added = this.hand.take(meld.pai, 1)?.[0];
+      if (added !== undefined) actions.push({ type: 'kakan', pai: added, consumed: [added] });
     }
 
     return actions;

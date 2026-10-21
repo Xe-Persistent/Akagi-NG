@@ -41,15 +41,18 @@ function bareSpecifiers(file: string): string[] {
 
   return [...source.matchAll(pattern)]
     .map((match) => match[1] ?? match[2])
-    .filter((specifier) => specifier && !specifier.startsWith('.') && !specifier.startsWith('@/'))
-    .filter((specifier) => !specifier.startsWith('node:') && !BUILTINS.has(specifier.split('/')[0]))
+    .filter((specifier): specifier is string => Boolean(specifier))
+    .filter((specifier) => !specifier.startsWith('.') && !specifier.startsWith('@/'))
+    .filter(
+      (specifier) => !specifier.startsWith('node:') && !BUILTINS.has(specifier.split('/')[0]!),
+    )
     .filter((specifier) => !specifier.startsWith('@types/'));
 }
 
 /** `@scope/pkg/deep/path` is still the `@scope/pkg` package. */
 function packageName(specifier: string): string {
   const parts = specifier.split('/');
-  return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+  return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0]!;
 }
 
 function manifest(workspace: string) {

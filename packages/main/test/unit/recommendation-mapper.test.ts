@@ -59,12 +59,12 @@ describe('mapping an engine decision to the HUD vocabulary', () => {
   });
 
   it('names the two special draws', () => {
-    expect(map({ type: 'kyushu' })[0].action).toBe('ryukyoku');
+    expect(map({ type: 'kyushu' })[0]!.action).toBe('ryukyoku');
     expect(map({ type: 'kita' })[0]).toMatchObject({ action: 'nukidora', tile: 'N' });
   });
 
   it('reports a pass as doing nothing', () => {
-    expect(map({ type: 'pass' })[0].action).toBe('none');
+    expect(map({ type: 'pass' })[0]!.action).toBe('none');
   });
 
   it('keeps the order and confidence the engine gave', () => {
@@ -99,11 +99,11 @@ describe('mapping an engine decision to the HUD vocabulary', () => {
 
     const [reach, discard] = mapDecisionToRecommendations(decision, context);
 
-    expect(reach.sim_candidates).toEqual([
+    expect(reach!.sim_candidates).toEqual([
       { tile: '9p', confidence: 0.8 },
       { tile: '1m', confidence: 0.2 },
     ]);
-    expect(discard.sim_candidates).toBeUndefined();
+    expect(discard!.sim_candidates).toBeUndefined();
   });
 
   it('drops lookahead rows without a tile', () => {
@@ -112,7 +112,7 @@ describe('mapping an engine decision to the HUD vocabulary', () => {
       riichi_lookahead: [{ pai: '', prob: 0.9 }],
     };
 
-    expect(mapDecisionToRecommendations(decision, context)[0].sim_candidates).toBeUndefined();
+    expect(mapDecisionToRecommendations(decision, context)[0]!.sim_candidates).toBeUndefined();
   });
 
   it('caps the lookahead at what the HUD renders', () => {
@@ -124,6 +124,6 @@ describe('mapping an engine decision to the HUD vocabulary', () => {
       })),
     };
 
-    expect(mapDecisionToRecommendations(decision, context)[0].sim_candidates).toHaveLength(5);
+    expect(mapDecisionToRecommendations(decision, context)[0]!.sim_candidates).toHaveLength(5);
   });
 });

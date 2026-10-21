@@ -148,7 +148,7 @@ describe('a serialized file', () => {
 
   it('finds the type tree children of an object', () => {
     const file = SerializedFile.open(serializedFile());
-    const node = file.types[0].node;
+    const node = file.types[0]!.node;
 
     expect(node?.children.map((child) => child.name)).toEqual(['m_Name', 'm_Script']);
   });
@@ -157,7 +157,7 @@ describe('a serialized file', () => {
     const file = SerializedFile.open(serializedFile({ payload: 'local x = 1' }));
     const [asset] = file.objectsOfClass(ClassId.TextAsset);
 
-    const read = file.readTextAsset(asset);
+    const read = file.readTextAsset(asset!);
 
     expect(read.name).toBe('a');
     expect(new TextDecoder().decode(read.script)).toBe('local x = 1');
@@ -167,7 +167,7 @@ describe('a serialized file', () => {
     const file = SerializedFile.open(serializedFile({ payload: 'local x = 1' }));
     const [asset] = file.objectsOfClass(ClassId.TextAsset);
 
-    expect(file.readTypetree(asset)).toEqual({ m_Name: 'a', m_Script: 'local x = 1' });
+    expect(file.readTypetree(asset!)).toEqual({ m_Name: 'a', m_Script: 'local x = 1' });
   });
 
   it('resolves a name through the common-string table', () => {
@@ -175,7 +175,7 @@ describe('a serialized file', () => {
     // which holds "AABB" at offset zero.
     const file = SerializedFile.open(serializedFile({ tree: textAssetTree(0x80000000) }));
 
-    expect(file.types[0].node?.name).toBe('AABB');
+    expect(file.types[0]!.node?.name).toBe('AABB');
   });
 
   it('reports a common-string offset the table does not hold', () => {
@@ -218,6 +218,6 @@ describe('a serialized file', () => {
     );
     const [object] = file.objects;
 
-    expect(() => file.readTextAsset(object)).toThrow('is not a TextAsset');
+    expect(() => file.readTextAsset(object!)).toThrow('is not a TextAsset');
   });
 });

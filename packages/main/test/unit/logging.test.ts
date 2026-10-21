@@ -63,7 +63,7 @@ describe('the log level setting', () => {
     for (const [index, level] of LEVELS.entries()) {
       const below = LEVELS[index - 1];
       if (!below) continue;
-      for (const each of kept[below]) expect(kept[level]).toContain(each);
+      for (const each of kept[below]!) expect(kept[level]!).toContain(each);
     }
   });
 
@@ -85,7 +85,7 @@ describe('a rendered line', () => {
 
     createLogger('Liqi').info('protocol loaded');
 
-    expect(written[0].line).toMatch(
+    expect(written[0]!.line).toMatch(
       /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| INFO \| Liqi \| protocol loaded$/,
     );
   });
@@ -98,9 +98,9 @@ describe('a rendered line', () => {
     logger.info({ a: 1 });
     logger.info(new Error('boom'));
 
-    expect(written[0].line).toMatch(/\| \{"a":1\}$/);
+    expect(written[0]!.line).toMatch(/\| \{"a":1\}$/);
     // The stack follows the message, so a log line is several lines long.
-    expect(written[1].line.split('\n')[0]).toMatch(/\| Error: boom$/);
-    expect(written[1].line.split('\n').length).toBeGreaterThan(1);
+    expect(written[1]!.line.split('\n')[0]).toMatch(/\| Error: boom$/);
+    expect(written[1]!.line.split('\n').length).toBeGreaterThan(1);
   });
 });

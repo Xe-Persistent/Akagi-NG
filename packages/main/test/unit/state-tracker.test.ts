@@ -32,7 +32,7 @@ describe('the Majsoul state tracker', () => {
       expect(tracker.myTehais).not.toContain(UNKNOWN);
       expect([...tracker.myTehais].sort(comparePai)).toEqual(tracker.myTehais);
       // The payload's last tile is the one that was drawn, not the highest sorted.
-      expect(tracker.myTsumohai).toBe(toMjaiTile(DEAL[13]));
+      expect(tracker.myTsumohai).toBe(toMjaiTile(DEAL[13]!));
       expect([...(tracker.myTehais as string[]), tracker.myTsumohai].sort()).toEqual(
         DEAL.map(toMjaiTile).sort(),
       );
@@ -117,7 +117,7 @@ describe('the Majsoul state tracker', () => {
     it('drops a held tile when the discard is from the hand, after the draw joins it', () => {
       tracker.setupNewRound(DEAL);
       const drawn = tracker.myTsumohai ?? '';
-      const held = tracker.myTehais[0];
+      const held = tracker.myTehais[0]!;
 
       tracker.onDiscard(0, held, false);
 

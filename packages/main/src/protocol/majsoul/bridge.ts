@@ -338,7 +338,7 @@ export class MajsoulBridge extends BaseBridge {
    * xuezhan deal with its swap already applied.
    */
   private openRound(data: ActionPayload, doraMarker: string): MJAIEvent[] {
-    const bakaze = MAHJONG.ROUND_WIND_TILES[data.chang as number];
+    const bakaze = MAHJONG.ROUND_WIND_TILES[data.chang as number] ?? 'E';
     this.state.doras = doraMarker === MAHJONG.UNKNOWN_TILE ? [] : [doraMarker];
 
     const honba = data.ben as number;
@@ -477,13 +477,14 @@ export class MajsoulBridge extends BaseBridge {
     let pai = '';
     const consumed: string[] = [];
 
-    for (let idx = 0; idx < froms.length; idx++) {
-      const seat = froms[idx];
+    for (const [idx, seat] of froms.entries()) {
+      const tile = tiles[idx];
+      if (tile === undefined) throw new Error('Chi/Peng/Gang reported fewer tiles than seats');
       if (seat === actor) {
-        consumed.push(toMjaiTile(tiles[idx]));
+        consumed.push(toMjaiTile(tile));
       } else {
         target = seat;
-        pai = toMjaiTile(tiles[idx]);
+        pai = toMjaiTile(tile);
       }
     }
 
@@ -566,7 +567,8 @@ export class MajsoulBridge extends BaseBridge {
 
     if (doras && doras.length > this.state.doras.length) {
       this.state.doras = doras;
-      return [this.makeDora(toMjaiTile(doras[doras.length - 1]))];
+      const last = doras.at(-1);
+      if (last !== undefined) return [this.makeDora(toMjaiTile(last))];
     }
 
     return [];

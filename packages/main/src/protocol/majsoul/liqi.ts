@@ -83,11 +83,19 @@ const MAX_PENDING_REQUESTS = 256;
  */
 class UnsupportedLiqiFrame extends Error {}
 
+/** Reads a byte the caller has bounds-checked; a short buffer means bad input. */
+function readByte(buf: Uint8Array, index: number): number {
+  const byte = buf[index];
+  if (byte === undefined) throw new Error('liqi: read past the end of the frame');
+  return byte;
+}
+
 export function decodeWrapper(data: Uint8Array): Uint8Array {
   const result = new Uint8Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    const u = ((23 ^ data.length) + 5 * i + WRAPPER_XOR_KEYS[i % WRAPPER_XOR_KEYS.length]) & 255;
-    result[i] = data[i] ^ u;
+  for (const [i, byte] of data.entries()) {
+    const u =
+      ((23 ^ data.length) + 5 * i + (WRAPPER_XOR_KEYS[i % WRAPPER_XOR_KEYS.length] ?? 0)) & 255;
+    result[i] = byte ^ u;
   }
   return result;
 }
@@ -98,7 +106,7 @@ export function parseVarint(buf: Buffer, position: number): [number, number] {
   let p = position;
 
   while (p < buf.length) {
-    const byte = buf[p];
+    const byte = readByte(buf, p);
     // Arithmetic instead of `<<` so varints wider than 28 bits stay exact
     // (JS bitwise operators are 32-bit, Python's are arbitrary precision).
     value += (byte & 0x7f) * multiplier;
@@ -116,8 +124,9 @@ export function fromProtobuf(buf: Buffer): LiqiBlock[] {
 
   while (p < buf.length) {
     const begin = p;
-    const blockType = buf[p] & 7;
-    const blockId = buf[p] >> 3;
+    const header = readByte(buf, p);
+    const blockType = header & 7;
+    const blockId = header >> 3;
     p++;
 
     if (blockType === WIRE_VARINT) {
@@ -223,7 +232,8 @@ export class LiqiProto {
     try {
       // A raw byte, not a `MsgType`: the socket carries other protocols too, and
       // the value is what tells them apart.
-      const msgType: number = buf[0];
+      const msgType = buf[0];
+      if (msgType === undefined) return { kind: 'skipped' };
       let method: string;
       let data: Record<string, unknown>;
 
@@ -348,6 +358,7 @@ export class LiqiProto {
   private lookupRpc(methodName: string): LiqiRpcDescriptor | null {
     // RPC names look like '.lq.FastTest.authGame'
     const [, namespace, service, rpc] = methodName.split('.');
+    if (namespace === undefined || service === undefined || rpc === undefined) return null;
     return this.jsonProto.nested[namespace]?.nested[service]?.methods[rpc] ?? null;
   }
 

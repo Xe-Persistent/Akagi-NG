@@ -62,8 +62,9 @@ export function buildApiEvents(
   seat: number,
   is3p: boolean,
 ): ApiEvent[] | null {
-  if (events.length === 0 || events.length > MAX_API_EVENTS) return null;
-  if (events[0].type !== 'start_game') return null;
+  if (events.length > MAX_API_EVENTS) return null;
+  const [first] = events;
+  if (first?.type !== 'start_game') return null;
   if (!events.some((event) => event.type === 'start_kyoku')) return null;
 
   return events.map((event) => shapeEvent(event, seat, is3p));

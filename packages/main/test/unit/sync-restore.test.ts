@@ -89,12 +89,12 @@ describe('a reconnect restore', () => {
   it('opens the round before anything else and never reopens the game', () => {
     const output = replay('syncGame', restore);
 
-    expect(output.events[0].type).toBe('start_kyoku');
+    expect(output.events[0]!.type).toBe('start_kyoku');
     expect(count(output.events, 'start_game')).toBe(0);
   });
 
   it('gives our seat the hand the server dealt it', () => {
-    const start = replay('syncGame', restore).events[0];
+    const start = replay('syncGame', restore).events[0]!;
 
     expect(start.type).toBe('start_kyoku');
     if (start.type !== 'start_kyoku') return;

@@ -101,7 +101,7 @@ describe.skipIf(!hasEngineFor(is3p))('a kyoku we declare riichi in', () => {
       expect(candidates.length).toBeLessThanOrEqual(LOOKAHEAD_CAP);
       for (const [index, candidate] of candidates.entries()) {
         if (index === 0) continue;
-        expect(candidates[index - 1].confidence).toBeGreaterThanOrEqual(candidate.confidence);
+        expect(candidates[index - 1]!.confidence).toBeGreaterThanOrEqual(candidate.confidence);
       }
     }
   });
@@ -116,7 +116,7 @@ describe.skipIf(!hasEngineFor(is3p))('a kyoku we declare riichi in', () => {
 
   it('picks the reach discard as the best candidate', () => {
     for (const row of rows.filter((each) => each.sim_candidates?.length)) {
-      expect(row.sim_candidates![0].tile).toBe(row.tile);
+      expect(row.sim_candidates![0]!.tile).toBe(row.tile);
     }
   });
 

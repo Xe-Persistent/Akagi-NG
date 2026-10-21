@@ -120,8 +120,8 @@ export function looksLikeLua(data: Uint8Array): boolean {
 export function decodeLuaPayload(data: Uint8Array): Uint8Array {
   if (looksLikeLua(data)) return data;
   const result = new Uint8Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    result[i] = data[i] ^ LUA_XOR_KEY[i % LUA_XOR_KEY.length];
+  for (const [index, byte] of data.entries()) {
+    result[index] = byte ^ (LUA_XOR_KEY[index % LUA_XOR_KEY.length] ?? 0);
   }
   return result;
 }
@@ -130,8 +130,10 @@ export function parseLuaModule(moduleName: string, source: string): ProtoModule 
   const kinds = new Map<string, DeclarationKind>();
   for (const [kind, pattern] of DECLARATIONS) {
     for (const match of source.matchAll(pattern)) {
+      const name = match[1];
+      if (name === undefined) continue;
       // A variable is declared once; the first declaration wins its kind.
-      if (!kinds.has(match[1])) kinds.set(match[1], kind);
+      if (!kinds.has(name)) kinds.set(name, kind);
     }
   }
 
@@ -143,8 +145,10 @@ export function parseLuaModule(moduleName: string, source: string): ProtoModule 
     assign: (target: Map<string, unknown>, prop: string, value: string) => void,
   ): void => {
     for (const match of source.matchAll(pattern)) {
-      const target = props.get(match[1]);
-      if (target) assign(target, match[2], match[3]);
+      const [, name, prop, value] = match;
+      if (name === undefined || prop === undefined || value === undefined) continue;
+      const target = props.get(name);
+      if (target) assign(target, prop, value);
     }
   };
 
@@ -156,19 +160,26 @@ export function parseLuaModule(moduleName: string, source: string): ProtoModule 
   collect(LIST_PROP_RE, (target, prop, _value) => target.set(prop, []));
 
   for (const match of source.matchAll(LIST_PROP_RE)) {
-    const target = props.get(match[1]);
+    const [, name, prop] = match;
+    if (name === undefined || prop === undefined) continue;
+    const target = props.get(name);
     if (!target) continue;
     const openIndex = match.index + match[0].length - 1;
     const closeIndex = findMatchingBrace(source, openIndex);
     const inner = source.slice(openIndex + 1, closeIndex);
     target.set(
-      match[2],
+      prop,
       [...inner.matchAll(/\w+/g)].map((item) => item[0]),
     );
   }
 
   const imports = new Map<string, string>();
-  for (const match of source.matchAll(IMPORT_RE)) imports.set(match[1], match[2].split('.')[1]);
+  for (const match of source.matchAll(IMPORT_RE)) {
+    const [varName, path] = [match[1], match[2]];
+    if (varName === undefined || path === undefined) continue;
+    const serviceName = path.split('.')[1];
+    if (serviceName !== undefined) imports.set(varName, serviceName);
+  }
 
   const enumsByVar = parseEnums(kinds, props);
   const messagesByVar = parseMessages(kinds, props);

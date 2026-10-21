@@ -92,14 +92,14 @@ describe.skipIf(!hasEngineFor(is3p))('a kakan nobody robs', () => {
     const after = events.slice(kakan + 1);
 
     expect(after.length).toBeGreaterThan(0);
-    expect(publishedAt.at(-1)).toBeGreaterThan(publishedAt[kakan]);
+    expect(publishedAt.at(-1)).toBeGreaterThan(publishedAt[kakan]!);
   });
 
   it('only publishes on our own turn', () => {
     const published = events.filter((_event, index) => {
       const before = publishedAt[index - 1] ?? 0;
 
-      return publishedAt[index] > before;
+      return publishedAt[index]! > before;
     });
 
     expect(published.length).toBeGreaterThan(0);

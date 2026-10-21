@@ -71,7 +71,7 @@ describe('a real action packet', () => {
         (packet.fields as { scores?: unknown }).scores) as number[][] | undefined;
 
       expect(hora).toBeDefined();
-      if (deltas) expect(Array.isArray(hora.deltas)).toBe(true);
+      if (deltas && hora) expect(Array.isArray(hora.deltas)).toBe(true);
     }
   });
 
@@ -85,7 +85,7 @@ describe('a real action packet', () => {
     expect(hora).toMatchObject({ type: 'hora', deltas: packet.fields.delta_scores });
     expect((hora as { scores: number[] }).scores).toEqual(
       (packet.fields.delta_scores as number[]).map(
-        (delta, seat) => (packet.fields.old_scores as number[])[seat] + delta,
+        (delta, seat) => (packet.fields.old_scores as number[])[seat]! + delta,
       ),
     );
   });

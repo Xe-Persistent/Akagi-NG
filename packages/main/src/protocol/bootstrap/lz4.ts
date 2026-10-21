@@ -6,19 +6,28 @@
  * see https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md. Only the
  * decoder is needed here, so this stays a small, dependency-free implementation.
  */
+/** Reads a byte the caller has bounds-checked; a short buffer means bad input. */
+function readAt(bytes: Uint8Array, index: number): number {
+  const byte = bytes[index];
+  if (byte === undefined) throw new Error('LZ4: read past the end of the buffer');
+  return byte;
+}
+
 export function decompressLz4Block(source: Uint8Array, expectedSize: number): Uint8Array {
   const output = new Uint8Array(expectedSize);
   let read = 0;
   let written = 0;
 
   while (read < source.length) {
-    const token = source[read++];
+    const token = readAt(source, read);
+    read += 1;
 
     let literalLength = token >> 4;
     if (literalLength === 15) {
       for (;;) {
         if (read >= source.length) throw new Error('LZ4: truncated literal length');
-        const extra = source[read++];
+        const extra = readAt(source, read);
+        read += 1;
         literalLength += extra;
         if (extra !== 255) break;
       }
@@ -34,7 +43,7 @@ export function decompressLz4Block(source: Uint8Array, expectedSize: number): Ui
     if (read >= source.length) break;
     if (read + 2 > source.length) throw new Error('LZ4: truncated match offset');
 
-    const offset = source[read] | (source[read + 1] << 8);
+    const offset = readAt(source, read) | (readAt(source, read + 1) << 8);
     read += 2;
     if (offset === 0 || offset > written) throw new Error(`LZ4: invalid match offset ${offset}`);
 
@@ -42,7 +51,8 @@ export function decompressLz4Block(source: Uint8Array, expectedSize: number): Ui
     if (matchLength === 15) {
       for (;;) {
         if (read >= source.length) throw new Error('LZ4: truncated match length');
-        const extra = source[read++];
+        const extra = readAt(source, read);
+        read += 1;
         matchLength += extra;
         if (extra !== 255) break;
       }
@@ -53,7 +63,7 @@ export function decompressLz4Block(source: Uint8Array, expectedSize: number): Ui
     // Byte-by-byte on purpose: matches may overlap the bytes they produce.
     const matchStart = written - offset;
     for (let i = 0; i < matchLength; i++) {
-      output[written + i] = output[matchStart + i];
+      output[written + i] = readAt(output, matchStart + i);
     }
     written += matchLength;
   }

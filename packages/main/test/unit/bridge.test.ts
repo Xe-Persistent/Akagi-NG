@@ -87,7 +87,7 @@ describe('MajsoulBridge', () => {
       const start = round.find((e) => e.type === 'start_kyoku');
       const tsumo = round.find((e) => e.type === 'tsumo');
 
-      expect(tsumo).toMatchObject({ type: 'tsumo', actor: 0, pai: toMjaiTile(ROUND_TILES[13]) });
+      expect(tsumo).toMatchObject({ type: 'tsumo', actor: 0, pai: toMjaiTile(ROUND_TILES[13]!) });
       // Hand plus draw has to be exactly the fourteen dealt tiles.
       const dealt = ROUND_TILES.map(toMjaiTile).sort();
       const seen = [...(start?.tehais[0] ?? []), tsumo?.pai ?? ''].sort();

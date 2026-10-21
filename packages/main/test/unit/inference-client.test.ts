@@ -66,8 +66,8 @@ describe('the inference client', () => {
 
     const response = await client(fetch).react('', 2, [{ type: 'start_game' }]);
 
-    expect(calls[0].url).toBe('https://api.example.test/v3/react');
-    expect(calls[0].init?.method).toBe('POST');
+    expect(calls[0]!.url).toBe('https://api.example.test/v3/react');
+    expect(calls[0]!.init?.method).toBe('POST');
     expect(headersOf(calls[0]).Authorization).toBe(`Bearer ${KEY}`);
     expect(bodyOf(calls[0])).toEqual({ player_id: 2, events: [{ type: 'start_game' }] });
     expect(response).toEqual({
@@ -101,7 +101,7 @@ describe('the inference client', () => {
 
     await client(fetch).react('', 0, []);
 
-    expect(calls[0].init?.redirect).toBe('error');
+    expect(calls[0]!.init?.redirect).toBe('error');
   });
 
   it('reports the retry delay an HTTP error carries', async () => {
@@ -176,7 +176,7 @@ describe('the inference client', () => {
 
     const status = await client(fetch).keyStatus();
 
-    expect(calls[0].url).toBe('https://api.example.test/v3/key');
+    expect(calls[0]!.url).toBe('https://api.example.test/v3/key');
     expect(status).toEqual({
       plan: 'pro',
       expiresAt: '2026-01-01T00:00:00Z',
@@ -211,7 +211,7 @@ describe('the inference client', () => {
 
     const health = await InferenceClient.health('https://api.example.test', fetch);
 
-    expect(headersOf({ url: '', init: fetch.mock.calls[0][1] })).not.toHaveProperty(
+    expect(headersOf({ url: '', init: fetch.mock.calls[0]![1] })).not.toHaveProperty(
       'Authorization',
     );
     expect(health).toEqual({ status: 'ok', queueDepth: 3, workersAlive: true });

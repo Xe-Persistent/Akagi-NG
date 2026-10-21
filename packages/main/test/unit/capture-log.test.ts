@@ -50,19 +50,19 @@ describe('a verbose capture', () => {
     new MajsoulBridge().parse(actionFrame(newRound.name, newRound.fields), 'CDP');
 
     expect(captures()).toHaveLength(1);
-    const [, source, method, type, json] = captures()[0].match(CAPTURE)!;
+    const [, source, method, type, json] = captures()[0]!.match(CAPTURE)!;
     expect(source).toBe('CDP');
     expect(method).toBe('.lq.ActionPrototype');
     expect(type).toBe('Notify');
-    expect(JSON.parse(json)).toMatchObject({ name: 'ActionNewRound' });
+    expect(JSON.parse(json!)).toMatchObject({ name: 'ActionNewRound' });
   });
 
   it('keeps every field of the message, not a summary', () => {
     captureAt('verbose');
     new MajsoulBridge().parse(actionFrame(newRound.name, newRound.fields), 'MITM');
 
-    const [, , , , json] = captures()[0].match(CAPTURE)!;
-    const decoded = JSON.parse(json) as { data: Record<string, unknown> };
+    const [, , , , json] = captures()[0]!.match(CAPTURE)!;
+    const decoded = JSON.parse(json!) as { data: Record<string, unknown> };
     const wire = newRound.fields;
 
     // The log uses the camelCase names the bridge works in, while the fixture
@@ -127,7 +127,7 @@ describe('a verbose capture', () => {
     new MajsoulBridge().parse(requestFrame('.lq.FastTest.authGame', 1, Buffer.alloc(0)), 'MITM');
 
     expect(captures()).toHaveLength(1);
-    const [, source, method, type] = captures()[0].match(CAPTURE)!;
+    const [, source, method, type] = captures()[0]!.match(CAPTURE)!;
     expect({ source, method, type }).toEqual({
       source: 'MITM',
       method: '.lq.FastTest.authGame',

@@ -74,8 +74,7 @@ export class EngineService {
     // rest would broadcast one stale recommendation per historical decision.
     const liveFrom = replayed ? events.length - 1 : 0;
 
-    for (let index = 0; index < events.length; index++) {
-      const ev = events[index];
+    for (const [index, ev] of events.entries()) {
       // One update keeps the hand, the claim window, the last drawn and
       // claimed tiles, and the round flags in step.
       this.round.update(ev, ev.type === 'start_game' ? ev.id : this.playerId);

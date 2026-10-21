@@ -87,7 +87,7 @@ export class MajsoulAssetClient {
     if (!loader || !loader.includes('-WebGL-release-')) {
       throw new Error('Could not locate the Unity WebGL loader in the client HTML');
     }
-    const issuer = loader.split('-WebGL-release-', 1)[0];
+    const issuer = loader.slice(0, loader.indexOf('-WebGL-release-'));
     const origin = new URL(CLIENT_URL).origin;
     this.log.info(`Client build: issuer=${issuer} productVersion=${productVersion}`);
     return { issuer, productVersion, origin };
@@ -225,11 +225,12 @@ export class MajsoulAssetClient {
 function chooseUrl(
   entries: { url: string; weight?: number; Priority?: number }[] | undefined,
 ): string {
-  if (!entries?.length) throw new Error('Bundle settings contain no mirror URLs');
-  const sorted = [...entries].sort(
+  const sorted = [...(entries ?? [])].sort(
     (a, b) => (b.Priority ?? 0) - (a.Priority ?? 0) || (b.weight ?? 0) - (a.weight ?? 0),
   );
-  return sorted[0].url.replace(/\/+$/, '');
+  const [first] = sorted;
+  if (!first) throw new Error('Bundle settings contain no mirror URLs');
+  return first.url.replace(/\/+$/, '');
 }
 
 /**

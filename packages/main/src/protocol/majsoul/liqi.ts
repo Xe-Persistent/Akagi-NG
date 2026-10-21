@@ -221,7 +221,9 @@ export class LiqiProto {
     let msgId = -1;
 
     try {
-      const msgType = buf[0] as MsgType;
+      // A raw byte, not a `MsgType`: the socket carries other protocols too, and
+      // the value is what tells them apart.
+      const msgType: number = buf[0];
       let method: string;
       let data: Record<string, unknown>;
 
@@ -240,7 +242,8 @@ export class LiqiProto {
         return { kind: 'skipped' };
       }
 
-      return { kind: 'message', message: { id: msgId, type: msgType, method, data } };
+      // Only the three types above reach here, so the narrow cast is sound.
+      return { kind: 'message', message: { id: msgId, type: msgType as MsgType, method, data } };
     } catch (e) {
       const reason = errorMessage(e);
       if (e instanceof UnsupportedLiqiFrame) {

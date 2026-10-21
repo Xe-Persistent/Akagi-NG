@@ -19,6 +19,11 @@ export type { Logger } from 'electron-log';
 const LEVELS: readonly LogLevel[] = ['error', 'warn', 'info', 'verbose', 'debug'];
 const DEFAULT_LEVEL: LogLevel = 'info';
 
+/** Whether the setting names a level this build understands. */
+function isLogLevel(value: string): value is LogLevel {
+  return (LEVELS as readonly string[]).includes(value);
+}
+
 const FALLBACK_SCOPE = 'App';
 const LOG_FILE_PREFIX = 'akagi_';
 const MAX_LOG_SIZE = 10 * 1024 * 1024;
@@ -72,8 +77,8 @@ log.transports.console.level = app.isPackaged ? false : DEFAULT_LEVEL;
  * Mirrors the `log_level` setting; unknown values keep the current level.
  */
 export function setLogLevel(level: string) {
-  const normalized = level?.toLowerCase() as LogLevel | undefined;
-  if (!normalized || !LEVELS.includes(normalized)) return;
+  const normalized = level.toLowerCase();
+  if (!isLogLevel(normalized)) return;
 
   log.transports.file.level = normalized;
   // A packaged Windows app has no console to write to.

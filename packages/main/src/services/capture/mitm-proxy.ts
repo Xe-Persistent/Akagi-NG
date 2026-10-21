@@ -113,7 +113,7 @@ export class MitmProxyManager {
 
       // Game traffic can be chained through a proxy the user already runs.
       const connectionOptions = buildPassthroughOptions(settings.mitm.upstream);
-      const upstream = settings.mitm.upstream?.trim();
+      const upstream = settings.mitm.upstream.trim();
       const requestOptions = {
         ...connectionOptions,
         // A beacon is answered locally, so it never reaches the upstream.

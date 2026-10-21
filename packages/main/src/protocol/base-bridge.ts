@@ -159,16 +159,10 @@ export abstract class BaseBridge {
     };
   }
 
-  public makeReachAccepted(
-    actor: number,
-    deltas?: number[],
-    scores?: number[],
-  ): ReachAcceptedEvent {
+  public makeReachAccepted(actor: number): ReachAcceptedEvent {
     return {
       type: 'reach_accepted',
       actor,
-      deltas,
-      scores,
     };
   }
 

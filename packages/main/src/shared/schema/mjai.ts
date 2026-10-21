@@ -83,8 +83,6 @@ export interface ReachEvent extends MJAIEventBase {
 export interface ReachAcceptedEvent extends MJAIEventBase {
   type: 'reach_accepted';
   actor: Actor;
-  scores?: Score[];
-  deltas?: Score[];
 }
 
 export interface DoraEvent extends MJAIEventBase {

@@ -220,7 +220,7 @@ export class EngineService {
     // row nobody can act on.
     if (decision.forced) return null;
 
-    const localPayload = this.toPayload(decision, 'local', false, false);
+    const localPayload = this.toPayload(decision, 'local', false, false, null);
 
     const config = this.onlineConfig();
     if (!config.enabled || !config.apiKey) return localPayload;
@@ -241,7 +241,7 @@ export class EngineService {
       // come from our hand, so the HUD can draw the combination it means.
       resolveCall: (label) => this.round.resolveCall(label),
       // A bare `hora` needs the seat it would win from to read as a ron.
-      winTarget: this.round.winTarget(),
+      winTarget: this.round.winTarget() ?? undefined,
     });
 
     switch (outcome.kind) {
@@ -264,7 +264,7 @@ export class EngineService {
     engine_type: 'mjot' | 'local',
     fallback_used: boolean,
     circuit_open: boolean,
-    model?: string | null,
+    model: string | null,
   ): RecommendationData {
     return {
       recommendations: mapDecisionToRecommendations(decision, {

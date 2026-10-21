@@ -46,7 +46,11 @@ export interface ProtoServiceMethod {
 }
 
 export interface ProtoConfig {
-  service?: Record<string, Record<string, ProtoServiceMethod>>;
+  /**
+   * Parsed straight out of the client's `proto_config.bytes`, so an entry is
+   * whatever that file holds; `normalizeServices` keeps only the sound ones.
+   */
+  service?: Record<string, Record<string, ProtoServiceMethod | null>>;
 }
 
 export interface MessageDescriptorJson {

@@ -10,7 +10,7 @@ const context = { playerId: 0, lastDrawnTile: '4p', lastDiscardTile: '3p' };
 
 /** A decision whose only candidate is `action`, with the confidence given. */
 function decide(action: EngineAction, confidence: number): EngineDecision {
-  return { action, candidates: [[action, confidence]], logits: [] };
+  return { action, candidates: [[action, confidence]], logits: [], forced: false };
 }
 
 function map(action: EngineAction, confidence = 0.5) {
@@ -76,6 +76,7 @@ describe('mapping an engine decision to the HUD vocabulary', () => {
         [{ type: 'pass' }, 0.1],
       ],
       logits: [],
+      forced: false,
     };
 
     const mapped = mapDecisionToRecommendations(decision, context);

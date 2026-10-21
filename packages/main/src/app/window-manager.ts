@@ -42,7 +42,7 @@ export class WindowManager {
     return this.game.get();
   }
 
-  public setupTray(onCheckForUpdates?: () => void): void {
+  public setupTray(onCheckForUpdates: () => void): void {
     if (this.tray) return;
 
     this.tray = setupTray({

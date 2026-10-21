@@ -45,10 +45,10 @@ export interface CloudDecisionInput {
   resolveCall?: (label: string) => EngineAction[];
   /**
    * The losing seat when a win is allowed at this decision point: our own seat
-   * for a tsumo, the discarder for a ron. `null` means nobody can win here.
+   * for a tsumo, the discarder for a ron. Absent means nobody can win here.
    * Without it a bare `hora` label cannot say which win it means.
    */
-  winTarget?: number | null;
+  winTarget?: number;
 }
 
 interface CloudDecisionDeps {
@@ -182,7 +182,7 @@ export class CloudDecisionService {
       return local('null-reaction', true, false);
     }
 
-    let reachDiscard: string | null = null;
+    let reachDiscard: string | undefined;
     let reachLookahead: RiichiLookaheadCandidate[] = [];
     if (reaction.type === 'reach') {
       const resolved = await this.resolveReachDiscard(
@@ -342,15 +342,14 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
 /** Everything a coarse reaction needs beyond the wire data to become a HUD row. */
 export interface CloudMappingContext {
   /** The discard the follow-up call named, when the reaction is a reach. */
-  reachDiscard?: string | null;
+  reachDiscard?: string;
   /** Names the tiles behind a coarse top-k call label (`pon`, `chi_low`, `kan`). */
   resolveCall?: (label: string) => EngineAction[];
   /**
    * The losing seat when a win is allowed right now: our own seat for a tsumo,
-   * the discarder for a ron. `null` means no win is possible; `undefined` means
-   * the caller did not say.
+   * the discarder for a ron. Absent means no win can be named here.
    */
-  winTarget?: number | null;
+  winTarget?: number;
 }
 
 /**
@@ -382,7 +381,7 @@ export function mapCloudDecision(
     }
   }
 
-  return { action, candidates: rows, logits: [] };
+  return { action, candidates: rows, logits: [], forced: false };
 }
 
 /** A coarse label resolved into everything it can mean, or the bare mapping. */
@@ -458,7 +457,7 @@ function reactionToAction(
  * decision point supplies one (our draw, or the seat whose tile we would take),
  * so the row is only mapped when that context exists.
  */
-function coarseToAction(action: string, winTarget?: number | null): EngineAction | null {
+function coarseToAction(action: string, winTarget?: number): EngineAction | null {
   if (action.startsWith('dahai:')) {
     const pai = action.slice('dahai:'.length);
     return pai ? { type: 'dahai', pai } : null;

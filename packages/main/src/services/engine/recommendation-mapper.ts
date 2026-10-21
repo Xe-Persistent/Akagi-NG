@@ -30,7 +30,7 @@ export interface EngineDecision {
   candidates: [EngineAction, number][];
   logits: number[];
   /** True when the legal set held a single action, i.e. the decision is forced. */
-  forced?: boolean;
+  forced: boolean;
   /** Present only when riichi is one of the candidates. */
   riichi_lookahead?: RiichiLookaheadCandidate[];
 }
@@ -72,9 +72,9 @@ export interface DecisionContext {
   /** Our seat, used to tell a tsumo from a ron. */
   playerId: number;
   /** Last tile we drew, shown next to a tsumo recommendation. */
-  lastDrawnTile?: string | null;
+  lastDrawnTile: string | null;
   /** Last tile an opponent discarded, shown next to a ron recommendation. */
-  lastDiscardTile?: string | null;
+  lastDiscardTile: string | null;
 }
 
 export function mapDecisionToRecommendations(

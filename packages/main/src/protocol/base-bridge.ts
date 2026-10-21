@@ -34,9 +34,10 @@ export interface BridgeOutput {
   parseFailed?: boolean;
   /**
    * The frame replayed a restore's action history, so everything but the last
-   * event describes a position the game has already left.
+   * event describes a position the game has already left. Every bridge knows
+   * this per frame, so the flag is always there.
    */
-  replayed?: boolean;
+  replayed: boolean;
 }
 
 export abstract class BaseBridge {

@@ -6,7 +6,7 @@ export interface TrayHandlers {
   /** Tray click: show the dashboard when hidden, hide it when visible. */
   onToggleDashboard: () => void;
   onShowDashboard: () => void;
-  onCheckForUpdates?: () => void;
+  onCheckForUpdates: () => void;
   /** The user asked to quit; the dashboard confirms before the app exits. */
   onRequestQuit: () => void;
 }
@@ -30,7 +30,7 @@ export function setupTray(handlers: TrayHandlers): Tray {
       { label: 'Akagi-NG', enabled: false },
       { type: 'separator' },
       { label: 'Show Dashboard', click: handlers.onShowDashboard },
-      { label: 'Check for Updates', click: () => handlers.onCheckForUpdates?.() },
+      { label: 'Check for Updates', click: () => handlers.onCheckForUpdates() },
       { type: 'separator' },
       { label: 'Quit Akagi-NG', click: handlers.onRequestQuit },
     ]),

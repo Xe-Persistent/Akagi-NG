@@ -102,6 +102,7 @@ describe('the online decision', () => {
           [{ type: 'reach' }, 0.1],
         ],
         logits: [],
+        forced: false,
       },
     });
   });

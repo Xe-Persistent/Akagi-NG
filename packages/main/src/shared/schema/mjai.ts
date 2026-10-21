@@ -107,24 +107,15 @@ export interface HoraEvent extends MJAIEventBase {
   pai: Tile;
   scores: Score[];
   deltas: Score[];
-  ba?: number;
-  kyoku?: number;
-  honba?: number;
-  kyotaku?: number;
-  ura_dora_markers?: Tile[];
-  hand?: Tile[];
-  fu?: number;
-  fan?: number;
-  yaku?: string[];
 }
 
 export interface RyukyokuEvent extends MJAIEventBase {
   type: 'ryukyoku';
   scores: Score[];
+  deltas: Score[];
+  tenpais: boolean[];
+  /** Why the hand was aborted, in `riichienv`'s spelling. */
   reason?: string;
-  deltas?: Score[];
-  tehais?: Tile[][];
-  tenpais?: boolean[];
 }
 
 export interface EndGameEvent extends MJAIEventBase {

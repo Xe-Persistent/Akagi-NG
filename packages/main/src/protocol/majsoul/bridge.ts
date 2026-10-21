@@ -249,8 +249,8 @@ export class MajsoulBridge extends BaseBridge {
    *
    * Some types also reveal hands -- nine terminals shows the declarer's, four
    * riichi shows every seat, and a triple ron leaves out the discarder -- but the
-   * event's `tehais` slot is not filled: the wire format of those strings has not
-   * been seen in a capture, and `riichienv` does not read the field.
+   * event carries none: the wire format of those strings has not been seen in a
+   * capture, and `riichienv` does not read them.
    */
   private handleLiuJu(action: ActionPrototype): MJAIEvent[] {
     const type = action.data.type as number | undefined;

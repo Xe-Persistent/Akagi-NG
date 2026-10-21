@@ -28,7 +28,7 @@ describe('the toast wrapper', () => {
 
     notify.success('saved');
 
-    expect(toast.calls[0].options).toMatchObject({
+    expect(toast.calls[0]!.options).toMatchObject({
       position: 'top-right',
       autoClose: TOAST_DURATION_DEFAULT,
       closeOnClick: true,
@@ -41,7 +41,7 @@ describe('the toast wrapper', () => {
 
     notify.error('failed', { autoClose: false, position: 'bottom-center' });
 
-    expect(toast.calls[0].options).toMatchObject({
+    expect(toast.calls[0]!.options).toMatchObject({
       autoClose: false,
       position: 'bottom-center',
       // The defaults the caller did not mention are still applied.

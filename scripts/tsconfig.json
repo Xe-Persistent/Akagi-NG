@@ -1,10 +1,8 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "strict": true,
-    "skipLibCheck": true,
     "types": ["node"],
     "allowJs": true,
     "noEmit": true

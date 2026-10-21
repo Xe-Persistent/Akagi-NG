@@ -41,7 +41,10 @@ export function ConsumedDisplay({ action, consumed, tile }: ConsumedDisplayProps
     if (aka) {
       const rest = sorted.filter((t) => t !== aka);
       // A closed kan keeps it second from the left.
-      if (isAnkan) return [rest[0], aka, rest[1], rest[2]];
+      if (isAnkan) {
+        const [first, second, third] = rest;
+        if (first && second && third) return [first, aka, second, third];
+      }
       // Pon and open kans put it first.
       if (action === 'pon' || action === 'kan') return [aka, ...rest];
     }

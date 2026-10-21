@@ -45,6 +45,10 @@ export default defineConfig([
 
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'warn',
+      // `preload.cts` is CommonJS and must load Electron with `require`; the
+      // typed spelling is `import x = require(...)`. Everywhere else
+      // `verbatimModuleSyntax` already rejects that syntax.
+      '@typescript-eslint/no-require-imports': ['error', { allowAsImport: true }],
     },
   },
 

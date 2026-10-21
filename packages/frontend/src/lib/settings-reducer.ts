@@ -20,15 +20,20 @@ export function createSettingsState(settings: Settings): SettingsState {
 }
 
 function setByPath(root: Record<string, unknown>, path: readonly string[], value: unknown) {
-  let current: Record<string, unknown> = root;
-  for (let i = 0; i < path.length - 1; i++) {
-    const key = path[i];
-    if (typeof current[key] !== 'object' || current[key] === null) {
-      current[key] = {};
+  let current = root;
+  for (const key of path.slice(0, -1)) {
+    const child: unknown = current[key];
+    if (typeof child === 'object' && child !== null) {
+      current = child as Record<string, unknown>;
+    } else {
+      const nested: Record<string, unknown> = {};
+      current[key] = nested;
+      current = nested;
     }
-    current = current[key] as Record<string, unknown>;
   }
-  current[path[path.length - 1]] = value;
+
+  const last = path.at(-1);
+  if (last !== undefined) current[last] = value;
 }
 
 export function settingsReducer(state: SettingsState, action: SettingsAction): SettingsState {

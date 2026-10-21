@@ -5,7 +5,11 @@ export interface ActionConfigItem {
   gradient: string;
 }
 
-export const ACTION_CONFIG: Record<string, ActionConfigItem> = {
+/**
+ * Per-action card styling. `discard` is always there -- anything the map does
+ * not name is a plain discard -- so the fallback needs no guard of its own.
+ */
+export const ACTION_CONFIG: Record<string, ActionConfigItem> & { discard: ActionConfigItem } = {
   reach: {
     label: 'actions.reach',
     color: 'var(--color-action-reach)',

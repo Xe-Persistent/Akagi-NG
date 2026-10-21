@@ -1,5 +1,10 @@
 import type { IpcRendererEvent } from 'electron';
-import { contextBridge, ipcRenderer } from 'electron';
+
+// A `.cts` file is CommonJS, and `verbatimModuleSyntax` keeps module syntax as
+// written: a plain `import` would be emitted into a `.cjs` file that cannot run.
+import electron = require('electron');
+
+const { contextBridge, ipcRenderer } = electron;
 
 type IpcCallback = (event: IpcRendererEvent, ...args: readonly unknown[]) => void;
 

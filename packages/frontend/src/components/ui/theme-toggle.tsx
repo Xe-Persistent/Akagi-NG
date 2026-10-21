@@ -12,6 +12,14 @@ interface ThemeOption {
   activeIconColor: string;
 }
 
+/** The option an unknown theme falls back to; also the last one in the list. */
+const SYSTEM_OPTION: ThemeOption = {
+  value: 'system',
+  icon: Laptop,
+  activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
+  activeIconColor: 'text-zinc-900 dark:text-zinc-100',
+};
+
 const THEME_OPTIONS: ThemeOption[] = [
   {
     value: 'light',
@@ -25,12 +33,7 @@ const THEME_OPTIONS: ThemeOption[] = [
     activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
     activeIconColor: 'text-indigo-600',
   },
-  {
-    value: 'system',
-    icon: Laptop,
-    activeColor: 'bg-zinc-200/80 shadow-xs dark:bg-zinc-700/80',
-    activeIconColor: 'text-zinc-900 dark:text-zinc-100',
-  },
+  SYSTEM_OPTION,
 ];
 
 interface ThemeToggleProps {
@@ -41,7 +44,7 @@ interface ThemeToggleProps {
 export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
   const foundIndex = THEME_OPTIONS.findIndex((opt) => opt.value === theme);
   const activeIndex = foundIndex === -1 ? THEME_OPTIONS.length - 1 : foundIndex;
-  const activeOption = THEME_OPTIONS[activeIndex];
+  const activeOption = THEME_OPTIONS[activeIndex] ?? SYSTEM_OPTION;
 
   return (
     <div className='no-drag relative inline-flex h-full rounded-full border border-zinc-500/20 p-0.5 dark:border-zinc-400/20'>

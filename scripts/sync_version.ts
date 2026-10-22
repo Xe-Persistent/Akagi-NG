@@ -22,8 +22,10 @@ function writeManifest(path: string, manifest: Manifest): void {
 
 /**
  * Syncs the version from root package.json down to the Electron, frontend and
- * Rust engine packages. Lockfiles are intentionally left alone: they are updated
- * by their own package managers when dependencies change.
+ * Rust engine packages, plus the Rust engine's own entry in its lockfile: Cargo
+ * records a workspace member's version there, so `--locked` builds reject a bump
+ * that leaves it behind. Dependency versions in the lockfiles are left alone;
+ * they are updated by their own package managers when dependencies change.
  */
 function syncVersion() {
   try {
@@ -78,6 +80,16 @@ function syncVersion() {
     }
     writeFileSync(rustEngineCargoTomlPath, cargoToml.replace(cargoVersion, `$1${version}$2`));
     console.log(`✅ Synced to packages/rust_engine/Cargo.toml`);
+
+    const rustEngineCargoLockPath = join(projectRoot, 'packages', 'rust_engine', 'Cargo.lock');
+    console.log(`Updating ${rustEngineCargoLockPath}...`);
+    const cargoLock = readFileSync(rustEngineCargoLockPath, 'utf-8');
+    const cargoLockVersion = /(\[\[package\]\]\nname = "rust_engine"\nversion = ")[^"]*(")/;
+    if (!cargoLockVersion.test(cargoLock)) {
+      throw new Error(`Could not find the rust_engine entry in ${rustEngineCargoLockPath}`);
+    }
+    writeFileSync(rustEngineCargoLockPath, cargoLock.replace(cargoLockVersion, `$1${version}$2`));
+    console.log(`✅ Synced to packages/rust_engine/Cargo.lock`);
 
     console.log(`🎉 Monorepo version successfully synced!`);
   } catch (error) {

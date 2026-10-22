@@ -4,6 +4,16 @@ import { useTranslation } from 'react-i18next';
 
 import { OnlinePurchaseDialog } from '@/components/settings/OnlinePurchaseDialog';
 import { OnlineRedeemDialog } from '@/components/settings/OnlineRedeemDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -85,6 +95,7 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
   const [timeoutDraft, setTimeoutDraft] = useState<string | null>(null);
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [clearKeyOpen, setClearKeyOpen] = useState(false);
 
   /** Unknown until the first read comes back, so the panel never guesses. */
   const configured = keyInfo?.configured ?? false;
@@ -145,6 +156,15 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
     setKeyInfo(await clearKeyApi());
     setKeyStatus(null);
     setModels([]);
+  };
+
+  /**
+   * The stored key cannot be read back, so clearing it means pasting it again or
+   * buying another: ask first, as restoring the settings does.
+   */
+  const confirmClearKey = () => {
+    setClearKeyOpen(false);
+    void clearKey();
   };
 
   const checkHealth = async () => {
@@ -285,13 +305,31 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
           variant='ghost'
           size='sm'
           className='gap-1.5 text-destructive'
-          onClick={() => void clearKey()}
+          onClick={() => setClearKeyOpen(true)}
         >
           <Trash2 className='h-4 w-4' />
           {t('settings.ot.clear_key')}
         </Button>
       </div>
     </div>
+  );
+
+  /** Asked before the key goes: it is encrypted, so it cannot be recovered. */
+  const renderClearKeyDialog = () => (
+    <AlertDialog open={clearKeyOpen} onOpenChange={setClearKeyOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('settings.ot.clear_key_confirm_title')}</AlertDialogTitle>
+          <AlertDialogDescription>{t('settings.ot.clear_key_confirm_desc')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction variant='destructive' onClick={confirmClearKey}>
+            {t('settings.ot.clear_key')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 
   const renderOnlineFields = () => (
@@ -467,6 +505,7 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         onOpenChange={setPurchaseOpen}
         onStored={() => void loadOnlineState()}
       />
+      {renderClearKeyDialog()}
     </div>
   );
 }

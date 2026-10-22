@@ -49,6 +49,8 @@
       "key_replace_hint": "目前已設定：末號 {{last4}}",
       "key_not_configured": "未設定",
       "clear_key": "清除金鑰",
+      "clear_key_confirm_title": "清除金鑰？",
+      "clear_key_confirm_desc": "確定要清除金鑰嗎？金鑰以加密方式保存，無法還原。清除後需要重新設定、兌換或購買。",
       "health": "服務狀態",
       "health_ok": "可用，排隊 {{queue}}",
       "health_unavailable": "不可用",

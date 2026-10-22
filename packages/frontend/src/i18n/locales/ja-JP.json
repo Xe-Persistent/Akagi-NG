@@ -38,7 +38,7 @@
       "no_online_models": "利用できるオンラインモデルがありません"
     },
     "ot": {
-      "enable": "MJOT クラウド推論を使う",
+      "enable": "MJOT オンライン推論を使う",
       "enable_hint": "有効にすると、毎手を MJOT サーバーへ問い合わせます。エラーの時はローカルモデルに切り替わります。",
       "enable_hint_no_key": "キーが未設定のため、今はローカルモデルが応答します。",
       "server_url": "サーバー",
@@ -49,6 +49,8 @@
       "key_replace_hint": "設定済み：末尾番号 {{last4}}",
       "key_not_configured": "未設定",
       "clear_key": "キーを削除",
+      "clear_key_confirm_title": "キーを削除しますか？",
+      "clear_key_confirm_desc": "キーを削除しますか？キーは暗号化して保存されているため、元に戻せません。オンライン推論を使うには、もう一度設定か、新しいキーを引き換え・購入する必要があります。",
       "health": "サービスの状態",
       "health_ok": "利用可能（待ち {{queue}}）",
       "health_unavailable": "利用不可",

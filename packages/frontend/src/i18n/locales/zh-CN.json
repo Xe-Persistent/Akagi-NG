@@ -49,6 +49,8 @@
       "key_replace_hint": "当前已配置：尾号 {{last4}}",
       "key_not_configured": "未配置",
       "clear_key": "清除密钥",
+      "clear_key_confirm_title": "清除密钥",
+      "clear_key_confirm_desc": "确定要清除密钥吗？密钥以加密方式保存，无法还原。清除后需要重新配置、兑换或购买。",
       "health": "服务状态",
       "health_ok": "可用，排队 {{queue}}",
       "health_unavailable": "不可用",

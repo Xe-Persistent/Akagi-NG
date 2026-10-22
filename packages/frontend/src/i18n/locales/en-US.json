@@ -49,6 +49,8 @@
       "key_replace_hint": "Configured: ending in {{last4}})",
       "key_not_configured": "Not configured",
       "clear_key": "Clear key",
+      "clear_key_confirm_title": "Clear the API key",
+      "clear_key_confirm_desc": "Are you sure you want to clear the API key? The key is stored encrypted and cannot be read back. You have to reconfigure it, or redeem or buy another one.",
       "health": "Service status",
       "health_ok": "Available, {{queue}} queued",
       "health_unavailable": "Unavailable",

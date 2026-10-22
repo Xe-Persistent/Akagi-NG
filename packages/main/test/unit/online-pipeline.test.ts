@@ -80,11 +80,18 @@ function stubbedEngine(options: StubOptions = {}): EngineService {
   return engine;
 }
 
+/** A recorded request body, parsed back from the JSON text the client sent. */
+function parsedBody(init: RequestInit | undefined): unknown {
+  const body = init?.body;
+  if (typeof body !== 'string') throw new Error('the client did not send a JSON text body');
+  return JSON.parse(body);
+}
+
 /** A fetch that answers `/v3/react` with the given payload. */
 function stubService(payload: unknown) {
   const calls: unknown[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
-    calls.push({ url, body: JSON.parse(String(init?.body)) });
+    calls.push({ url, body: parsedBody(init) });
     return new Response(JSON.stringify(payload), { status: 200 });
   });
   return calls;
@@ -95,7 +102,7 @@ function stubSequence(payloads: unknown[]) {
   const calls: unknown[] = [];
   const queue = [...payloads];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
-    calls.push({ url, body: JSON.parse(String(init?.body)) });
+    calls.push({ url, body: parsedBody(init) });
     const next = queue.length > 1 ? queue.shift() : queue[0];
     return new Response(JSON.stringify(next), { status: 200 });
   });

@@ -412,7 +412,7 @@ export class MajsoulBridge extends BaseBridge {
   private handleNoTile(action: ActionPrototype): MJAIEvent[] {
     const data = action.data;
     const players = (data.players as ActionPayload[] | undefined) ?? [];
-    const settlement = ((data.scores as ActionPayload[] | undefined)?.[0] ?? {}) as ActionPayload;
+    const settlement = (data.scores as ActionPayload[] | undefined)?.[0] ?? {};
     const deltas = (settlement.deltaScores as number[] | undefined) ?? [];
     const before = (settlement.oldScores as number[] | undefined) ?? [];
     // The payload reports the table before the draw and the change; the event
@@ -490,7 +490,7 @@ export class MajsoulBridge extends BaseBridge {
 
     if (target === actor || consumed.length === 0 || !pai) {
       throw new Error(
-        `Invalid Chi/Peng/Gang format: target=${target}, consumed=${consumed}, pai='${pai}'`,
+        `Invalid Chi/Peng/Gang format: target=${target}, consumed=${consumed.join(',')}, pai='${pai}'`,
       );
     }
 

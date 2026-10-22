@@ -111,7 +111,7 @@ export class MajsoulStateTracker {
     if (actor !== this.seat) return;
 
     if (!this.hand.discard(pai, tsumogiri)) {
-      logger.warn(`Discarded tile ${pai} not found in hand ${this.hand.tiles}`);
+      logger.warn(`Discarded tile ${pai} not found in hand ${this.hand.tiles.join(' ')}`);
     }
 
     this.hand.tiles.sort(comparePai);
@@ -139,7 +139,7 @@ export class MajsoulStateTracker {
     if (actor !== this.seat) return;
 
     if (!this.hand.removeHeld(MAHJONG.NORTH_TILE)) {
-      logger.warn(`Nukidora '${MAHJONG.NORTH_TILE}' not found in hand ${this.hand.tiles}`);
+      logger.warn(`Nukidora 'N' not found in hand ${this.hand.tiles.join(' ')}`);
     }
 
     this.hand.foldDraw();

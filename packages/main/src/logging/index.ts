@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { readdir, stat, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { inspect } from 'node:util';
 
 import { app } from 'electron';
 import type { LogLevel, LogMessage } from 'electron-log';
@@ -46,7 +47,7 @@ function formatArg(value: unknown): string {
     try {
       return JSON.stringify(value);
     } catch {
-      return String(value);
+      return inspect(value, { breakLength: Infinity, depth: 3 });
     }
   }
   return String(value);

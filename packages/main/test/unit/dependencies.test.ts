@@ -59,8 +59,8 @@ function manifest(workspace: string) {
   const json = JSON.parse(readFileSync(join(repoRoot, workspace, 'package.json'), 'utf8'));
   return {
     name: json.name as string,
-    dependencies: Object.keys(json.dependencies ?? {}) as string[],
-    devDependencies: Object.keys(json.devDependencies ?? {}) as string[],
+    dependencies: Object.keys(json.dependencies ?? {}),
+    devDependencies: Object.keys(json.devDependencies ?? {}),
   };
 }
 

@@ -150,8 +150,8 @@ export class MitmProxyManager {
       });
 
       // Both directions of a Majsoul socket are parsed; nothing else is touched.
-      await server.on('websocket-message-received', (msg) => this.handleMessage(msg));
-      await server.on('websocket-message-sent', (msg) => this.handleMessage(msg));
+      await server.on('websocket-message-received', (msg) => void this.handleMessage(msg));
+      await server.on('websocket-message-sent', (msg) => void this.handleMessage(msg));
 
       await server.forAnyRequest().thenPassThrough(requestOptions);
 

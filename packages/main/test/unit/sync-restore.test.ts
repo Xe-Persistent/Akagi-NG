@@ -68,7 +68,7 @@ function count(events: MJAIEvent[], type: string): number {
 function withAction(step: number, action: Record<string, unknown>): RestorePayload {
   const copy = structuredClone(restore);
   const actions = copy.game_restore?.actions ?? [];
-  actions[step] = action as (typeof actions)[number];
+  actions[step] = action;
 
   return copy;
 }

@@ -29,6 +29,7 @@ import {
   diffDescriptors,
   type LiqiDescriptorJson,
   type ProtocolSources,
+  type ProtoConfig,
 } from '../packages/main/src/protocol/bootstrap/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -83,7 +84,7 @@ function loadSourcesFromRaw(rawDir: string): ProtocolSources {
   consoleLogger.info(`[offline] ${luaSources.size} module(s) from ${protolDir}`);
   return {
     luaSources,
-    protoConfig: JSON.parse(readFileSync(configPath, 'utf8')),
+    protoConfig: JSON.parse(readFileSync(configPath, 'utf8')) as ProtoConfig,
     issuer: 'offline',
     productVersion: 'offline',
     bundleHash: '',

@@ -224,7 +224,7 @@ describe('validating a descriptor', () => {
 
   it('names the message that is missing', () => {
     const descriptor = completeDescriptor();
-    delete (descriptor.nested.lq.nested as Record<string, unknown>).Wrapper;
+    delete descriptor.nested.lq.nested.Wrapper;
 
     expect(() => validateDescriptor(descriptor)).toThrow('Required message Wrapper is missing');
   });
@@ -233,8 +233,8 @@ describe('validating a descriptor', () => {
 describe('comparing a descriptor with the previous one', () => {
   const previous = completeDescriptor();
   const shrunk = completeDescriptor();
-  delete (shrunk.nested.lq.nested as Record<string, unknown>).ActionPrototype;
-  delete (shrunk.nested.lq.nested as Record<string, unknown>).ReqChiPengGang;
+  delete shrunk.nested.lq.nested.ActionPrototype;
+  delete shrunk.nested.lq.nested.ReqChiPengGang;
 
   it('has nothing to say without a previous schema', () => {
     expect(detectRegression(null, previous)).toBeNull();
@@ -265,7 +265,7 @@ describe('describing what changed', () => {
 
   it('reports messages and routes that disappeared', () => {
     const next = completeDescriptor();
-    const nested = next.nested.lq.nested as Record<string, unknown>;
+    const nested = next.nested.lq.nested;
     delete nested.Wrapper;
     delete nested.FastTest;
 

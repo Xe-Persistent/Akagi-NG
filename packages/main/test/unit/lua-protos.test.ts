@@ -90,7 +90,7 @@ describe('telling a Lua payload from a scrambled one', () => {
     const plain = encoder.encode(accountModule);
     const scrambled = Uint8Array.from(
       plain,
-      (byte, index) => byte ^ (XOR_KEY.charCodeAt(index % XOR_KEY.length) as number),
+      (byte, index) => byte ^ XOR_KEY.charCodeAt(index % XOR_KEY.length),
     );
 
     expect(looksLikeLua(scrambled)).toBe(false);

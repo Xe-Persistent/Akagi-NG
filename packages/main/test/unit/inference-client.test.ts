@@ -38,8 +38,15 @@ function client(fetch: FetchLike, overrides: { reactTimeoutMs?: number } = {}) {
   });
 }
 
+/** The request body of a recorded call, parsed back from its JSON text. */
+function parsedBody(init: RequestInit | undefined): unknown {
+  const body = init?.body;
+  if (typeof body !== 'string') throw new Error('the client did not send a JSON text body');
+  return JSON.parse(body);
+}
+
 function bodyOf(call: Recorded | undefined): Record<string, unknown> {
-  return JSON.parse(String(call?.init?.body));
+  return parsedBody(call?.init) as Record<string, unknown>;
 }
 
 function headersOf(call: Recorded | undefined): Record<string, string> {

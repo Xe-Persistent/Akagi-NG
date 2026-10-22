@@ -33,9 +33,7 @@ describe('the Majsoul state tracker', () => {
       expect([...tracker.myTehais].sort(comparePai)).toEqual(tracker.myTehais);
       // The payload's last tile is the one that was drawn, not the highest sorted.
       expect(tracker.myTsumohai).toBe(toMjaiTile(DEAL[13]!));
-      expect([...(tracker.myTehais as string[]), tracker.myTsumohai].sort()).toEqual(
-        DEAL.map(toMjaiTile).sort(),
-      );
+      expect([...tracker.myTehais, tracker.myTsumohai].sort()).toEqual(DEAL.map(toMjaiTile).sort());
     });
 
     it('keeps the drawn tile out of the thirteen the round opens with', () => {

@@ -21,6 +21,13 @@ export enum MsgType {
   Res = 3,
 }
 
+/** The frame types this decoder understands; any other byte is another protocol. */
+const LIQI_FRAME_TYPES = new Map<number, MsgType>([
+  [MsgType.Notify, MsgType.Notify],
+  [MsgType.Req, MsgType.Req],
+  [MsgType.Res, MsgType.Res],
+]);
+
 export interface LiqiMessage {
   id: number;
   type: MsgType;
@@ -230,30 +237,32 @@ export class LiqiProto {
     let msgId = -1;
 
     try {
-      // A raw byte, not a `MsgType`: the socket carries other protocols too, and
-      // the value is what tells them apart.
-      const msgType = buf[0];
-      if (msgType === undefined) return { kind: 'skipped' };
-      let method: string;
-      let data: Record<string, unknown>;
-
-      if (msgType === MsgType.Notify) {
-        [method, data] = this.parseNotify(fromProtobuf(buf.subarray(1)));
-      } else if (msgType === MsgType.Req || msgType === MsgType.Res) {
-        msgId = buf.readUInt16LE(1);
-        const blocks = fromProtobuf(buf.subarray(3));
-        [method, data] =
-          msgType === MsgType.Req
-            ? this.parseRequest(msgId, blocks)
-            : this.parseResponse(msgId, blocks);
-      } else {
+      // A raw byte: the socket carries other protocols too, and the value is
+      // what tells them apart.
+      const frameType = buf[0];
+      if (frameType === undefined) return { kind: 'skipped' };
+      const liqiType = LIQI_FRAME_TYPES.get(frameType);
+      if (liqiType === undefined) {
         // A socket that carries more than liqi: not an error worth reporting.
-        logger.verbose(`Skipping a non-liqi frame (type ${buf[0]})`);
+        logger.verbose(`Skipping a non-liqi frame (type ${frameType})`);
         return { kind: 'skipped' };
       }
 
-      // Only the three types above reach here, so the narrow cast is sound.
-      return { kind: 'message', message: { id: msgId, type: msgType as MsgType, method, data } };
+      let method: string;
+      let data: Record<string, unknown>;
+
+      if (liqiType === MsgType.Notify) {
+        [method, data] = this.parseNotify(fromProtobuf(buf.subarray(1)));
+      } else {
+        msgId = buf.readUInt16LE(1);
+        const blocks = fromProtobuf(buf.subarray(3));
+        [method, data] =
+          liqiType === MsgType.Req
+            ? this.parseRequest(msgId, blocks)
+            : this.parseResponse(msgId, blocks);
+      }
+
+      return { kind: 'message', message: { id: msgId, type: liqiType, method, data } };
     } catch (e) {
       const reason = errorMessage(e);
       if (e instanceof UnsupportedLiqiFrame) {

@@ -243,7 +243,7 @@ function collectSummary(
     if (entry.fields) messages.add(`${prefix}${name}`);
     if (entry.nested) collectSummary(entry.nested, `${prefix}${name}.`, messages, methods);
     if (entry.methods) {
-      for (const method of Object.keys(entry.methods as Record<string, unknown>)) {
+      for (const method of Object.keys(entry.methods)) {
         methods.add(`${name}.${method}`);
       }
     }

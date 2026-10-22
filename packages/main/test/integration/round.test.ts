@@ -7,7 +7,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { EngineService } from '../../src/services/engine/engine-service.js';
-import type { MJAIEvent } from '../../src/shared/schema/mjai.js';
 import { messagesOn, resetSentMessages } from '../electron-stub.js';
 import { hasEngine } from '../engine-availability.js';
 import { replay, round } from '../real-packets.js';
@@ -90,9 +89,9 @@ describe.skipIf(!hasEngine)('the same round through the engine', () => {
 
     const engine = new EngineService();
     try {
-      await engine.ingest([{ type: 'start_game', id: seat, is_3p: false } as MJAIEvent]);
+      await engine.ingest([{ type: 'start_game', id: seat, is_3p: false }]);
       for (const [index, event] of events.entries()) {
-        await engine.ingest([event as MJAIEvent]);
+        await engine.ingest([event]);
         publishedAt[index] = messagesOn('engine:recommendations').length;
       }
     } finally {

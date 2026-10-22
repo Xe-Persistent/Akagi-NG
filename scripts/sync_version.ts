@@ -5,6 +5,21 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/** The parts of a workspace `package.json` this script reads or rewrites. */
+interface Manifest {
+  version?: string;
+  _comment?: unknown;
+  [key: string]: unknown;
+}
+
+function readManifest(path: string): Manifest {
+  return JSON.parse(readFileSync(path, 'utf-8')) as Manifest;
+}
+
+function writeManifest(path: string, manifest: Manifest): void {
+  writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+}
+
 /**
  * Syncs the version from root package.json down to the Electron, frontend and
  * Rust engine packages. Lockfiles are intentionally left alone: they are updated
@@ -21,7 +36,7 @@ function syncVersion() {
       throw new Error(`Master package.json not found at ${rootPackageJsonPath}`);
     }
 
-    const rootPackageJson = JSON.parse(readFileSync(rootPackageJsonPath, 'utf-8'));
+    const rootPackageJson = readManifest(rootPackageJsonPath);
     const version = rootPackageJson.version;
 
     if (!version) {
@@ -32,26 +47,26 @@ function syncVersion() {
 
     const electronPackageJsonPath = join(projectRoot, 'packages', 'main', 'package.json');
     console.log(`Updating ${electronPackageJsonPath}...`);
-    const electronPackageJson = JSON.parse(readFileSync(electronPackageJsonPath, 'utf-8'));
+    const electronPackageJson = readManifest(electronPackageJsonPath);
     electronPackageJson.version = version;
-    writeFileSync(electronPackageJsonPath, JSON.stringify(electronPackageJson, null, 2) + '\n');
+    writeManifest(electronPackageJsonPath, electronPackageJson);
     console.log(`✅ Synced to packages/main/package.json`);
 
     const frontendPackageJsonPath = join(projectRoot, 'packages', 'frontend', 'package.json');
     console.log(`Updating ${frontendPackageJsonPath}...`);
-    const frontendPackageJson = JSON.parse(readFileSync(frontendPackageJsonPath, 'utf-8'));
+    const frontendPackageJson = readManifest(frontendPackageJsonPath);
     frontendPackageJson.version = version;
     if (frontendPackageJson._comment) {
       delete frontendPackageJson._comment;
     }
-    writeFileSync(frontendPackageJsonPath, JSON.stringify(frontendPackageJson, null, 2) + '\n');
+    writeManifest(frontendPackageJsonPath, frontendPackageJson);
     console.log(`✅ Synced to packages/frontend/package.json`);
 
     const rustEnginePackageJsonPath = join(projectRoot, 'packages', 'rust_engine', 'package.json');
     console.log(`Updating ${rustEnginePackageJsonPath}...`);
-    const rustEnginePackageJson = JSON.parse(readFileSync(rustEnginePackageJsonPath, 'utf-8'));
+    const rustEnginePackageJson = readManifest(rustEnginePackageJsonPath);
     rustEnginePackageJson.version = version;
-    writeFileSync(rustEnginePackageJsonPath, JSON.stringify(rustEnginePackageJson, null, 2) + '\n');
+    writeManifest(rustEnginePackageJsonPath, rustEnginePackageJson);
     console.log(`✅ Synced to packages/rust_engine/package.json`);
 
     const rustEngineCargoTomlPath = join(projectRoot, 'packages', 'rust_engine', 'Cargo.toml');

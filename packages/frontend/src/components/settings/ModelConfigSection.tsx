@@ -182,6 +182,13 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
   const storedSeconds = settings.ot.react_timeout_ms / 1000;
   const timeoutValue = timeoutDraft ?? storedSeconds.toFixed(1);
 
+  /** Empty until the first check, so the row can reserve the same space always. */
+  const healthSummary = health
+    ? health.workersAlive && health.status === 'ok'
+      ? t('settings.ot.health_ok', { queue: health.queueDepth })
+      : t('settings.ot.health_unavailable')
+    : '';
+
   /** Commit on blur: a half-typed value must never become a stored setting. */
   const commitTimeout = () => {
     const seconds = clampTimeoutSeconds(timeoutValue, storedSeconds);
@@ -340,42 +347,44 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         layout='row'
       >
         <div className='flex flex-col items-end gap-1'>
-          <div className='flex flex-wrap items-center justify-end gap-2'>
-            <Button
-              variant='outline'
-              size='sm'
-              className='gap-1.5'
-              onClick={() => setRedeemOpen(true)}
+          <div className='flex items-center justify-end gap-3'>
+            <span
+              aria-live='polite'
+              title={healthSummary}
+              className='min-w-0 flex-1 truncate text-right text-xs text-muted-foreground'
             >
-              <Ticket className='h-4 w-4' />
-              {t('settings.ot.redeem')}
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              className='gap-1.5'
-              onClick={() => setPurchaseOpen(true)}
-            >
-              <ShoppingCart className='h-4 w-4' />
-              {t('settings.ot.buy')}
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              className='gap-1.5'
-              disabled={busy === 'health'}
-              onClick={() => void checkHealth()}
-            >
-              <Activity className='h-4 w-4' />
-              {t('settings.ot.health')}
-            </Button>
-            {health && !healthError && (
-              <span className='text-xs text-muted-foreground'>
-                {health.workersAlive && health.status === 'ok'
-                  ? t('settings.ot.health_ok', { queue: health.queueDepth })
-                  : t('settings.ot.health_unavailable')}
-              </span>
-            )}
+              {healthSummary}
+            </span>
+            <div className='flex flex-wrap items-center justify-end gap-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='gap-1.5'
+                onClick={() => setRedeemOpen(true)}
+              >
+                <Ticket className='h-4 w-4' />
+                {t('settings.ot.redeem')}
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='gap-1.5'
+                onClick={() => setPurchaseOpen(true)}
+              >
+                <ShoppingCart className='h-4 w-4' />
+                {t('settings.ot.buy')}
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='gap-1.5'
+                disabled={busy === 'health'}
+                onClick={() => void checkHealth()}
+              >
+                <Activity className='h-4 w-4' />
+                {t('settings.ot.health')}
+              </Button>
+            </div>
           </div>
           {healthError && <p className='text-xs wrap-break-word text-destructive'>{healthError}</p>}
         </div>

@@ -3,7 +3,9 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "../../dist/main",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "incremental": true,
+    "tsBuildInfoFile": "../../dist/main/.tsbuildinfo"
   },
   "include": ["src/**/*"]
 }

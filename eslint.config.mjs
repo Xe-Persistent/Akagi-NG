@@ -18,7 +18,12 @@ const NODE_FILES = [
   'eslint.config.mjs',
 ];
 /** The subset of `NODE_FILES` a tsconfig covers, i.e. where types exist. */
-const TYPED_NODE_FILES = ['packages/main/**/*.{ts,cts,mts}', 'scripts/**/*.{ts,mts}'];
+const TYPED_NODE_FILES = [
+  'packages/main/**/*.{ts,cts,mts}',
+  'scripts/**/*.{ts,mts}',
+  // The root project only exists to give these two a program of their own.
+  'vitest.config.ts',
+];
 /** Renderer sources, all of which the frontend tsconfig covers. */
 const REACT_FILES = ['packages/frontend/**/*.{ts,tsx}'];
 

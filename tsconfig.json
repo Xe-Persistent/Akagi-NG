@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ESNext",
     "strict": true,
@@ -13,6 +12,10 @@
     "noUnusedParameters": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "types": [],
+    "noEmit": true,
+    "allowJs": true
+  },
+  "include": ["vitest.config.ts", "eslint.config.mjs"]
 }

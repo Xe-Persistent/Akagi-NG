@@ -32,7 +32,7 @@
     "test:watch": "vitest --project main --project frontend",
     "test:integration": "vitest run --project integration",
     "test:rust": "cargo test --locked --features dyn-symbols --manifest-path packages/rust_engine/Cargo.toml",
-    "typecheck": "tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/frontend/tsconfig.node.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/frontend/tsconfig.node.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.28.3",

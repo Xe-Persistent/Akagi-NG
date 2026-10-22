@@ -1,36 +1,23 @@
-import { Monitor } from 'lucide-react';
 import { use, useLayoutEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { STREAM_PLAYER_HEIGHT, STREAM_PLAYER_WIDTH } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
 import { isHudWindow } from '@/lib/routing';
 import { cn } from '@/lib/utils';
 
-import StreamRenderComponent from './StreamRenderComponent';
+import { type PlaceholderKind, StreamPlaceholder } from './StreamPlaceholder';
+import StreamRecommendation from './StreamRecommendation';
 
 interface StreamPlayerProps {
   className?: string;
 }
 
-/** Stands in for the player while the HUD is in its own window. */
-function HudOverlay() {
-  const { t } = useTranslation();
-  return (
-    <div className='flex h-full w-full flex-col items-center justify-center gap-4 p-8 text-center'>
-      <div className='flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-pink-500/20 to-violet-500/20 dark:from-pink-500/10 dark:to-violet-500/10'>
-        <Monitor className='h-10 w-10 text-pink-500 dark:text-pink-400' />
-      </div>
-      <div className='space-y-2'>
-        <h3 className='text-lg font-semibold text-zinc-800 dark:text-zinc-100'>
-          {t('app.hud_active')}
-        </h3>
-        <p className='text-sm text-zinc-500 dark:text-zinc-400'>{t('app.hud_desc')}</p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * The recommendation board: a fixed 1280×720 stage scaled to whatever the window
+ * gives it, so every row keeps its proportions. Everything that is content -- the
+ * cards -- lives inside that stage and scales with it; the hint shown when there
+ * is no content stays outside it and keeps its own pixel size.
+ */
 export default function StreamPlayer({ className }: StreamPlayerProps) {
   const context = use(GameContext);
   if (!context) throw new Error('GameContext not found');
@@ -38,11 +25,6 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-
-  const containerSize = {
-    width: STREAM_PLAYER_WIDTH * scale,
-    height: STREAM_PLAYER_HEIGHT * scale,
-  };
 
   useLayoutEffect(() => {
     const updateScale = () => {
@@ -60,6 +42,11 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
   }, []);
 
   const isHudPage = isHudWindow();
+  // The HUD window owns the recommendations; the dashboard only says so.
+  const placeholder: PlaceholderKind | null =
+    isHudActive && !isHudPage ? 'hudActive' : data ? null : 'standby';
+  // The HUD window is a transparent overlay: it stays empty until a row arrives.
+  const showsPlaceholder = placeholder !== null && !(isHudPage && !data);
 
   return (
     <div
@@ -68,25 +55,33 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
     >
       <div
         style={{
-          width: containerSize.width,
-          height: containerSize.height,
+          width: STREAM_PLAYER_WIDTH * scale,
+          height: STREAM_PLAYER_HEIGHT * scale,
         }}
         className={cn(
           'relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20',
           isHudPage && 'shadow-none',
         )}
       >
-        <div
-          style={{
-            transform: `scale(${scale})`,
-            width: STREAM_PLAYER_WIDTH,
-            height: STREAM_PLAYER_HEIGHT,
-            transformOrigin: 'center center',
-          }}
-          className='shrink-0'
-        >
-          {isHudActive && !isHudPage ? <HudOverlay /> : <StreamRenderComponent data={data} />}
-        </div>
+        {showsPlaceholder && placeholder && <StreamPlaceholder kind={placeholder} />}
+
+        {!showsPlaceholder && data && (
+          <div
+            style={{
+              transform: `scale(${scale})`,
+              width: STREAM_PLAYER_WIDTH,
+              height: STREAM_PLAYER_HEIGHT,
+              transformOrigin: 'center center',
+            }}
+            className='flex shrink-0 flex-col items-center justify-center gap-4 p-4'
+          >
+            {data.recommendations.map((rec, index) => {
+              // The same tile can be recommended twice; the position tells them apart.
+              const key = `${rec.action}-${rec.tile ?? ''}-${rec.consumed?.join(',') ?? ''}-${index}`;
+              return <StreamRecommendation key={key} {...rec} />;
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

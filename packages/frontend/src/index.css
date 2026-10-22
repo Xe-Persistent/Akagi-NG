@@ -271,4 +271,38 @@
   .no-drag {
     -webkit-app-region: no-drag;
   }
+
+  /**
+   * The confidence ring's beam. Both animations run for the same 1.5s so they
+   * stay locked: the arc grows to the value ring over the first 70%, then holds
+   * while it fades out.
+   */
+  .animate-ring-beam {
+    animation:
+      ring-beam-sweep 1.5s linear infinite,
+      ring-beam-fade 1.5s linear infinite;
+  }
+}
+
+@keyframes ring-beam-sweep {
+  0% {
+    stroke-dashoffset: var(--circumference);
+    /* The same curve as the ring's own count-up. */
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+  70%,
+  100% {
+    stroke-dashoffset: var(--beam-rest);
+  }
+}
+
+@keyframes ring-beam-fade {
+  0%,
+  60% {
+    opacity: 0.4;
+    animation-timing-function: ease-in;
+  }
+  100% {
+    opacity: 0;
+  }
 }

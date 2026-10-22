@@ -1,4 +1,4 @@
-import { memo, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { type CSSProperties, memo, useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -19,9 +19,7 @@ export const ConfidenceRing = memo(
     fontSize = 'text-5xl',
   }: ConfidenceRingProps) {
     const [currentPercentage, setCurrentPercentage] = useState(percentage);
-    const [sprintPhase, setSprintPhase] = useState(0);
     const valueAnimationRef = useRef<number | undefined>(undefined);
-    const sprintAnimationRef = useRef<number | undefined>(undefined);
     const startTimeRef = useRef<number | undefined>(undefined);
     const startValueRef = useRef(percentage);
     const targetValueRef = useRef(percentage);
@@ -72,39 +70,9 @@ export const ConfidenceRing = memo(
       };
     }, [percentage]);
 
-    // The beam sweep runs for as long as the ring is mounted.
-    useEffect(() => {
-      const duration = 1500;
-
-      const loop = (time: number) => {
-        // Phase comes from the clock, not an accumulator.
-        const phase = (time % duration) / duration;
-
-        // Sweep for the first 70% of the loop, rest for the last 30%.
-        const activePhase = Math.min(phase / 0.7, 1);
-
-        // The same curve as cubic-bezier(0.4, 0, 0.2, 1).
-        const eased = 1 - Math.pow(1 - activePhase, 3);
-
-        setSprintPhase(eased);
-        sprintAnimationRef.current = requestAnimationFrame(loop);
-      };
-      sprintAnimationRef.current = requestAnimationFrame(loop);
-      return () => {
-        if (sprintAnimationRef.current) cancelAnimationFrame(sprintAnimationRef.current);
-      };
-    }, []);
-
     const radius = (size - stroke) / 2;
     const circumference = 2 * Math.PI * radius;
     const strokeDashoffset = circumference - currentPercentage * circumference;
-
-    // The beam tracks the value, scaled by the sweep phase.
-    const currentBeamDashoffset = circumference * (1 - currentPercentage * sprintPhase);
-
-    const fadeStart = 0.6;
-    const opacity =
-      sprintPhase > fadeStart ? 1 - Math.pow((sprintPhase - fadeStart) / (1 - fadeStart), 2) : 1;
 
     return (
       <div style={{ width: size, height: size }} className='relative'>
@@ -136,7 +104,9 @@ export const ConfidenceRing = memo(
             className='transition-colors duration-300'
           />
 
-          {/* A white beam sweeping around the ring. */}
+          {/* A white beam sweeping around the ring. Its timing lives in CSS: a
+              rAF loop would re-render the ring sixty times a second, forever,
+              for something no prop can change. */}
           <circle
             cx='50%'
             cy='50%'
@@ -145,12 +115,15 @@ export const ConfidenceRing = memo(
             strokeWidth={stroke}
             fill='transparent'
             strokeDasharray={circumference}
-            strokeDashoffset={currentBeamDashoffset}
             strokeLinecap='round'
-            style={{
-              filter: `drop-shadow(0 0 4px ${color})`,
-              opacity: opacity * 0.4,
-            }}
+            className='animate-ring-beam'
+            style={
+              {
+                filter: `drop-shadow(0 0 4px ${color})`,
+                '--circumference': `${circumference}px`,
+                '--beam-rest': `${circumference * (1 - percentage)}px`,
+              } as CSSProperties
+            }
           />
         </svg>
 

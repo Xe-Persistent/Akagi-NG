@@ -13,6 +13,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true

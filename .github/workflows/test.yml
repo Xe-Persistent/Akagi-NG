@@ -11,6 +11,9 @@ on:
       CODECOV_TOKEN:
         required: false
 
+permissions:
+  contents: read
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
@@ -36,6 +39,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Set up Rust
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build the native engine
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: npm run build -w @akagi-ng/rust-engine
 
       - name: Run unit tests with coverage
         if: ${{ startsWith(matrix.os, 'ubuntu') }}

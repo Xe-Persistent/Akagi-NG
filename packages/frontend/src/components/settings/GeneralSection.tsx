@@ -31,7 +31,7 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
           onValueChange={(val) => updateSetting(['locale'], val)}
         >
           <SelectTrigger>
-            <SelectValue placeholder='Select Language' />
+            <SelectValue placeholder={t('settings.general.select_language')} />
           </SelectTrigger>
           <SelectContent>
             {SUPPORTED_LOCALES.map((loc) => (
@@ -62,7 +62,7 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
           onValueChange={(val) => updateSetting(['log_level'], val)}
         >
           <SelectTrigger>
-            <SelectValue placeholder='Select level' />
+            <SelectValue placeholder={t('settings.general.select_level')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='error'>ERROR</SelectItem>

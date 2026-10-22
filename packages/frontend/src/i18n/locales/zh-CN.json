@@ -7,11 +7,13 @@
     "general": {
       "title": "常规",
       "locale": "语言",
+      "select_language": "选择语言",
       "theme": "外观主题",
       "theme_system": "跟随系统",
       "theme_light": "浅色",
       "theme_dark": "深色",
-      "log_level": "日志级别"
+      "log_level": "日志级别",
+      "select_level": "选择日志级别"
     },
     "connection": {
       "title": "游戏连接",
@@ -119,7 +121,13 @@
     "shutdown_confirm_title": "确认退出",
     "shutdown_confirm_desc": "确定要退出 Akagi NG 吗？这将关闭后台服务，所有连接将断开。",
     "stopped_title": "应用已停止",
-    "stopped_desc": "感谢您使用 Akagi NG"
+    "stopped_desc": "感谢您使用 Akagi NG",
+    "open_settings": "打开设置",
+    "toggle_hud": "切换 HUD",
+    "window_minimize": "最小化",
+    "window_maximize": "最大化",
+    "window_restore": "还原",
+    "window_close": "关闭窗口"
   },
   "actions": {
     "reach": "立直",

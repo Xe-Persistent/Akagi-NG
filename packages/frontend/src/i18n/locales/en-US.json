@@ -7,11 +7,13 @@
     "general": {
       "title": "General",
       "locale": "Language",
+      "select_language": "Select Language",
       "theme": "Theme",
       "theme_system": "System",
       "theme_light": "Light",
       "theme_dark": "Dark",
-      "log_level": "Log Level"
+      "log_level": "Log Level",
+      "select_level": "Select Level"
     },
     "connection": {
       "title": "Game Connection",
@@ -119,7 +121,13 @@
     "shutdown_confirm_title": "Confirm Shutdown",
     "shutdown_confirm_desc": "Are you sure you want to quit Akagi NG? This will exit the application and disconnect all connections.",
     "stopped_title": "Application Stopped",
-    "stopped_desc": "Thank you for using Akagi NG."
+    "stopped_desc": "Thank you for using Akagi NG.",
+    "open_settings": "Open Settings",
+    "toggle_hud": "Toggle HUD",
+    "window_minimize": "Minimize",
+    "window_maximize": "Maximize",
+    "window_restore": "Restore",
+    "window_close": "Close Window"
   },
   "actions": {
     "reach": "Reach",

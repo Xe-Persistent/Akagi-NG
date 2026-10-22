@@ -7,11 +7,13 @@
     "general": {
       "title": "一般設定",
       "locale": "表示言語",
+      "select_language": "表示言語を選択",
       "theme": "テーマ",
       "theme_system": "システム設定",
       "theme_light": "ライトテーマ",
       "theme_dark": "ダークテーマ",
-      "log_level": "ログ収集レベル"
+      "log_level": "ログ収集レベル",
+      "select_level": "ログ収集レベルを選択"
     },
     "connection": {
       "title": "ゲーム接続",
@@ -119,7 +121,13 @@
     "shutdown_confirm_title": "Akagi NGを終了しますか？",
     "shutdown_confirm_desc": "Akagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
     "stopped_title": "アプリケーションは終了しました",
-    "stopped_desc": "Akagi NGをご利用いただきありがとうございました。"
+    "stopped_desc": "Akagi NGをご利用いただきありがとうございました。",
+    "open_settings": "設定を開く",
+    "toggle_hud": "HUDの表示切り替え",
+    "window_minimize": "最小化",
+    "window_maximize": "最大化",
+    "window_restore": "元に戻す",
+    "window_close": "ウィンドウを閉じる"
   },
   "actions": {
     "reach": "リーチ",

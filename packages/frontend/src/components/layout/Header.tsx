@@ -105,7 +105,7 @@ export function Header({
           <HeaderIconButton
             icon={SettingsIcon}
             onClick={onOpenSettings}
-            aria-label='Open settings'
+            aria-label={t('app.open_settings')}
           />
 
           {onToggleHud && (
@@ -116,21 +116,21 @@ export function Header({
                 isHudActive &&
                   'bg-violet-100 text-violet-600 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:hover:bg-violet-900/50',
               )}
-              aria-label='Toggle HUD'
+              aria-label={t('app.toggle_hud')}
             />
           )}
 
           <HeaderIconButton
             icon={Minus}
             onClick={() => void window.electron.invoke('minimize-window')}
-            aria-label='Minimize'
+            aria-label={t('app.window_minimize')}
           />
 
           <HeaderIconButton
             icon={isMaximized ? Copy : Square}
             iconClassName={isMaximized ? '-scale-x-100 -rotate-90' : ''}
             onClick={() => void window.electron.invoke('maximize-window')}
-            aria-label={isMaximized ? 'Restore' : 'Maximize'}
+            aria-label={isMaximized ? t('app.window_restore') : t('app.window_maximize')}
           />
 
           {onCloseWindow && (
@@ -138,7 +138,7 @@ export function Header({
               icon={X}
               onClick={onCloseWindow}
               className='text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'
-              aria-label='Close window'
+              aria-label={t('app.window_close')}
             />
           )}
         </div>

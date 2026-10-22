@@ -157,7 +157,7 @@ export const ConfidenceRing = memo(
         {/* The tip sits at the end of the value ring. */}
         {currentPercentage > 0 && (
           <div
-            className='z-content absolute inset-0'
+            className='absolute inset-0 z-content'
             style={{
               transform: `rotate(${currentPercentage * 360}deg)`,
             }}

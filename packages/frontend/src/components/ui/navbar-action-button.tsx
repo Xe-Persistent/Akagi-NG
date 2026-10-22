@@ -22,7 +22,7 @@ export function NavbarActionButton({
       variant='ghost'
       size='icon'
       className={cn(
-        'no-drag text-muted-foreground hover:bg-accent hover:text-foreground relative aspect-square transition-colors',
+        'no-drag relative aspect-square text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
         className,
       )}
       {...props}

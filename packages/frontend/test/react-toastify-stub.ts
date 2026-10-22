@@ -18,7 +18,7 @@ const record =
   (kind: RecordedToast['kind']) =>
   (message: string, options?: ToastOptions): Id => {
     calls.push({ kind, message, options });
-    return calls.length as unknown as Id;
+    return calls.length;
   };
 
 export const toast = Object.assign(

@@ -58,15 +58,15 @@
 @layer components {
   /* ---- Mahjong tile ---- */
   .mahjong-tile-container {
-    @apply ease-premium relative flex h-28 w-20 flex-col items-center transition-transform duration-500;
+    @apply relative flex h-28 w-20 flex-col items-center transition-transform duration-500 ease-premium;
   }
 
   .mahjong-tile-face {
-    @apply z-tile relative h-full w-full overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-sm dark:border-zinc-600;
+    @apply relative z-tile h-full w-full overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-sm dark:border-zinc-600;
   }
 
   .mahjong-tile-3d {
-    @apply z-base absolute -bottom-1 h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
+    @apply absolute -bottom-1 z-base h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
   }
 
   .mahjong-tile-back {
@@ -97,7 +97,7 @@
 
   /* ---- Settings ---- */
   .settings-section-title {
-    @apply border-border border-b pb-2 text-lg font-semibold;
+    @apply border-b border-border pb-2 text-lg font-semibold;
   }
 
   /* ---- Logo glow ---- */
@@ -188,7 +188,7 @@
   }
 
   body {
-    @apply text-foreground overflow-hidden overscroll-none bg-zinc-100 antialiased select-none dark:bg-zinc-900;
+    @apply overflow-hidden overscroll-none bg-zinc-100 text-foreground antialiased select-none dark:bg-zinc-900;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     scrollbar-gutter: stable;

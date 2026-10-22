@@ -154,7 +154,7 @@ export function OnlinePurchaseDialog({ open, onOpenChange, onStored }: OnlinePur
           <div className='space-y-2'>
             {message && <p className='text-sm'>{message}</p>}
             {status.expiresAt && (
-              <p className='text-muted-foreground text-xs'>
+              <p className='text-xs text-muted-foreground'>
                 {t('settings.ot.expires_at')}: {status.expiresAt}
               </p>
             )}
@@ -176,7 +176,7 @@ export function OnlinePurchaseDialog({ open, onOpenChange, onStored }: OnlinePur
           </div>
         )}
 
-        {error && <p className='text-destructive text-xs wrap-break-word'>{error}</p>}
+        {error && <p className='text-xs wrap-break-word text-destructive'>{error}</p>}
       </DialogContent>
     </Dialog>
   );

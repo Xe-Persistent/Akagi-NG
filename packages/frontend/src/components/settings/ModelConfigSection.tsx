@@ -247,7 +247,7 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         size='icon'
         aria-label={t('common.confirm')}
         disabled={busy === 'key' || !keyDraft.trim()}
-        onClick={saveKey}
+        onClick={() => void saveKey()}
       >
         <Check />
       </Button>
@@ -271,8 +271,8 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
 
   /** What is stored, and the two things that can be done to it. */
   const renderKeySummary = () => (
-    <div className='border-input bg-muted/40 flex items-center justify-between gap-2 rounded-md border px-3 py-1.5'>
-      <span className='text-muted-foreground flex items-center gap-2 text-sm'>
+    <div className='flex items-center justify-between gap-2 rounded-md border border-input bg-muted/40 px-3 py-1.5'>
+      <span className='flex items-center gap-2 text-sm text-muted-foreground'>
         <KeyRound className='h-4 w-4 shrink-0' />
         {t('settings.ot.key_last4', { last4: last4 })}
       </span>
@@ -281,7 +281,12 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
           <Pencil className='h-4 w-4' />
           {t('settings.ot.replace_key')}
         </Button>
-        <Button variant='ghost' size='sm' className='text-destructive gap-1.5' onClick={clearKey}>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='gap-1.5 text-destructive'
+          onClick={() => void clearKey()}
+        >
           <Trash2 className='h-4 w-4' />
           {t('settings.ot.clear_key')}
         </Button>
@@ -321,20 +326,20 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
               size='sm'
               className='gap-1.5'
               disabled={busy === 'health'}
-              onClick={checkHealth}
+              onClick={() => void checkHealth()}
             >
               <Activity className='h-4 w-4' />
               {t('settings.ot.health')}
             </Button>
             {health && !healthError && (
-              <span className='text-muted-foreground text-xs'>
+              <span className='text-xs text-muted-foreground'>
                 {health.workersAlive && health.status === 'ok'
                   ? t('settings.ot.health_ok', { queue: health.queueDepth })
                   : t('settings.ot.health_unavailable')}
               </span>
             )}
           </div>
-          {healthError && <p className='text-destructive text-xs wrap-break-word'>{healthError}</p>}
+          {healthError && <p className='text-xs wrap-break-word text-destructive'>{healthError}</p>}
         </div>
       </SettingsItem>
 
@@ -353,11 +358,11 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         }
       >
         {showsKeyEditor(configured, editingKey) ? renderKeyEntry() : renderKeySummary()}
-        {keyError && <p className='text-destructive mt-1 text-xs wrap-break-word'>{keyError}</p>}
+        {keyError && <p className='mt-1 text-xs wrap-break-word text-destructive'>{keyError}</p>}
       </SettingsItem>
 
       {configured && keyStatus && (
-        <div className='text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-xs'>
+        <div className='flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground'>
           <span>
             {t('settings.ot.plan')}: {keyStatus.plan}
           </span>
@@ -404,7 +409,7 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
             onBlur={commitTimeout}
             className='w-24'
           />
-          <span className='text-muted-foreground text-xs'>s</span>
+          <span className='text-xs text-muted-foreground'>s</span>
         </div>
       </SettingsItem>
     </div>

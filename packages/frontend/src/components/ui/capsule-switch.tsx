@@ -22,14 +22,14 @@ export function CapsuleSwitch({
   return (
     <div
       className={cn(
-        'group bg-muted border-input ring-offset-background focus-within:ring-ring relative inline-grid h-9 min-w-40 grid-cols-2 rounded-full border p-1 font-medium transition-colors focus-within:ring-2 focus-within:ring-offset-2',
+        'group relative inline-grid h-9 min-w-40 grid-cols-2 rounded-full border border-input bg-muted p-1 font-medium ring-offset-background transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
         disabled && 'cursor-not-allowed opacity-50',
         className,
       )}
     >
       <div
         className={cn(
-          'bg-background ease-premium absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm transition-transform duration-500',
+          'absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-background shadow-sm transition-transform duration-500 ease-premium',
           checked ? 'translate-x-full' : 'translate-x-0',
         )}
       />
@@ -40,7 +40,7 @@ export function CapsuleSwitch({
         disabled={disabled}
         onClick={() => onCheckedChange(false)}
         className={cn(
-          'z-content relative flex min-w-12 items-center justify-center rounded-full px-3 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-none',
+          'relative z-content flex min-w-12 items-center justify-center rounded-full px-3 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-none',
           !checked ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
         )}
       >
@@ -53,7 +53,7 @@ export function CapsuleSwitch({
         disabled={disabled}
         onClick={() => onCheckedChange(true)}
         className={cn(
-          'z-content relative flex min-w-12 items-center justify-center rounded-full px-3 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-none',
+          'relative z-content flex min-w-12 items-center justify-center rounded-full px-3 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-none',
           checked ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
         )}
       >

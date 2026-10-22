@@ -13,7 +13,7 @@ export default function Hud() {
 
       <HudControlButton
         className='absolute top-2 right-2'
-        onClick={() => window.electron.invoke('toggle-hud', false)}
+        onClick={() => void window.electron.invoke('toggle-hud', false)}
       >
         <X className='h-4 w-4' />
       </HudControlButton>

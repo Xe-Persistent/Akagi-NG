@@ -11,7 +11,7 @@ function ExternalLink({ href, icon, text }: { href: string; icon: ReactNode; tex
       href={href}
       onClick={(e) => {
         e.preventDefault();
-        window.electron.invoke('open-external', href);
+        void window.electron.invoke('open-external', href);
       }}
       className='flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100'
     >

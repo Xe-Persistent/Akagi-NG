@@ -28,13 +28,13 @@ export function LaunchScreen({ exiting = false }: LaunchScreenProps) {
   return (
     <div
       className={cn(
-        'z-splash pointer-events-none fixed inset-0 flex flex-col items-center justify-center gap-8 p-8',
-        exiting && 'animate-out fade-out-0 zoom-out-95 fill-mode-forwards',
+        'pointer-events-none fixed inset-0 z-splash flex flex-col items-center justify-center gap-8 p-8',
+        exiting && 'animate-out fade-out-0 fill-mode-forwards zoom-out-95',
       )}
       style={exiting ? { animationDuration: `${APP_SPLASH_EXIT_MS}ms` } : undefined}
     >
       {/* The glow grows with the torii, so the two read as one object. */}
-      <div className='animate-in zoom-in-50 fade-in-0 relative' style={enterTiming(0)}>
+      <div className='relative animate-in fade-in-0 zoom-in-50' style={enterTiming(0)}>
         <div className='logo-glow-effect' />
         <img src='torii.svg' alt='Akagi Logo' className='relative h-32 w-32 drop-shadow-lg' />
       </div>
@@ -49,7 +49,7 @@ export function LaunchScreen({ exiting = false }: LaunchScreenProps) {
         <p
           className={cn(
             LINE_ENTER,
-            'text-muted-foreground text-sm font-medium tracking-wide uppercase',
+            'text-sm font-medium tracking-wide text-muted-foreground uppercase',
           )}
           style={enterTiming(TEXT_START_MS + TEXT_STAGGER_MS)}
         >

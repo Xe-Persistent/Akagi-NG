@@ -32,7 +32,7 @@ export function UpdateBadge() {
   }
 
   const handleClick = () => {
-    window.electron.invoke(
+    void window.electron.invoke(
       'open-external',
       `https://github.com/Xe-Persistent/Akagi-NG/releases/tag/v${version}`,
     );

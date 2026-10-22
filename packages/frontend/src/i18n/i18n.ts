@@ -6,7 +6,7 @@ import jaJP from './locales/ja-JP.json';
 import zhCN from './locales/zh-CN.json';
 import zhTW from './locales/zh-TW.json';
 
-i18n.use(initReactI18next).init({
+void i18n.use(initReactI18next).init({
   resources: {
     'en-US': { translation: enUS },
     'zh-CN': { translation: zhCN },

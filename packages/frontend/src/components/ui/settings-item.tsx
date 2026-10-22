@@ -34,7 +34,7 @@ export function SettingsItem({
         <span id={labelId} className='text-sm leading-none font-medium'>
           {label}
         </span>
-        {description && <p className='text-muted-foreground text-xs'>{description}</p>}
+        {description && <p className='text-xs text-muted-foreground'>{description}</p>}
       </div>
       <div className={cn(layout === 'row' ? 'shrink-0' : 'w-full')}>{children}</div>
     </div>

@@ -19,10 +19,10 @@ export function StartupErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       fallback={(error: Error) => (
-        <div className='bg-background text-foreground flex min-h-screen w-full flex-col items-center justify-center p-8 text-center tracking-tight'>
-          <CircleX className='text-destructive mb-4 h-10 w-10' />
-          <h3 className='text-destructive mb-2 text-lg font-semibold'>{t('app.startup_failed')}</h3>
-          <p className='text-muted-foreground mb-4 max-w-lg text-sm whitespace-pre-wrap'>
+        <div className='flex min-h-screen w-full flex-col items-center justify-center bg-background p-8 text-center tracking-tight text-foreground'>
+          <CircleX className='mb-4 h-10 w-10 text-destructive' />
+          <h3 className='mb-2 text-lg font-semibold text-destructive'>{t('app.startup_failed')}</h3>
+          <p className='mb-4 max-w-lg text-sm whitespace-pre-wrap text-muted-foreground'>
             {error.message || String(error)}
           </p>
           <Button onClick={exitApp}>{t('common.exit_app')}</Button>

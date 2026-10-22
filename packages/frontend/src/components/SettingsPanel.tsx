@@ -68,7 +68,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className='flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl'>
-        <DialogHeader className='border-border border-b p-6 pb-4'>
+        <DialogHeader className='border-b border-border p-6 pb-4'>
           <DialogTitle>{t('app.settings_title')}</DialogTitle>
           <DialogDescription>{t('app.settings_desc')}</DialogDescription>
           {isRestored && (
@@ -83,9 +83,9 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <ErrorBoundary
             fallback={(error: Error) => (
               <div className='flex flex-col items-center justify-center p-8 text-center'>
-                <AlertTriangle className='text-destructive mb-4 h-10 w-10' />
-                <h3 className='text-destructive mb-2 text-lg font-semibold'>{t('common.error')}</h3>
-                <p className='text-muted-foreground mb-4 max-w-xs text-sm whitespace-pre-wrap'>
+                <AlertTriangle className='mb-4 h-10 w-10 text-destructive' />
+                <h3 className='mb-2 text-lg font-semibold text-destructive'>{t('common.error')}</h3>
+                <p className='mb-4 max-w-xs text-sm whitespace-pre-wrap text-muted-foreground'>
                   {t('settings.load_error_desc')}
                   {'\n'}
                   {error.message || String(error)}
@@ -109,9 +109,9 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={handleUpdateProtocol}
+                    onClick={() => void handleUpdateProtocol()}
                     disabled={isUpdatingProtocol}
-                    className='text-muted-foreground w-auto'
+                    className='w-auto text-muted-foreground'
                   >
                     {isUpdatingProtocol ? (
                       <Loader2 className='mr-2 h-4 w-4 animate-spin' />

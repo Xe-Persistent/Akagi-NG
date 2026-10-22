@@ -51,7 +51,7 @@ export function Header({
     const unsub = window.electron.on('window-state-changed', (maximized: boolean) => {
       setIsMaximized(maximized);
     });
-    window.electron.invoke<boolean>('is-window-maximized').then((maximized) => {
+    void window.electron.invoke<boolean>('is-window-maximized').then((maximized) => {
       setIsMaximized(maximized);
     });
     return unsub;
@@ -73,7 +73,7 @@ export function Header({
           <Button
             variant='ghost'
             size='sm'
-            className='no-drag text-muted-foreground hover:bg-accent hover:text-foreground flex h-full rounded-md px-3 transition-colors'
+            className='no-drag flex h-full rounded-md px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
             onClick={onLaunch}
             disabled={isLaunching}
           >
@@ -87,7 +87,7 @@ export function Header({
 
           {locale && onLocaleChange && (
             <Select value={locale} onValueChange={onLocaleChange}>
-              <SelectTrigger className='no-drag text-muted-foreground hover:bg-accent hover:text-foreground aspect-square h-full justify-center rounded-md border-none bg-transparent p-0 shadow-none transition-colors focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden'>
+              <SelectTrigger className='no-drag aspect-square h-full justify-center rounded-md border-none bg-transparent p-0 text-muted-foreground shadow-none transition-colors hover:bg-accent hover:text-foreground focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden'>
                 <Globe className='h-4 w-4' />
               </SelectTrigger>
               <SelectContent align='end'>
@@ -122,14 +122,14 @@ export function Header({
 
           <HeaderIconButton
             icon={Minus}
-            onClick={() => window.electron.invoke('minimize-window')}
+            onClick={() => void window.electron.invoke('minimize-window')}
             aria-label='Minimize'
           />
 
           <HeaderIconButton
             icon={isMaximized ? Copy : Square}
             iconClassName={isMaximized ? '-scale-x-100 -rotate-90' : ''}
-            onClick={() => window.electron.invoke('maximize-window')}
+            onClick={() => void window.electron.invoke('maximize-window')}
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           />
 

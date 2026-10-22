@@ -89,11 +89,11 @@ function RedeemForm({ configured, last4, expiresAt, onStored }: RedeemFormProps)
 
   const [state, submit, isPending] = useActionState(
     async (_previous: RedeemState, form: FormData): Promise<RedeemState> => {
-      const result = await redeemApi(
-        String(form.get('code') ?? ''),
-        String(form.get('email') ?? ''),
-        form.get('renew') === 'on',
-      );
+      const field = (name: string): string => {
+        const value = form.get(name);
+        return typeof value === 'string' ? value : '';
+      };
+      const result = await redeemApi(field('code'), field('email'), form.get('renew') === 'on');
       if (!result.success || !result.data) {
         return { done: null, error: result.error ?? '' };
       }
@@ -126,7 +126,7 @@ function RedeemForm({ configured, last4, expiresAt, onStored }: RedeemFormProps)
       <div className='flex items-center justify-between gap-4'>
         <div className='flex flex-col gap-0.5'>
           <span className='text-sm'>{t('settings.ot.redeem_renew')}</span>
-          <span className='text-muted-foreground text-xs'>
+          <span className='text-xs text-muted-foreground'>
             {configured ? t('settings.ot.redeem_renew_hint') : t('settings.ot.key_not_configured')}
           </span>
         </div>
@@ -140,7 +140,7 @@ function RedeemForm({ configured, last4, expiresAt, onStored }: RedeemFormProps)
       </div>
 
       {renewing && (
-        <p className='text-muted-foreground text-xs'>
+        <p className='text-xs text-muted-foreground'>
           {t('settings.ot.key_last4', { last4 })} · {t('settings.ot.expires_at')}: {expiresAt}
         </p>
       )}
@@ -154,11 +154,11 @@ function RedeemForm({ configured, last4, expiresAt, onStored }: RedeemFormProps)
             placeholder={t('settings.ot.redeem_email')}
             aria-label={t('settings.ot.redeem_email')}
           />
-          <p className='text-muted-foreground text-xs'>{t('settings.ot.redeem_email_hint')}</p>
+          <p className='text-xs text-muted-foreground'>{t('settings.ot.redeem_email_hint')}</p>
         </>
       )}
 
-      {state.error && <p className='text-destructive text-xs wrap-break-word'>{state.error}</p>}
+      {state.error && <p className='text-xs wrap-break-word text-destructive'>{state.error}</p>}
       <Button type='submit' className='w-full' disabled={isPending}>
         {t('settings.ot.redeem_submit')}
       </Button>

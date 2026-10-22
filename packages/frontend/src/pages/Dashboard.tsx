@@ -113,7 +113,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
   // The window's close button hides it to the tray; quitting is a separate flow.
   const handleCloseWindow = useCallback(() => {
-    window.electron.invoke('close-window');
+    void window.electron.invoke('close-window');
   }, []);
 
   const performShutdown = useCallback(async () => {
@@ -129,7 +129,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const handleToggleHud = useCallback(
     (show: boolean) => {
-      window.electron.invoke('toggle-hud', show);
+      void window.electron.invoke('toggle-hud', show);
       setIsHudActive(show);
     },
     [setIsHudActive],
@@ -146,7 +146,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
       >
         <Header
           isLaunching={isLaunching}
-          onLaunch={handleLaunchGame}
+          onLaunch={() => void handleLaunchGame()}
           onOpenSettings={handleOpenSettings}
           locale={i18n.language}
           onLocaleChange={handleLocaleChange}
@@ -174,7 +174,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
             <AlertDialogAction
               variant='destructive'
               onClick={() => {
-                performShutdown();
+                void performShutdown();
                 setShowShutdownConfirm(false);
               }}
             >

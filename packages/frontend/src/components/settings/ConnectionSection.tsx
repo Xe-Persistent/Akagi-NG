@@ -82,7 +82,7 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
               {/* The schema rejects anything else, and that failure would only
                   surface as a detached "save failed" toast. */}
               {portOutOfRange && (
-                <p className='text-destructive text-xs'>{`${PORT_MIN}–${PORT_MAX}`}</p>
+                <p className='text-xs text-destructive'>{`${PORT_MIN}-${PORT_MAX}`}</p>
               )}
             </div>
           </SettingsItem>

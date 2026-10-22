@@ -51,7 +51,7 @@ export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
       {/* The pill slides to the active option rather than jumping. */}
       <div
         className={cn(
-          'ease-premium absolute inset-y-0.5 left-0.5 aspect-square rounded-full transition duration-500',
+          'absolute inset-y-0.5 left-0.5 aspect-square rounded-full transition duration-500 ease-premium',
           activeOption.activeColor,
         )}
         style={{
@@ -67,7 +67,7 @@ export function ThemeToggle({ theme, setTheme }: ThemeToggleProps) {
             type='button'
             onClick={() => setTheme(value)}
             className={cn(
-              'z-content relative flex aspect-square h-full flex-none items-center justify-center rounded-full text-sm transition-colors focus-visible:outline-none',
+              'relative z-content flex aspect-square h-full flex-none items-center justify-center rounded-full text-sm transition-colors focus-visible:outline-none',
               !isActive &&
                 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100',
             )}

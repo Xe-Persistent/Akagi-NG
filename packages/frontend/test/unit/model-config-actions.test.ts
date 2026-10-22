@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { clampTimeoutSeconds, showsKeyEditor } from '@/components/settings/ModelConfigSection';
+import { showsKeyEditor } from '@/components/settings/ApiKeyItem';
+import { clampTimeoutSeconds } from '@/components/settings/OnlineAccountFields';
 
 describe('the key row', () => {
   it('shows a field only while a key is actually being entered', () => {

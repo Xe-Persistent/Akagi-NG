@@ -23,7 +23,7 @@ const logger = createLogger('EngineService');
  * Turns the mjai event stream of a captured game into HUD recommendations: it
  * owns the model runner, knows when the local player has to act, and publishes
  * everything the renderer needs. Under `--mock` it stays out of the way, because
- * `mock-stream` owns the HUD for as long as it runs.
+ * `services/mock/stream` owns the HUD for as long as it runs.
  *
  * The local engine is always in the loop. When online inference is configured it
  * acts as the gate (no call without a real choice) and as the fallback; the
@@ -83,7 +83,7 @@ export class EngineService {
       this.stream.accumulate(ev);
 
       if (ev.type === 'start_game') {
-        await this.startGame(ev as StartGameEvent);
+        await this.startGame(ev);
       } else {
         this.feed(ev);
       }

@@ -1,8 +1,5 @@
-import type {
-  Recommendation,
-  RecommendationData,
-} from './services/engine/recommendation-mapper.js';
-import type { ConnectionState, EngineNotice, ModelState } from './services/engine-status.js';
+import type { Recommendation, RecommendationData } from '../engine/recommendation-mapper.js';
+import type { ConnectionState, EngineNotice, ModelState } from '../engine-status.js';
 
 /**
  * The status an indicator should show, without the sequence number the store

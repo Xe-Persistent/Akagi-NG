@@ -337,9 +337,7 @@ If you just want to inspect the HUD without starting a game or loading a model:
 npm run dev:mock
 ```
 
-This plays a rotating set of canned recommendations (data in `packages/main/src/mock-data.ts`)
-and walks the status indicator through every state it can show, so you can inspect the
-recommendation shapes and indicator states one by one.
+This plays a rotating set of canned recommendations and walks the status indicator through every state it can show, so you can inspect the recommendation shapes and indicator states one by one.
 
 ### 3. Build for Production
 

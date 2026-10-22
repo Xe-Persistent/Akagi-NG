@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateMockData } from '../../src/mock-data.js';
+import { generateMockData } from '../../src/services/mock/scenarios.js';
 
 /** Walks one full rotation of the scenarios. */
 const FRAMES = Array.from({ length: 9 }, (_, tick) => generateMockData(tick));

@@ -1,7 +1,7 @@
-import { createLogger } from './logging/index.js';
-import { generateMockData } from './mock-data.js';
-import { engineStatus } from './services/engine-status.js';
-import { broadcastToWindows } from './shared/broadcast.js';
+import { createLogger } from '../../logging/index.js';
+import { broadcastToWindows } from '../../shared/broadcast.js';
+import { engineStatus } from '../engine-status.js';
+import { generateMockData } from './scenarios.js';
 
 const logger = createLogger('MockStream');
 

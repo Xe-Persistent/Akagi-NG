@@ -1,15 +1,15 @@
 import os from 'node:os';
 import { join } from 'node:path';
 
-import { app, dialog } from 'electron';
+import { app, dialog, type Event } from 'electron';
 
 import { registerIpcHandlers } from './app/ipc/index.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
 import { createLogger, initializeLogger, setLogLevel } from './logging/index.js';
-import { startMockStream, stopMockStream } from './mock-stream.js';
 import { MitmProxyManager } from './services/capture/mitm-proxy.js';
 import { EngineService } from './services/engine/engine-service.js';
+import { startMockStream, stopMockStream } from './services/mock/stream.js';
 import { getSettingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
 import { anonymizeUserAgent } from './shared/user-agent.js';
@@ -65,7 +65,7 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection:', reason);
 });
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   // The settings own the log level and the proxy config, so they load first.
   setLogLevel(getSettingsManager().getSettings().log_level);
   registerIpcHandlers(windowManager, engineService, mitmProxyManager);
@@ -97,7 +97,7 @@ app.on('window-all-closed', () => {
 
 let isQuitting = false;
 
-app.on('before-quit', async (event) => {
+async function quitGracefully(event: Event) {
   windowManager.setQuitting(true);
   if (isQuitting) return;
 
@@ -113,4 +113,8 @@ app.on('before-quit', async (event) => {
   } finally {
     app.quit();
   }
+}
+
+app.on('before-quit', (event) => {
+  void quitGracefully(event);
 });

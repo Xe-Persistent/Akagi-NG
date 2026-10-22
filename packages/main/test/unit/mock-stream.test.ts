@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MOCK_TICK_MS, startMockStream, stopMockStream } from '../../src/mock-stream.js';
+import { MOCK_TICK_MS, startMockStream, stopMockStream } from '../../src/services/mock/stream.js';
 import { messagesOn, resetSentMessages } from '../electron-stub.js';
 
 interface Recommendation {

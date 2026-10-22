@@ -64,10 +64,13 @@ describe('majsoul hosts', () => {
 describe('intercepted TLS hosts', () => {
   const hostnames = INTERCEPTED_TLS_HOSTS.map(({ hostname }) => hostname);
 
-  it('decrypts the game domains, the client origin and the analytics endpoint', () => {
+  it('decrypts the game domains and the client origin', () => {
     for (const domain of MAJSOUL_DOMAINS) expect(hostnames).toContain(`*.${domain}`);
     for (const host of MAJSOUL_CLIENT_HOSTS) expect(hostnames).toContain(host);
-    expect(hostnames).toContain('*.log.aliyuncs.com');
+  });
+
+  it('leaves the analytics endpoint alone, which the browser blocks instead', () => {
+    expect(hostnames).not.toContain('*.log.aliyuncs.com');
   });
 
   it('never decrypts the whole publisher domain', () => {

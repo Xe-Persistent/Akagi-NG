@@ -124,18 +124,18 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      - name: Check formatting
+        working-directory: packages/rust_engine
+        run: cargo fmt --check
+
       - name: Check the inference engine
         working-directory: packages/rust_engine
         run: cargo check --locked
 
       - name: Lint the inference engine
         working-directory: packages/rust_engine
-        run: cargo clippy --locked --all-targets
+        run: cargo clippy --locked --all-targets -- -D warnings
 
-      # `dyn-symbols` lets napi resolve its symbols from the Node host at run
-      # time instead of linking against them, which is how the Windows build
-      # already works. Without it the parity test binary has no host to link
-      # against and dies with "undefined symbol: napi_*".
       - name: Test the inference engine
         working-directory: packages/rust_engine
         run: |

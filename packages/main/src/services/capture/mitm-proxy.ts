@@ -19,11 +19,9 @@ import { ingestCapturedFrame } from './frame-ingest.js';
 const logger = createLogger('MITMProxy');
 
 /**
- * Only Majsoul hosts and the analytics endpoint are decrypted. Everything else
- * the client sends through this proxy is tunnelled untouched, so a
- * misconfigured system proxy cannot make Akagi-NG a general-purpose TLS
- * interception point. The analytics endpoint is intercepted because its
- * beacons are dropped locally instead of being forwarded.
+ * Only Majsoul hosts are decrypted. Everything else the client sends through
+ * this proxy is tunnelled untouched, so a misconfigured system proxy cannot make
+ * Akagi-NG a general-purpose TLS interception point.
  *
  * The English client's origin is matched by exact host, never by the whole
  * `yo-star.com` publisher domain: that domain also serves unrelated Yostar
@@ -32,22 +30,7 @@ const logger = createLogger('MITMProxy');
 export const INTERCEPTED_TLS_HOSTS: { hostname: string }[] = [
   ...MAJSOUL_DOMAINS.map((domain) => ({ hostname: `*.${domain}` })),
   ...MAJSOUL_CLIENT_HOSTS.map((hostname) => ({ hostname })),
-  { hostname: '*.log.aliyuncs.com' },
 ];
-
-/**
- * Aliyun SLS web-tracking beacons: `GET /logstores/<store>/track?...`. The
- * game client reports on itself through these, including (on standalone
- * builds) the TLS certificate chain it was served, which under MITM describes
- * our local CA. The real endpoint answers 200 with an empty body, so answering
- * the same way is indistinguishable from an ad blocker.
- */
-const TELEMETRY_BEACON = /\/logstores\/[^/?]+\/track(?:_ua\.gif)?(?:[?#]|$)/;
-
-/** Whether a proxied URL is an Aliyun SLS web-tracking beacon. */
-export function isTelemetryBeacon(url: string): boolean {
-  return TELEMETRY_BEACON.test(url);
-}
 
 /**
  * Options shared by both passthrough legs (websocket and request).
@@ -114,18 +97,6 @@ export class MitmProxyManager {
       // Game traffic can be chained through a proxy the user already runs.
       const connectionOptions = buildPassthroughOptions(settings.mitm.upstream);
       const upstream = settings.mitm.upstream.trim();
-      const requestOptions = {
-        ...connectionOptions,
-        // A beacon is answered locally, so it never reaches the upstream.
-        // Doing this in `beforeRequest` keeps one catch-all rule: mockttp
-        // treats rules without a completion check as single-use unless they
-        // are the last matching one, which a separate rule could not rely on.
-        beforeRequest: (req: mockttp.CompletedRequest) => {
-          if (!isTelemetryBeacon(req.url)) return;
-          logger.verbose(`Blocked game telemetry beacon: ${req.url}`);
-          return { response: { statusCode: 200 } };
-        },
-      };
       if (upstream) {
         logger.info(`Forwarding traffic through upstream proxy: ${upstream}`);
       }
@@ -153,7 +124,7 @@ export class MitmProxyManager {
       await server.on('websocket-message-received', (msg) => void this.handleMessage(msg));
       await server.on('websocket-message-sent', (msg) => void this.handleMessage(msg));
 
-      await server.forAnyRequest().thenPassThrough(requestOptions);
+      await server.forAnyRequest().thenPassThrough(connectionOptions);
 
       await server.start(settings.mitm.port);
       this.isRunning = true;

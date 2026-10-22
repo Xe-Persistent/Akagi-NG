@@ -2,6 +2,7 @@ import { BrowserWindow, nativeTheme } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
 import { GameHandler } from '../../services/capture/game-handler.js';
+import { blockTelemetry } from '../../services/capture/telemetry.js';
 import type { EngineService } from '../../services/engine/engine-service.js';
 import { getMitmPort } from '../../services/settings-manager.js';
 import { GAME_WINDOW_HEIGHT, GAME_WINDOW_WIDTH } from '../../shared/constants.js';
@@ -161,6 +162,8 @@ export class GameWindow {
     gameSession.setPermissionCheckHandler((_contents, permission) =>
       ALLOWED_PERMISSIONS.has(permission),
     );
+
+    blockTelemetry(gameSession);
   }
 
   private async useMitmProxy(window: BrowserWindow) {

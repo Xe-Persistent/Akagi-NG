@@ -47,6 +47,16 @@ interface ModelConfigSectionProps {
 /** Radix refuses an empty item value, so "let the server decide" needs a label. */
 const DEFAULT_MODEL = 'server-default';
 
+/** Shown for a value that has not arrived (or that the server did not report). */
+const UNKNOWN = '—';
+
+/** A status value as text, or the placeholder that keeps its line in place. */
+function known(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return UNKNOWN;
+  const text = String(value);
+  return text === '' ? UNKNOWN : text;
+}
+
 /** The UI shows the budget in seconds; the setting is milliseconds. */
 const TIMEOUT_MIN_S = 0.5;
 const TIMEOUT_MAX_S = 3;
@@ -408,25 +418,28 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
         {keyError && <p className='mt-1 text-xs wrap-break-word text-destructive'>{keyError}</p>}
       </SettingsItem>
 
-      {configured && keyStatus && (
+      {configured && (
         <div className='flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground'>
+          {/* The line is there from the first render, carrying `—` until the
+              status arrives: the panel keeps its height instead of growing when
+              the answer does, and the fields are visible before they are known. */}
           <span>
-            {t('settings.ot.plan')}: {keyStatus.plan}
+            {t('settings.ot.plan')}: {known(keyStatus?.plan)}
           </span>
           <span>
-            {t('settings.ot.expires_at')}: {keyStatus.expiresAt}
+            {t('settings.ot.expires_at')}: {known(keyStatus?.expiresAt)}
           </span>
           <span>
-            {t('settings.ot.usage_today')}: {keyStatus.usageToday} / {keyStatus.rpd}
+            {t('settings.ot.usage_today')}:{' '}
+            {keyStatus ? `${keyStatus.usageToday} / ${keyStatus.rpd}` : known(undefined)}
           </span>
           <span>
-            {t('settings.ot.rpm')}: {keyStatus.rpm}
+            {t('settings.ot.rpm')}: {known(keyStatus?.rpm)}
           </span>
-          {keyStatus.topk > 0 && (
-            <span>
-              {t('settings.ot.topk')}: {keyStatus.topk}
-            </span>
-          )}
+          <span>
+            {t('settings.ot.topk')}:{' '}
+            {known(keyStatus && keyStatus.topk > 0 ? keyStatus.topk : null)}
+          </span>
         </div>
       )}
 

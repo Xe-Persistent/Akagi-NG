@@ -58,7 +58,7 @@ describe('the CDP capture handler', () => {
   it('enables network inspection so frames are reported at all', async () => {
     const { contents, debuggerApi } = makeContents();
 
-    await new GameHandler(contents, engine).attach();
+    new GameHandler(contents, engine).attach();
 
     expect(debuggerApi.sendCommand).toHaveBeenCalledWith('Network.enable');
   });
@@ -67,7 +67,7 @@ describe('the CDP capture handler', () => {
     const { contents, events, debuggerApi } = makeContents();
     const handler = new GameHandler(contents, engine);
 
-    await handler.attach();
+    handler.attach();
     expect(debuggerApi.attachCalls).toBe(1);
 
     debuggerApi.detach();
@@ -83,7 +83,7 @@ describe('the CDP capture handler', () => {
     const { contents, events, debuggerApi } = makeContents();
     const handler = new GameHandler(contents, engine);
 
-    await handler.attach();
+    handler.attach();
     handler.detach();
 
     events.emit('did-finish-load');
@@ -96,9 +96,9 @@ describe('the CDP capture handler', () => {
     const { contents, debuggerApi } = makeContents();
     const handler = new GameHandler(contents, engine);
 
-    await handler.attach();
+    handler.attach();
     handler.detach();
-    await handler.attach();
+    handler.attach();
 
     expect(debuggerApi.attachCalls).toBe(1);
   });

@@ -77,9 +77,12 @@ export class GameWindow {
     this.hardenSession(window);
     await this.syncProxy(useMitm ?? false);
 
-    window.on('closed', () => {
+    window.on('close', () => {
       this.gameHandler?.detach();
       this.gameHandler = null;
+    });
+
+    window.on('closed', () => {
       this.window = null;
     });
 
@@ -123,18 +126,22 @@ export class GameWindow {
 
     await this.useDirectConnection(window);
     if (!this.gameHandler) {
-      await this.attachGameHandler(window);
+      this.attachGameHandler(window);
     }
   }
 
   private registerWindowEvents(window: BrowserWindow) {
-    window.webContents.setWindowOpenHandler(() => ({
-      action: 'allow',
-      overrideBrowserWindowOptions: {
-        autoHideMenuBar: true,
-        backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
-      },
-    }));
+    window.webContents.setWindowOpenHandler(({ url }) => {
+      if (!/^https?:/i.test(url)) return { action: 'deny' };
+
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          autoHideMenuBar: true,
+          backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181b' : '#ffffff',
+        },
+      };
+    });
 
     window.webContents.on('before-input-event', (event, input) => {
       if (input.type === 'keyDown' && input.key === 'F11') {
@@ -177,12 +184,12 @@ export class GameWindow {
    * The debugger API must be attached before the page loads, otherwise the first
    * websocket frames are missed.
    */
-  private async attachGameHandler(window: BrowserWindow) {
+  private attachGameHandler(window: BrowserWindow) {
     try {
       if (window.webContents.isDestroyed()) return;
 
       this.gameHandler = new GameHandler(window.webContents, this.engine);
-      await this.gameHandler.attach();
+      this.gameHandler.attach();
     } catch (err) {
       logger.error('Failed to attach GameHandler:', err);
     }

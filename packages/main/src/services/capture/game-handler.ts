@@ -44,7 +44,7 @@ export class GameHandler {
    */
   private readonly onDidFinishLoad = () => {
     if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
-    setTimeout(() => this.tryAttach(), 500);
+    setTimeout(() => void this.tryAttach(), 500);
   };
 
   constructor(
@@ -54,7 +54,7 @@ export class GameHandler {
     this.connectionTracker = new ConnectionTracker(engine);
   }
 
-  public async attach() {
+  public attach(): void {
     if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
 
     try {
@@ -73,13 +73,13 @@ export class GameHandler {
 
       this.webContents.on('did-finish-load', this.onDidFinishLoad);
 
-      await this.tryAttach();
+      this.tryAttach();
     } catch (err) {
       logger.error('Failed to initialize GameHandler:', err);
     }
   }
 
-  private async tryAttach() {
+  private tryAttach(): void {
     if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
 
     try {
@@ -103,12 +103,12 @@ export class GameHandler {
 
       this.webContents.debugger.on('message', this.handleDebuggerMessage.bind(this));
 
-      // The target can close between attaching and the first command.
-      try {
-        await this.webContents.debugger.sendCommand('Network.enable');
-      } catch (cmdErr) {
+      // `Network.enable` only answers once the target has a page, and the caller
+      // attaches before navigating: awaiting it here would block the navigation
+      // that makes it resolve, leaving the window blank forever.
+      void this.webContents.debugger.sendCommand('Network.enable').catch((cmdErr) => {
         logger.warn('Failed to enable network inspection for game window:', cmdErr);
-      }
+      });
     } catch (e) {
       const error = e as Error;
       logger.error('Failed to attach web debugger to game window:', error.message);

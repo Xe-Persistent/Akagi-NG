@@ -1,7 +1,7 @@
 {
   "name": "akagi-ng",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Akagi-NG is a next-generation rewrite inspired by Akagi and MajsoulHelper, focusing on modern architecture and UI.",
   "author": "Akagi-NG Contributors",
   "license": "AGPL-3.0",
@@ -35,7 +35,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/frontend/tsconfig.json --noEmit && tsc -p packages/frontend/tsconfig.node.json --noEmit && tsc -p packages/main/tsconfig.json --noEmit && tsc -p scripts/tsconfig.json"
   },
   "devDependencies": {
-    "@eslint-react/eslint-plugin": "^5.28.3",
+    "@eslint-react/eslint-plugin": "^5.28.4",
     "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^5.0.5",
     "concurrently": "^10.0.6",

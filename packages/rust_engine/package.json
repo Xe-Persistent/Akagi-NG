@@ -1,7 +1,7 @@
 {
   "name": "@akagi-ng/rust-engine",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "Apache-2.0",
   "main": "native/index.js",
   "types": "native/index.d.ts",
@@ -24,6 +24,6 @@
     "version": "napi version"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.10.8"
+    "@napi-rs/cli": "^3.10.9"
   }
 }

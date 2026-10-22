@@ -1,7 +1,7 @@
 {
   "name": "@akagi-ng/main",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Akagi-NG Electron Desktop App",
   "author": "Akagi-NG Contributors",
   "license": "AGPL-3.0",
@@ -21,8 +21,8 @@
     "protobufjs": "^8.8.1"
   },
   "devDependencies": {
-    "electron": "44.9.1",
-    "electron-builder": "^26.17.0"
+    "electron": "44.9.3",
+    "electron-builder": "^26.18.0"
   },
   "build": {
     "appId": "me.akagi.ng",

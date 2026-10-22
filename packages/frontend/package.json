@@ -1,7 +1,7 @@
 {
   "name": "@akagi-ng/frontend",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Akagi-NG React Frontend",
   "author": "Akagi-NG Contributors",
   "license": "AGPL-3.0",
@@ -15,8 +15,8 @@
     "@tailwindcss/vite": "^4.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^26.5.3",
-    "lucide-react": "^1.60.0",
+    "i18next": "^26.5.4",
+    "lucide-react": "^1.61.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -32,6 +32,6 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.5"
   }
 }

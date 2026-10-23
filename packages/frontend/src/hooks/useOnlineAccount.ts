@@ -7,7 +7,7 @@ import {
   fetchKeyStatusApi,
   fetchOnlineModelsApi,
   saveKeyApi,
-} from '@/lib/online-api';
+} from '@/api/online';
 import type { OnlineHealth, OnlineKeyInfo, OnlineKeyStatus, OnlineModel } from '@/types';
 
 export interface OnlineAccount {

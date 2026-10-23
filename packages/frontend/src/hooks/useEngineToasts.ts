@@ -43,17 +43,13 @@ const NOTICE_MESSAGES: Record<EngineNotice['kind'], { type: Notice['type']; pers
  * Projects the engine status into toasts: state transitions and one-shot notices
  * are turned into messages here and nowhere else, so what the user sees follows
  * from the status the main process reports.
- *
- * `showToasts` is false in the HUD, which has no container to render them: the
- * calls would only pile up in that window's toast store.
  */
-export function useEngineToasts(status: EngineStatus | null, showToasts = true) {
+export function useEngineToasts(status: EngineStatus | null) {
   const { t } = useTranslation();
   const previousRef = useRef<EngineStatus | null>(null);
 
   /** Shows what the projection produced, in whichever language is current then. */
   const showNotices = useEffectEvent((notices: Notice[]) => {
-    if (!showToasts) return;
     for (const notice of notices) {
       if (notice.dismisses) notify.dismiss(notice.dismisses);
       notify.show(t(notice.messageKey), {

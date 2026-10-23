@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { isWindowMaximized, maximizeWindow, minimizeWindow } from '@/api/desktop';
 import { Button } from '@/components/ui/button';
 import { ModelStatusIndicator } from '@/components/ui/model-status-indicator';
 import { NavbarActionButton as HeaderIconButton } from '@/components/ui/navbar-action-button';
@@ -51,7 +52,7 @@ export function Header({
     const unsub = window.electron.on('window-state-changed', (maximized: boolean) => {
       setIsMaximized(maximized);
     });
-    void window.electron.invoke<boolean>('is-window-maximized').then((maximized) => {
+    void isWindowMaximized().then((maximized) => {
       setIsMaximized(maximized);
     });
     return unsub;
@@ -122,14 +123,14 @@ export function Header({
 
           <HeaderIconButton
             icon={Minus}
-            onClick={() => void window.electron.invoke('minimize-window')}
+            onClick={() => void minimizeWindow()}
             aria-label={t('app.window_minimize')}
           />
 
           <HeaderIconButton
             icon={isMaximized ? Copy : Square}
             iconClassName={isMaximized ? '-scale-x-100 -rotate-90' : ''}
-            onClick={() => void window.electron.invoke('maximize-window')}
+            onClick={() => void maximizeWindow()}
             aria-label={isMaximized ? t('app.window_restore') : t('app.window_maximize')}
           />
 

@@ -8,16 +8,16 @@ import {
   useRef,
 } from 'react';
 
-import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
-import { SettingsContext } from '@/contexts/SettingsContext';
-import i18n from '@/i18n/i18n';
-import { notify } from '@/lib/notify';
 import {
   fetchModelsApi,
   fetchSettingsApi,
   resetSettingsApi,
   saveSettingsApi,
-} from '@/lib/settings-api';
+} from '@/api/settings';
+import { SETTINGS_DEBOUNCE_MS, TOAST_DURATION_DEFAULT } from '@/config/constants';
+import { SettingsContext } from '@/contexts/SettingsContext';
+import i18n from '@/i18n/i18n';
+import { notify } from '@/lib/notify';
 import { createSettingsState, settingsReducer } from '@/lib/settings-reducer';
 import type { Paths, PathValue, Settings } from '@/types';
 

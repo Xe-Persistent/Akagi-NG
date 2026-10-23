@@ -2,16 +2,23 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { lazy, Suspense, use, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router';
+import { ToastContainer } from 'react-toastify';
 
+import { fetchSettingsApi } from '@/api/settings';
 import { ExitOverlay } from '@/components/ExitOverlay';
 import { GameProvider } from '@/components/GameProvider';
 import { LaunchScreen } from '@/components/LaunchScreen';
 import { SettingsProvider } from '@/components/SettingsProvider';
 import { StartupErrorBoundary } from '@/components/StartupErrorBoundary';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { APP_SPLASH_ENTER_MS, APP_SPLASH_EXIT_MS, APP_SPLASH_HOLD_MS } from '@/config/constants';
+import {
+  APP_SPLASH_ENTER_MS,
+  APP_SPLASH_EXIT_MS,
+  APP_SPLASH_HOLD_MS,
+  TOAST_DURATION_DEFAULT,
+} from '@/config/constants';
+import { useTheme } from '@/hooks/useTheme';
 import { isHudWindow } from '@/lib/routing';
-import { fetchSettingsApi } from '@/lib/settings-api';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Hud = lazy(() => import('@/pages/HUD'));
@@ -49,6 +56,7 @@ interface AppInnerProps {
 
 function AppInner({ appDataPromise, isHud, isSplashActive, onReady }: AppInnerProps) {
   const data = use(appDataPromise);
+  const { resolvedTheme } = useTheme();
   const settingsPromise = useMemo(
     () => appDataPromise.then((resolved) => resolved.settings),
     [appDataPromise],
@@ -93,6 +101,18 @@ function AppInner({ appDataPromise, isHud, isSplashActive, onReady }: AppInnerPr
       </GameProvider>
 
       {isExiting && <ExitOverlay />}
+
+      {/*
+        Every window shares one renderer bundle, and a toast must reach whichever
+        one the user is looking at: the dashboard, or the HUD floating over the
+        game. Keeping the container here rather than on a page is what lets a
+        notice arrive in both.
+      */}
+      <ToastContainer
+        autoClose={TOAST_DURATION_DEFAULT}
+        position='top-right'
+        theme={resolvedTheme}
+      />
     </SettingsProvider>
   );
 }

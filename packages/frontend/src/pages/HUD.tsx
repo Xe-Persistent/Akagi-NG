@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 
+import { toggleHud } from '@/api/desktop';
 import StreamPlayer from '@/components/StreamPlayer';
 import { HudControlButton } from '@/components/ui/hud-control-button';
 import { ModelStatusIndicator } from '@/components/ui/model-status-indicator';
@@ -11,10 +12,7 @@ export default function Hud() {
 
       <ModelStatusIndicator className='top-3 left-3' />
 
-      <HudControlButton
-        className='absolute top-2 right-2'
-        onClick={() => void window.electron.invoke('toggle-hud', false)}
-      >
+      <HudControlButton className='absolute top-2 right-2' onClick={() => void toggleHud(false)}>
         <X className='h-4 w-4' />
       </HudControlButton>
     </div>

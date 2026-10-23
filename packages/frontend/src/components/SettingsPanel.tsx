@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Download, Loader2, RotateCcw } from 'lucid
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { updateLiqi } from '@/api/desktop';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -54,7 +55,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const handleUpdateProtocol = async () => {
     setIsUpdatingProtocol(true);
     try {
-      await window.electron.invoke('update-liqi');
+      await updateLiqi();
       notify.success(t('notify.proto_updated'));
     } catch (error) {
       notify.error(

@@ -1,6 +1,7 @@
 import { AppWindow, Scale } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { openExternal } from '@/api/desktop';
 import { AKAGI_VERSION } from '@/version';
 
 import { UpdateBadge } from './UpdateBadge';
@@ -11,7 +12,7 @@ function ExternalLink({ href, icon, text }: { href: string; icon: ReactNode; tex
       href={href}
       onClick={(e) => {
         e.preventDefault();
-        void window.electron.invoke('open-external', href);
+        void openExternal(href);
       }}
       className='flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100'
     >

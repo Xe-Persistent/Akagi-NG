@@ -2,6 +2,7 @@ import { CircleX } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { requestShutdown } from '@/api/desktop';
 import { Button } from '@/components/ui/button';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
@@ -13,7 +14,7 @@ export function StartupErrorBoundary({ children }: { children: ReactNode }) {
       window.close();
       return;
     }
-    void window.electron.invoke('request-shutdown').catch(() => window.close());
+    void requestShutdown().catch(() => window.close());
   };
 
   return (

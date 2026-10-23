@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { fetchEngineStatus } from '@/api/engine';
 import type { EngineStatus, RecommendationData } from '@/types';
 
 interface UseEngineConnectionResult {
@@ -28,8 +29,7 @@ export function useEngineConnection(): UseEngineConnectionResult {
       setStatus(payload as EngineStatus);
     });
 
-    window.electron
-      .invoke<EngineStatus>('engine:status:get')
+    void fetchEngineStatus()
       .then((snapshot) => {
         if (snapshot) setStatus(snapshot);
       })

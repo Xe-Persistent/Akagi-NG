@@ -1,6 +1,7 @@
 import { ArrowDownToLine } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
+import { openExternal } from '@/api/desktop';
 import { Badge } from '@/components/ui/badge';
 
 type StoreSnapshot = { version: string };
@@ -32,10 +33,7 @@ export function UpdateBadge() {
   }
 
   const handleClick = () => {
-    void window.electron.invoke(
-      'open-external',
-      `https://github.com/Xe-Persistent/Akagi-NG/releases/tag/v${version}`,
-    );
+    void openExternal(`https://github.com/Xe-Persistent/Akagi-NG/releases/tag/v${version}`);
   };
 
   return (

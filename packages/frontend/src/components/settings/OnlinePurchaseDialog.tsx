@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { fetchPendingPurchaseApi, pollPurchaseApi, startPurchaseApi } from '@/api/online';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { fetchPendingPurchaseApi, pollPurchaseApi, startPurchaseApi } from '@/lib/online-api';
 import type { OnlinePurchaseStatus } from '@/types';
 
 /** Creem's status flips within seconds of the payment; three seconds is idle enough. */

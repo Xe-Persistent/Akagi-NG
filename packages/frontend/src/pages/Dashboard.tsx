@@ -1,7 +1,14 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ToastContainer } from 'react-toastify';
 
+import {
+  checkResourceStatus,
+  closeWindow,
+  requestShutdown,
+  startGame,
+  toggleHud,
+} from '@/api/desktop';
+import { fetchSettingsApi } from '@/api/settings';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -16,12 +23,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { TOAST_DURATION_DEFAULT } from '@/config/constants';
 import { GameContext } from '@/contexts/GameContext';
 import { useSettings } from '@/hooks/useSettings';
-import { useTheme } from '@/hooks/useTheme';
 import { notify } from '@/lib/notify';
-import { fetchSettingsApi } from '@/lib/settings-api';
 import { cn } from '@/lib/utils';
 import type { ResourceStatus, Settings } from '@/types';
 
@@ -35,7 +39,6 @@ const MODELS_MISSING_TOAST = 'models_missing';
 
 function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) {
   const { t, i18n } = useTranslation();
-  const { resolvedTheme } = useTheme();
   const initialSettings = use(settingsPromise);
 
   const context = use(GameContext);
@@ -59,8 +62,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
   useEffect(() => {
     let cancelled = false;
 
-    window.electron
-      .invoke<ResourceStatus>('check-resource-status')
+    void checkResourceStatus()
       .then((status) => {
         if (!cancelled) setResourceStatus(status);
       })
@@ -108,7 +110,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
     setIsLaunching(true);
     try {
       const currentSettings = await fetchSettingsApi().catch(() => initialSettings);
-      await window.electron.invoke('start-game', {
+      await startGame({
         url: currentSettings.game_url,
         useMitm: currentSettings.mitm.enabled,
       });
@@ -122,12 +124,12 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
   // The window's close button hides it to the tray; quitting is a separate flow.
   const handleCloseWindow = useCallback(() => {
-    void window.electron.invoke('close-window');
+    void closeWindow();
   }, []);
 
   const performShutdown = useCallback(async () => {
     try {
-      await window.electron.invoke('request-shutdown');
+      await requestShutdown();
     } catch (e) {
       console.error('Failed to shutdown:', e);
       notify.error(`${t('common.error')}: ${(e as Error).message}`);
@@ -138,7 +140,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
   const handleToggleHud = useCallback(
     (show: boolean) => {
-      void window.electron.invoke('toggle-hud', show);
+      void toggleHud(show);
       setIsHudActive(show);
     },
     [setIsHudActive],
@@ -192,11 +194,6 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <ToastContainer
-        autoClose={TOAST_DURATION_DEFAULT}
-        position='top-right'
-        theme={resolvedTheme}
-      />
     </>
   );
 }

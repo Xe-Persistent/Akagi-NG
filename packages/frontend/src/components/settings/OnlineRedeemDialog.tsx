@@ -1,6 +1,7 @@
 import { useActionState, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { redeemApi } from '@/api/online';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { redeemApi } from '@/lib/online-api';
 
 interface OnlineRedeemDialogProps {
   open: boolean;

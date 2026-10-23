@@ -5,7 +5,7 @@ import {
   fetchSettingsApi,
   resetSettingsApi,
   saveSettingsApi,
-} from '@/lib/settings-api';
+} from '@/api/settings';
 import type { Settings } from '@/types';
 
 const settings: Settings = {

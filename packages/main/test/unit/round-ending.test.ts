@@ -110,6 +110,14 @@ describe('an abortive draw', () => {
     expect(ryukyoku).not.toHaveProperty('reason');
   });
 
+  it('treats an absent type as no reason given', () => {
+    // The decoder fills every declared field with its default, so a message
+    // without `type` arrives as 0 — a value no abort type uses.
+    const [ryukyoku] = replay(actionFrame('ActionLiuJu', { seat: 0 }));
+
+    expect(ryukyoku).not.toHaveProperty('reason');
+  });
+
   it('reports the draw, then closes the round', () => {
     const events = replay(actionFrame('ActionLiuJu', { type: 1, seat: 0 }));
 

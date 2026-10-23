@@ -89,7 +89,7 @@ export class MajsoulBridge extends BaseBridge {
 
   /**
    * Turns one captured frame into mjai events. `source` names the capture path
-   * that saw it (`CDP` or `MITM`) and only shows up in the verbose capture log.
+   * that saw it (`CDP` or `MITM`) and only shows up in the debug capture log.
    */
   public parse(content: Buffer, source?: string): BridgeOutput {
     try {
@@ -97,13 +97,6 @@ export class MajsoulBridge extends BaseBridge {
       const parsed = this.liqiProto.parse(content);
       const isHeartbeat =
         parsed.kind === 'message' && parsed.message.method === MAJSOUL_METHODS.heartbeat;
-
-      // The frame's own bytes, one level deeper than the decoded line: what a
-      // decode this build gets wrong needs to reproduce. The keep-alive stays out
-      // of both, and a frame that failed to decode still leaves its bytes behind.
-      if (!isHeartbeat) {
-        logger.debug(`${source ? `[${source}] ` : ''}raw ${content.toString('hex')}`);
-      }
 
       if (parsed.kind === 'skipped') {
         return { events: [], replayed: this.replayed };
@@ -113,14 +106,11 @@ export class MajsoulBridge extends BaseBridge {
       }
 
       const liqiMessage = parsed.message;
-      // The complete decoded message: a capture kept at `verbose` is what makes
+      // The complete decoded message: a capture kept at `debug` is what makes
       // a real game inspectable offline, and every field is logged as decoded.
       if (!isHeartbeat) {
         const tag = source ? `[${source}] ` : '';
-        logger.verbose(
-          `${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`,
-          liqiMessage.data,
-        );
+        logger.debug(`${tag}${liqiMessage.method} ${MsgType[liqiMessage.type]}`, liqiMessage.data);
       }
 
       const events = this.parseLiqi(liqiMessage);
@@ -192,7 +182,7 @@ export class MajsoulBridge extends BaseBridge {
     if (!handler) {
       // Recorded at the capture level, so a survey of a log can tell which
       // actions the bridge has no mapping for.
-      logger.verbose(`Unhandled ActionPrototype: ${action.name}`);
+      logger.debug(`Unhandled ActionPrototype: ${action.name}`);
     }
 
     if (handler) events.push(...handler(action));
@@ -253,11 +243,9 @@ export class MajsoulBridge extends BaseBridge {
    * capture, and `riichienv` does not read them.
    */
   private handleLiuJu(action: ActionPrototype): MJAIEvent[] {
-    const type = action.data.type as number | undefined;
-    const reason = type === undefined ? undefined : MajsoulBridge.LIUJU_REASONS[type];
-    if (type !== undefined && reason === undefined) {
-      logger.warn(`Unknown ActionLiuJu type ${type}`);
-    }
+    const type = action.data.type as number;
+    const reason = MajsoulBridge.LIUJU_REASONS[type];
+    if (reason === undefined) logger.warn(`Unknown ActionLiuJu type ${type}`);
 
     return [this.makeRyukyoku([], [], [], reason)];
   }
@@ -383,7 +371,7 @@ export class MajsoulBridge extends BaseBridge {
     if (missing.length > 0)
       logger.warn(`Swapped-out tiles missing from the deal: ${missing.join(', ')}`);
 
-    logger.verbose(`Xuezhan swap: out ${out.join('+') || '-'}, in ${incoming.join('+') || '-'}`);
+    logger.debug(`Xuezhan swap: out ${out.join('+') || '-'}, in ${incoming.join('+') || '-'}`);
 
     return this.openRound({ ...deal, tiles: hand }, toMjaiTileOrUnknown(data.doras as string[]));
   }

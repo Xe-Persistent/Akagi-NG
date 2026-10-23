@@ -126,15 +126,7 @@ function attachRiichiLookahead(
   if (!reach) return;
 
   reach.sim_candidates = candidates;
-  // A summary a human can scan at the default level, the full row one level down
-  // for the numbers behind it.
-  const [best] = candidates;
-  if (best) {
-    logger.info(
-      `Riichi lookahead: ${candidates.length} candidate(s), best ${best.tile} (${best.confidence.toFixed(3)})`,
-    );
-  }
-  logger.verbose(
+  logger.debug(
     `Riichi lookahead: ${candidates
       .map((candidate) => `${candidate.tile}(${candidate.confidence.toFixed(3)})`)
       .join(' ')}`,

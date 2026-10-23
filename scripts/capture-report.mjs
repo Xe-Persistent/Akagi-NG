@@ -4,7 +4,7 @@
 //
 //   node scripts/capture-report.mjs <log path>
 //
-// The log must have been recorded with `log_level: "verbose"`, which logs every
+// The log must have been recorded with `log_level: "debug"`, which logs every
 // decoded message the bridge sees, except the game websocket's heartbeat.
 import { readFileSync } from 'node:fs';
 
@@ -14,8 +14,8 @@ if (!LOG) throw new Error('usage: capture-report.mjs <log path>');
 /** Decoded but not recorded, so its absence below is expected. */
 const UNRECORDED = ['.lq.Route.heartbeat'];
 
-/** `time | VERBOSE | MajsoulBridge | [MITM] .lq.X Notify {json}` */
-const DECODED = /^(\S+ \S+) \| VERBOSE \| \S+ \| \[(CDP|MITM)\] (\.\S+) (Notify|Req|Res) (\{.*)$/;
+/** `time | DEBUG | MajsoulBridge | [MITM] .lq.X Notify {json}` */
+const DECODED = /^(\S+ \S+) \| DEBUG \| \S+ \| \[(CDP|MITM)\] (\.\S+) (Notify|Req|Res) (\{.*)$/;
 /** The bridge logs the actions it has no handler for. */
 const UNHANDLED = /Unhandled ActionPrototype: (\S+)/;
 /** Frames whose protobuf decode failed are dropped, and must not go unnoticed. */

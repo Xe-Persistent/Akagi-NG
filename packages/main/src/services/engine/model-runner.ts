@@ -60,7 +60,7 @@ export class ModelRunner {
 
     const accepted = this.engine.feedLine(JSON.stringify(ev));
     if (!accepted) {
-      logger.verbose(`Engine ignored event: ${ev.type}`);
+      logger.debug(`Engine ignored event: ${ev.type}`);
     }
   }
 

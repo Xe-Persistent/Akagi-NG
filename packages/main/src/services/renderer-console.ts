@@ -6,14 +6,14 @@ const logger = createLogger('Renderer');
 
 /**
  * Renderer console levels folded onto ours: a normal run already keeps
- * warnings and errors, while `info`/`debug` land at debug/verbose so they show
- * up when the log level asks for them.
+ * warnings and errors, while `info`/`debug` land at `debug` so they only show
+ * up when the log level asks for the most detail.
  */
 const LEVELS = {
   error: 'error',
   warning: 'warn',
   info: 'debug',
-  debug: 'verbose',
+  debug: 'debug',
 } as const;
 
 /**

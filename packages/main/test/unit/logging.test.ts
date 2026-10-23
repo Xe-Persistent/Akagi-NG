@@ -5,7 +5,7 @@ import { createLogger, setLogLevel } from '../../src/logging/index.js';
 import { app } from '../electron-stub.js';
 
 /** The ladder the `log_level` setting moves along, least detailed first. */
-const LEVELS = ['error', 'warn', 'info', 'verbose', 'debug'] as const;
+const LEVELS = ['error', 'warn', 'info', 'debug'] as const;
 
 /** What the console sink was handed: the level, and the rendered line. */
 const written: { level: string; line: string }[] = [];
@@ -68,11 +68,11 @@ describe('the log level setting', () => {
   });
 
   it('leaves the setting alone when the value is not a level', () => {
-    setLogLevel('verbose');
+    setLogLevel('debug');
     setLogLevel('nonsense');
 
     written.length = 0;
-    createLogger('Test').verbose('x');
+    createLogger('Test').debug('x');
 
     expect(written).toHaveLength(1);
   });

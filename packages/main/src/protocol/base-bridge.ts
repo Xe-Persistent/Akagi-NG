@@ -45,7 +45,7 @@ export abstract class BaseBridge {
    * Parses a platform frame and returns the resulting mjai events.
    *
    * @param content - raw frame payload received from the game client
-   * @param source - capture path that saw the frame, for the verbose capture log
+   * @param source - capture path that saw the frame, for the debug capture log
    * @returns the events plus the session facts the frame implies
    */
   public abstract parse(content: Buffer, source?: string): BridgeOutput;

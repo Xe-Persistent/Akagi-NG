@@ -13,11 +13,12 @@ export type { Logger } from 'electron-log';
  * The electron-log levels the `log_level` setting accepts, least detailed first.
  * electron-log numbers them `error=0 … verbose=3, debug=4, silly=5` and writes a
  * message once its level is at or below the transport's, so a later entry here
- * keeps strictly more: `verbose` is the per-item game detail (packets, decisions,
- * HUD payloads) and `debug` adds the raw frames and internal noise. `silly` is
- * deliberately not offered.
+ * keeps strictly more: `debug` is the per-item game detail (decoded packets,
+ * capture payloads, decisions, HUD rows). `silly` is deliberately not offered,
+ * and `verbose` was folded into `debug` rather than kept as a second, nearly
+ * identical tier.
  */
-const LEVELS: readonly LogLevel[] = ['error', 'warn', 'info', 'verbose', 'debug'];
+const LEVELS: readonly LogLevel[] = ['error', 'warn', 'info', 'debug'];
 const DEFAULT_LEVEL: LogLevel = 'info';
 
 /** Whether the setting names a level this build understands. */

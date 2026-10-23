@@ -4,14 +4,14 @@
 //
 //   node scripts/xuezhan-report.mjs logs/akagi_20261016_201928.log
 //
-// Reads a `log_level: "verbose"` capture; nothing else is needed.
+// Reads a `log_level: "debug"` capture; nothing else is needed.
 import { readFileSync } from 'node:fs';
 
 const [LOG] = process.argv.slice(2);
 if (!LOG) throw new Error('usage: xuezhan-report.mjs <capture log>');
 
-/** `time | VERBOSE | MajsoulBridge | [CDP] .lq.X Notify {json}` */
-const DECODED = /^(\S+ \S+) \| VERBOSE \| \S+ \| \[(CDP|MITM)\] (\.\S+) (Notify|Req|Res) (\{.*)$/;
+/** `time | DEBUG | MajsoulBridge | [CDP] .lq.X Notify {json}` */
+const DECODED = /^(\S+ \S+) \| DEBUG \| \S+ \| \[(CDP|MITM)\] (\.\S+) (Notify|Req|Res) (\{.*)$/;
 /** Actions the bridge has no mapping for are recorded at the capture level. */
 const UNHANDLED = /Unhandled ActionPrototype: (\S+)/;
 

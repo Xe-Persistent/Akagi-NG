@@ -201,7 +201,7 @@ export class LiqiProto {
     this.jsonProto = JSON.parse(readFileSync(liqiPath, 'utf-8')) as LiqiJson;
     this.root = protobuf.Root.fromJSON(this.jsonProto as protobuf.INamespace);
     this.pendingRequests.clear();
-    logger.info('Liqi protocol successfully loaded/reloaded.');
+    logger.info('Liqi protocol loaded successfully.');
   }
 
   public getMessageClass(name: string): protobuf.Type | null {
@@ -244,7 +244,7 @@ export class LiqiProto {
       const liqiType = LIQI_FRAME_TYPES.get(frameType);
       if (liqiType === undefined) {
         // A socket that carries more than liqi: not an error worth reporting.
-        logger.verbose(`Skipping a non-liqi frame (type ${frameType})`);
+        logger.debug(`Skipping a non-liqi frame (type ${frameType})`);
         return { kind: 'skipped' };
       }
 
@@ -266,12 +266,12 @@ export class LiqiProto {
     } catch (e) {
       const reason = errorMessage(e);
       if (e instanceof UnsupportedLiqiFrame) {
-        logger.verbose(`Skipping an unsupported liqi frame: ${reason}`);
+        logger.debug(`Skipping an unsupported liqi frame: ${reason}`);
         return { kind: 'skipped' };
       }
       // Recorded at the capture level, so a survey of a log can tell how many
       // frames were dropped and why.
-      logger.verbose(`Decode failed: ${reason} (msg_id: ${msgId}, type: ${buf[0]})`);
+      logger.debug(`Decode failed: ${reason} (msg_id: ${msgId}, type: ${buf[0]})`);
       return { kind: 'failed', reason };
     }
   }
@@ -315,7 +315,7 @@ export class LiqiProto {
     }
 
     if (this.pendingRequests.has(msgId)) {
-      logger.verbose(`Duplicate msg_id ${msgId}, overwriting previous request`);
+      logger.debug(`Duplicate msg_id ${msgId}, overwriting previous request`);
     }
 
     const requestType = this.getMessageClass(descriptor.requestType);
@@ -340,7 +340,7 @@ export class LiqiProto {
       const oldest = this.pendingRequests.keys().next().value;
       if (oldest === undefined) return;
       this.pendingRequests.delete(oldest);
-      logger.verbose(`Dropping stale request msg_id ${oldest} (no response arrived)`);
+      logger.debug(`Dropping stale request msg_id ${oldest} (no response arrived)`);
     }
   }
 

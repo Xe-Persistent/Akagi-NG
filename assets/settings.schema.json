@@ -13,7 +13,7 @@
   "properties": {
     "log_level": {
       "type": "string",
-      "enum": ["error", "warn", "info", "verbose", "debug"],
+      "enum": ["error", "warn", "info", "debug"],
       "default": "info"
     },
     "locale": {

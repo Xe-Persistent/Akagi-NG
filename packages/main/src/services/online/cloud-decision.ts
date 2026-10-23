@@ -131,7 +131,7 @@ export class CloudDecisionService {
       if (generation !== this.generation) return { kind: 'cancelled' };
 
       this.recordSuccess();
-      logger.verbose(
+      logger.debug(
         `Cloud decision: model=${response.model ?? (model || 'default')} ` +
           `candidates=${response.candidates.length} (${this.now() - startedAt}ms)`,
       );
@@ -282,7 +282,7 @@ export class CloudDecisionService {
     this.client = null;
     this.appliedSignature = '';
     this.recordSuccess();
-    logger.info('Online inference disabled; using the local model');
+    logger.info('Online inference disabled, using the local model.');
   }
 
   private allowsCall(): boolean {
@@ -290,7 +290,7 @@ export class CloudDecisionService {
   }
 
   private recordSuccess(): void {
-    if (this.failures > 0) logger.info('Online inference restored');
+    if (this.failures > 0) logger.info('Online inference restored.');
     this.failures = 0;
     this.retryAt = 0;
   }

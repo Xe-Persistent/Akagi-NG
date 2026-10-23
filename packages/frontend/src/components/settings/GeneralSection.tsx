@@ -68,7 +68,6 @@ export function GeneralSection({ settings, updateSetting }: GeneralSectionProps)
             <SelectItem value='error'>ERROR</SelectItem>
             <SelectItem value='warn'>WARN</SelectItem>
             <SelectItem value='info'>INFO</SelectItem>
-            <SelectItem value='verbose'>VERBOSE</SelectItem>
             <SelectItem value='debug'>DEBUG</SelectItem>
           </SelectContent>
         </Select>

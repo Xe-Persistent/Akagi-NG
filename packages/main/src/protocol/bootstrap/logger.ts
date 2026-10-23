@@ -6,7 +6,6 @@
  * interface instead of a concrete logger.
  */
 export interface BootstrapLogger {
-  verbose(message: string, ...rest: unknown[]): void;
   debug(message: string, ...rest: unknown[]): void;
   info(message: string, ...rest: unknown[]): void;
   warn(message: string, ...rest: unknown[]): void;
@@ -14,7 +13,6 @@ export interface BootstrapLogger {
 }
 
 export const silentLogger: BootstrapLogger = {
-  verbose: () => undefined,
   debug: () => undefined,
   info: () => undefined,
   warn: () => undefined,
@@ -23,7 +21,6 @@ export const silentLogger: BootstrapLogger = {
 
 /** Logger that writes to the console, used by the CLI entry point. */
 export const consoleLogger: BootstrapLogger = {
-  verbose: (message, ...rest) => console.debug(message, ...rest),
   debug: (message, ...rest) => console.debug(message, ...rest),
   info: (message, ...rest) => console.info(message, ...rest),
   warn: (message, ...rest) => console.warn(message, ...rest),

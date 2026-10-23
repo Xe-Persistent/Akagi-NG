@@ -1,9 +1,8 @@
 /**
- * What a capture keeps. A log written at `verbose` is the only offline window
+ * What a capture keeps. A log written at `debug` is the only offline window
  * into a real game, so what it records -- and what it deliberately leaves out --
  * is a contract, not an implementation detail.
  */
-import type { LogLevel } from 'electron-log';
 import log from 'electron-log/main';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -34,9 +33,9 @@ afterAll(() => {
  * reports; the level contract itself is covered in `logging.test.ts`, so this
  * drives the console transport directly.
  */
-function captureAt(level: LogLevel) {
+function captureAt() {
   written.length = 0;
-  log.transports.console.level = level;
+  log.transports.console.level = 'debug';
 }
 
 /** Lines that are a captured message rather than a diagnostic. */
@@ -44,9 +43,9 @@ const captures = () => written.filter((line) => CAPTURE.test(line));
 
 const newRound = actions.find((packet) => packet.name === 'ActionNewRound')!;
 
-describe('a verbose capture', () => {
+describe('a debug capture', () => {
   it('writes one line per decoded message, with the source that saw it', () => {
-    captureAt('verbose');
+    captureAt();
     new MajsoulBridge().parse(actionFrame(newRound.name, newRound.fields), 'CDP');
 
     expect(captures()).toHaveLength(1);
@@ -58,7 +57,7 @@ describe('a verbose capture', () => {
   });
 
   it('keeps every field of the message, not a summary', () => {
-    captureAt('verbose');
+    captureAt();
     new MajsoulBridge().parse(actionFrame(newRound.name, newRound.fields), 'MITM');
 
     const [, , , , json] = captures()[0]!.match(CAPTURE)!;
@@ -74,26 +73,14 @@ describe('a verbose capture', () => {
   });
 
   it('leaves the heartbeat out', () => {
-    captureAt('verbose');
+    captureAt();
     new MajsoulBridge().parse(notifyFrame('.lq.Route.heartbeat', Buffer.alloc(0)), 'CDP');
 
     expect(captures()).toHaveLength(0);
   });
 
-  it('adds the raw bytes only at debug', () => {
-    const frame = actionFrame(newRound.name, newRound.fields);
-
-    captureAt('verbose');
-    new MajsoulBridge().parse(frame, 'CDP');
-    expect(written.some((line) => line.includes(frame.toString('hex')))).toBe(false);
-
-    captureAt('debug');
-    new MajsoulBridge().parse(frame, 'CDP');
-    expect(written.some((line) => line.includes(frame.toString('hex')))).toBe(true);
-  });
-
   it('reports an action the bridge does not map', () => {
-    captureAt('verbose');
+    captureAt();
     // A name this build has no descriptor for: the wrapper carries it, the
     // payload is something the bridge can only report on.
     const unknown = notifyFrame(
@@ -113,7 +100,7 @@ describe('a verbose capture', () => {
   });
 
   it('records nothing for a frame it cannot decode', () => {
-    captureAt('verbose');
+    captureAt();
     const garbled = notifyFrame('.lq.ActionMJStart', Buffer.from([0xff, 0xff, 0xff, 0xff]));
     const output = new MajsoulBridge().parse(garbled, 'CDP');
 
@@ -122,7 +109,7 @@ describe('a verbose capture', () => {
   });
 
   it('keeps a decoded request apart from its diagnostic lines', () => {
-    captureAt('verbose');
+    captureAt();
 
     new MajsoulBridge().parse(requestFrame('.lq.FastTest.authGame', 1, Buffer.alloc(0)), 'MITM');
 

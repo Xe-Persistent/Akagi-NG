@@ -153,7 +153,7 @@ export class PurchaseManager {
 
     writeApiKey(key);
     this.clearPending();
-    logger.info('Purchase complete; the API key is stored');
+    logger.info('Purchase complete. The API key is stored.');
     return {
       status: result.status,
       plan: result.plan,

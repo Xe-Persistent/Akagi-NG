@@ -259,7 +259,7 @@ export class MajsoulBridge extends BaseBridge {
 
     return this.readWins(action).map((win) => {
       if (!win.zimo && this.state.lastDiscarder === null) {
-        logger.warn(`Ron in ${action.name} without a discard to attribute it to`);
+        logger.warn(`Ron in ${action.name} without a discard to attribute it to.`);
       }
       const target = win.zimo ? win.seat : (this.state.lastDiscarder ?? win.seat);
 
@@ -501,7 +501,7 @@ export class MajsoulBridge extends BaseBridge {
         }
         return [this.makeDaiminkan(actor, target, pai, consumed)];
       default:
-        logger.error(`Unknown ActionChiPengGang type: ${data.type as number}`);
+        logger.error(`Unknown ActionChiPengGang type ${data.type as number}`);
         return [];
     }
   }

@@ -210,7 +210,7 @@ export class LiqiProto {
       return found;
     }
 
-    logger.warn(`Message type ${name} not found in protocol`);
+    logger.warn(`Message type ${name} not found in the protocol.`);
     return null;
   }
 
@@ -315,7 +315,7 @@ export class LiqiProto {
     }
 
     if (this.pendingRequests.has(msgId)) {
-      logger.debug(`Duplicate msg_id ${msgId}, overwriting previous request`);
+      logger.debug(`Duplicate msg_id ${msgId}, overwriting the previous request.`);
     }
 
     const requestType = this.getMessageClass(descriptor.requestType);

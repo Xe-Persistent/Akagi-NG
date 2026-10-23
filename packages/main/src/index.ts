@@ -45,7 +45,7 @@ const isMockRun = process.argv.includes('--mock');
 engineService.setMockMode(isMockRun);
 
 app.on('second-instance', () => {
-  logger.info('Second instance detected. Focusing existing window...');
+  logger.info('Second instance detected. Focusing the existing window.');
   const mainWindow = windowManager.getMainWindow();
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();

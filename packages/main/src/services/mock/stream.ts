@@ -29,7 +29,7 @@ export function stopMockStream() {
 
   clearInterval(timer);
   timer = null;
-  logger.info('Mock stream stopped');
+  logger.info('Mock stream stopped.');
 }
 
 /** One tick: the status first, so the indicator matches the frame it belongs to. */

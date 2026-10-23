@@ -55,7 +55,7 @@ export class GameWindow {
     this.window = null; // Drop a zombie reference before creating a new window
 
     if (!url) {
-      logger.warn('No URL provided for Game Window!');
+      logger.warn('No URL provided for the game window.');
       return;
     }
 
@@ -94,7 +94,7 @@ export class GameWindow {
       // ERR_ABORTED happens during redirects and when the page cancels the
       // navigation, which does not mean the load failed.
       if (error.code === 'ERR_ABORTED' || error.errno === -3) {
-        logger.warn(`Navigation aborted for ${url}, attempting to proceed...`);
+        logger.warn(`Navigation aborted for ${url}. This is normal during redirects.`);
         return;
       }
 

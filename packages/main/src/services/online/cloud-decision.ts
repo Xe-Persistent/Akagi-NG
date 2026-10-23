@@ -155,8 +155,8 @@ export class CloudDecisionService {
           : new InferenceError('network', 'cloud decision failed');
       const backoff = this.recordFailure();
       logger.warn(
-        `Online inference unavailable (${inference.message}); using the local model ` +
-          `and skipping the service for ${Math.round(backoff / 1000)}s`,
+        `Online inference unavailable (${inference.message}). Using the local model ` +
+          `and skipping the service for ${Math.round(backoff / 1000)}s.`,
       );
       return local('request-failed', true, true);
     } finally {
@@ -177,7 +177,7 @@ export class CloudDecisionService {
       // The server was reachable but sees no legal action while the local gate
       // does: the streams disagree. Never silently pass a real turn.
       logger.warn(
-        'Cloud returned a null reaction where the local model can act; using the local model',
+        'Cloud returned a null reaction where the local model can act. Using the local model.',
       );
       return local('null-reaction', true, false);
     }
@@ -194,7 +194,9 @@ export class CloudDecisionService {
       );
       if (generation !== this.generation) return { kind: 'cancelled' };
       if (!resolved) {
-        logger.warn('Cloud reach had no discard; dropping the cloud answer for the local decision');
+        logger.warn(
+          'Cloud reach had no discard. Dropping the cloud answer for the local decision.',
+        );
         return local('reach-failed', true, false);
       }
       reachDiscard = resolved.discard;
@@ -208,7 +210,7 @@ export class CloudDecisionService {
     });
     if (!decision) {
       logger.warn(
-        `Cannot map the cloud reaction (type=${String(reaction.type)}); using the local model`,
+        `Cannot map the cloud reaction (type=${String(reaction.type)}). Using the local model.`,
       );
       return local('unmappable', true, false);
     }

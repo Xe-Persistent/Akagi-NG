@@ -103,7 +103,7 @@ export class SettingsManager {
       const schemaJson = JSON.parse(schemaRaw) as SettingsSchemaJson;
       schemaOptions = schemaJson.properties;
     } catch (err) {
-      logger.error('Failed to load settings.schema.json', err);
+      logger.error('Failed to load settings.schema.json:', err);
     }
 
     const configDir = join(getProjectRoot(), 'config');
@@ -165,7 +165,7 @@ export class SettingsManager {
     }
 
     this.store.store = newSettings;
-    logger.info('Settings updated and saved to disk');
+    logger.info('Settings updated and saved to disk.');
   }
 
   public resetSettings(): AppSettings {
@@ -175,7 +175,7 @@ export class SettingsManager {
     // store, the user cannot read it back to retype it, and losing a paid
     // credential to a "restore defaults" click is not recoverable. Clearing it
     // is the key card's own action.
-    logger.info('Settings reset to defaults');
+    logger.info('Settings reset to defaults.');
     return structuredClone(defaults);
   }
 

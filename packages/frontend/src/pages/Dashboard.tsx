@@ -30,6 +30,9 @@ interface DashboardProps {
   isSplashActive?: boolean;
 }
 
+/** Toast id of the install-level warning, so raising and clearing it agree. */
+const MODELS_MISSING_TOAST = 'models_missing';
+
 function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) {
   const { t, i18n } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -39,7 +42,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
   if (!context) throw new Error('GameContext not found');
 
   const { updateSetting } = useSettings();
-  const { setIsHudActive, isHudActive } = context;
+  const { setIsHudActive, isHudActive, status: engineStatus } = context;
 
   const handleLocaleChange = useCallback(
     (newLocale: string) => updateSetting(['locale'], newLocale),
@@ -85,15 +88,21 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
     if (resourceStatus.models) {
       // The models showed up (or the check was retried): retire the stale warning.
-      notify.dismiss('models_missing');
+      notify.dismiss(MODELS_MISSING_TOAST);
       return;
     }
 
-    notify.warn(t('status.models_missing'), {
-      toastId: 'models_missing',
+    notify.warn(t('notify.models_missing'), {
+      toastId: MODELS_MISSING_TOAST,
       autoClose: false,
     });
   }, [resourceStatus, t]);
+
+  // The check itself runs once per launch, so a later load proves the files are
+  // there now; without this the warning would outlive the problem until a restart.
+  useEffect(() => {
+    if (engineStatus?.model === 'ready') notify.dismiss(MODELS_MISSING_TOAST);
+  }, [engineStatus?.model]);
 
   const handleLaunchGame = useCallback(async () => {
     setIsLaunching(true);

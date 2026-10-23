@@ -23,10 +23,10 @@ export async function ingestCapturedFrame(
     const output = bridge.parse(content, source);
 
     if (output.parseFailed) {
-      engineStatus.notice('parse_error');
+      engineStatus.notice('parse_failed');
     }
     if (output.replayed) {
-      engineStatus.notice('replay');
+      engineStatus.notice('syncing');
     }
 
     if (output.events.length > 0) {

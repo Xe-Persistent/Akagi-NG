@@ -147,7 +147,7 @@ describe('a captured frame', () => {
       'CDP',
     );
 
-    expect(engineStatus.get().notice?.kind).toBe('parse_error');
+    expect(engineStatus.get().notice?.kind).toBe('parse_failed');
     expect(engine.ingest).not.toHaveBeenCalled();
   });
 
@@ -159,7 +159,7 @@ describe('a captured frame', () => {
 
     await ingestCapturedFrame(asEngine(engine), replaying, Buffer.alloc(0), 'CDP');
 
-    expect(engineStatus.get().notice?.kind).toBe('replay');
+    expect(engineStatus.get().notice?.kind).toBe('syncing');
   });
 
   it('swallows a frame that throws instead of tearing down the capture', async () => {

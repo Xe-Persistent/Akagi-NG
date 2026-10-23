@@ -80,6 +80,6 @@ describe('the canned HUD data', () => {
   it('raises its one-shot events with the state they belong to', () => {
     const notices = FRAMES.map((f) => f.status.notice).filter(Boolean);
 
-    expect(notices).toEqual(expect.arrayContaining(['game_dropped', 'replay']));
+    expect(notices).toEqual(expect.arrayContaining(['game_disconnected', 'syncing']));
   });
 });

@@ -1,7 +1,7 @@
 export const SETTINGS_DEBOUNCE_MS = 1000;
 
-export const TOAST_DURATION_SHORT = 3000;
-export const TOAST_DURATION_DEFAULT = 5000;
+export const TOAST_DURATION_SHORT = 1500;
+export const TOAST_DURATION_DEFAULT = 3000;
 
 /**
  * The splash: the torii grows for `ENTER_MS`, the finished screen rests for

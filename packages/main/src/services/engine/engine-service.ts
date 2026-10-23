@@ -1,7 +1,7 @@
 import { createLogger } from '../../logging/index.js';
 import { broadcastToWindows } from '../../shared/broadcast.js';
 import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
-import { engineStatus } from '../engine-status.js';
+import { engineStatus, type InferenceSource } from '../engine-status.js';
 import { CloudDecisionService } from '../online/cloud-decision.js';
 import { DEFAULT_BASE_URL } from '../online/inference-client.js';
 import { KyokuStream } from '../online/kyoku-stream.js';
@@ -105,13 +105,13 @@ export class EngineService {
   // ===== Connection lifecycle, reported by the capture layer =====
 
   public clientConnected() {
-    engineStatus.set({ connection: 'connected' });
+    engineStatus.set({ connection: 'connected', inference: this.inferenceSource() });
   }
 
   public gameDisconnected(gameEnded: boolean) {
     this.cloud.cancel();
     engineStatus.set({ connection: 'idle' });
-    engineStatus.notice(gameEnded ? 'lobby_return' : 'game_dropped');
+    engineStatus.notice(gameEnded ? 'left_game' : 'game_disconnected');
   }
 
   // ===== Engine =====
@@ -136,7 +136,11 @@ export class EngineService {
         return;
       case 'loaded':
         logger.info(`Loaded model ${outcome.modelName} (${start.is_3p ? '3p' : '4p'})`);
-        engineStatus.set({ model: 'ready', modelName: outcome.modelName });
+        engineStatus.set({
+          model: 'ready',
+          modelName: outcome.modelName,
+          inference: this.inferenceSource(),
+        });
         break;
     }
 
@@ -181,6 +185,16 @@ export class EngineService {
     };
   }
 
+  /**
+   * The source that will answer the next decision, under the same rule
+   * `onlineConfig` applies: MJOT needs the switch on *and* a stored key,
+   * otherwise the built-in model is what the HUD will show.
+   */
+  private inferenceSource(): InferenceSource {
+    const config = this.onlineConfig();
+    return config.enabled && config.apiKey ? 'mjot' : 'local';
+  }
+
   private async react() {
     const payload = await this.buildPayload();
     // No decision at all means there is nothing to say, and a cancelled request
@@ -189,7 +203,7 @@ export class EngineService {
 
     // What the HUD is about to show, so a capture says what was recommended
     // and not only what the table did.
-    logger.verbose(`HUD: ${payload.recommendations.map(describeRecommendation).join(' ')}`);
+    logger.debug(`HUD: ${payload.recommendations.map(describeRecommendation).join(' ')}`);
     broadcastToWindows('engine:recommendations', payload);
   }
 
@@ -208,7 +222,7 @@ export class EngineService {
 
     // The engine's own answer, including the candidates it ranked below the
     // published row, so a capture shows what it thought at every decision.
-    logger.verbose(
+    logger.debug(
       `Decision:${decision.forced ? ' (forced)' : ''} ${decision.candidates
         .map(([action, confidence]) => `${describeAction(action)}@${confidence.toFixed(2)}`)
         .join(' ')}${decision.riichi_lookahead?.length ? ' +lookahead' : ''}`,
@@ -229,7 +243,7 @@ export class EngineService {
     if (!events) {
       // Mid-round start, or a stream that never reset: uploading a partial
       // window looks like a desync to the service.
-      logger.verbose('Online inference skipped: the kyoku window is incomplete');
+      logger.debug('Online inference skipped: the kyoku window is incomplete');
       return localPayload;
     }
 

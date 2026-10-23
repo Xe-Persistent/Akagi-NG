@@ -78,7 +78,7 @@ describe('the mock stream', () => {
     const notices = statuses()
       .map((s) => s.notice?.kind)
       .filter((kind) => kind !== undefined);
-    expect(notices).toEqual(expect.arrayContaining(['game_dropped', 'replay']));
+    expect(notices).toEqual(expect.arrayContaining(['game_disconnected', 'syncing']));
   });
 
   it('starts only once, even if asked twice', () => {

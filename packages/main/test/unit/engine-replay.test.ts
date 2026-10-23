@@ -70,7 +70,7 @@ describe.skipIf(!hasEngine)('a reconnect replay', () => {
     // The history ends on the discard whose operation offers us a call.
     expect(events.at(-1)).toMatchObject({ type: 'dahai', actor: 2, pai: '4p' });
 
-    if (replayed) engineStatus.notice('replay');
+    if (replayed) engineStatus.notice('syncing');
     await engine.ingest(events, replayed);
 
     expect(messagesOn('engine:recommendations')).toHaveLength(1);
@@ -78,6 +78,6 @@ describe.skipIf(!hasEngine)('a reconnect replay', () => {
     const notices = messagesOn<{ notice: { kind: string } | null }>('engine:status')
       .map((status) => status.notice?.kind)
       .filter(Boolean);
-    expect(notices).toContain('replay');
+    expect(notices).toContain('syncing');
   }, 30_000);
 });

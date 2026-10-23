@@ -33,7 +33,7 @@ describe('what the capture layer reports', () => {
       engine.gameDisconnected(true);
 
       expect(engineStatus.get()).toMatchObject({ connection: 'idle', model: 'idle' });
-      expect(engineStatus.get().notice?.kind).toBe('lobby_return');
+      expect(engineStatus.get().notice?.kind).toBe('left_game');
     } finally {
       engine.stop();
     }
@@ -46,7 +46,7 @@ describe('what the capture layer reports', () => {
     try {
       engine.gameDisconnected(false);
 
-      expect(engineStatus.get().notice?.kind).toBe('game_dropped');
+      expect(engineStatus.get().notice?.kind).toBe('game_disconnected');
     } finally {
       engine.stop();
     }

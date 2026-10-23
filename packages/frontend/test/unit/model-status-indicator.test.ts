@@ -7,6 +7,7 @@ const CONNECTED: EngineStatus = {
   connection: 'connected',
   model: 'ready',
   modelName: 'akagi4p.safetensors',
+  inference: 'local',
   notice: null,
 };
 

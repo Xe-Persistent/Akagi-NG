@@ -141,17 +141,17 @@
     "none": "Skip",
     "discard": "Discard"
   },
-  "status": {
-    "client_connected": "Game connected.",
-    "game_ready": "Match connected. AI is ready.",
-    "model_loaded": "Local model loaded.",
+  "notify": {
+    "game_connected": "Game connected.",
+    "game_disconnected": "Game connection lost. Check your network and proxy settings.",
+    "left_game": "Left the current match.",
     "syncing": "Syncing match data…",
+    "model_loaded": "Local model loaded.",
+    "model_loaded_online": "MJOT online model loaded.",
     "proto_updated": "Majsoul protocol updated successfully.",
     "proto_update_failed": "Failed to update Majsoul protocol.",
     "parse_failed": "Failed to parse match data.",
-    "disconnected": "Game connection lost. Check your network or refresh the page.",
-    "left_game": "Left the current match.",
-    "model_failed": "Failed to load AI model.",
+    "model_error": "Failed to load AI model.",
     "runtime_error": "AI model runtime error",
     "models_missing": "Local model files (models) are missing. The application cannot run without them."
   }

@@ -7,6 +7,7 @@ interface BroadcastStatus {
   connection: string;
   model: string;
   modelName: string | null;
+  inference: string;
   notice: { kind: string; seq: number } | null;
 }
 
@@ -25,6 +26,7 @@ describe('the engine status store', () => {
       connection: 'idle',
       model: 'idle',
       modelName: null,
+      inference: 'local',
       notice: null,
     });
     expect(broadcasts()).toHaveLength(0);
@@ -34,7 +36,30 @@ describe('the engine status store', () => {
     store.set({ connection: 'connected' });
 
     expect(broadcasts()).toEqual([
-      { connection: 'connected', model: 'idle', modelName: null, notice: null },
+      {
+        connection: 'connected',
+        model: 'idle',
+        modelName: null,
+        inference: 'local',
+        notice: null,
+      },
+    ]);
+  });
+
+  it('publishes the inference source so the UI can name it', () => {
+    store.set({ connection: 'connected' });
+    resetSentMessages();
+
+    store.set({ inference: 'mjot' });
+
+    expect(broadcasts()).toEqual([
+      {
+        connection: 'connected',
+        model: 'idle',
+        modelName: null,
+        inference: 'mjot',
+        notice: null,
+      },
     ]);
   });
 
@@ -58,19 +83,19 @@ describe('the engine status store', () => {
   });
 
   it('numbers each notice so a repeat is visible', () => {
-    store.notice('parse_error');
-    store.notice('parse_error');
+    store.notice('parse_failed');
+    store.notice('parse_failed');
 
     const notices = broadcasts().map((status) => status.notice);
     expect(notices.map((notice) => notice?.seq)).toEqual([1, 2]);
-    expect(notices.map((notice) => notice?.kind)).toEqual(['parse_error', 'parse_error']);
+    expect(notices.map((notice) => notice?.kind)).toEqual(['parse_failed', 'parse_failed']);
   });
 
   it('keeps the notice in the snapshot until the next one', () => {
-    store.notice('replay');
+    store.notice('syncing');
     store.set({ model: 'ready' });
 
-    expect(store.get().notice).toMatchObject({ kind: 'replay', seq: 1 });
+    expect(store.get().notice).toMatchObject({ kind: 'syncing', seq: 1 });
     expect(store.get().model).toBe('ready');
   });
 
@@ -81,7 +106,13 @@ describe('the engine status store', () => {
     store.reset();
 
     expect(broadcasts()).toEqual([
-      { connection: 'idle', model: 'idle', modelName: null, notice: null },
+      {
+        connection: 'idle',
+        model: 'idle',
+        modelName: null,
+        inference: 'local',
+        notice: null,
+      },
     ]);
   });
 });

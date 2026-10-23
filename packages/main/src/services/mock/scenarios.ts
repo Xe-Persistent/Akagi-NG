@@ -117,9 +117,9 @@ const STATUSES: MockStatus[] = [
   // Dark red dot, with the error the runtime reported.
   { connection: 'connected', model: 'failed', modelName: 'akagi4p.safetensors' },
   // No dot: the game connection dropped on its own.
-  { connection: 'idle', model: 'idle', notice: 'game_dropped' },
+  { connection: 'idle', model: 'idle', notice: 'game_disconnected' },
   // No dot: connected, but no game has started yet.
-  { connection: 'connected', model: 'idle', notice: 'replay' },
+  { connection: 'connected', model: 'idle', notice: 'syncing' },
 ];
 
 /**

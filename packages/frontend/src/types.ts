@@ -37,7 +37,7 @@ export type ModelState = 'idle' | 'loading' | 'ready' | 'failed';
  * the renderer tell a repeat from the still-visible previous occurrence.
  */
 export interface EngineNotice {
-  kind: 'parse_error' | 'runtime_error' | 'replay' | 'lobby_return' | 'game_dropped';
+  kind: 'parse_failed' | 'runtime_error' | 'syncing' | 'left_game' | 'game_disconnected';
   seq: number;
 }
 
@@ -46,6 +46,8 @@ export interface EngineStatus {
   connection: ConnectionState;
   model: ModelState;
   modelName: string | null;
+  /** Which model answers a decision: the built-in one, or MJOT when it is usable. */
+  inference: 'local' | 'mjot';
   notice: EngineNotice | null;
 }
 

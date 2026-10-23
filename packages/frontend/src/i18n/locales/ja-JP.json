@@ -141,17 +141,17 @@
     "none": "スキップ",
     "discard": "切"
   },
-  "status": {
-    "client_connected": "ゲームに接続しました。",
-    "game_ready": "対局に接続しました。AI準備完了。",
-    "model_loaded": "ローカルモデルを読み込みました。",
+  "notify": {
+    "game_connected": "ゲームに接続しました。",
+    "game_disconnected": "ゲームとの接続が切れました。ネットワークとプロキシ設定を確認してください。",
+    "left_game": "対局から退出しました。",
     "syncing": "対局データを同期中…",
+    "model_loaded": "ローカルモデルを読み込みました。",
+    "model_loaded_online": "MJOT オンラインモデルを読み込みました。",
     "proto_updated": "雀魂プロトコルファイルの更新に成功しました。",
     "proto_update_failed": "雀魂プロトコルファイルの更新に失敗しました。",
     "parse_failed": "対局データの解析に失敗しました。",
-    "disconnected": "ゲームとの接続が切れました。ネットワークを確認するかページをリロードしてください。",
-    "left_game": "対局から退出しました。",
-    "model_failed": "AIモデルの読み込みに失敗しました。",
+    "model_error": "AIモデルの読み込みに失敗しました。",
     "runtime_error": "AIモデルの実行異常",
     "models_missing": "ローカルモデルファイル (models) がありません。アプリケーションは動作できません。"
   }

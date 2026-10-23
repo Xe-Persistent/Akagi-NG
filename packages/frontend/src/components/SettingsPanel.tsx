@@ -55,10 +55,10 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     setIsUpdatingProtocol(true);
     try {
       await window.electron.invoke('update-liqi');
-      notify.success(t('status.proto_updated'));
+      notify.success(t('notify.proto_updated'));
     } catch (error) {
       notify.error(
-        `${t('status.proto_update_failed')}: ${error instanceof Error ? error.message : String(error)}`,
+        `${t('notify.proto_update_failed')}: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
       setIsUpdatingProtocol(false);

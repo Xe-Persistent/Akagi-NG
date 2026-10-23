@@ -6,22 +6,30 @@ export type ConnectionState = 'idle' | 'connected';
 /** Whether the inference engine has usable weights. */
 export type ModelState = 'idle' | 'loading' | 'ready' | 'failed';
 
+/** Which model answers a decision: the built-in one, or MJOT when it is usable. */
+export type InferenceSource = 'local' | 'mjot';
+
 /**
  * Things that happened once and leave no state behind. The sequence number lets
  * the renderer tell a repeat from the still-visible previous occurrence.
+ *
+ * Each kind is also the `notify.*` suffix the renderer renders it with, so the
+ * two names cannot drift apart.
  */
 export type EngineNotice =
-  | { kind: 'parse_error'; seq: number }
+  | { kind: 'parse_failed'; seq: number }
   | { kind: 'runtime_error'; seq: number }
-  | { kind: 'replay'; seq: number }
-  | { kind: 'lobby_return'; seq: number }
-  | { kind: 'game_dropped'; seq: number };
+  | { kind: 'syncing'; seq: number }
+  | { kind: 'left_game'; seq: number }
+  | { kind: 'game_disconnected'; seq: number };
 
 /** Everything the renderer needs to describe the engine, and nothing more. */
 export interface EngineStatus {
   connection: ConnectionState;
   model: ModelState;
   modelName: string | null;
+  /** Which model will answer: MJOT needs both the switch and a stored key. */
+  inference: InferenceSource;
   /** The most recent one-shot event, part of the snapshot so a reload can check it. */
   notice: EngineNotice | null;
 }
@@ -30,6 +38,7 @@ const INITIAL: EngineStatus = {
   connection: 'idle',
   model: 'idle',
   modelName: null,
+  inference: 'local',
   notice: null,
 };
 
@@ -71,7 +80,12 @@ export class EngineStatusStore {
 }
 
 function isSameState(a: EngineStatus, b: EngineStatus): boolean {
-  return a.connection === b.connection && a.model === b.model && a.modelName === b.modelName;
+  return (
+    a.connection === b.connection &&
+    a.model === b.model &&
+    a.modelName === b.modelName &&
+    a.inference === b.inference
+  );
 }
 
 /** Single instance, like the bridge manager and the settings manager. */

@@ -69,8 +69,8 @@ describe('intercepted TLS hosts', () => {
     for (const host of MAJSOUL_CLIENT_HOSTS) expect(hostnames).toContain(host);
   });
 
-  it('leaves the analytics endpoint alone, which the browser blocks instead', () => {
-    expect(hostnames).not.toContain('*.log.aliyuncs.com');
+  it('decrypts the analytics endpoint so external clients get their beacons dropped', () => {
+    expect(hostnames).toContain('*.log.aliyuncs.com');
   });
 
   it('never decrypts the whole publisher domain', () => {

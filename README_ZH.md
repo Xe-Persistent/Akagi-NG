@@ -212,6 +212,7 @@ Akagi-NG 支持通过中间人攻击 (MITM) 方式截获游戏数据，这允许
      - 域名通配符：`*.maj-soul.com  ->  Akagi-Mitm`
      - 域名通配符：`*.majsoul.com  ->  Akagi-Mitm`
      - 域名通配符：`*.mahjongsoul.com  ->  Akagi-Mitm`
+     - 域名通配符：`*.log.aliyuncs.com  ->  Akagi-Mitm`
      - 域名：`mahjongsoul.game.yo-star.com  ->  Akagi-Mitm`
    - **默认规则**：
      - 选择 **[系统代理]**，然后点击 **应用选项** 保存。

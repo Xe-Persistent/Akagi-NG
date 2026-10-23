@@ -10,7 +10,8 @@ function fakeSession() {
       details: { url: string },
       callback: (response: { cancel?: boolean }) => void,
     ) => void;
-  } = {};
+    registrations: number;
+  } = { registrations: 0 };
 
   const session = {
     webRequest: {
@@ -20,6 +21,7 @@ function fakeSession() {
       ) => {
         registered.filter = filter;
         registered.listener = listener;
+        registered.registrations += 1;
       },
     },
   };
@@ -51,5 +53,15 @@ describe('blocking the game telemetry', () => {
     );
 
     expect(response).toEqual({ cancel: true });
+  });
+
+  it('wires a reopened window session only once', () => {
+    const { session, registered } = fakeSession();
+    const target = session as unknown as Electron.Session;
+
+    blockTelemetry(target);
+    blockTelemetry(target);
+
+    expect(registered.registrations).toBe(1);
   });
 });

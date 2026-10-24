@@ -164,10 +164,15 @@ export class EngineService {
     if (ev.type === 'tsumo' && ev.actor === this.playerId) return true;
     if (ev.type === 'dahai' && ev.actor !== this.playerId) return true;
     // A chi/pon leaves us on turn with no draw, so the discard has to be
-    // recommended right away; no later event triggers it.
-    if (ev.type === 'chi' || ev.type === 'pon') return true;
-    // Someone else's kakan can be robbed; after our own we draw and discard.
-    if (ev.type === 'kakan' || ev.type === 'kita') return true;
+    // recommended right away; no later event triggers it. Another seat's call is
+    // not our turn — nothing of ours is legal while they hold the table.
+    if ((ev.type === 'chi' || ev.type === 'pon') && ev.actor === this.playerId) return true;
+    // Either seat: another's kakan opens the chankan window, our own is followed
+    // by the replacement draw.
+    if (ev.type === 'kakan') return true;
+    // Either seat, for the same reason: another's nukidora is the 胡抜北 window,
+    // our own draws the replacement tile.
+    if (ev.type === 'kita') return true;
     return false;
   }
 

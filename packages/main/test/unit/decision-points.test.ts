@@ -90,6 +90,14 @@ describe('the points the engine is asked at', () => {
   it.each([
     ['our own discard', { type: 'dahai', actor: SEAT, pai: '3p', tsumogiri: false }],
     ['another draw', { type: 'tsumo', actor: 2, pai: '?' }],
+    [
+      "another seat's chi, which leaves us with nothing to act on",
+      { type: 'chi', actor: 2, target: 3, pai: '3p', consumed: ['4p', '5p'] },
+    ],
+    [
+      "another seat's pon, which leaves us with nothing to act on",
+      { type: 'pon', actor: 2, target: 3, pai: '3p', consumed: ['3p', '3p'] },
+    ],
     ['a riichi declaration', { type: 'reach', actor: 2 }],
     ['an accepted riichi', { type: 'reach_accepted', actor: 2 }],
     ['a new dora', { type: 'dora', dora_marker: '5s' }],

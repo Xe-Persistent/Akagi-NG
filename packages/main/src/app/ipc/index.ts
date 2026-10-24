@@ -15,7 +15,7 @@ export function registerIpcHandlers(
   mitmProxyManager: MitmProxyManager,
 ) {
   registerWindowHandlers(windowManager);
-  registerSettingsHandlers(mitmProxyManager, windowManager);
-  registerOnlineHandlers();
+  registerSettingsHandlers(mitmProxyManager, windowManager, engine);
+  registerOnlineHandlers(engine);
   registerSystemHandlers(windowManager, engine);
 }

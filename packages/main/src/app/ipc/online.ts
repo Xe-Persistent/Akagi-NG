@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
+import type { EngineService } from '../../services/engine/engine-service.js';
 import {
   clampReactTimeout,
   DEFAULT_BASE_URL,
@@ -55,6 +56,12 @@ function clientFor(apiKey: string): InferenceClient {
   });
 }
 
+/** The text an IPC sender meant to send, or a rejection naming what is missing. */
+function requireText(value: unknown, missing: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(missing);
+  return value;
+}
+
 /**
  * The online model's management surface: key handling, the plan and model
  * lists, health, redemption and the Creem purchase flow.
@@ -64,7 +71,7 @@ function clientFor(apiKey: string): InferenceClient {
  * last four characters. Inference itself is not here — the decision path calls
  * the service directly.
  */
-export function registerOnlineHandlers() {
+export function registerOnlineHandlers(engine: EngineService) {
   const purchases = new PurchaseManager({ getBaseUrl: () => DEFAULT_BASE_URL });
 
   ipcMain.handle('online:key-info', (): KeyInfo => readKeyInfo());
@@ -73,14 +80,16 @@ export function registerOnlineHandlers() {
    *  surface as a silent fallback mid-game. */
   ipcMain.handle('online:set-key', (_event, key: unknown): Promise<OnlineResult<KeyStatus>> => {
     return attempt('Storing the API key', async () => {
-      if (typeof key !== 'string' || !key.trim()) throw new Error('The API key is empty');
+      const apiKey = requireText(key, 'The API key is empty');
       if (!isEncryptionAvailable()) {
         throw new Error('Secure credential storage is unavailable on this system');
       }
 
-      const client = clientFor(key);
+      const client = clientFor(apiKey);
       const status = await client.keyStatus();
-      writeApiKey(key);
+      writeApiKey(apiKey);
+      // A stored key can make MJOT the answering model from the next decision.
+      engine.refreshInferenceSource();
       return status;
     });
   });
@@ -88,6 +97,7 @@ export function registerOnlineHandlers() {
   ipcMain.handle('online:clear-key', () => {
     clearApiKey();
     purchases.cancel();
+    engine.refreshInferenceSource();
     return readKeyInfo();
   });
 
@@ -120,7 +130,7 @@ export function registerOnlineHandlers() {
       renew: unknown,
     ): Promise<OnlineResult<RedeemOutcome>> => {
       return attempt('Redeeming the code', async () => {
-        if (typeof code !== 'string' || !code.trim()) throw new Error('The code is empty');
+        const redeemCode = requireText(code, 'The code is empty');
         const options: { email?: string; renewKey?: string } = {};
         if (typeof email === 'string' && email.trim()) options.email = email;
 
@@ -132,10 +142,12 @@ export function registerOnlineHandlers() {
           options.renewKey = existing;
         }
 
-        const result = await clientFor('').redeem(code, options);
+        const result = await clientFor('').redeem(redeemCode, options);
         // A renewal carries no new key: the service extended the one we sent.
         if (result.key) {
           writeApiKey(result.key);
+          // Redeeming is the other way a key appears, so the badge has to follow.
+          engine.refreshInferenceSource();
         } else if (!result.extended) {
           throw new Error('The code was accepted but no key was returned');
         }
@@ -160,8 +172,7 @@ export function registerOnlineHandlers() {
 
   ipcMain.handle('online:start-purchase', (_event, product: unknown) => {
     return attempt('Starting the checkout', async () => {
-      if (typeof product !== 'string') throw new Error('Unknown product');
-      return purchases.start(product);
+      return purchases.start(requireText(product, 'Unknown product'));
     });
   });
 
@@ -175,6 +186,11 @@ export function registerOnlineHandlers() {
   });
 
   ipcMain.handle('online:poll-purchase', () =>
-    attempt('Polling the checkout', () => purchases.poll()),
+    attempt('Polling the checkout', async () => {
+      const status = await purchases.poll();
+      // A settled purchase stores the key it was polled for.
+      if (status.stored) engine.refreshInferenceSource();
+      return status;
+    }),
   );
 }

@@ -117,6 +117,14 @@ export class EngineService {
     engineStatus.set({ connection: 'connected', inference: this.inferenceSource() });
   }
 
+  /**
+   * Re-reads which model answers, for the edits that change it without a new
+   * game: the online switch and the stored key.
+   */
+  public refreshInferenceSource() {
+    engineStatus.set({ inference: this.inferenceSource() });
+  }
+
   public gameDisconnected(gameEnded: boolean) {
     this.cloud.cancel();
     engineStatus.set({ connection: 'idle' });

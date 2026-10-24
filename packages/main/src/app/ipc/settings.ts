@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 
 import { createLogger, setLogLevel } from '../../logging/index.js';
 import type { MitmProxyManager } from '../../services/capture/mitm-proxy.js';
+import type { EngineService } from '../../services/engine/engine-service.js';
 import type { AppSettings } from '../../services/settings-manager.js';
 import { getSettingsManager } from '../../services/settings-manager.js';
 import { errorMessage } from '../../shared/errors.js';
@@ -18,6 +19,7 @@ const logger = createLogger('IPC');
 async function applyRuntimeSettings(
   mitmProxyManager: MitmProxyManager,
   windowManager: WindowManager,
+  engine: EngineService,
   before: AppSettings,
   after: AppSettings,
 ): Promise<void> {
@@ -33,6 +35,12 @@ async function applyRuntimeSettings(
     // The open window still points at the old port, or at a proxy that just
     // stopped, so it has to be re-pointed.
     await windowManager.syncGameWindowProxy(after.mitm.enabled);
+  }
+
+  // The switch decides which model answers, so the status has to say so
+  // immediately rather than at the next game.
+  if (before.ot.online !== after.ot.online) {
+    engine.refreshInferenceSource();
   }
 
   if (before.locale !== after.locale) {
@@ -52,6 +60,7 @@ function isSameMitmConfig(before: AppSettings, after: AppSettings): boolean {
 export function registerSettingsHandlers(
   mitmProxyManager: MitmProxyManager,
   windowManager: WindowManager,
+  engine: EngineService,
 ) {
   const settingsManager = getSettingsManager();
 
@@ -66,6 +75,7 @@ export function registerSettingsHandlers(
       await applyRuntimeSettings(
         mitmProxyManager,
         windowManager,
+        engine,
         before,
         settingsManager.getSettings(),
       );
@@ -79,7 +89,7 @@ export function registerSettingsHandlers(
   ipcMain.handle('settings:reset', async () => {
     const before = settingsManager.getSettings();
     const after = settingsManager.resetSettings();
-    await applyRuntimeSettings(mitmProxyManager, windowManager, before, after);
+    await applyRuntimeSettings(mitmProxyManager, windowManager, engine, before, after);
     return after;
   });
 

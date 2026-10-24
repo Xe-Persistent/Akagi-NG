@@ -1,3 +1,5 @@
+import type { Session } from 'electron';
+
 import { createLogger } from '../../logging/index.js';
 
 const logger = createLogger('Telemetry');
@@ -39,7 +41,7 @@ export function isTelemetryBeacon(url: string): boolean {
 }
 
 /** Sessions already wired, so reopening the game window cannot add a listener. */
-const blockedSessions = new WeakSet<Electron.Session>();
+const blockedSessions = new WeakSet<Session>();
 
 /**
  * Drops the game's telemetry for everything this session loads. Covers both
@@ -50,7 +52,7 @@ const blockedSessions = new WeakSet<Electron.Session>();
  * The page sees `net::ERR_BLOCKED_BY_CLIENT`, the same failure an ad blocker
  * produces.
  */
-export function blockTelemetry(target: Electron.Session): void {
+export function blockTelemetry(target: Session): void {
   if (blockedSessions.has(target)) return;
   blockedSessions.add(target);
 

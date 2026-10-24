@@ -1,3 +1,4 @@
+import type { Session } from 'electron';
 import { describe, expect, it } from 'vitest';
 
 import { blockTelemetry } from '../../src/services/capture/telemetry.js';
@@ -33,7 +34,7 @@ describe('blocking the game telemetry', () => {
   it('watches the whole Aliyun SLS service domain', () => {
     const { session, registered } = fakeSession();
 
-    blockTelemetry(session as unknown as Electron.Session);
+    blockTelemetry(session as unknown as Session);
 
     // Chromium match patterns match `log.aliyuncs.com` and any depth below it,
     // and never a lookalike such as `log.aliyuncs.com.evil.test`.
@@ -42,7 +43,7 @@ describe('blocking the game telemetry', () => {
 
   it('cancels every request it is handed', () => {
     const { session, registered } = fakeSession();
-    blockTelemetry(session as unknown as Electron.Session);
+    blockTelemetry(session as unknown as Session);
 
     let response: { cancel?: boolean } | undefined;
     registered.listener?.(
@@ -57,7 +58,7 @@ describe('blocking the game telemetry', () => {
 
   it('wires a reopened window session only once', () => {
     const { session, registered } = fakeSession();
-    const target = session as unknown as Electron.Session;
+    const target = session as unknown as Session;
 
     blockTelemetry(target);
     blockTelemetry(target);

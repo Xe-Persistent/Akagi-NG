@@ -5,6 +5,7 @@ import { safeStorage } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
 import { getProjectRoot } from '../../shared/paths.js';
+import { isRecord } from '../../shared/utils.js';
 import type { KeyInfo } from './types.js';
 
 const logger = createLogger('SecretStore');
@@ -104,8 +105,8 @@ function readStore(): Record<string, string> {
   if (!existsSync(path)) return {};
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
-    const entries = Object.entries(parsed as Record<string, unknown>).filter(
+    if (!isRecord(parsed)) return {};
+    const entries = Object.entries(parsed).filter(
       (entry): entry is [string, string] => typeof entry[1] === 'string',
     );
     return Object.fromEntries(entries);

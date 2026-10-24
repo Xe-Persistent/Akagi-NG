@@ -1,6 +1,7 @@
 import { shell } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
+import { isRecord } from '../../shared/utils.js';
 import { InferenceClient, isCreemUrl } from './inference-client.js';
 import { clearSecret, readSecret, writeApiKey, writeSecret } from './secret-store.js';
 import type { CheckoutState } from './types.js';
@@ -175,13 +176,8 @@ export class PurchaseManager {
     if (!raw) return null;
 
     try {
-      const parsed = JSON.parse(raw) as Partial<PendingCheckout>;
-      if (
-        typeof parsed.checkoutId !== 'string' ||
-        typeof parsed.claimSecret !== 'string' ||
-        typeof parsed.product !== 'string' ||
-        typeof parsed.startedAt !== 'number'
-      ) {
+      const parsed: unknown = JSON.parse(raw);
+      if (!isPendingCheckout(parsed)) {
         this.clearPending();
         return null;
       }
@@ -189,6 +185,8 @@ export class PurchaseManager {
         this.clearPending();
         return null;
       }
+      // Rebuilt field by field so a stray key in the file never comes back out
+      // of `storePending`.
       this.pending = {
         checkoutId: parsed.checkoutId,
         claimSecret: parsed.claimSecret,
@@ -215,4 +213,15 @@ export class PurchaseManager {
 
 function emptyStatus(status: CheckoutState): PurchaseStatus {
   return { status, plan: '', expiresAt: '', days: 0, stored: false };
+}
+
+/** A resumed checkout is only as trustworthy as every field it is rebuilt from. */
+function isPendingCheckout(value: unknown): value is PendingCheckout {
+  return (
+    isRecord(value) &&
+    typeof value.checkoutId === 'string' &&
+    typeof value.claimSecret === 'string' &&
+    typeof value.product === 'string' &&
+    typeof value.startedAt === 'number'
+  );
 }

@@ -1,3 +1,4 @@
+import { isRecord } from '../../shared/utils.js';
 import type {
   CheckoutCreated,
   CheckoutResult,
@@ -317,10 +318,6 @@ export class InferenceClient {
 }
 
 // ===== Parsing helpers =====
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');

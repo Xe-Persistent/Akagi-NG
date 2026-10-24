@@ -206,6 +206,23 @@ export class SerializedFile {
   }
 }
 
+/**
+ * Whether a serialized type carries a script id before its old type hash.
+ *
+ * Unity's three ways to say "this type is backed by a script": a reference type
+ * with a script index, a pre-16 file that flags it with a negative class id, and
+ * a v16+ file whose type is a MonoBehaviour.
+ */
+function hasScriptId(
+  version: number,
+  classId: number,
+  isRefType: boolean,
+  scriptTypeIndex: number,
+): boolean {
+  if (isRefType && scriptTypeIndex >= 0) return true;
+  return version < 16 ? classId < 0 : classId === ClassId.MonoBehaviour;
+}
+
 function readSerializedType(
   reader: ByteReader,
   version: number,
@@ -217,11 +234,7 @@ function readSerializedType(
   const scriptTypeIndex = version >= 17 ? reader.i16() : -1;
 
   if (version >= 13) {
-    if (
-      (isRefType && scriptTypeIndex >= 0) ||
-      (version < 16 && classId < 0) ||
-      (version >= 16 && classId === ClassId.MonoBehaviour)
-    ) {
+    if (hasScriptId(version, classId, isRefType, scriptTypeIndex)) {
       reader.readBytes(HASH128_SIZE); // Script id
     }
     reader.readBytes(HASH128_SIZE); // Old type hash

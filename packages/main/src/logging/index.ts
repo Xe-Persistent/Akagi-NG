@@ -94,8 +94,8 @@ async function cleanupOldLogs(logsDir: string) {
     const now = Date.now();
 
     for (const file of files) {
-      const ours = file.startsWith(LOG_FILE_PREFIX);
-      if (!ours || !file.endsWith('.log')) continue;
+      const isOurLog = file.startsWith(LOG_FILE_PREFIX) && file.endsWith('.log');
+      if (!isOurLog) continue;
 
       const filePath = join(logsDir, file);
       const stats = await stat(filePath);

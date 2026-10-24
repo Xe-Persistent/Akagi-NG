@@ -5,6 +5,7 @@ import * as protobuf from 'protobufjs';
 import { createLogger } from '../../logging/index.js';
 import { errorMessage } from '../../shared/errors.js';
 import { getAssetPath } from '../../shared/paths.js';
+import { isRecord } from '../../shared/utils.js';
 
 const logger = createLogger('Liqi');
 
@@ -166,21 +167,18 @@ function toCamelCase(value: unknown): unknown {
     return value.map((item) => toCamelCase(item));
   }
 
-  if (
-    value &&
-    typeof value === 'object' &&
-    !Buffer.isBuffer(value) &&
-    !(value instanceof Uint8Array)
-  ) {
-    const result: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      result[key.replace(/_([a-z0-9])/g, (_, char: string) => char.toUpperCase())] =
-        toCamelCase(item);
-    }
-    return result;
+  // A binary blob is a value, not a message to rewrite. Buffers are objects and
+  // a `Uint8Array` too, so the record check alone would walk their indices.
+  if (!isRecord(value) || value instanceof Uint8Array) {
+    return value;
   }
 
-  return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    result[key.replace(/_([a-z0-9])/g, (_, char: string) => char.toUpperCase())] =
+      toCamelCase(item);
+  }
+  return result;
 }
 
 export class LiqiProto {

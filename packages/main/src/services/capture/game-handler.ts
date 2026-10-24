@@ -43,9 +43,17 @@ export class GameHandler {
    * Kept in a field so `detach()` can unregister it.
    */
   private readonly onDidFinishLoad = () => {
-    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
+    if (!this.attachable) return;
     setTimeout(() => void this.tryAttach(), 500);
   };
+
+  /**
+   * Attaching is only meaningful once: not after `detach()`, not while a session
+   * is live, and never to a page that is already gone.
+   */
+  private get attachable(): boolean {
+    return !this.disposed && !this.attached && !this.webContents.isDestroyed();
+  }
 
   constructor(
     private webContents: WebContents,
@@ -55,7 +63,7 @@ export class GameHandler {
   }
 
   public attach(): void {
-    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
+    if (!this.attachable) return;
 
     try {
       this.webContents.on('render-process-gone', (_event, details) => {
@@ -80,7 +88,7 @@ export class GameHandler {
   }
 
   private tryAttach(): void {
-    if (this.disposed || this.attached || this.webContents.isDestroyed()) return;
+    if (!this.attachable) return;
 
     try {
       if (this.webContents.debugger.isAttached()) {

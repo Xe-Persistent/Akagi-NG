@@ -45,6 +45,10 @@ export const PROTO_TYPE_NAMES: Record<number, string> = {
 
 const LUA_XOR_KEY = Buffer.from('wrelupqezdfrqdsd', 'ascii');
 
+/** Property values come out of a regex capture, so they are `unknown` until checked. */
+const isString = (value: unknown): value is string => typeof value === 'string';
+const isNumber = (value: unknown): value is number => typeof value === 'number';
+
 export interface ProtoField {
   name: string;
   number: number;
@@ -186,30 +190,11 @@ export function parseLuaModule(moduleName: string, source: string): ProtoModule 
 
   for (const [varName, message] of messagesByVar) {
     const own = props.get(varName) as Map<string, unknown>;
-    const fieldVars = asStringArray(own.get('fields'));
-    for (const fieldVar of fieldVars) {
+    for (const fieldVar of asStringArray(own.get('fields'))) {
       if (kinds.get(fieldVar) !== 'field') continue;
       const fieldProps = props.get(fieldVar);
-      if (!fieldProps) continue;
-      const name = fieldProps.get('name');
-      const number = fieldProps.get('number');
-      const label = fieldProps.get('label');
-      const type = fieldProps.get('type');
-      if (typeof name !== 'string') continue;
-      if (typeof number !== 'number' || typeof label !== 'number' || typeof type !== 'number') {
-        continue;
-      }
-      message.fields.push({
-        name,
-        number,
-        label,
-        typeCode: type,
-        index:
-          typeof fieldProps.get('index') === 'number' ? (fieldProps.get('index') as number) : 0,
-        typeRef:
-          (fieldProps.get('message_type') as string | undefined) ??
-          (fieldProps.get('enum_type') as string | undefined),
-      });
+      const field = fieldProps ? parseField(fieldProps) : null;
+      if (field) message.fields.push(field);
     }
     message.fields.sort((a, b) => a.number - b.number);
 
@@ -276,7 +261,7 @@ function parseEnums(
     const own = props.get(varName) as Map<string, unknown>;
     const name = own.get('name');
     const fullName = own.get('full_name');
-    if (typeof name !== 'string' || typeof fullName !== 'string') continue;
+    if (!isString(name) || !isString(fullName)) continue;
 
     const parsed: ProtoEnum = { varName, name, fullName, values: [] };
     for (const valueVar of asStringArray(own.get('values'))) {
@@ -285,12 +270,12 @@ function parseEnums(
       if (!valueProps) continue;
       const valueName = valueProps.get('name');
       const valueNumber = valueProps.get('number');
-      if (typeof valueName !== 'string' || typeof valueNumber !== 'number') continue;
+      if (!isString(valueName) || !isNumber(valueNumber)) continue;
       const index = valueProps.get('index');
       parsed.values.push({
         name: valueName,
         number: valueNumber,
-        index: typeof index === 'number' ? index : 0,
+        index: isNumber(index) ? index : 0,
       });
     }
     parsed.values.sort((a, b) => a.index - b.index);
@@ -309,7 +294,7 @@ function parseMessages(
     const own = props.get(varName) as Map<string, unknown>;
     const name = own.get('name');
     const fullName = own.get('full_name');
-    if (typeof name !== 'string' || typeof fullName !== 'string') continue;
+    if (!isString(name) || !isString(fullName)) continue;
     messages.set(varName, {
       varName,
       name,
@@ -317,10 +302,37 @@ function parseMessages(
       fields: [],
       nestedMessages: [],
       nestedEnums: [],
-      hasContainingType: typeof own.get('containing_type') === 'string',
+      hasContainingType: isString(own.get('containing_type')),
     });
   }
   return messages;
+}
+
+/**
+ * One `FieldDescriptor` declaration, or null when the script left out a property
+ * the descriptor cannot be built without.
+ */
+function parseField(props: Map<string, unknown>): ProtoField | null {
+  const name = props.get('name');
+  const number = props.get('number');
+  const label = props.get('label');
+  const typeCode = props.get('type');
+  if (!isString(name) || !isNumber(number) || !isNumber(label) || !isNumber(typeCode)) {
+    return null;
+  }
+
+  const index = props.get('index');
+  const messageType = props.get('message_type');
+  const enumType = props.get('enum_type');
+
+  return {
+    name,
+    number,
+    label,
+    typeCode,
+    index: isNumber(index) ? index : 0,
+    typeRef: isString(messageType) ? messageType : isString(enumType) ? enumType : undefined,
+  };
 }
 
 function resolveReference(

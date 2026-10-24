@@ -276,17 +276,18 @@ export class MajsoulBridge extends BaseBridge {
   }
 
   /**
-   * One `hora` per win the settlement reports. A ron is charged to whoever
-   * discarded last; a self-draw has no target.
+   * One `hora` per win the settlement reports. A ron is charged to the seat whose
+   * action revealed the winning tile -- a discard, or the tile a kan declared;
+   * a self-draw has no target.
    */
   private horaEvents(action: ActionPrototype, scores: number[]): MJAIEvent[] {
     const deltas = (action.data.deltaScores as number[] | undefined) ?? [];
 
     return this.readWins(action).map((win) => {
-      if (!win.zimo && this.state.lastDiscarder === null) {
-        logger.warn(`Ron in ${action.name} without a discard to attribute it to.`);
+      if (!win.zimo && this.state.lastRevealedTile === null) {
+        logger.warn(`Ron in ${action.name} without a revealed tile to attribute it to.`);
       }
-      const target = win.zimo ? win.seat : (this.state.lastDiscarder ?? win.seat);
+      const target = win.zimo ? win.seat : (this.state.lastRevealedTile ?? win.seat);
 
       return this.makeHora(win.seat, target, toMjaiTile(win.pai), scores, deltas);
     });
@@ -458,7 +459,7 @@ export class MajsoulBridge extends BaseBridge {
   private handleDiscardTile(action: ActionPrototype): MJAIEvent[] {
     const data = action.data;
     const actor = data.seat as number;
-    this.state.lastDiscarder = actor;
+    this.state.lastRevealedTile = actor;
 
     const pai = toMjaiTile(data.tile as string);
     const tsumogiri = data.moqie as boolean;
@@ -534,6 +535,9 @@ export class MajsoulBridge extends BaseBridge {
   private handleAnGangAddGang(action: ActionPrototype): MJAIEvent[] {
     const data = action.data;
     const actor = data.seat as number;
+    // The declared tile is in front of the table: it can be robbed (槍槓, and
+    // kokushi on a closed kan), so it becomes the target a later ron pays from.
+    this.state.lastRevealedTile = actor;
     const pai = toMjaiTile(data.tiles as string);
 
     switch (data.type) {
@@ -555,10 +559,14 @@ export class MajsoulBridge extends BaseBridge {
   /**
    * The tiles a kan consumes, with the red-five flag kept on the first copy.
    *
-   * A closed kan takes all its tiles from the hand, so a declared suit five
-   * (red or not) means a red copy is assumed present. An added kan's consumed
-   * list is the pon already on the table while `pai` is the tile just added, so
-   * a red `pai` is not part of it.
+   * A suit five only has four copies, so a closed kan of one always holds the red
+   * copy: declaring it is arithmetic, not a guess. An added kan's `consumed` is
+   * the pon already on the table while `pai` is the tile just added, so the red
+   * sits in whichever of the two it belongs to.
+   *
+   * The HUD draws a closed kan with the red five second from the left and turns
+   * the outer two tiles face-down; keeping the flag on the tiles is what lets it
+   * place the red at all.
    */
   private buildKanTiles(pai: string, kind: 'closed' | 'added'): string[] {
     const count = kind === 'closed' ? MELD_TILE_COUNTS.ankan : MELD_TILE_COUNTS.kakan;
@@ -572,6 +580,9 @@ export class MajsoulBridge extends BaseBridge {
     const data = action.data;
     const actor = data.seat as number;
     this.state.onNukidora(actor);
+    // 胡抜北: the pulled north is in front of the table, so a sanma ron on it is
+    // charged to whoever pulled it.
+    this.state.lastRevealedTile = actor;
     return [this.makeNukidora(actor)];
   }
 

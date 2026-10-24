@@ -217,4 +217,45 @@ describe('MajsoulBridge', () => {
       expect(output.events).toEqual([]);
     });
   });
+
+  describe('a ron on a tile a kan revealed', () => {
+    /** Seat 1 declares the kan; we are seat 0 and win on the tile it revealed. */
+    function ronAfterKan(kan: { type: number }): MJAIEvent[] {
+      const { bridge } = openRound();
+      // Seat 2 discards first, so a ron charged to "the last discarder" would
+      // name the wrong seat.
+      bridge.parse(actionFrame('ActionDiscardTile', { seat: 2, tile: '9s', moqie: false }));
+      bridge.parse(actionFrame('ActionAnGangAddGang', { seat: 1, tiles: '9s', ...kan }));
+
+      return bridge.parse(
+        actionFrame('ActionHule', {
+          hules: [{ seat: 0, hu_tile: '9s', zimo: false }],
+          delta_scores: [8000, -8000, 0, 0],
+        }),
+      ).events;
+    }
+
+    it('charges the win to the seat that added to its pon', () => {
+      expect(ronAfterKan({ type: 2 })[0]).toMatchObject({ type: 'hora', actor: 0, target: 1 });
+    });
+
+    it('charges a win on a closed kan to the seat that closed it', () => {
+      expect(ronAfterKan({ type: 3 })[0]).toMatchObject({ type: 'hora', actor: 0, target: 1 });
+    });
+
+    it('charges a win on a pulled north to the seat that pulled it', () => {
+      const { bridge } = openRound();
+      bridge.parse(actionFrame('ActionDiscardTile', { seat: 2, tile: '9s', moqie: false }));
+      bridge.parse(actionFrame('ActionBaBei', { seat: 1 }));
+
+      const events = bridge.parse(
+        actionFrame('ActionHule', {
+          hules: [{ seat: 0, hu_tile: '4z', zimo: false }],
+          delta_scores: [8000, -8000, 0, 0],
+        }),
+      ).events;
+
+      expect(events[0]).toMatchObject({ type: 'hora', actor: 0, target: 1 });
+    });
+  });
 });

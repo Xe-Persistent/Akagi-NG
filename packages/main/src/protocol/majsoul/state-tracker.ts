@@ -16,8 +16,12 @@ export class MajsoulStateTracker {
   public is3p = false;
   public gameEnded = false;
 
-  /** The seat that discarded last: a ron pays from this seat. */
-  public lastDiscarder: number | null = null;
+  /**
+   * The seat whose last action put a tile in front of us that a ron could take:
+   * a discard, or the tile a kan revealed (槍槓 on an added kan, 国士無双 on a
+   * closed one). `HuleInfo` carries no target seat, so a ron is charged here.
+   */
+  public lastRevealedTile: number | null = null;
   public doras: string[] = [];
   /** The game reports `xuezhandaodi`: rounds swap three tiles and do not stop at the first win. */
   public isXuezhan = false;
@@ -49,7 +53,7 @@ export class MajsoulStateTracker {
     this.is3p = false;
     this.isXuezhan = false;
     this.gameEnded = false;
-    this.lastDiscarder = null;
+    this.lastRevealedTile = null;
     this.doras = [];
     this.hand.reset(Array<string>(MAHJONG.TEHAI_SIZE).fill(MAHJONG.UNKNOWN_TILE));
     this.hand.setPending(null);
@@ -68,6 +72,9 @@ export class MajsoulStateTracker {
    * the tile list has an unexpected length.
    */
   public setupNewRound(tiles: string[]): { tehais: string[][]; myTsumohai: string | null } | null {
+    // A ron can only be charged to a tile revealed in the same round.
+    this.lastRevealedTile = null;
+
     const tehais = Array.from({ length: MAHJONG.SEATS_4P }, () =>
       Array<string>(MAHJONG.TEHAI_SIZE).fill(MAHJONG.UNKNOWN_TILE),
     );

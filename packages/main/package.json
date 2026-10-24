@@ -1,7 +1,7 @@
 {
   "name": "@akagi-ng/main",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Akagi-NG Electron Desktop App",
   "author": "Akagi-NG Contributors",
   "license": "AGPL-3.0",
@@ -17,7 +17,7 @@
     "@akagi-ng/rust-engine": "*",
     "electron-log": "^5.4.4",
     "electron-store": "^12.0.0",
-    "mockttp": "^4.6.4",
+    "mockttp": "^4.6.5",
     "protobufjs": "^8.8.1"
   },
   "devDependencies": {

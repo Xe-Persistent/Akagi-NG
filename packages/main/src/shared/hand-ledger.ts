@@ -96,13 +96,17 @@ export class HandLedger {
   }
 
   /**
-   * `count` copies of `tile` from the concealed hand, red five first; `null`
-   * when the hand is short. Read-only, so several candidate calls can ask about
-   * the same hand before one of them is played.
+   * `count` copies of `tile` from the hand, red five first; `null` when the hand
+   * is short. Read-only, so several candidate calls can ask about the same hand
+   * before one of them is played.
+   *
+   * The tile just drawn counts as held even before it is folded in: a kan is
+   * declared on the tile that was just drawn, so a pool of the concealed hand
+   * alone could never pay for one.
    */
   public take(tile: string, count: number): string[] | null {
     const base = tile.replace(MAHJONG.RED_FIVE_SUFFIX, '');
-    const pool = [...this.concealed];
+    const pool = this.drawn === null ? [...this.concealed] : [...this.concealed, this.drawn];
     const picked: string[] = [];
 
     const grab = (wanted: string): boolean => {

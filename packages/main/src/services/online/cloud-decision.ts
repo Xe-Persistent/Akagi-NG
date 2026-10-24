@@ -388,8 +388,19 @@ export function mapCloudDecision(
 
 /** A coarse label resolved into everything it can mean, or the bare mapping. */
 function actionsFor(label: string, context: CloudMappingContext): EngineAction[] {
-  const resolved = context.resolveCall?.(label) ?? [];
-  if (resolved.length > 0) return resolved;
+  const resolve = context.resolveCall;
+  if (resolve) {
+    const resolved = resolve(label);
+    if (resolved.length > 0) return resolved;
+
+    // The layer that knows our hand says the call is not there, so the bare
+    // label would be a card the player cannot act on: `pon` and `chi` name no
+    // tile of their own, and `kan` covers three different kinds.
+    if (CALL_LABELS.has(label)) {
+      logger.debug(`No tiles behind the \`${label}\` label, dropping the row.`);
+      return [];
+    }
+  }
 
   const mapped = coarseToAction(label, context.winTarget);
   return mapped ? [mapped] : [];
@@ -453,6 +464,9 @@ function reactionToAction(
       return null;
   }
 }
+
+/** The labels that only name a call, leaving its tiles to our own hand. */
+const CALL_LABELS = new Set(['pon', 'chi_low', 'chi_mid', 'chi_high', 'kan']);
 
 /**
  * Map a coarse top-k label. `hora` needs a target to say tsumo or ron; the

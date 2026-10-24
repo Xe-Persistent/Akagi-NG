@@ -50,6 +50,26 @@ describe('the hand ledger', () => {
     expect(hand.tiles).toEqual(['5m', '5mr', '5m']);
   });
 
+  it('counts the tile just drawn as held when a call asks for copies', () => {
+    const hand = new HandLedger();
+    hand.setTiles(['1m', '2m']);
+    hand.draw('9p');
+
+    // A kan is declared on the tile just drawn, so the pool cannot be the
+    // concealed hand alone.
+    expect(hand.take('9p', 1)).toEqual(['9p']);
+    expect(hand.pending).toBe('9p');
+    expect(hand.tiles).toEqual(['1m', '2m']);
+  });
+
+  it('still spends the red five first when the drawn tile is the plain one', () => {
+    const hand = new HandLedger();
+    hand.setTiles(['5m', '5m']);
+    hand.draw('5mr');
+
+    expect(hand.take('5m', 3)).toEqual(['5mr', '5m', '5m']);
+  });
+
   it('reports a call the hand cannot pay for', () => {
     const hand = new HandLedger();
     hand.setTiles(['5m', '1p']);

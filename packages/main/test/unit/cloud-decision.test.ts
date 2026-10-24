@@ -482,6 +482,37 @@ describe('mapping a cloud reaction', () => {
     ]);
   });
 
+  it('drops a call label the hand cannot pay for', () => {
+    const decision = mapCloudDecision(
+      { type: 'none' },
+      [
+        { action: 'none', prob: 0.6 },
+        { action: 'kan', prob: 0.4 },
+      ],
+      { resolveCall: () => [] },
+    );
+
+    // A `kan` label names no tile of its own, so a row without one would be a
+    // card the player cannot act on.
+    expect(decision?.candidates).toEqual([[{ type: 'pass' }, 0.6]]);
+  });
+
+  it('keeps a coarse call that names its own kind when no hand is behind it', () => {
+    const decision = mapCloudDecision(
+      { type: 'none' },
+      [
+        { action: 'none', prob: 0.6 },
+        { action: 'pon', prob: 0.4 },
+      ],
+      {},
+    );
+
+    expect(decision?.candidates).toEqual([
+      [{ type: 'pass' }, 0.6],
+      [{ type: 'pon' }, 0.4],
+    ]);
+  });
+
   it('does not call the client while the breaker is open', async () => {
     const { cloud, paths } = service({ responses: [new Response('{}', { status: 500 })] });
 

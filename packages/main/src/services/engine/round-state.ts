@@ -1,6 +1,6 @@
 import { HandLedger } from '../../shared/hand-ledger.js';
 import { MAHJONG, MELD_TILE_COUNTS } from '../../shared/schema/mahjong.js';
-import type { MJAIEvent } from '../../shared/schema/mjai.js';
+import type { DahaiEvent, KakanEvent, MJAIEvent } from '../../shared/schema/mjai.js';
 import type { EngineAction } from './recommendation-mapper.js';
 
 /** One call we made; only a pon can still become an added kan. */
@@ -58,19 +58,15 @@ export class RoundState {
   }
 
   /**
-   * @param seat - our seat, when the caller knows it better than the stream
-   *   does; the engine passes the seat it was started with.
+   * @param seat - our seat; mjai carries it beside the events
    */
-  public update(event: MJAIEvent, seat?: number): void {
-    if (event.type === 'start_game') {
-      this.reset();
-      this.seat = seat ?? event.id;
-      this.lastEvent = event;
-      return;
-    }
+  public update(event: MJAIEvent, seat: number): void {
+    // A new game clears the hand, melds and claim window the last one left.
+    if (event.type === 'start_game') this.reset();
 
-    if (seat !== undefined) this.seat = seat;
+    this.seat = seat;
     this.lastEvent = event;
+
     // Only a discard opens a call window; the next event of any kind ends it.
     this.claimable = null;
     if (this.seat < 0) return;
@@ -133,16 +129,15 @@ export class RoundState {
     const event = this.lastEvent;
     if (!event || this.seat < 0) return null;
     if (event.type === 'tsumo' && event.actor === this.seat) return this.seat;
-    if ((event.type === 'dahai' || event.type === 'kakan') && event.actor !== this.seat) {
-      return event.actor;
-    }
+    if (isClaimableFrom(event, this.seat)) return event.actor;
     return null;
   }
 
   /**
    * The concrete actions behind one coarse top-k call label, or an empty list
-   * when the label names no call or the hand cannot support it. A `kan` label
-   * covers every kan, so it can resolve to more than one row.
+   * when the label names no call or the hand cannot support it. Only the calls
+   * this decision point actually offers are returned, so a `kan` label is one
+   * row and never the union of every kan the hand could ever declare.
    */
   public resolveCall(label: string): EngineAction[] {
     switch (label) {
@@ -170,9 +165,7 @@ export class RoundState {
   private trackTiles(event: MJAIEvent): void {
     if (event.type === 'tsumo' && event.actor === this.seat) {
       this.lastDrawnTile = event.pai;
-    } else if (event.type === 'dahai' && event.actor !== this.seat) {
-      this.lastDiscardTile = event.pai;
-    } else if (event.type === 'kakan' && event.actor !== this.seat) {
+    } else if (isClaimableFrom(event, this.seat)) {
       // A robbed kan is a ron on the tile that was added to the meld.
       this.lastDiscardTile = event.pai;
     }
@@ -210,13 +203,18 @@ export class RoundState {
   }
 
   private kanActions(): EngineAction[] {
-    const actions: EngineAction[] = [];
-
-    // An open kan claims the discard still on the table.
+    // An open kan claims the discard still on the table, and is the only kan a
+    // claim window allows: closed and added kans are declared on our own draw.
     if (this.claimable) {
       const open = this.hand.take(this.claimable, MELD_TILE_COUNTS.daiminkan);
-      if (open) actions.push({ type: 'daiminkan', pai: this.claimable, consumed: open });
+      return open ? [{ type: 'daiminkan', pai: this.claimable, consumed: open }] : [];
     }
+
+    // Both remaining kinds are declared on the tile we just drew -- the only
+    // moment `claimable` is null and the hand has not been left to a call.
+    if (!this.onOurDraw()) return [];
+
+    const actions: EngineAction[] = [];
 
     // A closed kan needs all four copies in hand, red five included.
     const seen = new Set<string>();
@@ -238,6 +236,12 @@ export class RoundState {
     return actions;
   }
 
+  /** Whether the decision being answered is our own draw. */
+  private onOurDraw(): boolean {
+    const event = this.lastEvent;
+    return event !== null && event.type === 'tsumo' && event.actor === this.seat;
+  }
+
   private upgradePon(pai: string): void {
     const base = pai.replace(MAHJONG.RED_FIVE_SUFFIX, '');
     const meld = this.melds.find(
@@ -245,4 +249,12 @@ export class RoundState {
     );
     if (meld) meld.type = 'daiminkan';
   }
+}
+
+/**
+ * Whether the event is a tile another seat put in front of us: a discard, or the
+ * tile added to their kan. Both are what a call or a ron would claim.
+ */
+function isClaimableFrom(event: MJAIEvent, seat: number): event is DahaiEvent | KakanEvent {
+  return (event.type === 'dahai' || event.type === 'kakan') && event.actor !== seat;
 }

@@ -15,7 +15,7 @@ const SEAT = 1;
 const OTHER = 0;
 
 function startGame(): MJAIEvent {
-  return { type: 'start_game', id: SEAT, is_3p: false };
+  return { type: 'start_game', names: ['a', 'b', 'c', 'd'], num_players: 4 };
 }
 
 function startKyoku(hand: string[]): MJAIEvent {
@@ -38,10 +38,15 @@ function discard(actor: number, pai: string, tsumogiri = false): MJAIEvent {
   return { type: 'dahai', actor, pai, tsumogiri };
 }
 
+/** The stream never names our seat, so every update is told it. */
+function update(state: RoundState, event: MJAIEvent): void {
+  state.update(event, SEAT);
+}
+
 function withHand(hand: string[]): RoundState {
   const state = new RoundState();
-  state.update(startGame());
-  state.update(startKyoku(hand));
+  update(state, startGame());
+  update(state, startKyoku(hand));
   return state;
 }
 
@@ -62,7 +67,7 @@ describe('our hand behind a coarse call label', () => {
       '2p',
       '3p',
     ]);
-    state.update(discard(OTHER, '5m'));
+    update(state, discard(OTHER, '5m'));
 
     expect(state.resolveCall('pon')).toEqual([{ type: 'pon', pai: '5m', consumed: ['5mr', '5m'] }]);
   });
@@ -70,7 +75,7 @@ describe('our hand behind a coarse call label', () => {
   it('turns each chi label into the pair it claims next to the discard', () => {
     const hand = ['2m', '3m', '5m', '6m', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'];
     const state = withHand(hand);
-    state.update(discard(OTHER, '4m'));
+    update(state, discard(OTHER, '4m'));
 
     expect(state.resolveCall('chi_low')).toEqual([
       { type: 'chi', pai: '4m', consumed: ['5m', '6m'] },
@@ -99,7 +104,7 @@ describe('our hand behind a coarse call label', () => {
       '5p',
       '6p',
     ]);
-    state.update(discard(OTHER, '4m'));
+    update(state, discard(OTHER, '4m'));
 
     expect(state.resolveCall('chi_low')).toEqual([]);
     expect(state.resolveCall('chi_mid')).toEqual([
@@ -123,23 +128,25 @@ describe('our hand behind a coarse call label', () => {
       '3p',
       '4p',
     ]);
-    state.update(discard(OTHER, '1m'));
+    update(state, discard(OTHER, '1m'));
     expect(state.resolveCall('pon')).toHaveLength(1);
 
-    state.update({ type: 'tsumo', actor: SEAT, pai: '9s' });
+    update(state, { type: 'tsumo', actor: SEAT, pai: '9s' });
 
     expect(state.resolveCall('pon')).toEqual([]);
   });
 
-  it('lists every kan a coarse `kan` can mean', () => {
+  it('offers only the kan the claim window allows', () => {
+    // The table offers a 9p. The four 8p are a closed kan that only our own
+    // draw could declare, so it must not become a second row.
     const state = withHand([
-      '2m',
-      '2m',
-      '2m',
-      '2m',
-      '3p',
-      '3p',
-      '3p',
+      '8p',
+      '8p',
+      '8p',
+      '8p',
+      '9p',
+      '9p',
+      '9p',
       'E',
       'E',
       'S',
@@ -147,11 +154,10 @@ describe('our hand behind a coarse call label', () => {
       'P',
       'P',
     ]);
-    state.update(discard(OTHER, '3p'));
+    update(state, discard(OTHER, '9p'));
 
     expect(state.resolveCall('kan')).toEqual([
-      { type: 'daiminkan', pai: '3p', consumed: ['3p', '3p', '3p'] },
-      { type: 'ankan', consumed: ['2m', '2m', '2m', '2m'] },
+      { type: 'daiminkan', pai: '9p', consumed: ['9p', '9p', '9p'] },
     ]);
   });
 
@@ -171,17 +177,75 @@ describe('our hand behind a coarse call label', () => {
       '9m',
       '1p',
     ]);
-    state.update(discard(OTHER, 'E'));
-    state.update({
+    update(state, discard(OTHER, 'E'));
+    update(state, {
       type: 'pon',
       actor: SEAT,
       target: OTHER,
       pai: 'E',
       consumed: ['E', 'E'],
     });
-    state.update(discard(OTHER, '9s'));
+
+    // Another player's discard cannot be answered with an added kan.
+    update(state, discard(OTHER, '9s'));
+    expect(state.resolveCall('kan')).toEqual([]);
+
+    update(state, { type: 'tsumo', actor: SEAT, pai: '9s' });
+    expect(state.resolveCall('kan')).toEqual([{ type: 'kakan', pai: 'E', consumed: ['E'] }]);
+  });
+
+  it('adds the tile just drawn to a pon on the table', () => {
+    const state = withHand([
+      'E',
+      'E',
+      '1m',
+      '2m',
+      '3m',
+      '4m',
+      '5m',
+      '6m',
+      '7m',
+      '8m',
+      '9m',
+      '1p',
+      '2p',
+    ]);
+    update(state, discard(OTHER, 'E'));
+    update(state, {
+      type: 'pon',
+      actor: SEAT,
+      target: OTHER,
+      pai: 'E',
+      consumed: ['E', 'E'],
+    });
+    // The fourth copy arrives on the draw, which is the only moment a kan is on
+    // offer: the hand has nothing left to pay with.
+    update(state, { type: 'tsumo', actor: SEAT, pai: 'E' });
 
     expect(state.resolveCall('kan')).toEqual([{ type: 'kakan', pai: 'E', consumed: ['E'] }]);
+  });
+
+  it('closes a kan on the tile just drawn', () => {
+    const state = withHand([
+      '3p',
+      '3p',
+      '3p',
+      '1m',
+      '2m',
+      '4m',
+      '5m',
+      '6m',
+      '7m',
+      '8m',
+      '9m',
+      '1s',
+      '2s',
+    ]);
+    update(state, { type: 'tsumo', actor: SEAT, pai: '3p' });
+
+    expect(state.resolveCall('kan')).toEqual([
+      { type: 'ankan', consumed: ['3p', '3p', '3p', '3p'] },
+    ]);
   });
 
   it('folds the draw into the hand before reading it', () => {
@@ -200,8 +264,11 @@ describe('our hand behind a coarse call label', () => {
       '1s',
       '2s',
     ]);
-    state.update({ type: 'tsumo', actor: SEAT, pai: '3p' });
-    state.update(discard(SEAT, '1m'));
+    update(state, { type: 'tsumo', actor: SEAT, pai: '3p' });
+    update(state, discard(SEAT, '1m'));
+    // The next draw would overwrite the pending tile if it had not been folded
+    // into the hand by the discard.
+    update(state, { type: 'tsumo', actor: SEAT, pai: '9s' });
 
     expect(state.resolveCall('kan')).toEqual([
       { type: 'ankan', consumed: ['3p', '3p', '3p', '3p'] },
@@ -224,8 +291,8 @@ describe('our hand behind a coarse call label', () => {
       '9m',
       '1p',
     ]);
-    state.update(discard(OTHER, 'E'));
-    state.update({
+    update(state, discard(OTHER, 'E'));
+    update(state, {
       type: 'pon',
       actor: SEAT,
       target: OTHER,
@@ -233,10 +300,11 @@ describe('our hand behind a coarse call label', () => {
       consumed: ['E', 'E'],
     });
 
-    state.update(
+    update(
+      state,
       startKyoku(['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p']),
     );
-    state.update(discard(OTHER, '9s'));
+    update(state, discard(OTHER, '9s'));
 
     expect(state.resolveCall('kan')).toEqual([]);
   });
@@ -248,7 +316,7 @@ describe('the decision context', () => {
   it('names our own seat as the win target on a self-draw', () => {
     const state = withHand(HAND);
 
-    state.update({ type: 'tsumo', actor: SEAT, pai: '5s' });
+    update(state, { type: 'tsumo', actor: SEAT, pai: '5s' });
 
     expect(state.lastDrawn).toBe('5s');
     expect(state.winTarget()).toBe(SEAT);
@@ -257,7 +325,7 @@ describe('the decision context', () => {
   it('names the discarder as the win target on a ron', () => {
     const state = withHand(HAND);
 
-    state.update(discard(OTHER, '3p'));
+    update(state, discard(OTHER, '3p'));
 
     expect(state.lastDiscard).toBe('3p');
     expect(state.winTarget()).toBe(OTHER);
@@ -266,7 +334,7 @@ describe('the decision context', () => {
   it('treats a robbed kan as a ron on the added tile', () => {
     const state = withHand(HAND);
 
-    state.update({ type: 'kakan', actor: OTHER, pai: '7s', consumed: ['7s', '7s', '7s'] });
+    update(state, { type: 'kakan', actor: OTHER, pai: '7s', consumed: ['7s', '7s', '7s'] });
 
     expect(state.lastDiscard).toBe('7s');
     expect(state.winTarget()).toBe(OTHER);
@@ -275,7 +343,7 @@ describe('the decision context', () => {
   it('has no win target on a call of our own', () => {
     const state = withHand(['3m', '5m', ...HAND.slice(2)]);
 
-    state.update({ type: 'chi', actor: SEAT, target: OTHER, pai: '4m', consumed: ['3m', '5m'] });
+    update(state, { type: 'chi', actor: SEAT, target: OTHER, pai: '4m', consumed: ['3m', '5m'] });
 
     expect(state.winTarget()).toBeNull();
   });
@@ -283,7 +351,7 @@ describe('the decision context', () => {
   it('closes the round for us when we win, and reopens it next round', () => {
     const state = withHand(HAND);
 
-    state.update({
+    update(state, {
       type: 'hora',
       actor: SEAT,
       target: SEAT,
@@ -293,7 +361,7 @@ describe('the decision context', () => {
     });
     expect(state.won).toBe(true);
 
-    state.update(startKyoku(HAND));
+    update(state, startKyoku(HAND));
     expect(state.won).toBe(false);
   });
 });

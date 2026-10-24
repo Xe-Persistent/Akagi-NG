@@ -31,8 +31,11 @@ const events: MJAIEvent[] = readFileSync(
   .filter(Boolean)
   .map((line) => JSON.parse(line) as MJAIEvent);
 
-const is3p = (events.find((event) => event.type === 'start_game') as { is_3p: boolean }).is_3p;
-const seat = (events.find((event) => event.type === 'start_game') as { id: number }).id;
+const is3p =
+  (events.find((event) => event.type === 'start_game') as { num_players: number }).num_players ===
+  3;
+/** The seat the fixture was recorded from; mjai carries it beside the stream. */
+const SEAT = 1;
 
 const indexOf = (type: string) => events.findIndex((event) => event.type === type);
 
@@ -46,7 +49,8 @@ describe.skipIf(!hasEngineFor(is3p))('a kakan nobody robs', () => {
 
     try {
       for (const [index, event] of events.entries()) {
-        await engine.ingest([event]);
+        const seat = event.type === 'start_game' ? SEAT : undefined;
+        await engine.ingest([event], false, seat);
         publishedAt[index] = messagesOn('engine:recommendations').length;
       }
     } finally {
@@ -74,7 +78,7 @@ describe.skipIf(!hasEngineFor(is3p))('a kakan nobody robs', () => {
 
     // Someone else's kakan is the window we could rob; our own would only hand
     // the turn back to us.
-    expect(kakan.actor).not.toBe(seat);
+    expect(kakan.actor).not.toBe(SEAT);
     expect(kakan.consumed).toHaveLength(3);
     // The replacement tile turns a new dora indicator, which the stream carries.
     expect(events.slice(indexOf('kakan')).some((event) => event.type === 'dora')).toBe(true);
@@ -104,7 +108,7 @@ describe.skipIf(!hasEngineFor(is3p))('a kakan nobody robs', () => {
 
     expect(published.length).toBeGreaterThan(0);
     for (const event of published) {
-      expect(event).toMatchObject({ type: 'tsumo', actor: seat });
+      expect(event).toMatchObject({ type: 'tsumo', actor: SEAT });
     }
   });
 

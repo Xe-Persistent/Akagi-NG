@@ -1,5 +1,6 @@
 import { createLogger } from '../../logging/index.js';
 import { broadcastToWindows } from '../../shared/broadcast.js';
+import { MAHJONG } from '../../shared/schema/mahjong.js';
 import type { MJAIEvent, StartGameEvent } from '../../shared/schema/mjai.js';
 import { engineStatus, type InferenceSource } from '../engine-status.js';
 import { CloudDecisionService } from '../online/cloud-decision.js';
@@ -57,18 +58,22 @@ export class EngineService {
    *
    * @param replayed - the batch is a restore's history: everything but its last
    * event describes a position the game has already left
+   * @param seat - our seat, when the batch's frame established it (`authGame`);
+   * mjai carries it beside the events rather than in them
    */
-  public ingest(events: MJAIEvent[], replayed = false): Promise<void> {
-    const run = this.queue.then(() => this.ingestBatch(events, replayed));
+  public ingest(events: MJAIEvent[], replayed = false, seat?: number): Promise<void> {
+    const run = this.queue.then(() => this.ingestBatch(events, replayed, seat));
     // Keep the chain alive after a failure; the caller still sees it.
     this.queue = run.catch(() => {});
     return run;
   }
 
-  private async ingestBatch(events: MJAIEvent[], replayed: boolean): Promise<void> {
+  private async ingestBatch(events: MJAIEvent[], replayed: boolean, seat?: number): Promise<void> {
     // The mock stream publishes on its own; a captured game interleaving with it
     // would make the HUD flicker between two sources. No model is loaded either.
     if (this.isMockMode) return;
+
+    if (seat !== undefined) this.playerId = seat;
 
     // Only the end of a replay is the state the table is in now; reacting to the
     // rest would broadcast one stale recommendation per historical decision.
@@ -77,7 +82,7 @@ export class EngineService {
     for (const [index, ev] of events.entries()) {
       // One update keeps the hand, the claim window, the last drawn and
       // claimed tiles, and the round flags in step.
-      this.round.update(ev, ev.type === 'start_game' ? ev.id : this.playerId);
+      this.round.update(ev, this.playerId);
       // The window accumulates even while online inference is off, so it can be
       // enabled mid-kyoku and upload the round so far.
       this.stream.accumulate(ev);
@@ -99,6 +104,10 @@ export class EngineService {
     this.stream.reset();
     this.round.reset();
     this.runner.reset();
+    // Nothing is known about a table we are no longer watching, so the next
+    // decision cannot be attributed to the seat or player count of the last one.
+    this.playerId = -1;
+    this.is3p = false;
     engineStatus.reset();
   }
 
@@ -117,13 +126,13 @@ export class EngineService {
   // ===== Engine =====
 
   private async startGame(start: StartGameEvent) {
-    this.playerId = start.id;
-    this.is3p = start.is_3p;
+    const is3p = start.num_players === MAHJONG.SEATS_3P;
+    this.is3p = is3p;
     // A new game invalidates any answer still in flight for the previous one.
     this.cloud.cancel();
 
     engineStatus.set({ model: 'loading' });
-    const outcome = await this.runner.load(start.id, start.is_3p);
+    const outcome = await this.runner.load(this.playerId, is3p);
 
     switch (outcome.status) {
       case 'missing':
@@ -135,7 +144,7 @@ export class EngineService {
         engineStatus.set({ model: 'failed' });
         return;
       case 'loaded':
-        logger.info(`Loaded model ${outcome.modelName} (${start.is_3p ? '3p' : '4p'})`);
+        logger.info(`Loaded model ${outcome.modelName} (${is3p ? '3p' : '4p'})`);
         engineStatus.set({
           model: 'ready',
           modelName: outcome.modelName,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { BridgeOutput } from '../../src/protocol/base-bridge.js';
 import { MajsoulBridge } from '../../src/protocol/majsoul/bridge.js';
 import { toMjaiTile } from '../../src/protocol/majsoul/tile-mapping.js';
 import type { MJAIEvent } from '../../src/shared/schema/mjai.js';
@@ -24,6 +25,31 @@ const ROUND_TILES = [
   '2z',
   '9m',
 ];
+
+/** A bridge that has answered `authGame` for the seats and names given. */
+function authenticated(seatList: number[], nicknames: string[]): BridgeOutput {
+  const bridge = new MajsoulBridge();
+
+  bridge.parse(
+    requestFrame(
+      '.lq.FastTest.authGame',
+      1,
+      encodeMessage('ReqAuthGame', { account_id: ACCOUNT_ID }),
+    ),
+  );
+  return bridge.parse(
+    responseFrame(
+      1,
+      encodeMessage('ResAuthGame', {
+        seat_list: seatList,
+        players: nicknames.map((nickname, index) => ({
+          account_id: seatList[index],
+          nickname,
+        })),
+      }),
+    ),
+  );
+}
 
 /** A bridge that has authenticated and opened one round. */
 function openRound(): { bridge: MajsoulBridge; events: MJAIEvent[]; round: MJAIEvent[] } {
@@ -60,6 +86,69 @@ function openRound(): { bridge: MajsoulBridge; events: MJAIEvent[]; round: MJAIE
 }
 
 describe('MajsoulBridge', () => {
+  describe('opening a game', () => {
+    it('names one player per seat and says how many seats there are', () => {
+      const output = authenticated([ACCOUNT_ID, 22222, 33333, 44444], ['me', 'b', 'c', 'd']);
+
+      expect(output.events[0]).toEqual({
+        type: 'start_game',
+        names: ['me', 'b', 'c', 'd'],
+        num_players: 4,
+      });
+    });
+
+    it('reports sanma as three seats', () => {
+      const output = authenticated([22222, ACCOUNT_ID, 44444], ['a', 'me', 'c']);
+
+      expect(output.events[0]).toMatchObject({ num_players: 3, names: ['a', 'me', 'c'] });
+    });
+
+    it('falls back to a placeholder for a seat the answer did not name', () => {
+      const bridge = new MajsoulBridge();
+      bridge.parse(
+        requestFrame(
+          '.lq.FastTest.authGame',
+          1,
+          encodeMessage('ReqAuthGame', { account_id: ACCOUNT_ID }),
+        ),
+      );
+
+      const output = bridge.parse(
+        responseFrame(
+          1,
+          encodeMessage('ResAuthGame', { seat_list: [ACCOUNT_ID, 22222, 33333, 44444] }),
+        ),
+      );
+
+      expect(output.events[0]).toMatchObject({
+        names: ['Player0', 'Player1', 'Player2', 'Player3'],
+        num_players: 4,
+      });
+    });
+
+    it('carries our seat beside the events, and only on this frame', () => {
+      const bridge = new MajsoulBridge();
+      bridge.parse(
+        requestFrame(
+          '.lq.FastTest.authGame',
+          1,
+          encodeMessage('ReqAuthGame', { account_id: ACCOUNT_ID }),
+        ),
+      );
+
+      const answer = bridge.parse(
+        responseFrame(
+          1,
+          encodeMessage('ResAuthGame', { seat_list: [22222, ACCOUNT_ID, 33333, 44444] }),
+        ),
+      );
+      // Nothing in a standard event names the reader, so it travels next to them.
+      expect(answer.seat).toBe(1);
+      expect(answer.events[0]).not.toHaveProperty('id');
+      expect(bridge.parse(Buffer.from([42, 0, 0, 0])).seat).toBeUndefined();
+    });
+  });
+
   describe('a new round', () => {
     it('opens a kyoku for our seat', () => {
       const { round } = openRound();

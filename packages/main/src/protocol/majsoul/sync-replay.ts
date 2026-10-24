@@ -20,7 +20,7 @@ export function is3pFromSyncSnapshot(liqiMessage: LiqiMessage): boolean | null {
   if (!players) return null;
 
   const is3p = players.length === MAHJONG.SEATS_3P;
-  logger.debug(`Pre-scanned mode from snapshot: is_3p=${is3p}`);
+  logger.debug(`Pre-scanned mode from snapshot: ${is3p ? '3p' : '4p'}`);
   return is3p;
 }
 

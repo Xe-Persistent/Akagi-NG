@@ -57,6 +57,8 @@ export class MajsoulBridge extends BaseBridge {
   private readonly state = new MajsoulStateTracker();
   /** Set while the frame being parsed is a reconnect replay. */
   private replayed = false;
+  /** Our seat, waiting to ride out on the frame that established it. */
+  private sessionSeat: number | null = null;
 
   private readonly actionHandlers: Readonly<
     Record<string, (action: ActionPrototype) => MJAIEvent[]>
@@ -85,6 +87,7 @@ export class MajsoulBridge extends BaseBridge {
   public reset() {
     this.state.reset();
     this.pendingDeal = null;
+    this.sessionSeat = null;
   }
 
   /**
@@ -114,7 +117,11 @@ export class MajsoulBridge extends BaseBridge {
       }
 
       const events = this.parseLiqi(liqiMessage);
-      return { events, replayed: this.replayed };
+      // The seat is a session fact, not a table one: it rides out on the frame
+      // that established it and never enters the event stream.
+      const seat = this.sessionSeat;
+      this.sessionSeat = null;
+      return { events, replayed: this.replayed, ...(seat === null ? {} : { seat }) };
     } catch (e) {
       logger.error(`Error parsing Majsoul message: ${errorMessage(e)}`);
       return { events: [], parseFailed: true, replayed: this.replayed };
@@ -156,10 +163,28 @@ export class MajsoulBridge extends BaseBridge {
       this.state.is3p = seatList.length === MAHJONG.SEATS_3P;
       this.state.seat = seatList.indexOf(this.state.accountId);
       this.state.isXuezhan = isXuezhanRule(data.gameConfig);
-      return [this.makeStartGame(this.state.seat, this.state.is3p)];
+      this.sessionSeat = this.state.seat;
+      return [
+        this.makeStartGame(
+          this.seatNames(data.players as ActionPayload[] | undefined, seatList.length),
+          seatList.length,
+        ),
+      ];
     }
 
     return [];
+  }
+
+  /**
+   * One nickname per seat, in seat order. The engine and the HUD only ever look
+   * at the table through our own seat, so a missing nickname costs nothing; the
+   * name list exists because a standard `start_game` carries one.
+   */
+  private seatNames(players: ActionPayload[] | undefined, seats: number): string[] {
+    return Array.from({ length: seats }, (_, index) => {
+      const nickname = players?.[index]?.nickname;
+      return typeof nickname === 'string' && nickname ? nickname : `Player${index}`;
+    });
   }
 
   // ===== ActionPrototype handling =====

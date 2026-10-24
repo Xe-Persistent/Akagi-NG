@@ -139,11 +139,15 @@ describe('the online decision inside the engine', () => {
   });
 
   async function play(engine: EngineService) {
-    await engine.ingest([
-      { type: 'start_game', id: SEAT, is_3p: false } as unknown as MJAIEvent,
-      startKyoku(),
-      OUR_DRAW,
-    ]);
+    await engine.ingest(
+      [
+        { type: 'start_game', names: ['p0', 'p1', 'p2', 'p3'], num_players: 4 },
+        startKyoku(),
+        OUR_DRAW,
+      ],
+      false,
+      SEAT,
+    );
   }
 
   it('publishes the cloud answer and says online produced it', async () => {
@@ -243,11 +247,29 @@ describe('the online decision inside the engine', () => {
 
     const engine = stubbedEngine();
     try {
-      await engine.ingest([
-        { type: 'start_game', id: SEAT, is_3p: false } as unknown as MJAIEvent,
-        startKyoku(['1m', '1m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p']),
-        { type: 'dahai', actor: 0, pai: '1m', tsumogiri: false } as unknown as MJAIEvent,
-      ]);
+      await engine.ingest(
+        [
+          { type: 'start_game', names: ['p0', 'p1', 'p2', 'p3'], num_players: 4 },
+          startKyoku([
+            '1m',
+            '1m',
+            '3m',
+            '4m',
+            '5m',
+            '6m',
+            '7m',
+            '8m',
+            '9m',
+            '1p',
+            '2p',
+            '3p',
+            '4p',
+          ]),
+          { type: 'dahai', actor: 0, pai: '1m', tsumogiri: false } as unknown as MJAIEvent,
+        ],
+        false,
+        SEAT,
+      );
     } finally {
       engine.stop();
     }
@@ -271,11 +293,15 @@ describe('the online decision inside the engine', () => {
 
     const engine = stubbedEngine();
     try {
-      await engine.ingest([
-        { type: 'start_game', id: SEAT, is_3p: false } as unknown as MJAIEvent,
-        startKyoku(),
-        { type: 'dahai', actor: 0, pai: '3p', tsumogiri: false } as unknown as MJAIEvent,
-      ]);
+      await engine.ingest(
+        [
+          { type: 'start_game', names: ['p0', 'p1', 'p2', 'p3'], num_players: 4 },
+          startKyoku(),
+          { type: 'dahai', actor: 0, pai: '3p', tsumogiri: false } as unknown as MJAIEvent,
+        ],
+        false,
+        SEAT,
+      );
     } finally {
       engine.stop();
     }

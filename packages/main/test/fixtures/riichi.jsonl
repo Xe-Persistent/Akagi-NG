@@ -1,4 +1,4 @@
-{"type":"start_game","id":2,"is_3p":true}
+{"type":"start_game","names":["a","b","c"],"num_players":3}
 {"type":"start_kyoku","bakaze":"E","dora_marker":"S","kyoku":3,"honba":1,"kyotaku":0,"oya":2,"scores":[34000,48400,22600,0],"tehais":[["?","?","?","?","?","?","?","?","?","?","?","?","?"],["?","?","?","?","?","?","?","?","?","?","?","?","?"],["1m","1p","1p","7p","9p","9p","4s","4s","6s","6s","9s","P","C"],["?","?","?","?","?","?","?","?","?","?","?","?","?"]]}
 {"type":"tsumo","actor":2,"pai":"C"}
 {"type":"dahai","actor":2,"pai":"9s","tsumogiri":false}

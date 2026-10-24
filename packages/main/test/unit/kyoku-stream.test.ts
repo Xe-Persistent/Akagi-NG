@@ -10,7 +10,7 @@ import type { MJAIEvent } from '../../src/shared/schema/mjai.js';
 const HAND = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p'];
 
 function startGame(is3p = false): MJAIEvent {
-  return { type: 'start_game', id: 0, is_3p: is3p };
+  return { type: 'start_game', names: ['a', 'b', 'c', 'd'], num_players: is3p ? 3 : 4 };
 }
 
 function startKyoku(seats = 4): MJAIEvent {

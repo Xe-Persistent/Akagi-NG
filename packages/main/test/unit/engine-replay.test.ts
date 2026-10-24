@@ -55,7 +55,11 @@ describe.skipIf(!hasEngine)('a reconnect replay', () => {
 
   beforeAll(async () => {
     engine = new EngineService();
-    await engine.ingest([{ type: 'start_game', id: SEAT, is_3p: false }]);
+    await engine.ingest(
+      [{ type: 'start_game', names: ['a', 'b', 'c', 'd'], num_players: 4 }],
+      false,
+      SEAT,
+    );
   }, 30_000);
 
   it('loads the model, otherwise the rest would be vacuous', () => {

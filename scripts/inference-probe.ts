@@ -90,7 +90,7 @@ function windows(): Window[] {
   const reachable = ['2m', '3m', '4m', '5m', '6m', '7m', '2p', '3p', '4p', '6s', '7s', '8s', 'E'];
 
   const start = (hand: string[]): MJAIEvent[] => [
-    { type: 'start_game', id: 0, is_3p: false },
+    { type: 'start_game', names: ['p0', 'p1', 'p2', 'p3'], num_players: 4 },
     {
       type: 'start_kyoku',
       bakaze: 'E',

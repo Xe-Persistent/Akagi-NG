@@ -225,6 +225,34 @@ mod tests {
         assert!(normalize_line(names).contains(r#""nukidora""#));
     }
 
+    /// The bridge emits a standard `start_game`: one name per seat and the table
+    /// size, with our seat travelling beside the stream instead of inside it.
+    #[test]
+    fn start_game_with_names_and_num_players_parses() {
+        assert!(matches!(
+            parse_line(
+                r#"{"type":"start_game","names":["a","b","c","d"],"num_players":4}"#,
+                4
+            ),
+            Some(MjaiEvent::StartGame { .. })
+        ));
+        assert!(matches!(
+            parse_line(
+                r#"{"type":"start_game","names":["a","b","c"],"num_players":3}"#,
+                3
+            ),
+            Some(MjaiEvent::StartGame { .. })
+        ));
+    }
+
+    /// Regression: riichienv types `start_game.id` as an optional **string**, so
+    /// the numeric seat the bridge used to put there failed to deserialize and
+    /// the engine dropped the whole event ("Engine ignored event: start_game").
+    #[test]
+    fn start_game_with_a_numeric_id_is_dropped() {
+        assert!(parse_line(r#"{"type":"start_game","id":0,"is_3p":false}"#, 4).is_none());
+    }
+
     /// `parse_line` also applies the sanma truncation, and skips the lines every
     /// caller skips (blank, malformed, unmodelled types).
     #[test]

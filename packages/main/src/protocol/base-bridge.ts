@@ -21,9 +21,9 @@ import type {
 } from '../shared/schema/mjai.js';
 
 /**
- * What one captured frame produced: the game events it carried, plus the two
- * facts the session status needs (a frame that could not be decoded, and whether
- * the events are part of a reconnect replay).
+ * What one captured frame produced: the game events it carried, plus the facts
+ * the session needs (a frame that could not be decoded, whether the events are
+ * part of a reconnect replay, and which seat is ours once the game says so).
  */
 export interface BridgeOutput {
   events: MJAIEvent[];
@@ -38,6 +38,13 @@ export interface BridgeOutput {
    * this per frame, so the flag is always there.
    */
   replayed: boolean;
+  /**
+   * Our seat, on the frame that established the session (the `authGame`
+   * answer). mjai keeps "which player am I" beside the event stream rather than
+   * in it -- the same way `/v3/react` takes a `player_id` next to `events` -- so
+   * nothing in a standard event says who is reading it.
+   */
+  seat?: number;
 }
 
 export abstract class BaseBridge {
@@ -52,11 +59,11 @@ export abstract class BaseBridge {
 
   // ===== MJAI message builders =====
 
-  public makeStartGame(seat: number, is3p: boolean): StartGameEvent {
+  public makeStartGame(names: string[], numPlayers: number): StartGameEvent {
     return {
       type: 'start_game',
-      id: seat,
-      is_3p: is3p,
+      names,
+      num_players: numPlayers,
     };
   }
 

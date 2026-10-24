@@ -38,7 +38,11 @@ const events: MJAIEvent[] = readFileSync(
   .filter(Boolean)
   .map((line) => JSON.parse(line) as MJAIEvent);
 
-const is3p = (events.find((event) => event.type === 'start_game') as { is_3p: boolean }).is_3p;
+const is3p =
+  (events.find((event) => event.type === 'start_game') as { num_players: number }).num_players ===
+  3;
+/** The seat the fixture was recorded from; mjai carries it beside the stream. */
+const SEAT = 2;
 
 const TILE = /^([1-9][mps]|[ESWNPCF]|[1-9][mps]r)$/;
 const LOOKAHEAD_CAP = 5;
@@ -52,7 +56,9 @@ describe.skipIf(!hasEngineFor(is3p))('a kyoku we declare riichi in', () => {
     const engine = new EngineService();
 
     try {
-      for (const event of events) await engine.ingest([event]);
+      for (const event of events) {
+        await engine.ingest([event], false, event.type === 'start_game' ? SEAT : undefined);
+      }
     } finally {
       engine.stop();
     }

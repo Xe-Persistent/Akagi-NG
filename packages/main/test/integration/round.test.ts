@@ -89,7 +89,11 @@ describe.skipIf(!hasEngine)('the same round through the engine', () => {
 
     const engine = new EngineService();
     try {
-      await engine.ingest([{ type: 'start_game', id: seat, is_3p: false }]);
+      await engine.ingest(
+        [{ type: 'start_game', names: ['a', 'b', 'c', 'd'], num_players: 4 }],
+        false,
+        seat,
+      );
       for (const [index, event] of events.entries()) {
         await engine.ingest([event]);
         publishedAt[index] = messagesOn('engine:recommendations').length;

@@ -1,19 +1,17 @@
 /** mjai protocol events, as produced by the bridges and fed to the engine. */
-export type Actor = number;
-export type Tile = string;
-export type Score = number;
+type Actor = number;
+type Tile = string;
+type Score = number;
 
-export interface MJAIEventBase {
-  type: string;
-}
-
-export interface StartGameEvent extends MJAIEventBase {
+export interface StartGameEvent {
   type: 'start_game';
-  id: Actor;
-  is_3p: boolean;
+  /** One nickname per seat, in seat order. */
+  names: string[];
+  /** 3 for sanma, 4 for yonma: the mjai field that carries the table size. */
+  num_players: number;
 }
 
-export interface StartKyokuEvent extends MJAIEventBase {
+export interface StartKyokuEvent {
   type: 'start_kyoku';
   bakaze: Tile;
   dora_marker: Tile;
@@ -25,20 +23,20 @@ export interface StartKyokuEvent extends MJAIEventBase {
   tehais: Tile[][];
 }
 
-export interface TsumoEvent extends MJAIEventBase {
+export interface TsumoEvent {
   type: 'tsumo';
   actor: Actor;
   pai: Tile;
 }
 
-export interface DahaiEvent extends MJAIEventBase {
+export interface DahaiEvent {
   type: 'dahai';
   actor: Actor;
   pai: Tile;
   tsumogiri: boolean;
 }
 
-export interface ChiEvent extends MJAIEventBase {
+export interface ChiEvent {
   type: 'chi';
   actor: Actor;
   target: Actor;
@@ -46,7 +44,7 @@ export interface ChiEvent extends MJAIEventBase {
   consumed: Tile[];
 }
 
-export interface PonEvent extends MJAIEventBase {
+export interface PonEvent {
   type: 'pon';
   actor: Actor;
   target: Actor;
@@ -54,7 +52,7 @@ export interface PonEvent extends MJAIEventBase {
   consumed: Tile[];
 }
 
-export interface DaiminkanEvent extends MJAIEventBase {
+export interface DaiminkanEvent {
   type: 'daiminkan';
   actor: Actor;
   target: Actor;
@@ -62,45 +60,45 @@ export interface DaiminkanEvent extends MJAIEventBase {
   consumed: Tile[];
 }
 
-export interface AnkanEvent extends MJAIEventBase {
+export interface AnkanEvent {
   type: 'ankan';
   actor: Actor;
   consumed: Tile[];
 }
 
-export interface KakanEvent extends MJAIEventBase {
+export interface KakanEvent {
   type: 'kakan';
   actor: Actor;
   pai: Tile;
   consumed: Tile[];
 }
 
-export interface ReachEvent extends MJAIEventBase {
+export interface ReachEvent {
   type: 'reach';
   actor: Actor;
 }
 
-export interface ReachAcceptedEvent extends MJAIEventBase {
+export interface ReachAcceptedEvent {
   type: 'reach_accepted';
   actor: Actor;
 }
 
-export interface DoraEvent extends MJAIEventBase {
+export interface DoraEvent {
   type: 'dora';
   dora_marker: Tile;
 }
 
-export interface NukidoraEvent extends MJAIEventBase {
+export interface NukidoraEvent {
   type: 'kita';
   actor: Actor;
   pai: 'N';
 }
 
-export interface EndKyokuEvent extends MJAIEventBase {
+export interface EndKyokuEvent {
   type: 'end_kyoku';
 }
 
-export interface HoraEvent extends MJAIEventBase {
+export interface HoraEvent {
   type: 'hora';
   actor: Actor;
   target: Actor;
@@ -109,7 +107,7 @@ export interface HoraEvent extends MJAIEventBase {
   deltas: Score[];
 }
 
-export interface RyukyokuEvent extends MJAIEventBase {
+export interface RyukyokuEvent {
   type: 'ryukyoku';
   scores: Score[];
   deltas: Score[];
@@ -118,7 +116,7 @@ export interface RyukyokuEvent extends MJAIEventBase {
   reason?: string;
 }
 
-export interface EndGameEvent extends MJAIEventBase {
+export interface EndGameEvent {
   type: 'end_game';
 }
 

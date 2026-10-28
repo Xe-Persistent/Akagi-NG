@@ -184,12 +184,14 @@ export class EngineService {
     // recommended right away; no later event triggers it. Another seat's call is
     // not our turn — nothing of ours is legal while they hold the table.
     if ((ev.type === 'chi' || ev.type === 'pon') && ev.actor === this.playerId) return true;
-    // Either seat: another's kakan opens the chankan window, our own is followed
-    // by the replacement draw.
-    if (ev.type === 'kakan') return true;
-    // Either seat, for the same reason: another's nukidora is the 胡抜北 window,
-    // our own draws the replacement tile.
-    if (ev.type === 'kita') return true;
+    // Another seat's kakan opens the chankan window, and its nukidora the
+    // 胡抜北 one. Our own is the opposite case: the replacement draw always
+    // follows, so the table is not waiting on us -- and the engine parks the
+    // declarer in `WaitAct` after applying the kan, so it still reports a legal
+    // set. Asking there published a row for a hand that had given up its turn,
+    // until the rinshan draw asked again for real.
+    if (ev.type === 'kakan' && ev.actor !== this.playerId) return true;
+    if (ev.type === 'kita' && ev.actor !== this.playerId) return true;
     return false;
   }
 

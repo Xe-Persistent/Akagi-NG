@@ -123,3 +123,47 @@ describe.skipIf(!hasEngineFor(is3p))('a kakan nobody robs', () => {
     }
   });
 });
+
+/**
+ * The same recording read from the kan declarer's seat.
+ *
+ * `apply_mjai_event` leaves the declarer in `WaitAct` after applying a kakan, so
+ * the engine still reports a non-forced decision when the kan lands. Asking there
+ * published a row for a hand that had already given up its turn, and the
+ * replacement draw published again a moment later -- the pair the HUD showed as
+ * "a recommendation at the kan, then the real one".
+ */
+describe.skipIf(!hasEngineFor(is3p))('a kakan of our own', () => {
+  const publishedAt: number[] = [];
+
+  beforeAll(async () => {
+    resetSentMessages();
+    const engine = new EngineService();
+
+    try {
+      for (const [index, event] of events.entries()) {
+        // The fixture only reveals seat 1's hand, so reading it from seat 2
+        // leaves every tile masked: enough to prove when the service asks, and
+        // deliberately not enough to say anything about the answer.
+        const seat = event.type === 'start_game' ? 2 : undefined;
+        await engine.ingest([event], false, seat);
+        publishedAt[index] = messagesOn('engine:recommendations').length;
+      }
+    } finally {
+      engine.stop();
+    }
+  }, 120_000);
+
+  it('says nothing at the kan itself', () => {
+    const kakan = indexOf('kakan');
+
+    expect(publishedAt[kakan - 1]).toBeGreaterThan(0);
+    expect(publishedAt[kakan]).toBe(publishedAt[kakan - 1]);
+  });
+
+  it('answers again for the replacement draw', () => {
+    const kakan = indexOf('kakan');
+
+    expect(publishedAt[kakan + 1]).toBeGreaterThan(publishedAt[kakan]!);
+  });
+});

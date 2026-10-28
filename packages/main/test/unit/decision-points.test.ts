@@ -81,8 +81,7 @@ describe('the points the engine is asked at', () => {
       "another seat's kakan, which can be robbed",
       { type: 'kakan', actor: 2, pai: 'E', consumed: ['E', 'E', 'E'] },
     ],
-    ['our own kakan, after which we draw again', { type: 'kakan', actor: SEAT, pai: 'E' }],
-    ['a kita', { type: 'kita', actor: 2, pai: 'N' }],
+    ["another seat's kita, which can be robbed", { type: 'kita', actor: 2, pai: 'N' }],
   ])('asks at %s', async (_label, payload) => {
     expect(await reactsTo(engine, event(payload))).toBe(true);
   });
@@ -98,12 +97,23 @@ describe('the points the engine is asked at', () => {
       "another seat's pon, which leaves us with nothing to act on",
       { type: 'pon', actor: 2, target: 3, pai: '3p', consumed: ['3p', '3p'] },
     ],
+    ['our own kakan, after which we draw again', { type: 'kakan', actor: SEAT, pai: 'E' }],
+    ['our own kita, after which we draw again', { type: 'kita', actor: SEAT, pai: 'N' }],
     ['a riichi declaration', { type: 'reach', actor: 2 }],
     ['an accepted riichi', { type: 'reach_accepted', actor: 2 }],
     ['a new dora', { type: 'dora', dora_marker: '5s' }],
     ['a round closing', { type: 'end_kyoku' }],
   ])('stays quiet at %s', async (_label, payload) => {
     expect(await reactsTo(engine, event(payload))).toBe(false);
+  });
+
+  it('waits for the replacement draw after our own kan', async () => {
+    // The engine leaves the declarer in `WaitAct`, so a legal set is still there
+    // when the kakan lands: asking at that instant published a row for a hand
+    // that was about to draw again, a moment before the real decision.
+    expect(await reactsTo(engine, event({ type: 'kakan', actor: SEAT, pai: 'E' }))).toBe(false);
+
+    expect(await reactsTo(engine, event({ type: 'tsumo', actor: SEAT, pai: '9p' }))).toBe(true);
   });
 
   it('stays quiet at a round opening', async () => {

@@ -51,6 +51,14 @@ export interface EngineStatus {
   notice: EngineNotice | null;
 }
 
+/** The stopped screen's timing, sent with `exit-animation-start`. */
+export interface ExitAnimationTiming {
+  /** How long the overlay takes to fade in. */
+  fadeMs: number;
+  /** How long it rests fully visible before the app quits. */
+  holdMs: number;
+}
+
 export interface Settings {
   log_level: string;
   locale: string;

@@ -8,6 +8,7 @@ import {
   useRef,
 } from 'react';
 
+import { onLocaleChanged } from '@/api/events';
 import {
   fetchModelsApi,
   fetchSettingsApi,
@@ -53,10 +54,9 @@ export function SettingsProvider({ children, initialSettings }: SettingsProvider
   }, [settings.locale]);
 
   useEffect(() => {
-    const unsub = window.electron.on('locale-changed', (newLocale: string) => {
+    return onLocaleChanged((newLocale) => {
       dispatch({ type: 'REMOTE_UPDATE', payload: { locale: newLocale } });
     });
-    return () => unsub();
   }, []);
 
   useEffect(() => {

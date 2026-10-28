@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { fetchEngineStatus } from '@/api/engine';
+import { onEngineStatus, onRecommendations } from '@/api/events';
 import type { EngineStatus, RecommendationData } from '@/types';
 
 interface UseEngineConnectionResult {
@@ -18,16 +19,8 @@ export function useEngineConnection(): UseEngineConnectionResult {
   const [status, setStatus] = useState<EngineStatus | null>(null);
 
   useEffect(() => {
-    const unsubRecommendations = window.electron.on(
-      'engine:recommendations',
-      (payload: unknown) => {
-        setData(payload as RecommendationData);
-      },
-    );
-
-    const unsubStatus = window.electron.on('engine:status', (payload: unknown) => {
-      setStatus(payload as EngineStatus);
-    });
+    const unsubRecommendations = onRecommendations(setData);
+    const unsubStatus = onEngineStatus(setStatus);
 
     void fetchEngineStatus()
       .then((snapshot) => {

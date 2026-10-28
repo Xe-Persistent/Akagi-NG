@@ -28,6 +28,11 @@ export function requestShutdown(): Promise<void> {
   return window.electron.invoke<void>('request-shutdown');
 }
 
+/** Tells the main process the stopped screen has finished its fade and hold. */
+export function notifyExitAnimationComplete(): void {
+  window.electron.send('exit-animation-complete');
+}
+
 /** Opens a URL in the system browser. The main process refuses anything but http(s). */
 export function openExternal(url: string): Promise<void> {
   return window.electron.invoke<void>('open-external', url);
@@ -49,6 +54,11 @@ export function startGame(options: StartGameOptions): Promise<void> {
 /** Whether the model files the app needs are present next to the executable. */
 export function checkResourceStatus(): Promise<ResourceStatus> {
   return window.electron.invoke<ResourceStatus>('check-resource-status');
+}
+
+/** The update the main process already found, for a badge that mounted later. */
+export function fetchUpdateVersionApi(): Promise<string | null> {
+  return window.electron.invoke<string | null>('app:update:get');
 }
 
 /** Regenerates the Majsoul protocol files from the installed game client. */

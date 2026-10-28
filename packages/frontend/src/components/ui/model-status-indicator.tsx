@@ -9,8 +9,14 @@ const DOT_BASE_CLASS =
 
 const STATUS_VARIANTS = {
   hidden: 'hidden',
+  // The local model itself failed: nothing can answer at all.
   failed: 'bg-rose-600 shadow-rose-600/50',
+  // The service has been down long enough for the breaker to hold calls back.
+  // Same alarm colour as `failed`, pulsing to say it lasts until the backoff
+  // expires rather than for the single decision it started on.
   circuitOpen: 'animate-pulse bg-rose-500 shadow-rose-500/50',
+  // One call failed, or the server disagreed: the online model stepped aside and
+  // the local one covered this decision. Amber, not red -- it is a hiccup.
   fallback: 'bg-yellow-400 shadow-yellow-400/50',
   online: 'bg-emerald-500 shadow-emerald-500/50',
   local: 'bg-blue-500 shadow-blue-500/50',
@@ -55,9 +61,10 @@ export function resolveIndicatorStatus(
 }
 
 /**
- * One dot for the state of the model answering right now: green when the online
- * service did, flashing red while its breaker is open, yellow when it failed and
- * the local model covered for it, blue for local.
+ * One dot for who answered the hand on screen: green when the online service did,
+ * blue for the local model, amber when the online call failed once and the local
+ * model covered it, pulsing red while the breaker skips calls, solid red when the
+ * local model itself failed.
  *
  * Nothing is shown unless a game is connected and a recommendation exists: with
  * no rows on screen a colour would claim a model that has not answered yet.

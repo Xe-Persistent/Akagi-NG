@@ -58,13 +58,30 @@ describe('the model status dot', () => {
     expect(resolveIndicatorStatus(CONNECTED, data())).toBe('local');
   });
 
-  it('turns yellow when the local model covered for a failure', () => {
+  it('turns yellow for a single failed call', () => {
+    // The online model stepped aside for one decision: amber, not the alarm.
     expect(resolveIndicatorStatus(CONNECTED, data({ fallback_used: true }))).toBe('fallback');
+    expect(
+      resolveIndicatorStatus(CONNECTED, data({ fallback_used: true, circuit_open: false })),
+    ).toBe('fallback');
   });
 
   it('flashes red while the breaker is open, before any other colour', () => {
+    // The service has been down long enough that calls are being skipped. This
+    // must outrank the plain fallback, or the two states would look the same.
     expect(
       resolveIndicatorStatus(CONNECTED, data({ fallback_used: true, circuit_open: true })),
     ).toBe('circuitOpen');
+    expect(resolveIndicatorStatus(CONNECTED, data({ circuit_open: true }))).toBe('circuitOpen');
+  });
+
+  it('reports a failed model ahead of an open breaker', () => {
+    // Solid red is the local model being unusable; a fallback is never that.
+    expect(
+      resolveIndicatorStatus(
+        { ...CONNECTED, model: 'failed' },
+        data({ fallback_used: true, circuit_open: true }),
+      ),
+    ).toBe('failed');
   });
 });

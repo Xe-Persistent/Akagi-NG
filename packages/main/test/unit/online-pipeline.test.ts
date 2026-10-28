@@ -181,7 +181,7 @@ describe('the online decision inside the engine', () => {
     ]);
   });
 
-  it('keeps the local answer and flags the fallback when the call fails', async () => {
+  it('flags a single failed call as a fallback, not as a breaker', async () => {
     writeApiKey('ot_live_test');
     getSettingsManager().updateSettings({ ot: { online: true } } as never);
 
@@ -194,8 +194,30 @@ describe('the online decision inside the engine', () => {
     const payload = published();
     expect(payload?.engine_type).toBe('local');
     expect(payload?.fallback_used).toBe(true);
-    expect(payload?.circuit_open).toBe(true);
+    // One failed call is the hiccup: nothing is being skipped, so the breaker
+    // stays closed and the HUD draws amber instead of the alarm.
+    expect(payload?.circuit_open).toBe(false);
     expect(payload?.recommendations[0]).toMatchObject({ action: '1m' });
+  });
+
+  it('opens the breaker on the second consecutive failure', async () => {
+    writeApiKey('ot_live_test');
+    getSettingsManager().updateSettings({ ot: { online: true } } as never);
+
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('network down');
+    });
+
+    const engine = stubbedEngine();
+    await play(engine);
+    // Another turn, and the service is still unreachable.
+    await engine.ingest([OUR_DRAW]);
+
+    const payload = published();
+    expect(payload?.engine_type).toBe('local');
+    expect(payload?.fallback_used).toBe(true);
+    // Now the calls genuinely are being held back: pulsing red.
+    expect(payload?.circuit_open).toBe(true);
   });
 
   it('does not call the service at all when the decision is forced', async () => {

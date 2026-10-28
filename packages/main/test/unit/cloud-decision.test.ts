@@ -177,7 +177,14 @@ describe('the online decision', () => {
 
     const outcome = await cloud.decide(INPUT);
 
-    expect(outcome).toMatchObject({ kind: 'local', reason: 'reach-failed', fallbackUsed: true });
+    // A single failed call is the amber state: the local model covers this
+    // decision and the next one tries the service again.
+    expect(outcome).toMatchObject({
+      kind: 'local',
+      reason: 'reach-failed',
+      fallbackUsed: true,
+      circuitOpen: false,
+    });
   });
 
   it('retries a burst 429 on the reach follow-up without opening the breaker', async () => {
@@ -212,15 +219,42 @@ describe('the online decision', () => {
     expect(cloud.circuitOpen).toBe(false);
   });
 
-  it('opens a breaker after a failed call and closes it again after the delay', async () => {
-    let now = 0;
-    const { cloud } = service({
+  it('calls one failed call a hiccup and tries again on the next decision', async () => {
+    const { cloud, paths } = service({
       responses: [new Response('{}', { status: 503 }), DAHAI],
+    });
+
+    const hiccup = await cloud.decide(INPUT);
+    expect(hiccup).toEqual({
+      kind: 'local',
+      reason: 'request-failed',
+      // The local model covered this decision; the breaker stays closed, which
+      // is what the HUD draws as amber rather than as the alarm.
+      fallbackUsed: true,
+      circuitOpen: false,
+    });
+    expect(cloud.circuitOpen).toBe(false);
+
+    // Nothing is being skipped, so the next decision reaches the service again.
+    expect((await cloud.decide(INPUT)).kind).toBe('cloud');
+    expect(paths).toEqual(['/v3/react', '/v3/react']);
+    expect(cloud.circuitOpen).toBe(false);
+  });
+
+  it('opens the breaker once failures pile up, then closes it again', async () => {
+    let now = 0;
+    const { cloud, paths } = service({
+      responses: [new Response('{}', { status: 503 }), new Response('{}', { status: 503 }), DAHAI],
       now: () => now,
     });
 
-    const failed = await cloud.decide(INPUT);
-    expect(failed).toEqual({
+    expect(await cloud.decide(INPUT)).toMatchObject({
+      reason: 'request-failed',
+      circuitOpen: false,
+    });
+
+    // The second consecutive failure is the sustained outage.
+    expect(await cloud.decide(INPUT)).toEqual({
       kind: 'local',
       reason: 'request-failed',
       fallbackUsed: true,
@@ -229,13 +263,13 @@ describe('the online decision', () => {
     expect(cloud.circuitOpen).toBe(true);
 
     // Still inside the first backoff: no request is made.
-    const skipped = await cloud.decide(INPUT);
-    expect(skipped).toEqual({
+    expect(await cloud.decide(INPUT)).toEqual({
       kind: 'local',
       reason: 'breaker-open',
       fallbackUsed: true,
       circuitOpen: true,
     });
+    expect(paths).toHaveLength(2);
 
     now += 5_000;
     expect((await cloud.decide(INPUT)).kind).toBe('cloud');
@@ -514,13 +548,17 @@ describe('mapping a cloud reaction', () => {
   });
 
   it('does not call the client while the breaker is open', async () => {
-    const { cloud, paths } = service({ responses: [new Response('{}', { status: 500 })] });
+    const { cloud, paths } = service({
+      // Two failures are what open the breaker; the third decision must not ask.
+      responses: [new Response('{}', { status: 500 }), new Response('{}', { status: 500 })],
+    });
 
     await cloud.decide(INPUT);
     await cloud.decide(INPUT);
     await cloud.decide(INPUT);
 
-    expect(paths).toEqual(['/v3/react']);
+    expect(paths).toEqual(['/v3/react', '/v3/react']);
+    expect(cloud.circuitOpen).toBe(true);
   });
 });
 

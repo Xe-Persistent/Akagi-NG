@@ -10,10 +10,19 @@ import type { OnlineConfig, ReactCandidate, ReactResponse } from './types.js';
 
 const logger = createLogger('Online');
 
-/** First backoff after a failed call: roughly one turn. */
+/** First backoff once the breaker opens: roughly one turn. */
 const BREAKER_BASE_MS = 5_000;
 /** A server that has been down for two minutes is retried every two minutes. */
 const BREAKER_MAX_MS = 120_000;
+/**
+ * Consecutive failures that turn a hiccup into a sustained outage.
+ *
+ * One failure is a blip -- a timeout on a bad network, a server restart -- and
+ * the HUD reports it as the local model covering a single decision (amber). Only
+ * a second consecutive failure means trying again is pointless, and that is when
+ * the breaker starts skipping calls (pulsing red) until one succeeds again.
+ */
+const BREAKER_THRESHOLD = 2;
 /** A reach's second call is milliseconds after the first; a 429 here is a burst. */
 const REACH_RETRY_FALLBACK_MS = 400;
 const REACH_RETRY_MAX_MS = 1_000;
@@ -117,6 +126,12 @@ export class CloudDecisionService {
 
     const client = this.reconcile(config);
     if (!this.allowsCall()) {
+      // Silent until now, which made a game played entirely against the breaker
+      // look the same as one that never tried at all.
+      logger.debug(
+        `Online inference skipped: breaker closed for another ` +
+          `${Math.max(0, Math.ceil((this.retryAt - this.now()) / 1000))}s.`,
+      );
       return local('breaker-open', true, true);
     }
 
@@ -155,10 +170,15 @@ export class CloudDecisionService {
           : new InferenceError('network', 'cloud decision failed');
       const backoff = this.recordFailure();
       logger.warn(
-        `Online inference unavailable (${inference.message}). Using the local model ` +
-          `and skipping the service for ${Math.round(backoff / 1000)}s.`,
+        backoff > 0
+          ? `Online inference unavailable (${inference.message}). Using the local model ` +
+              `and skipping the service for ${Math.round(backoff / 1000)}s.`
+          : `Online inference unavailable (${inference.message}). Using the local model ` +
+              `for this decision; the next one tries the service again.`,
       );
-      return local('request-failed', true, true);
+      // What the breaker actually is, not what this failure alone would imply:
+      // a first failure leaves it closed and the HUD shows amber.
+      return local('request-failed', true, this.circuitOpen);
     } finally {
       if (this.inFlight === controller) this.inFlight = null;
     }
@@ -197,7 +217,9 @@ export class CloudDecisionService {
         logger.warn(
           'Cloud reach had no discard. Dropping the cloud answer for the local decision.',
         );
-        return local('reach-failed', true, false);
+        // The follow-up may have been what opened the breaker; report the state
+        // as it actually stands rather than assuming the breaker is healthy.
+        return local('reach-failed', true, this.circuitOpen);
       }
       reachDiscard = resolved.discard;
       reachLookahead = resolved.lookahead;
@@ -297,9 +319,27 @@ export class CloudDecisionService {
     this.retryAt = 0;
   }
 
+  /**
+   * Counts a failure and arms the breaker once they add up.
+   *
+   * The first one is a hiccup: nothing is armed, so the very next decision tries
+   * the service again and a blip costs one slow turn instead of five seconds of
+   * local answers. From the second consecutive failure the exponential backoff
+   * starts, at `BREAKER_BASE_MS` and doubling from there.
+   *
+   * Returns the backoff it armed, or 0 while the service is still being retried.
+   */
   private recordFailure(): number {
     this.failures += 1;
-    const backoff = Math.min(BREAKER_BASE_MS * 2 ** (this.failures - 1), BREAKER_MAX_MS);
+    if (this.failures < BREAKER_THRESHOLD) {
+      this.retryAt = 0;
+      return 0;
+    }
+
+    const backoff = Math.min(
+      BREAKER_BASE_MS * 2 ** (this.failures - BREAKER_THRESHOLD),
+      BREAKER_MAX_MS,
+    );
     this.retryAt = this.now() + backoff;
     return backoff;
   }

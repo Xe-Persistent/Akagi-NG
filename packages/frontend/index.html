@@ -27,6 +27,10 @@
         }
       })();
     </script>
+    <!-- The background layer stack, styled in `index.css`. It is a sibling of
+         `#root` rather than part of the tree so that a window which must stay
+         transparent (the HUD) can drop the whole stack with one rule. -->
+    <div aria-hidden="true" id="app-bg"><i></i><i></i><i></i><i></i></div>
     <div id="root"></div>
     <script src="/src/main.tsx" type="module"></script>
   </body>

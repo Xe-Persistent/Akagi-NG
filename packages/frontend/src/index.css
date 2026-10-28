@@ -168,6 +168,49 @@
     --bg-gradient-emerald: 161 84% 39%;
     --bg-gradient-opacity: 0.2;
 
+    /**
+     * The background is a stack of four layers:
+     *
+     * ① base  — the `body` colour, kept on the body so a HUD window can go
+     *           transparent without unmounting anything.
+     * ② wash  — broad tonal gradients, one per corner.
+     * ③ glow  — blurred colour fields. Dark only; see `.dark` below.
+     * ④ grain — noise, to break up the banding a large dark gradient always
+     *           shows. Dark only, at an opacity you should not be able to name.
+     *
+     * ②③④ live on `#app-bg`, a sibling of `#root`, so one rule can drop all
+     * three for a transparent window. Light keeps the four corner washes it was
+     * designed around, so these values are load-bearing: four 20% radials over
+     * zinc-100 is the whole look.
+     */
+    --bg-wash:
+      radial-gradient(
+        at 0% 0%,
+        hsl(var(--bg-gradient-rose) / var(--bg-gradient-opacity)) 0,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 100% 0%,
+        hsl(var(--bg-gradient-violet) / var(--bg-gradient-opacity)) 0,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 100% 100%,
+        hsl(var(--bg-gradient-blue) / var(--bg-gradient-opacity)) 0,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 0% 100%,
+        hsl(var(--bg-gradient-emerald) / var(--bg-gradient-opacity)) 0,
+        transparent 50%
+      );
+    --bg-glow-filter: none;
+    --bg-glow-1: transparent;
+    --bg-glow-2: transparent;
+    --bg-glow-3: transparent;
+    --bg-glow-4: transparent;
+    --bg-grain: 0;
+
     --scrollbar-size: 10px;
   }
 
@@ -192,7 +235,13 @@
     --input: 240 3.7% 15.9%;
     --ring: 280 65% 60%;
 
-    --bg-gradient-opacity: 0.3;
+    --bg-wash: none;
+    --bg-glow-filter: blur(110px);
+    --bg-glow-1: hsl(var(--bg-gradient-rose) / 0.3);
+    --bg-glow-2: hsl(var(--bg-gradient-violet) / 0.26);
+    --bg-glow-3: hsl(var(--bg-gradient-emerald) / 0.22);
+    --bg-glow-4: hsl(var(--bg-gradient-blue) / 0.26);
+    --bg-grain: 0.05;
   }
 
   * {
@@ -210,35 +259,76 @@
   }
 
   body {
-    @apply overflow-hidden overscroll-none bg-zinc-100 text-foreground antialiased select-none dark:bg-zinc-900;
+    @apply overflow-hidden overscroll-none bg-zinc-100 text-foreground antialiased select-none dark:bg-zinc-950;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     scrollbar-gutter: stable;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
-    background-image:
-      radial-gradient(
-        at 0% 0%,
-        hsl(var(--bg-gradient-rose) / var(--bg-gradient-opacity)) 0,
-        transparent 50%
-      ),
-      radial-gradient(
-        at 100% 0%,
-        hsl(var(--bg-gradient-violet) / var(--bg-gradient-opacity)) 0,
-        transparent 50%
-      ),
-      radial-gradient(
-        at 100% 100%,
-        hsl(var(--bg-gradient-blue) / var(--bg-gradient-opacity)) 0,
-        transparent 50%
-      ),
-      radial-gradient(
-        at 0% 100%,
-        hsl(var(--bg-gradient-emerald) / var(--bg-gradient-opacity)) 0,
-        transparent 50%
-      );
-    background-attachment: fixed;
+  }
+
+  /* ② wash — one viewport-sized layer, positioned like the `fixed` attachment
+     it replaces. */
+  #app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    background-image: var(--bg-wash);
+  }
+
+  /* ③ glow — four discs, oversized and pushed past the edges so only their
+     soft middle shows. */
+  #app-bg > i {
+    position: absolute;
+    border-radius: 50%;
+    filter: var(--bg-glow-filter);
+  }
+
+  #app-bg > i:nth-of-type(1) {
+    top: -20%;
+    left: -12%;
+    width: 62%;
+    height: 72%;
+    background: var(--bg-glow-1);
+  }
+
+  #app-bg > i:nth-of-type(2) {
+    top: -16%;
+    right: -18%;
+    width: 60%;
+    height: 68%;
+    background: var(--bg-glow-2);
+  }
+
+  #app-bg > i:nth-of-type(3) {
+    bottom: -28%;
+    left: 4%;
+    width: 64%;
+    height: 74%;
+    background: var(--bg-glow-3);
+  }
+
+  #app-bg > i:nth-of-type(4) {
+    right: 2%;
+    bottom: -24%;
+    width: 58%;
+    height: 68%;
+    background: var(--bg-glow-4);
+  }
+
+  /* ④ grain — generated noise rather than an asset, so it costs nothing to
+     ship and never needs a transparent PNG. */
+  #app-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: var(--bg-grain);
+    mix-blend-mode: overlay;
   }
 
   /* The HUD window is an overlay, so it must not paint a background. */
@@ -248,6 +338,10 @@
     background-image: none !important;
     box-shadow: none !important;
     overflow: hidden !important;
+  }
+
+  html.is-hud #app-bg {
+    display: none;
   }
 
   /* Dragging an element out of the window is never wanted here. */

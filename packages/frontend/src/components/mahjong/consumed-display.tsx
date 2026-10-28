@@ -1,5 +1,4 @@
 import { ArrowRight } from 'lucide-react';
-import { useMemo } from 'react';
 
 import { type MeldSlot, meldSlots } from '@/lib/mahjong';
 
@@ -30,10 +29,7 @@ export function ConsumedDisplay({ action, consumed, tile }: ConsumedDisplayProps
   const isClosedKan = action === 'kan' && consumed.length === 4;
   const isKakan = action === 'kan' && consumed.length === 1;
 
-  const slotItems = useMemo(
-    () => withOccurrenceKeys(meldSlots(action, consumed)),
-    [action, consumed],
-  );
+  const slotItems = withOccurrenceKeys(meldSlots(action, consumed));
 
   // A closed kan claims nothing from the table: four tiles of our own, with the
   // outer two turned over, so it is drawn on its own -- no claimed tile, no arrow.

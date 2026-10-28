@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { BrandMark } from '@/components/BrandMark';
 import { APP_SPLASH_ENTER_MS, APP_SPLASH_EXIT_MS } from '@/config/constants';
 import { cn } from '@/lib/utils';
 
@@ -34,10 +35,7 @@ export function LaunchScreen({ exiting = false }: LaunchScreenProps) {
       style={exiting ? { animationDuration: `${APP_SPLASH_EXIT_MS}ms` } : undefined}
     >
       {/* The glow grows with the torii, so the two read as one object. */}
-      <div className='relative animate-in fade-in-0 zoom-in-50' style={enterTiming(0)}>
-        <div className='logo-glow-effect' />
-        <img src='torii.svg' alt='Akagi Logo' className='relative h-32 w-32 drop-shadow-lg' />
-      </div>
+      <BrandMark className='animate-in fade-in-0 zoom-in-50' style={enterTiming(0)} />
 
       <div className='flex flex-col items-center gap-3'>
         <h1

@@ -123,11 +123,19 @@
     "stopped_title": "アプリケーションは終了しました",
     "stopped_desc": "Akagi NGをご利用いただきありがとうございました。",
     "open_settings": "設定を開く",
-    "toggle_hud": "HUDの表示切り替え",
+    "toggle_hud": "HUDを表示",
+    "hide_hud": "HUDを隠す",
     "window_minimize": "最小化",
     "window_maximize": "最大化",
     "window_restore": "元に戻す",
     "window_close": "ウィンドウを閉じる"
+  },
+  "model_status": {
+    "failed": "モデルの読み込みに失敗しました",
+    "circuit_open": "オンラインサービスは一時的に利用できません",
+    "fallback": "ローカルモデルで応答しています",
+    "online": "オンラインモデルが応答",
+    "local": "ローカルモデルが応答"
   },
   "actions": {
     "reach": "リーチ",

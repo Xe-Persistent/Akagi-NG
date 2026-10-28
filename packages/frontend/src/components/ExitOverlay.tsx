@@ -1,14 +1,32 @@
+import { useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export function ExitOverlay() {
+import { BrandMark } from '@/components/BrandMark';
+import type { ExitAnimationTiming } from '@/types';
+
+interface ExitOverlayProps {
+  timing: ExitAnimationTiming;
+  /** Called once the fade-in and the hold are both over. */
+  onComplete: () => void;
+}
+
+export function ExitOverlay({ timing, onComplete }: ExitOverlayProps) {
   const { t } = useTranslation();
+  const notifyComplete = useEffectEvent(onComplete);
+
+  useEffect(() => {
+    const timer = setTimeout(notifyComplete, timing.fadeMs + timing.holdMs);
+    return () => clearTimeout(timer);
+  }, [timing.fadeMs, timing.holdMs]);
 
   return (
-    <div className='fixed inset-0 z-critical flex flex-col items-center justify-center bg-white/30 backdrop-blur-xl duration-500 animate-in fade-in-0 dark:bg-zinc-950/30'>
-      <div className='relative mb-8'>
-        <div className='logo-glow-effect' />
-        <img src='torii.svg' alt='Akagi Logo' className='relative h-32 w-32 drop-shadow-lg' />
-      </div>
+    <div
+      // Reduced motion is handled once in `index.css`: it collapses every
+      // animation's duration, so no per-component opt-out is needed here.
+      className='fixed inset-0 z-exit flex flex-col items-center justify-center bg-white/30 backdrop-blur-xl animate-in fade-in-0 dark:bg-zinc-950/30'
+      style={{ animationDuration: `${timing.fadeMs}ms` }}
+    >
+      <BrandMark className='mb-8' />
       <h1 className='mb-4 text-4xl font-bold tracking-tight text-rose-500'>
         {t('app.stopped_title')}
       </h1>

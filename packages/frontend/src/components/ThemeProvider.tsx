@@ -1,17 +1,8 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { ThemeContext } from '@/contexts/ThemeContext';
+import { isTheme, readStoredTheme, THEME_STORAGE_KEY } from '@/lib/theme';
 import type { Theme } from '@/types';
-
-function isTheme(value: unknown): value is Theme {
-  return value === 'light' || value === 'dark' || value === 'system';
-}
-
-/** A hand-edited or stale value falls back to following the system. */
-function readStoredTheme(): Theme {
-  const stored = localStorage.getItem('theme');
-  return isTheme(stored) ? stored : 'system';
-}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
@@ -26,7 +17,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(effectiveTheme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme, effectiveTheme]);
 
   useEffect(() => {

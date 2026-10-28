@@ -1,7 +1,7 @@
-import { use, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import { STREAM_PLAYER_HEIGHT, STREAM_PLAYER_WIDTH } from '@/config/constants';
-import { GameContext } from '@/contexts/GameContext';
+import { useGame } from '@/hooks/useGame';
 import { isHudWindow } from '@/lib/routing';
 import { cn } from '@/lib/utils';
 
@@ -19,9 +19,7 @@ interface StreamPlayerProps {
  * is no content stays outside it and keeps its own pixel size.
  */
 export default function StreamPlayer({ className }: StreamPlayerProps) {
-  const context = use(GameContext);
-  if (!context) throw new Error('GameContext not found');
-  const { data, isHudActive } = context;
+  const { data, isHudActive } = useGame();
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -33,6 +31,10 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
         setScale(Math.min(width / STREAM_PLAYER_WIDTH, height / STREAM_PLAYER_HEIGHT));
       }
     };
+
+    // Measured once before observing, so the first paint is already the right
+    // size instead of jumping when the observer's first callback arrives.
+    updateScale();
 
     const observer = new ResizeObserver(updateScale);
     if (wrapperRef.current) {
@@ -59,7 +61,7 @@ export default function StreamPlayer({ className }: StreamPlayerProps) {
           height: STREAM_PLAYER_HEIGHT * scale,
         }}
         className={cn(
-          'relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20',
+          'relative flex shrink-0 items-center justify-center overflow-hidden rounded-5 border border-white/20 bg-white/10 shadow-lg dark:border-white/5 dark:bg-black/20',
           isHudPage && 'shadow-none',
         )}
       >

@@ -7,14 +7,8 @@ import { OnlinePurchaseDialog } from '@/components/settings/OnlinePurchaseDialog
 import { OnlineRedeemDialog } from '@/components/settings/OnlineRedeemDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
+import { SettingsSelect } from '@/components/ui/settings-select';
 import type { UpdateSetting } from '@/contexts/SettingsContext';
 import type { OnlineAccount } from '@/hooks/useOnlineAccount';
 import type { Settings } from '@/types';
@@ -27,6 +21,9 @@ interface OnlineAccountFieldsProps {
 
 /** Radix refuses an empty item value, so "let the server decide" needs a label. */
 const DEFAULT_MODEL = 'server-default';
+
+/** Stands in for "no models were granted" so the trigger still has something. */
+const NO_MODELS = 'no-online-models';
 
 /** Shown for a value that has not arrived (or that the server did not report). */
 const UNKNOWN = '—';
@@ -80,33 +77,34 @@ export function OnlineAccountFields({
 
   const renderOnlineModelSelect = (modelKey: 'model_4p' | 'model_3p', game: '4p' | '3p') => {
     const choices = models.filter((model) => model.game === game);
-    const stored = settings.ot[modelKey];
+    // The sentinel is ours, not a model id: a file that somehow contains it is
+    // read as "let the server decide" rather than added as a second default.
+    const stored = settings.ot[modelKey] === DEFAULT_MODEL ? '' : settings.ot[modelKey];
     // The chosen id outlives the key that could list it (a cleared key leaves it
-    // behind), and a blank trigger would hide which model is actually selected.
-    const unknown = stored !== '' && !choices.some((model) => model.id === stored);
+    // behind), and a blank trigger would hide which model is actually selected:
+    // `SettingsSelect` adds a stored id it cannot find. Without any choice the
+    // default stays offered, with a hint that nothing else was granted.
+    const options = [
+      { value: DEFAULT_MODEL, label: t('settings.ot.model_default') },
+      ...choices.map((model) => ({ value: model.id, label: model.description || model.id })),
+      ...(choices.length === 0
+        ? [
+            {
+              value: NO_MODELS,
+              label: t('settings.model_config.no_online_models'),
+              disabled: true,
+            },
+          ]
+        : []),
+    ];
+
     return (
-      <Select
+      <SettingsSelect
         value={stored || DEFAULT_MODEL}
         onValueChange={(val) => updateSetting(['ot', modelKey], val === DEFAULT_MODEL ? '' : val)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder={t('settings.model_config.select_model')} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={DEFAULT_MODEL}>{t('settings.ot.model_default')}</SelectItem>
-          {unknown && <SelectItem value={stored}>{stored}</SelectItem>}
-          {choices.map((model) => (
-            <SelectItem key={model.id} value={model.id}>
-              {model.description || model.id}
-            </SelectItem>
-          ))}
-          {choices.length === 0 && (
-            <SelectItem value='none' disabled>
-              {t('settings.model_config.no_online_models')}
-            </SelectItem>
-          )}
-        </SelectContent>
-      </Select>
+        placeholder={t('settings.model_config.select_model')}
+        options={options}
+      />
     );
   };
 
@@ -129,7 +127,7 @@ export function OnlineAccountFields({
             <div className='flex flex-wrap items-center justify-end gap-2'>
               <Button
                 variant='outline'
-                size='sm'
+                size='2'
                 className='gap-1.5'
                 onClick={() => setRedeemOpen(true)}
               >
@@ -138,7 +136,7 @@ export function OnlineAccountFields({
               </Button>
               <Button
                 variant='outline'
-                size='sm'
+                size='2'
                 className='gap-1.5'
                 onClick={() => setPurchaseOpen(true)}
               >
@@ -147,7 +145,7 @@ export function OnlineAccountFields({
               </Button>
               <Button
                 variant='outline'
-                size='sm'
+                size='2'
                 className='gap-1.5'
                 disabled={busy === 'health'}
                 onClick={() => void account.checkHealth()}

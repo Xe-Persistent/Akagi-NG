@@ -1,16 +1,16 @@
 import type { ComponentProps } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { cn } from '@/lib/utils';
 
-export function HudControlButton({ className, ref, ...props }: ComponentProps<typeof Button>) {
+/** The small controls that float over the HUD's recommendation board. */
+export function HudControlButton({ className, ...props }: ComponentProps<typeof IconButton>) {
   return (
-    <Button
-      ref={ref}
+    <IconButton
       variant='ghost'
-      size='icon'
+      size='1'
       className={cn(
-        'no-drag z-hud h-6 w-6 rounded-full text-white dark:text-zinc-200',
+        'no-drag z-hud rounded-full text-white dark:text-zinc-200',
         'opacity-40 transition duration-300',
         'hover:bg-white/20 hover:opacity-100 dark:hover:bg-zinc-800/50',
         className,

@@ -2,14 +2,8 @@ import { useTranslation } from 'react-i18next';
 
 import { CapsuleSwitch } from '@/components/ui/capsule-switch';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { SettingsItem } from '@/components/ui/settings-item';
+import { SettingsSelect } from '@/components/ui/settings-select';
 import { MAJSOUL_SERVERS, type MajsoulServer } from '@/config/platforms';
 import type { UpdateSetting } from '@/contexts/SettingsContext';
 import type { Settings } from '@/types';
@@ -36,6 +30,7 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
           className='w-fit max-w-full'
           checked={settings.mitm.enabled}
           onCheckedChange={(val) => updateSetting(['mitm', 'enabled'], val)}
+          ariaLabel={t('settings.connection.mode')}
           labelOn={t('settings.connection.mode_mitm')}
           labelOff={t('settings.connection.mode_browser')}
         />
@@ -43,25 +38,15 @@ export function ConnectionSection({ settings, updateSetting }: ConnectionSection
 
       {!settings.mitm.enabled && (
         <SettingsItem label={t('settings.connection.majsoul_server')}>
-          <Select
+          <SettingsSelect
             value={settings.majsoul_server || MAJSOUL_SERVERS.CN}
             onValueChange={(val) => updateSetting(['majsoul_server'], val as MajsoulServer)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={MAJSOUL_SERVERS.CN}>
-                {t('settings.connection.majsoul_servers.cn')}
-              </SelectItem>
-              <SelectItem value={MAJSOUL_SERVERS.JP}>
-                {t('settings.connection.majsoul_servers.jp')}
-              </SelectItem>
-              <SelectItem value={MAJSOUL_SERVERS.EN}>
-                {t('settings.connection.majsoul_servers.en')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            options={[
+              { value: MAJSOUL_SERVERS.CN, label: t('settings.connection.majsoul_servers.cn') },
+              { value: MAJSOUL_SERVERS.JP, label: t('settings.connection.majsoul_servers.jp') },
+              { value: MAJSOUL_SERVERS.EN, label: t('settings.connection.majsoul_servers.en') },
+            ]}
+          />
         </SettingsItem>
       )}
 

@@ -18,11 +18,13 @@ export function SettingsItem({
   ...props
 }: SettingsItemProps) {
   const labelId = useId();
+  const descriptionId = useId();
 
   return (
     <div
       role='group'
       aria-labelledby={labelId}
+      aria-describedby={description ? descriptionId : undefined}
       className={cn(
         'group flex w-full',
         layout === 'row' ? 'items-center justify-between gap-4' : 'flex-col gap-2',
@@ -34,7 +36,11 @@ export function SettingsItem({
         <span id={labelId} className='text-sm leading-none font-medium'>
           {label}
         </span>
-        {description && <p className='text-xs text-muted-foreground'>{description}</p>}
+        {description && (
+          <p id={descriptionId} className='text-xs text-muted-foreground'>
+            {description}
+          </p>
+        )}
       </div>
       <div className={cn(layout === 'row' ? 'shrink-0' : 'w-full')}>{children}</div>
     </div>

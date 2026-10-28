@@ -58,7 +58,7 @@ export function PasswordInput({
         <PasswordToggleField.Toggle
           id={id ? `${id}-toggle` : undefined}
           disabled={disabled}
-          className='absolute inset-y-0 right-1 my-auto flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50'
+          className='focus-ring absolute inset-y-0 right-1 my-auto flex h-7 w-7 items-center justify-center rounded-2 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50'
         >
           {visible ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
         </PasswordToggleField.Toggle>

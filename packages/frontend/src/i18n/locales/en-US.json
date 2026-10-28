@@ -124,10 +124,18 @@
     "stopped_desc": "Thank you for using Akagi NG.",
     "open_settings": "Open Settings",
     "toggle_hud": "Toggle HUD",
+    "hide_hud": "Hide HUD",
     "window_minimize": "Minimize",
     "window_maximize": "Maximize",
     "window_restore": "Restore",
     "window_close": "Close Window"
+  },
+  "model_status": {
+    "failed": "The model failed to load",
+    "circuit_open": "The online service is temporarily unavailable",
+    "fallback": "The local model answered instead",
+    "online": "Answered by the online model",
+    "local": "Answered by the local model"
   },
   "actions": {
     "reach": "Reach",

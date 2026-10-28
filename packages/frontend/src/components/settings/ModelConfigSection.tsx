@@ -1,15 +1,9 @@
 import { useTranslation } from 'react-i18next';
 
 import { OnlineAccountFields } from '@/components/settings/OnlineAccountFields';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { SettingsItem } from '@/components/ui/settings-item';
+import { SettingsSelect } from '@/components/ui/settings-select';
 import { Switch } from '@/components/ui/switch';
 import type { UpdateSetting } from '@/contexts/SettingsContext';
 import { useOnlineAccount } from '@/hooks/useOnlineAccount';
@@ -39,31 +33,26 @@ export function ModelConfigSection({ settings, updateSetting }: ModelConfigSecti
   const renderLocalModelSelect = (modelKey: 'model_4p' | 'model_3p') => {
     const stored = settings.model_config[modelKey];
     // A stored file the directory no longer lists still has to read as itself,
-    // not as an empty box: the engine will try exactly that name.
-    const unknown = stored !== '' && !availableModels.includes(stored);
+    // not as an empty box: the engine will try exactly that name. `SettingsSelect`
+    // keeps it as an extra option; only the "nothing to choose" case is ours.
+    const options =
+      availableModels.length > 0
+        ? availableModels.map((name) => ({ value: name, label: name }))
+        : [
+            {
+              value: 'none',
+              label: t('settings.model_config.no_models_found'),
+              disabled: true,
+            },
+          ];
+
     return (
-      <Select
+      <SettingsSelect
         value={stored}
         onValueChange={(val) => updateSetting(['model_config', modelKey], val)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder={t('settings.model_config.select_model')} />
-        </SelectTrigger>
-        <SelectContent>
-          {unknown && <SelectItem value={stored}>{stored}</SelectItem>}
-          {availableModels.length > 0 ? (
-            availableModels.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
-              </SelectItem>
-            ))
-          ) : (
-            <SelectItem value='none' disabled>
-              {t('settings.model_config.no_models_found')}
-            </SelectItem>
-          )}
-        </SelectContent>
-      </Select>
+        placeholder={t('settings.model_config.select_model')}
+        options={options}
+      />
     );
   };
 

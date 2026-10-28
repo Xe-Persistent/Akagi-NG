@@ -25,9 +25,17 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  /**
+   * The radius scale: `--radius` is the base step, and every component takes a
+   * step from here rather than a literal, so one value restyles the whole app.
+   * Steps 1-6 cover what the components use: 4, 6, 8, 12, 16 and 24px.
+   */
+  --radius-1: calc(var(--radius) - 4px);
+  --radius-2: calc(var(--radius) - 2px);
+  --radius-3: var(--radius);
+  --radius-4: calc(var(--radius) + 4px);
+  --radius-5: calc(var(--radius) + 8px);
+  --radius-6: calc(var(--radius) + 16px);
 
   --color-action-reach: hsl(var(--action-reach));
   --color-action-chi: hsl(var(--action-chi));
@@ -52,7 +60,7 @@
   --z-index-modal: 50;
   --z-index-splash: 60;
   --z-index-toast: 70;
-  --z-index-critical: 9999;
+  --z-index-exit: 80;
 }
 
 @layer components {
@@ -62,11 +70,11 @@
   }
 
   .mahjong-tile-face {
-    @apply relative z-tile h-full w-full overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-sm dark:border-zinc-600;
+    @apply relative z-tile h-full w-full overflow-hidden rounded-3 border border-zinc-300 bg-white shadow-sm dark:border-zinc-600;
   }
 
   .mahjong-tile-3d {
-    @apply absolute -bottom-1 z-base h-full w-full translate-y-1 rounded-lg border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
+    @apply absolute -bottom-1 z-base h-full w-full translate-y-1 rounded-3 border border-zinc-400 bg-zinc-300 dark:border-zinc-600 dark:bg-zinc-500;
   }
 
   .mahjong-tile-back {
@@ -75,7 +83,7 @@
 
   /* ---- Recommendation card ---- */
   .glass-card {
-    @apply relative flex h-44 items-center justify-between overflow-hidden rounded-3xl border border-white/40 bg-white/80 pr-8 pl-4 transition duration-500 dark:border-white/5 dark:bg-zinc-950/75;
+    @apply relative flex h-44 items-center justify-between overflow-hidden rounded-6 border border-white/40 bg-white/80 pr-8 pl-4 transition duration-500 dark:border-white/5 dark:bg-zinc-950/75;
   }
 
   .accent-strip {
@@ -87,7 +95,7 @@
   }
 
   .background-glow {
-    @apply absolute -inset-0.5 rounded-3xl bg-linear-to-r opacity-30 blur transition-opacity duration-500 group-hover:opacity-60 dark:opacity-30 dark:group-hover:opacity-60;
+    @apply absolute -inset-0.5 rounded-6 bg-linear-to-r opacity-30 blur transition-opacity duration-500 group-hover:opacity-60 dark:opacity-30 dark:group-hover:opacity-60;
   }
 
   .action-text-gradient {
@@ -98,6 +106,20 @@
   /* ---- Settings ---- */
   .settings-section-title {
     @apply border-b border-border pb-2 text-lg font-semibold;
+  }
+
+  /* ---- Focus ---- */
+  /**
+   * The one focus ring: two pixels of `--ring`, held two pixels off the control,
+   * and only for keyboard focus. Controls compose this instead of each spelling
+   * its own width, colour and offset, which is how the four different rings in
+   * this app came about.
+   *
+   * It lives in the components layer so a call site can still switch it off with
+   * a `focus-visible:ring-*` utility, which the utilities layer outranks.
+   */
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none;
   }
 
   /* ---- Logo glow ---- */
@@ -241,6 +263,23 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  /**
+   * Motion is decoration here: every entrance, slide and pulse can be dropped
+   * without losing information. The durations collapse instead of the rules
+   * disappearing, so `animate-in`/`animate-out` still settle on their last
+   * frame and nothing is left mid-animation.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   *::-webkit-scrollbar {

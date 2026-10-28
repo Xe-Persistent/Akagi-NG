@@ -12,6 +12,9 @@
   </head>
   <body>
     <script>
+      // Runs before the bundle so the first paint has the right palette. The
+      // same reading and validation lives in `lib/theme.ts` for the provider;
+      // this copy cannot import it, and must stay a plain ES5 snippet.
       (function () {
         const stored = localStorage.getItem('theme');
         const theme =

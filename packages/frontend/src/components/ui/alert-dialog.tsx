@@ -19,7 +19,7 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Overlay
       className={cn(
-        'fixed inset-0 z-modal bg-black/40 backdrop-blur-sm transition duration-500 ease-premium data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+        'fixed inset-0 z-modal bg-black/40 backdrop-blur-sm data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
         className,
       )}
       {...props}
@@ -41,7 +41,7 @@ function AlertDialogContent({
         data-slot='alert-dialog-content'
         data-size={size}
         className={cn(
-          'group/alert-dialog-content no-drag fixed top-[50%] left-[50%] z-modal grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border border-zinc-300 bg-white p-6 shadow-2xl duration-200 data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg dark:border-white/15 dark:bg-zinc-900',
+          'group/alert-dialog-content no-drag fixed top-[50%] left-[50%] z-modal grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-4 border border-zinc-300 bg-white p-6 shadow-2xl data-[size=sm]:max-w-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[size=default]:sm:max-w-lg dark:border-white/15 dark:bg-zinc-900',
           className,
         )}
         {...props}
@@ -108,7 +108,7 @@ function AlertDialogDescription({
 function AlertDialogAction({
   className,
   variant = 'default',
-  size = 'default',
+  size = '3',
   ...props
 }: ComponentProps<typeof AlertDialogPrimitive.Action> &
   Pick<ComponentProps<typeof Button>, 'variant' | 'size'>) {
@@ -126,7 +126,7 @@ function AlertDialogAction({
 function AlertDialogCancel({
   className,
   variant = 'outline',
-  size = 'default',
+  size = '3',
   ...props
 }: ComponentProps<typeof AlertDialogPrimitive.Cancel> &
   Pick<ComponentProps<typeof Button>, 'variant' | 'size'>) {

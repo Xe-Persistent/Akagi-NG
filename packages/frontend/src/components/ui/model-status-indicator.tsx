@@ -1,6 +1,6 @@
-import { use } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { GameContext } from '@/contexts/GameContext';
+import { useGame } from '@/hooks/useGame';
 import { cn } from '@/lib/utils';
 import type { EngineStatus, RecommendationData } from '@/types';
 
@@ -17,6 +17,15 @@ const STATUS_VARIANTS = {
 } as const;
 
 type StatusType = keyof typeof STATUS_VARIANTS;
+
+/** The state the colour stands for, said in words for assistive tech. */
+const STATUS_LABELS: Record<Exclude<StatusType, 'hidden'>, string> = {
+  failed: 'model_status.failed',
+  circuitOpen: 'model_status.circuit_open',
+  fallback: 'model_status.fallback',
+  online: 'model_status.online',
+  local: 'model_status.local',
+};
 
 interface ModelStatusIndicatorProps {
   className?: string;
@@ -54,10 +63,19 @@ export function resolveIndicatorStatus(
  * no rows on screen a colour would claim a model that has not answered yet.
  */
 export function ModelStatusIndicator({ className }: ModelStatusIndicatorProps) {
-  const context = use(GameContext);
-  const currentStatus = resolveIndicatorStatus(context?.status, context?.data);
+  const { t } = useTranslation();
+  const { status, data } = useGame();
+  const currentStatus = resolveIndicatorStatus(status, data);
 
   if (currentStatus === 'hidden') return null;
 
-  return <div className={cn(DOT_BASE_CLASS, STATUS_VARIANTS[currentStatus], className)} />;
+  // The dot reads through colour alone, so it carries the same state in a name:
+  // a screen reader hears what a sighted user sees.
+  return (
+    <div
+      role='img'
+      aria-label={t(STATUS_LABELS[currentStatus])}
+      className={cn(DOT_BASE_CLASS, STATUS_VARIANTS[currentStatus], className)}
+    />
+  );
 }

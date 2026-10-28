@@ -124,10 +124,18 @@
     "stopped_desc": "感谢您使用 Akagi NG",
     "open_settings": "打开设置",
     "toggle_hud": "切换 HUD",
+    "hide_hud": "隐藏 HUD",
     "window_minimize": "最小化",
     "window_maximize": "最大化",
     "window_restore": "还原",
     "window_close": "关闭窗口"
+  },
+  "model_status": {
+    "failed": "模型加载失败",
+    "circuit_open": "在线服务暂时不可用",
+    "fallback": "已回退到本地模型",
+    "online": "在线模型作答",
+    "local": "本地模型作答"
   },
   "actions": {
     "reach": "立直",

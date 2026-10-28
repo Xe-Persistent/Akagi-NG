@@ -44,10 +44,7 @@ export default function StreamRecommendation({
 
   return (
     <div
-      className={cn(
-        'group relative mx-auto w-full',
-        'duration-500 ease-premium animate-in fade-in-0 slide-in-from-bottom-4',
-      )}
+      className={cn('group relative mx-auto w-full', 'animate-in fade-in-0 slide-in-from-bottom-4')}
     >
       <div className={cn('background-glow', effectiveConfig.gradient)} />
 

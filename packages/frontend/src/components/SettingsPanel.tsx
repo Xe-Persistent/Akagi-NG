@@ -73,7 +73,11 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           <DialogTitle>{t('app.settings_title')}</DialogTitle>
           <DialogDescription>{t('app.settings_desc')}</DialogDescription>
           {isRestored && (
-            <Alert variant='success' className='mt-4 flex justify-center p-2 text-center'>
+            <Alert
+              variant='success'
+              role='status'
+              className='mt-4 flex justify-center p-2 text-center'
+            >
               <CheckCircle2 className='h-4 w-4' />
               <AlertDescription>{t('settings.restored_success')}</AlertDescription>
             </Alert>
@@ -109,7 +113,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 <div className='flex items-center justify-end gap-4'>
                   <Button
                     variant='outline'
-                    size='sm'
+                    size='2'
                     onClick={() => void handleUpdateProtocol()}
                     disabled={isUpdatingProtocol}
                     className='w-auto text-muted-foreground'
@@ -124,7 +128,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
                   <Button
                     variant='destructive'
-                    size='sm'
+                    size='2'
                     onClick={() => setIsRestoreDialogOpen(true)}
                     className='w-auto'
                   >

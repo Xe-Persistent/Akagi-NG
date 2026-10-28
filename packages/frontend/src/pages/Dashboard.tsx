@@ -1,14 +1,6 @@
-import { use, useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-  checkResourceStatus,
-  closeWindow,
-  requestShutdown,
-  startGame,
-  toggleHud,
-} from '@/api/desktop';
-import { fetchSettingsApi } from '@/api/settings';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -23,128 +15,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { GameContext } from '@/contexts/GameContext';
-import { useSettings } from '@/hooks/useSettings';
-import { notify } from '@/lib/notify';
+import { useGame } from '@/hooks/useGame';
+import { useLaunchGame } from '@/hooks/useLaunchGame';
+import { useModelsMissingToast } from '@/hooks/useModelsMissingToast';
+import { useResourceStatus } from '@/hooks/useResourceStatus';
+import { useShutdownDialog } from '@/hooks/useShutdownDialog';
 import { cn } from '@/lib/utils';
-import type { ResourceStatus, Settings } from '@/types';
 
 interface DashboardProps {
-  settingsPromise: Promise<Settings>;
   isSplashActive?: boolean;
 }
 
-/** Toast id of the install-level warning, so raising and clearing it agree. */
-const MODELS_MISSING_TOAST = 'models_missing';
-
-function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) {
-  const { t, i18n } = useTranslation();
-  const initialSettings = use(settingsPromise);
-
-  const context = use(GameContext);
-  if (!context) throw new Error('GameContext not found');
-
-  const { updateSetting } = useSettings();
-  const { setIsHudActive, isHudActive, status: engineStatus } = context;
-
-  const handleLocaleChange = useCallback(
-    (newLocale: string) => updateSetting(['locale'], newLocale),
-    [updateSetting],
-  );
+function Dashboard({ isSplashActive = false }: DashboardProps) {
+  const { t } = useTranslation();
+  const { status } = useGame();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
-  const [isLaunching, setIsLaunching] = useState(false);
 
-  const [resourceStatus, setResourceStatus] = useState<ResourceStatus | null>(null);
+  const resourceStatus = useResourceStatus();
+  useModelsMissingToast(resourceStatus, status?.model);
 
-  // The resource check and the two window signals are read once per mount.
-  useEffect(() => {
-    let cancelled = false;
-
-    void checkResourceStatus()
-      .then((status) => {
-        if (!cancelled) setResourceStatus(status);
-      })
-      .catch((error: unknown) => {
-        console.error('Failed to check resource status:', error);
-      });
-
-    const unsubHud = window.electron.on('hud-visibility-changed', (visible: boolean) => {
-      setIsHudActive(visible);
-    });
-
-    const unsubQuit = window.electron.on('request-app-quit', () => {
-      setShowShutdownConfirm(true);
-    });
-
-    return () => {
-      cancelled = true;
-      unsubHud();
-      unsubQuit();
-    };
-  }, [setIsHudActive]);
-
-  useEffect(() => {
-    if (!resourceStatus) return;
-
-    if (resourceStatus.models) {
-      // The models showed up (or the check was retried): retire the stale warning.
-      notify.dismiss(MODELS_MISSING_TOAST);
-      return;
-    }
-
-    notify.warn(t('notify.models_missing'), {
-      toastId: MODELS_MISSING_TOAST,
-      autoClose: false,
-    });
-  }, [resourceStatus, t]);
-
-  // The check itself runs once per launch, so a later load proves the files are
-  // there now; without this the warning would outlive the problem until a restart.
-  useEffect(() => {
-    if (engineStatus?.model === 'ready') notify.dismiss(MODELS_MISSING_TOAST);
-  }, [engineStatus?.model]);
-
-  const handleLaunchGame = useCallback(async () => {
-    setIsLaunching(true);
-    try {
-      const currentSettings = await fetchSettingsApi().catch(() => initialSettings);
-      await startGame({
-        url: currentSettings.game_url,
-        useMitm: currentSettings.mitm.enabled,
-      });
-    } catch (e) {
-      console.error('Failed to start game window:', e);
-      notify.error(t('app.launch_error'));
-    } finally {
-      setIsLaunching(false);
-    }
-  }, [initialSettings, t]);
-
-  // The window's close button hides it to the tray; quitting is a separate flow.
-  const handleCloseWindow = useCallback(() => {
-    void closeWindow();
-  }, []);
-
-  const performShutdown = useCallback(async () => {
-    try {
-      await requestShutdown();
-    } catch (e) {
-      console.error('Failed to shutdown:', e);
-      notify.error(`${t('common.error')}: ${(e as Error).message}`);
-    }
-  }, [t]);
+  const { isLaunching, launch } = useLaunchGame();
+  const {
+    isOpen: isShutdownOpen,
+    setIsOpen: setShutdownOpen,
+    confirm: confirmShutdown,
+  } = useShutdownDialog();
 
   const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
-  const handleToggleHud = useCallback(
-    (show: boolean) => {
-      void toggleHud(show);
-      setIsHudActive(show);
-    },
-    [setIsHudActive],
-  );
 
   return (
     <>
@@ -157,14 +56,10 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
       >
         <Header
           isLaunching={isLaunching}
-          onLaunch={() => void handleLaunchGame()}
+          onLaunch={() => void launch()}
           onOpenSettings={handleOpenSettings}
-          locale={i18n.language}
-          onLocaleChange={handleLocaleChange}
-          onCloseWindow={handleCloseWindow}
-          onToggleHud={handleToggleHud}
-          isHudActive={isHudActive}
         />
+
         <main className='flex w-full grow overflow-hidden px-6 py-4'>
           <StreamPlayer className='h-full w-full' />
         </main>
@@ -174,7 +69,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
 
       <SettingsPanel open={settingsOpen} onClose={handleCloseSettings} />
 
-      <AlertDialog open={showShutdownConfirm} onOpenChange={setShowShutdownConfirm}>
+      <AlertDialog open={isShutdownOpen} onOpenChange={setShutdownOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('app.shutdown_confirm_title')}</AlertDialogTitle>
@@ -182,13 +77,7 @@ function Dashboard({ settingsPromise, isSplashActive = false }: DashboardProps) 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={() => {
-                void performShutdown();
-                setShowShutdownConfirm(false);
-              }}
-            >
+            <AlertDialogAction variant='destructive' onClick={() => void confirmShutdown()}>
               {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { SettingsItem } from '@/components/ui/settings-item';
 
@@ -70,19 +71,19 @@ export function ApiKeyItem({ configured, last4, busy, error, onSave, onClear }: 
         ariaLabel={t('settings.ot.api_key')}
         disabled={busy}
       />
-      <Button
-        size='icon'
+      <IconButton
+        size='3'
         aria-label={t('common.confirm')}
         disabled={busy || !draft.trim()}
         onClick={() => void save()}
       >
         <Check />
-      </Button>
+      </IconButton>
       {/* Nothing to go back to when no key is stored; the field is the only state. */}
       {configured && (
-        <Button
+        <IconButton
           variant='ghost'
-          size='icon'
+          size='3'
           aria-label={t('common.cancel')}
           disabled={busy}
           onClick={() => {
@@ -91,25 +92,25 @@ export function ApiKeyItem({ configured, last4, busy, error, onSave, onClear }: 
           }}
         >
           <X />
-        </Button>
+        </IconButton>
       )}
     </div>
   );
 
   const renderSummary = () => (
-    <div className='flex items-center justify-between gap-2 rounded-md border border-input bg-muted/40 px-3 py-1.5'>
+    <div className='flex items-center justify-between gap-2 rounded-2 border border-input bg-muted/40 px-3 py-1.5'>
       <span className='flex items-center gap-2 text-sm text-muted-foreground'>
         <KeyRound className='h-4 w-4 shrink-0' />
         {t('settings.ot.key_last4', { last4 })}
       </span>
       <div className='flex items-center gap-1'>
-        <Button variant='ghost' size='sm' className='gap-1.5' onClick={() => setEditing(true)}>
+        <Button variant='ghost' size='2' className='gap-1.5' onClick={() => setEditing(true)}>
           <Pencil className='h-4 w-4' />
           {t('settings.ot.replace_key')}
         </Button>
         <Button
           variant='ghost'
-          size='sm'
+          size='2'
           className='gap-1.5 text-destructive'
           onClick={() => setConfirmClearOpen(true)}
         >

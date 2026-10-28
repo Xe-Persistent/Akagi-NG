@@ -1,15 +1,16 @@
 import os from 'node:os';
 import { join } from 'node:path';
 
-import { app, dialog, type Event } from 'electron';
+import { app, dialog } from 'electron';
 
 import { registerIpcHandlers } from './app/ipc/index.js';
+import { ShutdownCoordinator } from './app/shutdown.js';
 import { UpdaterManager } from './app/updater.js';
 import { WindowManager } from './app/window-manager.js';
 import { createLogger, initializeLogger, setLogLevel } from './logging/index.js';
 import { MitmProxyManager } from './services/capture/mitm-proxy.js';
 import { EngineService } from './services/engine/engine-service.js';
-import { startMockStream, stopMockStream } from './services/mock/stream.js';
+import { startMockStream } from './services/mock/stream.js';
 import { getSettingsManager } from './services/settings-manager.js';
 import { getProjectRoot } from './shared/paths.js';
 import { anonymizeUserAgent } from './shared/user-agent.js';
@@ -38,6 +39,7 @@ const engineService = new EngineService();
 const mitmProxyManager = new MitmProxyManager(engineService);
 const windowManager = new WindowManager(engineService);
 const updaterManager = new UpdaterManager(windowManager);
+const shutdownCoordinator = new ShutdownCoordinator(windowManager, engineService, mitmProxyManager);
 
 /** `npm run dev:mock` plays canned scenarios instead of capturing a game. */
 const isMockRun = process.argv.includes('--mock');
@@ -68,7 +70,7 @@ process.on('unhandledRejection', (reason) => {
 void app.whenReady().then(async () => {
   // The settings own the log level and the proxy config, so they load first.
   setLogLevel(getSettingsManager().getSettings().log_level);
-  registerIpcHandlers(windowManager, engineService, mitmProxyManager);
+  registerIpcHandlers(windowManager, engineService, mitmProxyManager, updaterManager);
 
   // A mock run reads canned scenarios and captures nothing.
   if (!isMockRun) {
@@ -95,26 +97,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-let isQuitting = false;
-
-async function quitGracefully(event: Event) {
-  windowManager.setQuitting(true);
-  if (isQuitting) return;
+app.on('before-quit', (event) => {
+  // The coordinator quits again once the animation and the services are done;
+  // that second pass is what actually closes the windows.
+  if (shutdownCoordinator.isFinished) return;
 
   event.preventDefault();
-  isQuitting = true;
-
-  try {
-    stopMockStream();
-    await mitmProxyManager.stop();
-    engineService.stop();
-  } catch (err) {
-    logger.error('Error during shutdown:', err);
-  } finally {
-    app.quit();
-  }
-}
-
-app.on('before-quit', (event) => {
-  void quitGracefully(event);
+  void shutdownCoordinator.begin();
 });

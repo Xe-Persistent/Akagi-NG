@@ -42,6 +42,10 @@ export class WindowManager {
     return this.game.get();
   }
 
+  public getHudWindow(): BrowserWindow | null {
+    return this.hud.get();
+  }
+
   public setupTray(onCheckForUpdates: () => void): void {
     if (this.tray) return;
 

@@ -70,17 +70,41 @@ export const app = {
   on: () => {},
   once: () => {},
   off: () => {},
+  quit: () => {},
   whenReady: () => Promise.resolve(),
 };
 
 export const webContents = { getAllWebContents: () => [] };
 
+type IpcListener = (event: unknown, ...args: unknown[]) => void;
+const ipcListeners = new Map<string, Set<IpcListener>>();
+
 export const ipcMain = {
   handle: () => {},
-  on: () => {},
-  off: () => {},
-  removeListener: () => {},
+  on: (channel: string, listener: IpcListener) => {
+    const listeners = ipcListeners.get(channel) ?? new Set<IpcListener>();
+    listeners.add(listener);
+    ipcListeners.set(channel, listeners);
+  },
+  off: (channel: string, listener: IpcListener) => {
+    ipcListeners.get(channel)?.delete(listener);
+  },
+  removeListener: (channel: string, listener: IpcListener) => {
+    ipcListeners.get(channel)?.delete(listener);
+  },
 };
+
+/** Delivers a main-process event to the listeners registered on `channel`. */
+export function emitIpcMain(channel: string, event: unknown, ...args: unknown[]) {
+  for (const listener of ipcListeners.get(channel) ?? []) {
+    listener(event, ...args);
+  }
+}
+
+/** Clears the listener registry; call it from `beforeEach`. */
+export function resetIpcListeners() {
+  ipcListeners.clear();
+}
 
 export const shell = { openExternal: async () => {} };
 export const dialog = { showErrorBox: () => {} };

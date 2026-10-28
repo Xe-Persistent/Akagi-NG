@@ -1,39 +1,24 @@
 import { app, ipcMain, shell } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
-import type { EngineService } from '../../services/engine/engine-service.js';
 import { engineStatus } from '../../services/engine-status.js';
 import { updateMajsoulProtocol } from '../../services/protocol-updater.js';
 import { resourceValidator } from '../../services/resource-validator.js';
-import { EXIT_ANIMATION_DELAY_MS } from '../../shared/constants.js';
-import { safeSend } from '../../shared/utils.js';
-import type { WindowManager } from '../window-manager.js';
+import type { UpdaterManager } from '../updater.js';
 
 const logger = createLogger('IPC');
 
-/** System-level requests: shutdown, bundled resources, protocol and external links. */
-export function registerSystemHandlers(windowManager: WindowManager, engine: EngineService) {
-  // Every window offers the same exit button, so a second click races the first.
-  let shuttingDown = false;
-
-  ipcMain.handle('request-shutdown', async () => {
-    if (shuttingDown) return false;
-    shuttingDown = true;
-
-    // Let the windows play their exit animation while the engine shuts down.
-    safeSend(windowManager.getMainWindow(), 'exit-animation-start');
-    safeSend(windowManager.getGameWindow(), 'exit-animation-start');
-
-    await Promise.all([
-      new Promise((resolve) => setTimeout(resolve, EXIT_ANIMATION_DELAY_MS)),
-      Promise.resolve(engine.stop()).catch((err: unknown) =>
-        logger.error('Engine shutdown error:', err),
-      ),
-    ]);
-
+/** System-level requests: shutdown, updates, bundled resources, protocol and links. */
+export function registerSystemHandlers(updater: UpdaterManager) {
+  // Shutdown is orchestrated by `ShutdownCoordinator` through `before-quit`, so
+  // every quit path plays the same exit sequence.
+  ipcMain.handle('request-shutdown', () => {
     app.quit();
     return true;
   });
+
+  // The update event is broadcast once, possibly before the badge exists.
+  ipcMain.handle('app:update:get', () => updater.getAvailableVersion());
 
   ipcMain.handle('check-resource-status', () => resourceValidator.validate());
 

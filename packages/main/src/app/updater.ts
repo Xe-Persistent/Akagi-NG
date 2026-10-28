@@ -34,7 +34,15 @@ function isNewerVersion(candidate: string, current: string): boolean {
 }
 
 export class UpdaterManager {
+  /** The newest release found so far, for a window that mounts after the check. */
+  private availableVersion: string | null = null;
+
   constructor(private windowManager: WindowManager) {}
+
+  /** What the last check found, or `null` while there is nothing to offer. */
+  public getAvailableVersion(): string | null {
+    return this.availableVersion;
+  }
 
   public checkForUpdates() {
     if (!app.isPackaged) {
@@ -63,6 +71,9 @@ export class UpdaterManager {
 
     if (isNewerVersion(latestVersion, currentVersion)) {
       logger.info(`Update available: v${currentVersion} → v${latestVersion}`);
+      // Kept as well as broadcast: the dashboard is a lazy chunk, so its badge
+      // can mount after this one-shot event has already gone out.
+      this.availableVersion = latestVersion;
       this.notifyWindow('app:update-available', latestVersion);
     } else {
       logger.info(`Already on latest version: v${currentVersion}`);

@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,4 +29,25 @@ export function getRendererPath(...paths: string[]): string {
 
 export function getPreloadPath(): string {
   return join(moduleDir, '../preload.cjs');
+}
+
+/**
+ * The inference engine's native addon, when it ships outside the archive.
+ *
+ * A `.node` cannot be `dlopen`ed from inside an asar — Electron would have to
+ * extract it to a temp file first — so the release copies it to
+ * `resources/engine/` instead of unpacking it next to the archive. Dev builds
+ * leave it beside its JavaScript wrapper, so this returns null and the loader
+ * finds it on its own.
+ */
+export function getEngineNativePath(): string | null {
+  if (!app.isPackaged) return null;
+
+  const dir = join(process.resourcesPath, 'engine');
+  try {
+    const addon = readdirSync(dir).find((name) => name.endsWith('.node'));
+    return addon ? join(dir, addon) : null;
+  } catch {
+    return null;
+  }
 }

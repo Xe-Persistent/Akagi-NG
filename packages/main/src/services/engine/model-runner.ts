@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { AkagiEngine } from '@akagi-ng/rust-engine';
 
 import { createLogger } from '../../logging/index.js';
-import { getProjectRoot } from '../../shared/paths.js';
+import { getEngineNativePath, getProjectRoot } from '../../shared/paths.js';
 import type { MJAIEvent } from '../../shared/schema/mjai.js';
 import { getSettingsManager } from '../settings-manager.js';
 import type { EngineDecision } from './recommendation-mapper.js';
@@ -41,6 +41,12 @@ export class ModelRunner {
 
     try {
       const modelBytes = readFileSync(modelPath);
+      // The addon ships beside the app rather than inside the archive, so the
+      // loader is told where to find it before it resolves its own paths.
+      const nativePath = getEngineNativePath();
+      if (nativePath) {
+        process.env.NAPI_RS_NATIVE_LIBRARY_PATH = nativePath;
+      }
       // The native binding is imported lazily so a missing or unbuilt engine
       // only disables inference instead of crashing the whole application.
       const { AkagiEngine } = await import('@akagi-ng/rust-engine');

@@ -57,15 +57,22 @@
       },
       "package.json",
       "!**/*.map",
+      "!**/*.node",
       "!**/rust-engine/{src,target}/**",
       "!**/rust-engine/{Cargo.toml,Cargo.lock,build.rs}"
-    ],
-    "asarUnpack": [
-      "**/*.node"
     ],
     "extraMetadata": {
       "main": "dist/main/index.js"
     },
+    "extraResources": [
+      {
+        "from": "../../packages/rust_engine/native",
+        "to": "engine",
+        "filter": [
+          "*.node"
+        ]
+      }
+    ],
     "extraFiles": [
       {
         "from": "../../assets",

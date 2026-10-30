@@ -1,5 +1,6 @@
 {
   "settings": {
+    "title": "Akagi NG 設定",
     "update_protocol": "プロトコルを更新",
     "restore": "初期設定に戻す",
     "restore_confirm_title": "初期設定に戻す",
@@ -12,8 +13,8 @@
       "theme_system": "システム設定",
       "theme_light": "ライトテーマ",
       "theme_dark": "ダークテーマ",
-      "log_level": "ログ収集レベル",
-      "select_level": "ログ収集レベルを選択"
+      "log_level": "ログレベル",
+      "select_level": "ログレベルを選択"
     },
     "connection": {
       "title": "ゲーム接続",
@@ -40,25 +41,25 @@
       "no_online_models": "利用できるオンラインモデルがありません"
     },
     "ot": {
-      "enable": "MJOT オンライン推論を使う",
-      "enable_hint": "有効にすると、毎手を MJOT サーバーへ問い合わせます。エラーの時はローカルモデルに切り替わります。",
+      "enable": "MJOT オンラインサービスを使う",
+      "enable_hint": "有効にすると、打牌判断のたびに MJOT サーバーへ問い合わせます。エラーが発生した場合は、ローカルモデルに切り替わります。",
       "enable_hint_no_key": "キーが未設定のため、今はローカルモデルが応答します。",
       "server_url": "サーバー",
       "api_key": "API キー",
       "api_key_placeholder": "API キーを貼り付け",
-      "key_last4": "末尾番号 {{last4}}",
+      "key_last4": "末尾4桁：{{last4}}",
       "replace_key": "キーを変更",
-      "key_replace_hint": "設定済み：末尾番号 {{last4}}",
+      "key_replace_hint": "設定済み：末尾4桁 {{last4}}",
       "key_not_configured": "未設定",
       "clear_key": "キーを削除",
       "clear_key_confirm_title": "キーを削除しますか？",
-      "clear_key_confirm_desc": "キーを削除しますか？キーは暗号化して保存されているため、元に戻せません。オンライン推論を使うには、もう一度設定か、新しいキーを引き換え・購入する必要があります。",
+      "clear_key_confirm_desc": "キーは暗号化して保存されており、保存済みのキーを再表示することはできません。オンラインサービスを再び利用するには、キーを再設定するか、新しいキーを引き換えるか購入する必要があります。",
       "health": "サービスの状態",
-      "health_ok": "利用可能（待ち {{queue}}）",
+      "health_ok": "利用可能（待機中：{{queue}}件）",
       "health_unavailable": "利用不可",
       "model_4p": "オンライン四麻モデル",
       "model_3p": "オンライン三麻モデル",
-      "model_default": "デフォルト",
+      "model_default": "サーバーのデフォルト",
       "request_timeout": "判断のタイムアウト",
       "request_timeout_desc": "オンラインの応答がこの時間を超えたらローカルモデルに切り替えます。",
       "plan": "プラン",
@@ -75,9 +76,9 @@
       "redeem_email_hint": "キーの控えの送付に使われます",
       "redeem_submit": "引き換える",
       "redeem_renew": "現在のキーを更新する",
-      "redeem_renew_hint": "保存済みのキーに期間を加算します（新しいキーは発行されません）。",
+      "redeem_renew_hint": "保存済みのキーの有効期間を延長します。新しいキーは発行されません。",
       "redeem_done": "引き換えが完了し、キーを保存しました。",
-      "redeemed_extended": "末尾番号 {{last4}} のキーを更新しました。有効期限は {{until}} までです。",
+      "redeemed_extended": "末尾4桁が {{last4}} のキーを更新しました。有効期限は {{until}} までです。",
       "purchase_title": "API キーの購入",
       "purchase_desc": "ブラウザで支払うと、この画面が自動で結果を取得します。",
       "purchase_choose": "プランを選択",
@@ -94,7 +95,7 @@
         "pro_yearly": "年額 — $100 / 年"
       }
     },
-    "status_saved": "保存済み",
+    "status_saved": "保存しました。",
     "status_saving": "保存中…",
     "status_error": "保存に失敗しました。",
     "restored_success": "設定をデフォルトに戻しました。",
@@ -111,20 +112,16 @@
     "title": "Akagi Next-Generation",
     "launch_game": "ゲームを起動",
     "startup_failed": "アプリケーションの起動に失敗しました",
-    "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
-    "launch_proxy_error": "MITM プロキシが起動していません。再起動するか、内蔵ブラウザモードに戻してください。",
-    "settings_title": "Akagi NG 設定",
-    "settings_desc": "アプリケーション設定パネル",
     "standby": "待機中",
-    "standby_desc": "対局データを待機中、打牌推奨の準備が整いました",
+    "standby_desc": "対局データの受信待ち、アドバイスを準備中",
     "hud_active": "HUDモードが有効です",
-    "hud_desc": "AIの打牌推奨が専用のHUDウィンドウに表示されます",
+    "hud_desc": "AIのアドバイスが専用のHUDウィンドウに表示されます",
     "shutdown_confirm_title": "Akagi NGを終了しますか？",
     "shutdown_confirm_desc": "Akagi NGを終了しますか？バックグラウンドサービスが停止し、接続が切断されます。",
     "stopped_title": "アプリケーションは終了しました",
     "stopped_desc": "Akagi NGをご利用いただきありがとうございました。",
     "open_settings": "設定を開く",
-    "toggle_hud": "HUDを表示",
+    "toggle_hud": "HUDの表示／非表示を切り替え",
     "hide_hud": "HUDを隠す",
     "window_minimize": "最小化",
     "window_maximize": "最大化",
@@ -133,10 +130,10 @@
   },
   "model_status": {
     "failed": "モデルの読み込みに失敗しました",
-    "circuit_open": "オンラインサービスは一時的に利用できません",
-    "fallback": "ローカルモデルで応答しています",
-    "online": "オンラインモデルが応答",
-    "local": "ローカルモデルが応答"
+    "circuit_open": "オンラインサービスが利用できないため、ローカルモデルに切り替えています",
+    "fallback": "オンラインサービスが一時的に利用できないため、今回はローカルモデルで応答しています",
+    "online": "オンラインモデル使用中",
+    "local": "ローカルモデル使用中"
   },
   "actions": {
     "reach": "リーチ",
@@ -148,9 +145,11 @@
     "ryukyoku": "流局",
     "nukidora": "北抜き",
     "none": "スキップ",
-    "discard": "切"
+    "discard": "切る"
   },
   "notify": {
+    "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
+    "launch_proxy_error": "MITM プロキシが起動していません。再起動するか、内蔵ブラウザモードに戻してください。",
     "game_connected": "ゲームに接続しました。",
     "game_disconnected": "ゲームとの接続が切れました。ネットワークとプロキシ設定を確認してください。",
     "left_game": "対局から退出しました。",
@@ -161,7 +160,7 @@
     "proto_update_failed": "雀魂プロトコルファイルの更新に失敗しました。",
     "parse_failed": "対局データの解析に失敗しました。",
     "model_error": "AIモデルの読み込みに失敗しました。",
-    "runtime_error": "AIモデルの実行異常",
+    "runtime_error": "AIモデルの実行時エラー",
     "models_missing": "ローカルモデルファイル (models) がありません。アプリケーションは動作できません。"
   }
 }

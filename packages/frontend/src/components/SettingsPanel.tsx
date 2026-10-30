@@ -15,13 +15,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/hooks/useSettings';
@@ -68,10 +62,12 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className='flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl'>
+      <DialogContent
+        aria-describedby={undefined}
+        className='flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl'
+      >
         <DialogHeader className='border-b border-border p-6 pb-4'>
-          <DialogTitle>{t('app.settings_title')}</DialogTitle>
-          <DialogDescription>{t('app.settings_desc')}</DialogDescription>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
           {isRestored && (
             <Alert
               variant='success'

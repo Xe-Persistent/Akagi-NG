@@ -25,11 +25,13 @@ export function useLaunchGame() {
         useMitm: current.mitm.enabled,
       });
       if (!result.ok) {
-        notify.error(t(result.reason === 'proxy' ? 'app.launch_proxy_error' : 'app.launch_error'));
+        notify.error(
+          t(result.reason === 'proxy' ? 'notify.launch_proxy_error' : 'notify.launch_error'),
+        );
       }
     } catch (error) {
       console.error('Failed to start game window:', error);
-      notify.error(t('app.launch_error'));
+      notify.error(t('notify.launch_error'));
     } finally {
       setIsLaunching(false);
     }

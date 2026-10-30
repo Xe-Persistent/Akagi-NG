@@ -112,6 +112,7 @@
     "launch_game": "啟動遊戲",
     "startup_failed": "應用程式啟動失敗",
     "launch_error": "無法取得游戏 URL，請檢查設定",
+    "launch_proxy_error": "MITM 代理未執行，請重新啟動代理或切回內建視窗模式",
     "settings_title": "Akagi NG 設定",
     "settings_desc": "應用配置面板",
     "standby": "待機中",

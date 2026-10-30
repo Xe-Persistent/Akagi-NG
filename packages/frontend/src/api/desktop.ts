@@ -47,8 +47,13 @@ export interface StartGameOptions {
   useMitm: boolean;
 }
 
-export function startGame(options: StartGameOptions): Promise<void> {
-  return window.electron.invoke<void>('start-game', options);
+/** Why a launch produced no window; the renderer picks the wording. */
+export type GameLaunchFailure = 'proxy' | 'url';
+
+export type GameLaunchResult = { ok: true } | { ok: false; reason: GameLaunchFailure };
+
+export function startGame(options: StartGameOptions): Promise<GameLaunchResult> {
+  return window.electron.invoke<GameLaunchResult>('start-game', options);
 }
 
 /** Whether the model files the app needs are present next to the executable. */

@@ -2,38 +2,22 @@ import { BrowserWindow, nativeTheme } from 'electron';
 
 import { createLogger } from '../../logging/index.js';
 import { GameHandler } from '../../services/capture/game-handler.js';
-import { blockTelemetry } from '../../services/capture/telemetry.js';
+import {
+  GAME_PARTITION,
+  hardenGameSession,
+  routeDirect,
+  routeThroughMitmProxy,
+} from '../../services/capture/game-session.js';
 import type { EngineService } from '../../services/engine/engine-service.js';
-import { getMitmPort } from '../../services/settings-manager.js';
 import { GAME_WINDOW_HEIGHT, GAME_WINDOW_WIDTH } from '../../shared/constants.js';
 import { isSafeWindow } from '../../shared/utils.js';
+import {
+  classifyLoadFailure,
+  type GameLaunchResult,
+  type GameWindowOptions,
+} from './game-launch.js';
 
 const logger = createLogger('GameWindow');
-
-/**
- * The game runs in its own persistent session, so its proxy and permission
- * rules cannot leak into the dashboard or the HUD, and its login survives a
- * restart.
- */
-const GAME_PARTITION = 'persist:game';
-
-/**
- * Capabilities the game page may request. Everything else — camera,
- * microphone, geolocation, notifications, clipboard reads, external protocol
- * launches, HID/USB/serial — is refused: this window shows remote content and
- * has no business reaching them.
- */
-const ALLOWED_PERMISSIONS = new Set<string>([
-  'fullscreen',
-  'pointerLock',
-  'clipboard-sanitized-write',
-]);
-
-export interface GameWindowOptions {
-  url?: string;
-  /** Route the page through our MITM proxy instead of the debugger API. */
-  useMitm?: boolean;
-}
 
 /** Hosts the game client and wires whichever capture path is configured. */
 export class GameWindow {
@@ -46,17 +30,17 @@ export class GameWindow {
     return isSafeWindow(this.window) ? this.window : null;
   }
 
-  public async open({ url, useMitm }: GameWindowOptions): Promise<void> {
+  public async open({ url, useMitm }: GameWindowOptions): Promise<GameLaunchResult> {
     const existing = this.get();
     if (existing) {
       existing.focus();
-      return;
+      return { ok: true };
     }
     this.window = null; // Drop a zombie reference before creating a new window
 
     if (!url) {
       logger.warn('No URL provided for the game window.');
-      return;
+      return { ok: false, reason: 'url' };
     }
 
     const window = new BrowserWindow({
@@ -74,11 +58,15 @@ export class GameWindow {
     });
     this.window = window;
 
-    this.registerWindowEvents(window);
-    this.hardenSession(window);
-    await this.syncProxy(useMitm ?? false);
+    /**
+     * Closing the window cancels the navigation in flight, which Electron
+     * reports as a load failure. The user closing a window they just opened is
+     * not an error, so the load below needs to know it is being torn down.
+     */
+    let closing = false;
 
     window.on('close', () => {
+      closing = true;
       this.gameHandler?.detach();
       this.gameHandler = null;
     });
@@ -87,23 +75,35 @@ export class GameWindow {
       this.window = null;
     });
 
+    this.registerWindowEvents(window);
+    hardenGameSession(window);
+    await this.syncProxy(useMitm ?? false);
+
     try {
       await window.loadURL(url);
+      return { ok: true };
     } catch (err) {
       const error = err as { code?: string; errno?: number; message?: string };
-      // ERR_ABORTED happens during redirects and when the page cancels the
-      // navigation, which does not mean the load failed.
-      if (error.code === 'ERR_ABORTED' || error.errno === -3) {
-        logger.warn(`Navigation aborted for ${url}. This is normal during redirects.`);
-        return;
+      const failure = classifyLoadFailure(error, { closing, destroyed: window.isDestroyed() });
+
+      if (!failure) {
+        logger.info(
+          `Navigation to ${url} ended early: the window was closed or the page moved on.`,
+        );
+        return { ok: true };
       }
 
-      logger.error(`Failed to load game URL: ${error.message ?? 'Unknown Error'}`);
+      if (failure === 'proxy') {
+        logger.error(`The game window could not reach the MITM proxy: ${error.message}`);
+      } else {
+        logger.error(`Failed to load game URL: ${error.message ?? 'Unknown Error'}`);
+      }
+
       if (isSafeWindow(this.window)) {
         this.window.close();
       }
       this.window = null;
-      throw err;
+      return { ok: false, reason: failure };
     }
   }
 
@@ -121,11 +121,11 @@ export class GameWindow {
     if (useMitm) {
       this.gameHandler?.detach();
       this.gameHandler = null;
-      await this.useMitmProxy(window);
+      await routeThroughMitmProxy(window);
       return;
     }
 
-    await this.useDirectConnection(window);
+    await routeDirect(window);
     if (!this.gameHandler) {
       this.attachGameHandler(window);
     }
@@ -150,37 +150,6 @@ export class GameWindow {
         event.preventDefault();
       }
     });
-  }
-
-  /** Remote content gets no capability we do not explicitly need. */
-  private hardenSession(window: BrowserWindow) {
-    const gameSession = window.webContents.session;
-
-    gameSession.setPermissionRequestHandler((_contents, permission, callback) => {
-      callback(ALLOWED_PERMISSIONS.has(permission));
-    });
-    gameSession.setPermissionCheckHandler((_contents, permission) =>
-      ALLOWED_PERMISSIONS.has(permission),
-    );
-
-    blockTelemetry(gameSession);
-  }
-
-  private async useMitmProxy(window: BrowserWindow) {
-    // The proxy is always addressed over loopback, whatever the machine's
-    // network interfaces look like.
-    const proxyRules = `http://127.0.0.1:${getMitmPort()}`;
-    logger.info(`Routing game traffic through MITM proxy: ${proxyRules}`);
-
-    await window.webContents.session.setProxy({
-      proxyRules,
-      proxyBypassRules: '127.0.0.1,localhost',
-    });
-  }
-
-  /** Clears a proxy left behind by an earlier MITM run. */
-  private async useDirectConnection(window: BrowserWindow) {
-    await window.webContents.session.setProxy({ mode: 'direct' });
   }
 
   /**

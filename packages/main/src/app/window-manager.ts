@@ -4,7 +4,7 @@ import type { EngineService } from '../services/engine/engine-service.js';
 import { safeSend } from '../shared/utils.js';
 import { setupTray } from './tray.js';
 import { DashboardWindow } from './windows/dashboard-window.js';
-import type { GameWindowOptions } from './windows/game-window.js';
+import type { GameLaunchResult, GameWindowOptions } from './windows/game-launch.js';
 import { GameWindow } from './windows/game-window.js';
 import { HudWindow } from './windows/hud-window.js';
 
@@ -70,8 +70,8 @@ export class WindowManager {
     await this.hud.setVisible(show);
   }
 
-  public async createGameWindow(options: GameWindowOptions): Promise<void> {
-    await this.game.open(options);
+  public async createGameWindow(options: GameWindowOptions): Promise<GameLaunchResult> {
+    return this.game.open(options);
   }
 
   /** Re-points an open game window after the proxy settings changed. */

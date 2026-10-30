@@ -20,10 +20,13 @@ export function useLaunchGame() {
     setIsLaunching(true);
     try {
       const current = await fetchSettingsApi().catch(() => settings);
-      await startGame({
+      const result = await startGame({
         url: current.game_url,
         useMitm: current.mitm.enabled,
       });
+      if (!result.ok) {
+        notify.error(t(result.reason === 'proxy' ? 'app.launch_proxy_error' : 'app.launch_error'));
+      }
     } catch (error) {
       console.error('Failed to start game window:', error);
       notify.error(t('app.launch_error'));

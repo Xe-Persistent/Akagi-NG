@@ -112,6 +112,7 @@
     "launch_game": "ゲームを起動",
     "startup_failed": "アプリケーションの起動に失敗しました",
     "launch_error": "ゲームのURLを取得できません。設定を確認してください。",
+    "launch_proxy_error": "MITM プロキシが起動していません。再起動するか、内蔵ブラウザモードに戻してください。",
     "settings_title": "Akagi NG 設定",
     "settings_desc": "アプリケーション設定パネル",
     "standby": "待機中",

@@ -1,8 +1,9 @@
 import { X509Certificate } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import type { Session } from 'electron';
 import * as mockttp from 'mockttp';
 
 import { createLogger } from '../../logging/index.js';
@@ -72,4 +73,42 @@ async function createCertificates(certsDir: string): Promise<CertificatePaths> {
   await writeFile(cerPath, certificate.raw);
 
   return { keyPath, pemPath, cerPath };
+}
+
+/**
+ * Teaches a session to accept the TLS our own proxy re-signs.
+ *
+ * Granted explicitly rather than through the OS root store, which goes stale the
+ * moment the CA is regenerated — asking the user to re-install a certificate to
+ * play in our own window would be absurd.
+ *
+ * Only certificates this CA actually signed are accepted. One that merely claims
+ * the same issuer name falls through to Chromium's own verdict, so this cannot
+ * be used to bypass verification for anyone else.
+ */
+export async function trustOurProxy(session: Session, certsDir: string): Promise<void> {
+  try {
+    const { pemPath } = await ensureCertificates(certsDir);
+    const ca = new X509Certificate(readFileSync(pemPath));
+
+    session.setCertificateVerifyProc((request, callback) => {
+      try {
+        const leaf = new X509Certificate(request.certificate.data);
+        if (leaf.checkIssued(ca) && leaf.verify(ca.publicKey)) {
+          callback(0);
+          return;
+        }
+      } catch {
+        // Unreadable certificate: let Chromium decide.
+      }
+      callback(-3);
+    });
+  } catch (err) {
+    logger.error('Failed to trust our own CA in the session:', err);
+  }
+}
+
+/** Drops the handler `trustOurProxy` installed. */
+export function stopTrustingOurProxy(session: Session): void {
+  session.setCertificateVerifyProc(null);
 }

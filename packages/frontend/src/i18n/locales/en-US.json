@@ -112,6 +112,7 @@
     "launch_game": "Launch Game",
     "startup_failed": "Application startup failed",
     "launch_error": "Could not retrieve game URL. Please check settings.",
+    "launch_proxy_error": "MITM proxy is not running. Restart or switch back to Internal Browser mode.",
     "settings_title": "Akagi NG Settings",
     "settings_desc": "Application Configuration Panel",
     "standby": "Standby",

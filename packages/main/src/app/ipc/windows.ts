@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 
 import { isSafeWindow } from '../../shared/utils.js';
 import type { WindowManager } from '../window-manager.js';
-import type { GameWindowOptions } from '../windows/game-window.js';
+import type { GameLaunchResult, GameWindowOptions } from '../windows/game-launch.js';
 
 /** Window controls and launching the game window. */
 export function registerWindowHandlers(windowManager: WindowManager) {
@@ -11,10 +11,12 @@ export function registerWindowHandlers(windowManager: WindowManager) {
     return true;
   });
 
-  ipcMain.handle('start-game', async (_event, options: GameWindowOptions) => {
-    await windowManager.createGameWindow(options);
-    return true;
-  });
+  ipcMain.handle(
+    'start-game',
+    async (_event, options: GameWindowOptions): Promise<GameLaunchResult> => {
+      return windowManager.createGameWindow(options);
+    },
+  );
 
   ipcMain.handle('minimize-window', () => {
     windowManager.getMainWindow()?.minimize();

@@ -72,7 +72,8 @@ Core Philosophy of Akagi-NG:
   - Multi-language support - Simplified Chinese / Traditional Chinese / Japanese / English
 
 - 🤖 **AI Models**
-  - Akagi (built-in 4p / 3p models)
+  - MJOT online inference
+  - built-in 4p / 3p models
 
 ## Demo
 

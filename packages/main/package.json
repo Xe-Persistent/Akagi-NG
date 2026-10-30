@@ -69,7 +69,12 @@
     "extraFiles": [
       {
         "from": "../../assets",
-        "to": "assets"
+        "to": "assets",
+        "filter": [
+          "liqi.json",
+          "liqi.meta.json",
+          "settings.schema.json"
+        ]
       },
       {
         "from": "../../build/extra",
@@ -87,19 +92,47 @@
     "npmRebuild": false,
     "win": {
       "target": "zip",
-      "icon": "../../assets/torii.ico"
+      "icon": "../../assets/torii.ico",
+      "extraFiles": [
+        {
+          "from": "../../assets",
+          "to": "assets",
+          "filter": [
+            "torii.ico"
+          ]
+        }
+      ]
     },
     "mac": {
       "target": "dmg",
       "icon": "../../assets/torii.icns",
       "category": "public.app-category.games",
       "minimumSystemVersion": "13.0",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "extraFiles": [
+        {
+          "from": "../../assets",
+          "to": "assets",
+          "filter": [
+            "toriiTemplate.png",
+            "toriiTemplate@2x.png"
+          ]
+        }
+      ]
     },
     "linux": {
       "target": "AppImage",
       "icon": "../../assets/torii.png",
-      "executableName": "akagi-ng"
+      "executableName": "akagi-ng",
+      "extraFiles": [
+        {
+          "from": "../../assets",
+          "to": "assets",
+          "filter": [
+            "torii.png"
+          ]
+        }
+      ]
     },
     "copyright": "Copyright (C) 2026 Akagi-NG Contributors"
   }

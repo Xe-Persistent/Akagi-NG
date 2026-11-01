@@ -45,7 +45,7 @@ It is an AI-powered assistant designed for Japanese Mahjong (Riichi Mahjong), ai
 Core Philosophy of Akagi-NG:
 
 - **Modern Architecture Practices**: Fully embrace Electron, React 19 and TS 6.0, constructing a stable, smooth and high-performance system foundation with cutting-edge engineering standards.
-- **Ultimate Inference Performance**: Deeply integrate with the high-speed Rust inference engine, providing full-speed, libriichi-free inference for the built-in Akagi models.
+- **Ultimate Inference Performance**: Deeply integrate with the high-speed Rust inference engine, providing full-speed inference capabilities for Akagi AI models via native Node-API extension.
 - **Deeply Decoupled Design**: Highly decouple the decision core and interaction system, providing built-in browser mode and MITM proxy mode, flexibly adapting to various usage environments.
 
 ---
@@ -62,7 +62,7 @@ Core Philosophy of Akagi-NG:
 
 - 🀄 **Supported Modes**
   - Standard 4-player and 3-player riichi
-  - Battle of Asura (修罗之战)
+  - Battle of Asura (修羅の戦)
 
 - ✨ **Core Features**
   - Real-time hand analysis and AI discard recommendations

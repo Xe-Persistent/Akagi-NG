@@ -7,30 +7,19 @@
  * the boundary: everything between them — the kyoku window, the request, the
  * mapping and the broadcast — is the production path.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EngineService } from '../../src/services/engine/engine-service.js';
 import type { RecommendationData } from '../../src/services/engine/recommendation-mapper.js';
-import {
-  clearApiKey,
-  resetSecretCache,
-  writeApiKey,
-} from '../../src/services/online/secret-store.js';
+import { engineStatus } from '../../src/services/engine-status.js';
+import { clearApiKey, writeApiKey } from '../../src/services/online/secret-store.js';
 import { getSettingsManager } from '../../src/services/settings-manager.js';
 import type { MJAIEvent } from '../../src/shared/schema/mjai.js';
-import { messagesOn, resetSentMessages, testPaths } from '../electron-stub.js';
+import { messagesOn, resetSentMessages } from '../electron-stub.js';
+import { useTempProjectRootForFile } from '../project-root.js';
 
-const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
-const schema = readFileSync(join(repoRoot, 'assets', 'settings.schema.json'), 'utf8');
 const SEAT = 1;
 const DEFAULT_HAND = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', '4p'];
-
-let workDir: string;
 
 function startKyoku(hand: string[] = DEFAULT_HAND): MJAIEvent {
   return {
@@ -114,22 +103,12 @@ function published(): RecommendationData | undefined {
 }
 
 describe('the online decision inside the engine', () => {
-  beforeAll(() => {
-    workDir = mkdtempSync(join(tmpdir(), 'akagi-online-'));
-    mkdirSync(join(workDir, 'assets'));
-    mkdirSync(join(workDir, 'config'));
-    writeFileSync(join(workDir, 'assets', 'settings.schema.json'), schema);
-    testPaths.projectRoot = workDir;
-  });
-
-  afterAll(() => {
-    testPaths.projectRoot = repoRoot;
-    rmSync(workDir, { recursive: true, force: true });
-  });
+  // The settings store resolves its directory once, so this root has to last
+  // for the whole file rather than for a single test.
+  useTempProjectRootForFile('akagi-online');
 
   beforeEach(() => {
     resetSentMessages();
-    resetSecretCache();
     getSettingsManager().updateSettings({ ot: { online: false } } as never);
   });
 
@@ -380,5 +359,39 @@ describe('the online decision inside the engine', () => {
       { tile: '9p', confidence: 0.6 },
       { tile: '1m', confidence: 0.4 },
     ]);
+  });
+
+  /**
+   * Which model answers, and how quickly the status says so. The online switch
+   * and the stored key are two separate edits, both of which change the answer
+   * without a new game: the badge has to follow them immediately, not at the
+   * next deal.
+   */
+  describe('naming the model that answers', () => {
+    it('needs both the switch and a stored key, and follows either edit', () => {
+      engineStatus.reset();
+      const engine = new EngineService();
+
+      try {
+        engine.clientConnected();
+        expect(engineStatus.get().inference).toBe('local');
+
+        const settings = getSettingsManager();
+        settings.updateSettings({ ot: { ...settings.getSettings().ot, online: true } });
+        engine.refreshInferenceSource();
+        // The switch alone is not enough.
+        expect(engineStatus.get().inference).toBe('local');
+
+        writeApiKey('sk-test-key');
+        engine.refreshInferenceSource();
+        expect(engineStatus.get().inference).toBe('mjot');
+
+        clearApiKey();
+        engine.refreshInferenceSource();
+        expect(engineStatus.get().inference).toBe('local');
+      } finally {
+        engine.stop();
+      }
+    });
   });
 });

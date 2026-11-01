@@ -28,6 +28,21 @@ export default defineConfig({
       // `preload.cts` runs inside Electron's contextBridge and cannot be loaded
       // under Node; the coverage parser cannot even read it.
       exclude: ['**/*.d.ts', '**/test/**', 'packages/main/src/preload.cts'],
+      /**
+       * A floor, not a target. Each number sits about a point under what the
+       * suite actually reaches, so an honest refactor that shifts a branch
+       * around does not fail the build while deleting a test does.
+       *
+       * Aggregate rather than per file: a file that is legitimately hard to
+       * reach under Node (the renderer's React tree) would fail on its own and
+       * teach everyone to ignore the check.
+       */
+      thresholds: {
+        statements: 67,
+        branches: 60,
+        functions: 59,
+        lines: 68,
+      },
     },
     projects: [
       {

@@ -1,9 +1,7 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   readApiKey,
@@ -12,34 +10,10 @@ import {
 } from '../../src/services/online/secret-store.js';
 import { SettingsManager } from '../../src/services/settings-manager.js';
 import { getGameUrl, MAJSOUL_SERVERS } from '../../src/shared/schema/platforms.js';
-import { testPaths } from '../electron-stub.js';
-
-const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
-const schema = readFileSync(join(repoRoot, 'assets', 'settings.schema.json'), 'utf8');
-
-let workDir: string;
-
-/** A throw-away project root: the store writes into its `config/`. */
-function makeProjectRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'akagi-settings-'));
-  mkdirSync(join(dir, 'assets'));
-  mkdirSync(join(dir, 'config'));
-  writeFileSync(join(dir, 'assets', 'settings.schema.json'), schema);
-  return dir;
-}
+import { useTempProjectRoot } from '../project-root.js';
 
 describe('the settings store', () => {
-  beforeEach(() => {
-    workDir = makeProjectRoot();
-    testPaths.projectRoot = workDir;
-    resetSecretCache();
-  });
-
-  afterEach(() => {
-    testPaths.projectRoot = repoRoot;
-    resetSecretCache();
-    rmSync(workDir, { recursive: true, force: true });
-  });
+  const workDir = useTempProjectRoot('akagi-settings');
 
   it('starts from the defaults the schema defines', () => {
     const settings = new SettingsManager().getSettings();
@@ -148,12 +122,12 @@ describe('the settings store', () => {
   });
 
   it('backs up a file the schema rejects and rebuilds the defaults', () => {
-    writeFileSync(join(workDir, 'config', 'settings.json'), '{"log_level":"nonsense"}');
+    writeFileSync(join(workDir(), 'config', 'settings.json'), '{"log_level":"nonsense"}');
 
     const settings = new SettingsManager().getSettings();
 
     expect(settings.log_level).toBe('info');
-    expect(readFileSync(join(workDir, 'config', 'settings.json.bak'), 'utf8')).toContain(
+    expect(readFileSync(join(workDir(), 'config', 'settings.json.bak'), 'utf8')).toContain(
       'nonsense',
     );
   });

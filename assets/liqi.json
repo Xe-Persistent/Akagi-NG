@@ -416,6 +416,11 @@
             "activity_buff": {
               "type": "AccountActivityUpdate.ActivityBuffDataArrayDirty",
               "id": 23
+            },
+            "work_shop_data": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 24,
+              "rule": "repeated"
             }
           },
           "nested": {
@@ -3945,6 +3950,211 @@
             "wait_zone_level": {
               "type": "UInt32Dirty",
               "id": 4
+            }
+          }
+        },
+        "ActivityMajWorkshopChanges": {
+          "fields": {
+            "game": {
+              "type": "ActivityMajWorkshopGameDataChanges",
+              "id": 1
+            },
+            "illustrated_book": {
+              "type": "ActivityMajWorkshopIllustratedBookChanges",
+              "id": 2
+            },
+            "activity_id": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ActivityMajWorkshopCraft": {
+          "fields": {
+            "id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "count": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ActivityMajWorkshopCraftArrayDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "type": "ActivityMajWorkshopCraft",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ActivityMajWorkshopData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "game": {
+              "type": "ActivityMajWorkshopGameData",
+              "id": 2
+            },
+            "illustrated_book": {
+              "type": "ActivityMajWorkshopIllustratedBook",
+              "id": 3
+            }
+          }
+        },
+        "ActivityMajWorkshopGameData": {
+          "fields": {
+            "level": {
+              "type": "uint32",
+              "id": 1
+            },
+            "sell_bouns_count": {
+              "type": "uint32",
+              "id": 2
+            },
+            "crafts": {
+              "type": "ActivityMajWorkshopCraft",
+              "id": 3,
+              "rule": "repeated"
+            },
+            "gardens": {
+              "type": "ActivityMajWorkshopGarden",
+              "id": 4,
+              "rule": "repeated"
+            },
+            "orders": {
+              "type": "ActivityMajWorkshopOrder",
+              "id": 5,
+              "rule": "repeated"
+            },
+            "last_sell_bouns_time": {
+              "type": "uint32",
+              "id": 7
+            },
+            "understood_order_ids": {
+              "type": "uint32",
+              "id": 8,
+              "rule": "repeated"
+            },
+            "selected_order_id": {
+              "type": "uint32",
+              "id": 9
+            }
+          }
+        },
+        "ActivityMajWorkshopGameDataChanges": {
+          "fields": {
+            "level": {
+              "type": "UInt32Dirty",
+              "id": 1
+            },
+            "sell_bouns_count": {
+              "type": "UInt32Dirty",
+              "id": 2
+            },
+            "crafts": {
+              "type": "ActivityMajWorkshopCraftArrayDirty",
+              "id": 3
+            },
+            "gardens": {
+              "type": "ActivityMajWorkshopGardenArrayDirty",
+              "id": 4
+            },
+            "orders": {
+              "type": "ActivityMajWorkshopOrderArrayDirty",
+              "id": 5
+            },
+            "selected_order_id": {
+              "type": "UInt32Dirty",
+              "id": 6
+            }
+          }
+        },
+        "ActivityMajWorkshopGarden": {
+          "fields": {
+            "id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "last_collected_time": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ActivityMajWorkshopGardenArrayDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "type": "ActivityMajWorkshopGarden",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ActivityMajWorkshopIllustratedBook": {
+          "fields": {
+            "unlocked_craft_id": {
+              "type": "uint32",
+              "id": 1,
+              "rule": "repeated"
+            },
+            "have_read_craft_id": {
+              "type": "uint32",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ActivityMajWorkshopIllustratedBookChanges": {
+          "fields": {
+            "unlocked_craft_id": {
+              "type": "UInt32ArrayDirty",
+              "id": 1
+            },
+            "have_read_craft_id": {
+              "type": "UInt32ArrayDirty",
+              "id": 2
+            }
+          }
+        },
+        "ActivityMajWorkshopOrder": {
+          "fields": {
+            "order_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "id": {
+              "type": "uint32",
+              "id": 2
+            },
+            "understood": {
+              "type": "bool",
+              "id": 3
+            }
+          }
+        },
+        "ActivityMajWorkshopOrderArrayDirty": {
+          "fields": {
+            "dirty": {
+              "type": "bool",
+              "id": 1
+            },
+            "value": {
+              "type": "ActivityMajWorkshopOrder",
+              "id": 2,
+              "rule": "repeated"
             }
           }
         },
@@ -10416,6 +10626,10 @@
               "requestType": "ReqSetHiddenCharacter",
               "responseType": "ResSetHiddenCharacter"
             },
+            "setHiddenHandsView": {
+              "requestType": "ReqSetHiddenHandsView",
+              "responseType": "ResSetHiddenHandsView"
+            },
             "sendGiftToCharacter": {
               "requestType": "ReqSendGiftToCharacter",
               "responseType": "ResSendGiftToCharacter"
@@ -11555,6 +11769,50 @@
             "fetchRechargeInfo": {
               "requestType": "ReqCommon",
               "responseType": "ResFetchRechargeInfo"
+            },
+            "majWorkshopActivityFetchData": {
+              "requestType": "ReqMajWorkshopActivityFetchData",
+              "responseType": "ResMajWorkshopActivityFetchData"
+            },
+            "majWorkshopActivityCollect": {
+              "requestType": "ReqMajWorkshopActivityCollect",
+              "responseType": "ResMajWorkshopActivityCollect"
+            },
+            "majWorkshopActivityGardenRestore": {
+              "requestType": "ReqMajWorkshopActivityGardenRestore",
+              "responseType": "ResMajWorkshopActivityGardenRestore"
+            },
+            "majWorkshopActivityCraft": {
+              "requestType": "ReqMajWorkshopActivityCraft",
+              "responseType": "ResMajWorkshopActivityCraft"
+            },
+            "majWorkshopActivityRecovery": {
+              "requestType": "ReqMajWorkshopActivityRecovery",
+              "responseType": "ResMajWorkshopActivityRecovery"
+            },
+            "majWorkshopActivitySubmitOrder": {
+              "requestType": "ReqMajWorkshopActivitySubmitOrder",
+              "responseType": "ResMajWorkshopActivitySubmitOrder"
+            },
+            "majWorkshopActivityUnderstandOrder": {
+              "requestType": "ReqMajWorkshopActivityUnderstandOrder",
+              "responseType": "ResMajWorkshopActivityUnderstandOrder"
+            },
+            "majWorkshopActivityRead": {
+              "requestType": "ReqMajWorkshopActivityRead",
+              "responseType": "ResMajWorkshopActivityRead"
+            },
+            "majWorkshopActivityQuickCraft": {
+              "requestType": "ReqMajWorkshopActivityQuickCraft",
+              "responseType": "ResMajWorkshopActivityQuickCraft"
+            },
+            "majWorkshopActivitySetSelectedOrder": {
+              "requestType": "ReqMajWorkshopActivitySetSelectedOrder",
+              "responseType": "ResMajWorkshopActivitySetSelectedOrder"
+            },
+            "majWorkshopActivityGardenRestoreAndCollect": {
+              "requestType": "ReqMajWorkshopActivityGardenRestoreAndCollect",
+              "responseType": "ResMajWorkshopActivityGardenRestoreAndCollect"
             }
           }
         },
@@ -18404,6 +18662,193 @@
             }
           }
         },
+        "ReqMajWorkshopActivityCollect": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "garden_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ReqMajWorkshopActivityCraft": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "crafts": {
+              "type": "uint32",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ReqMajWorkshopActivityFetchData": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            }
+          }
+        },
+        "ReqMajWorkshopActivityGardenRestore": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "garden_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ReqMajWorkshopActivityGardenRestoreAndCollect": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "garden_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ReqMajWorkshopActivityQuickCraft": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "target_craft_id": {
+              "type": "uint32",
+              "id": 2
+            },
+            "garden_collects": {
+              "type": "ReqMajWorkshopActivityQuickCraft.ActivityMajWorkshopGardenCollect",
+              "id": 3,
+              "rule": "repeated"
+            },
+            "craft_steps": {
+              "type": "ReqMajWorkshopActivityQuickCraft.ActivityMajWorkshopCraftStep",
+              "id": 4,
+              "rule": "repeated"
+            }
+          },
+          "nested": {
+            "ActivityMajWorkshopCraftStep": {
+              "fields": {
+                "input": {
+                  "type": "ReqMajWorkshopActivityQuickCraft.CraftInput",
+                  "id": 1,
+                  "rule": "repeated"
+                },
+                "output_craft_id": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            },
+            "ActivityMajWorkshopGardenCollect": {
+              "fields": {
+                "garden_id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "use_free_collect": {
+                  "type": "bool",
+                  "id": 2
+                },
+                "cost": {
+                  "type": "uint32",
+                  "id": 3
+                }
+              }
+            },
+            "CraftInput": {
+              "fields": {
+                "craft_id": {
+                  "type": "uint32",
+                  "id": 1
+                },
+                "from": {
+                  "type": "uint32",
+                  "id": 2
+                }
+              }
+            }
+          }
+        },
+        "ReqMajWorkshopActivityRead": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "craft_id_list": {
+              "type": "uint32",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ReqMajWorkshopActivityRecovery": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "craft_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ReqMajWorkshopActivitySetSelectedOrder": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
+        "ReqMajWorkshopActivitySubmitOrder": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "order_id": {
+              "type": "uint32",
+              "id": 2
+            },
+            "craft_id": {
+              "type": "uint32",
+              "id": 3
+            }
+          }
+        },
+        "ReqMajWorkshopActivityUnderstandOrder": {
+          "fields": {
+            "activity_id": {
+              "type": "uint32",
+              "id": 1
+            },
+            "order_id": {
+              "type": "uint32",
+              "id": 2
+            }
+          }
+        },
         "ReqMarathonActivityFinishRace": {
           "fields": {
             "activity_id": {
@@ -19522,6 +19967,15 @@
         "ReqSetHiddenCharacter": {
           "fields": {
             "chara_list": {
+              "type": "uint32",
+              "id": 1,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ReqSetHiddenHandsView": {
+          "fields": {
+            "hidden_hands_view": {
               "type": "uint32",
               "id": 1,
               "rule": "repeated"
@@ -21240,6 +21694,11 @@
             "other_character_sort": {
               "type": "uint32",
               "id": 11,
+              "rule": "repeated"
+            },
+            "hidden_hands_view": {
+              "type": "uint32",
+              "id": 12,
               "rule": "repeated"
             }
           }
@@ -24785,6 +25244,160 @@
             }
           }
         },
+        "ResMajWorkshopActivityCollect": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityCraft": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            },
+            "greate_craft_id": {
+              "type": "uint32",
+              "id": 3
+            },
+            "greate_success": {
+              "type": "bool",
+              "id": 4
+            },
+            "greate_success_craft": {
+              "type": "uint32",
+              "id": 5,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ResMajWorkshopActivityFetchData": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "data": {
+              "type": "ActivityMajWorkshopData",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityGardenRestore": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityGardenRestoreAndCollect": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityQuickCraft": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityRead": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivityRecovery": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            },
+            "extra_reward": {
+              "type": "ExecuteReward",
+              "id": 3,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ResMajWorkshopActivitySetSelectedOrder": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
+        "ResMajWorkshopActivitySubmitOrder": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "success": {
+              "type": "bool",
+              "id": 2
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 3
+            }
+          }
+        },
+        "ResMajWorkshopActivityUnderstandOrder": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "changes": {
+              "type": "ActivityMajWorkshopChanges",
+              "id": 2
+            }
+          }
+        },
         "ResMarathonActivityFinishRace": {
           "fields": {
             "error": {
@@ -25983,6 +26596,19 @@
               "id": 1
             },
             "hidden_characters": {
+              "type": "uint32",
+              "id": 2,
+              "rule": "repeated"
+            }
+          }
+        },
+        "ResSetHiddenHandsView": {
+          "fields": {
+            "error": {
+              "type": "Error",
+              "id": 1
+            },
+            "hidden_hands_view": {
               "type": "uint32",
               "id": 2,
               "rule": "repeated"
@@ -27867,6 +28493,22 @@
             "fu_zimo": {
               "type": "uint32",
               "id": 9
+            },
+            "dora_count": {
+              "type": "uint32",
+              "id": 10
+            },
+            "li_dora_count": {
+              "type": "uint32",
+              "id": 11
+            },
+            "red_dora_count": {
+              "type": "uint32",
+              "id": 12
+            },
+            "ying_count": {
+              "type": "uint32",
+              "id": 13
             }
           }
         },
